@@ -105,16 +105,8 @@ export default function USMap({ onStateClick }: USMapProps) {
       return "#e55c2b"; // Theme orange color
     }
     
-    if (!stateData || !stateData.isEligible) {
-      return "#e5e7eb"; // Gray for not eligible
-    }
-    // Color based on loan volume
-    const volume = stateData.loanVolume;
-    if (volume >= 50) return "#1e40af"; // Dark blue for high volume
-    if (volume >= 20) return "#2563eb"; // Medium blue
-    if (volume >= 10) return "#3b82f6"; // Blue
-    if (volume >= 5) return "#60a5fa"; // Light blue
-    return "#93c5fd"; // Very light blue for low volume
+    // All states are grey by default
+    return "#d1d5db";
   };
 
   return (
@@ -165,47 +157,22 @@ export default function USMap({ onStateClick }: USMapProps) {
             {hoveredState.name}
           </div>
           {hoveredState.isEligible ? (
-            <>
-              <div className="text-[#e55c2b] text-xs font-medium">
-                Licensed Lender
+            <div className="flex flex-col gap-0.5 mt-1">
+              <div className="text-gray-600 dark:text-gray-300 text-xs">
+                Loans Closed: <span className="font-semibold">{hoveredState.loansClosed}</span>
               </div>
-              <div className="flex flex-col gap-0.5 mt-1">
-                <div className="text-gray-600 dark:text-gray-300 text-xs">
-                  Loans Closed: <span className="font-semibold">{hoveredState.loansClosed}</span>
-                </div>
-                <div className="text-gray-600 dark:text-gray-300 text-xs">
-                  Loan Volume: <span className="font-semibold">{formatLoanVolume(hoveredState.loanVolume)}</span>
-                </div>
+              <div className="text-gray-600 dark:text-gray-300 text-xs">
+                Loan Volume: <span className="font-semibold">{formatLoanVolume(hoveredState.loanVolume)}</span>
               </div>
-            </>
+            </div>
           ) : (
-            <div className="text-gray-500 dark:text-gray-400 text-xs">
+            <div className="text-gray-500 dark:text-gray-400 text-xs mt-1">
               Coming Soon
             </div>
           )}
         </div>
       )}
 
-      {/* Legend */}
-      <div className="absolute bottom-2 right-2 bg-white/90 dark:bg-gray-800/90 rounded-lg p-2 text-xs" data-testid="map-legend">
-        <div className="font-semibold mb-1 text-gray-700 dark:text-gray-200">Loan Volume</div>
-        <div className="flex items-center gap-1 mb-0.5">
-          <div className="w-3 h-3 rounded" style={{ backgroundColor: '#1e40af' }}></div>
-          <span className="text-gray-600 dark:text-gray-300">$50M+</span>
-        </div>
-        <div className="flex items-center gap-1 mb-0.5">
-          <div className="w-3 h-3 rounded" style={{ backgroundColor: '#3b82f6' }}></div>
-          <span className="text-gray-600 dark:text-gray-300">$10-50M</span>
-        </div>
-        <div className="flex items-center gap-1 mb-0.5">
-          <div className="w-3 h-3 rounded" style={{ backgroundColor: '#93c5fd' }}></div>
-          <span className="text-gray-600 dark:text-gray-300">&lt;$10M</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded" style={{ backgroundColor: '#e5e7eb' }}></div>
-          <span className="text-gray-600 dark:text-gray-300">Coming Soon</span>
-        </div>
-      </div>
     </div>
   );
 }
