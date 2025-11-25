@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
+import logoIcon from "@assets/ChatGPT Image Jun 25, 2025, 12_32_43 PM_1764028581255.png";
 
 export function Navigation() {
   const [location] = useLocation();
@@ -35,6 +36,11 @@ export function Navigation() {
         <div className="flex items-center justify-between h-20">
           <Link href="/" data-testid="link-home">
             <div className="flex items-center gap-2 cursor-pointer hover-elevate active-elevate-2 px-2 py-1 rounded-md -ml-2">
+              <img 
+                src={logoIcon} 
+                alt="SAF" 
+                className="h-10 w-10 object-contain"
+              />
               <span className={`font-bold text-xl hidden sm:inline ${isScrolled ? "text-foreground" : "text-white"}`}>
                 Secured Asset Funding
               </span>
