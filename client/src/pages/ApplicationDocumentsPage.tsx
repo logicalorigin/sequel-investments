@@ -1,10 +1,10 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useParams } from "wouter";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -23,10 +23,10 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ObjectUploader } from "@/components/ObjectUploader";
 import { 
   ArrowLeft,
   Building2,
@@ -59,10 +59,10 @@ export default function ApplicationDocumentsPage() {
   const { toast } = useToast();
   const params = useParams<{ id: string }>();
   const applicationId = params.id;
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedDoc, setSelectedDoc] = useState<DocumentWithType | null>(null);
   const [commentDialogOpen, setCommentDialogOpen] = useState(false);
   const [comment, setComment] = useState("");
+  const [uploadingDocId, setUploadingDocId] = useState<string | null>(null);
 
   useEffect(() => {
     document.title = "Document Checklist | Secured Asset Funding";
@@ -115,33 +115,60 @@ export default function ApplicationDocumentsPage() {
     },
   });
 
-  const handleFileUpload = async (doc: DocumentWithType, file: File) => {
-    const formData = new FormData();
-    formData.append("file", file);
-    
-    updateDocumentMutation.mutate({
-      docId: doc.id,
-      data: {
-        status: "uploaded",
-        fileName: file.name,
-        fileSize: file.size,
-        mimeType: file.type,
-        uploadedAt: new Date(),
-      },
-    });
+  const updateDocumentFileMutation = useMutation({
+    mutationFn: async ({ docId, uploadURL, fileName, fileSize, mimeType }: { 
+      docId: string; 
+      uploadURL: string;
+      fileName: string;
+      fileSize: number;
+      mimeType: string;
+    }) => {
+      const res = await apiRequest("PUT", `/api/documents/${docId}/file`, {
+        uploadURL,
+        fileName,
+        fileSize,
+        mimeType,
+      });
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/applications", applicationId, "documents"] });
+      toast({
+        title: "Document uploaded",
+        description: "Your file has been successfully uploaded.",
+      });
+      setUploadingDocId(null);
+    },
+    onError: () => {
+      toast({
+        title: "Upload failed",
+        description: "Failed to upload document. Please try again.",
+        variant: "destructive",
+      });
+      setUploadingDocId(null);
+    },
+  });
+
+  const getUploadParameters = async () => {
+    const res = await apiRequest("POST", "/api/objects/upload", {});
+    const data = await res.json();
+    return {
+      method: "PUT" as const,
+      url: data.uploadURL,
+    };
   };
 
-  const handleAttachClick = (doc: DocumentWithType) => {
-    setSelectedDoc(doc);
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && selectedDoc) {
-      handleFileUpload(selectedDoc, file);
+  const handleUploadComplete = (doc: DocumentWithType) => (result: any) => {
+    const uploadedFile = result.successful?.[0];
+    if (uploadedFile) {
+      updateDocumentFileMutation.mutate({
+        docId: doc.id,
+        uploadURL: uploadedFile.uploadURL,
+        fileName: uploadedFile.name || "document",
+        fileSize: uploadedFile.size || 0,
+        mimeType: uploadedFile.type || "application/octet-stream",
+      });
     }
-    e.target.value = "";
   };
 
   const handleCommentSave = () => {
@@ -191,13 +218,6 @@ export default function ApplicationDocumentsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <input
-        type="file"
-        ref={fileInputRef}
-        className="hidden"
-        onChange={handleFileChange}
-        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-      />
 
       <header className="border-b bg-card sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
@@ -331,15 +351,17 @@ export default function ApplicationDocumentsPage() {
                               </div>
                             </TableCell>
                             <TableCell className="text-right">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleAttachClick(doc)}
-                                disabled={updateDocumentMutation.isPending}
-                                data-testid={`button-attach-${doc.id}`}
+                              <ObjectUploader
+                                maxNumberOfFiles={1}
+                                maxFileSize={10485760}
+                                onGetUploadParameters={getUploadParameters}
+                                onComplete={handleUploadComplete(doc)}
+                                buttonVariant="outline"
+                                buttonSize="sm"
                               >
+                                <Upload className="h-4 w-4 mr-1" />
                                 Attach
-                              </Button>
+                              </ObjectUploader>
                             </TableCell>
                           </TableRow>
                         );
