@@ -22,7 +22,7 @@ import {
   Building,
   ArrowRight
 } from "lucide-react";
-import dscrImage from "@assets/generated_images/DSCR_loan_rental_property_4c761fb2.png";
+import dscrImage from "@assets/generated_images/cabin_vacation_rental_property.png";
 import { useToast } from "@/hooks/use-toast";
 
 export default function DSCRLoansPage() {
