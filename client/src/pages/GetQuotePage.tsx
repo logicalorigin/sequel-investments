@@ -1,52 +1,89 @@
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Navigation } from "@/components/Navigation";
-import { Footer } from "@/components/Footer";
+import { Textarea } from "@/components/ui/textarea";
 import { 
   Home, 
-  TrendingUp, 
+  Hammer, 
   Building2,
   ArrowRight,
   ArrowLeft,
   CheckCircle2,
-  Phone,
-  Mail,
-  User
+  FileText,
+  MapPin,
+  Target,
+  User,
+  Send,
+  Check
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import logoIcon from "@assets/ChatGPT Image Jun 25, 2025, 12_32_43 PM_1764028581255.png";
+import { Link } from "wouter";
 
 type LoanType = "dscr" | "fix-flip" | "construction" | "";
-type Step = 1 | 2 | 3 | 4;
+type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
 interface FormData {
   loanType: LoanType;
-  propertyValue: string;
-  propertyLocation: string;
+  loanPurpose: string;
+  propertyIdentified: string;
+  closingTimeframe: string;
+  propertyType: string;
+  propertyAddress: string;
+  propertyCity: string;
+  propertyState: string;
+  propertyZip: string;
+  purchasePrice: string;
+  rehabBudget: string;
+  afterRepairValue: string;
   investmentExperience: string;
-  name: string;
+  exitStrategy: string;
+  entityType: string;
+  firstName: string;
+  lastName: string;
   email: string;
   phone: string;
+  additionalNotes: string;
 }
+
+const steps = [
+  { number: 1, label: "Loan Product", icon: FileText },
+  { number: 2, label: "Deal Intro", icon: Target },
+  { number: 3, label: "Property Info", icon: MapPin },
+  { number: 4, label: "Strategy", icon: Target },
+  { number: 5, label: "Borrower Info", icon: User },
+  { number: 6, label: "Submit App", icon: Send },
+];
 
 export default function GetQuotePage() {
   const { toast } = useToast();
   const [step, setStep] = useState<Step>(1);
   const [formData, setFormData] = useState<FormData>({
     loanType: "",
-    propertyValue: "",
-    propertyLocation: "",
+    loanPurpose: "",
+    propertyIdentified: "",
+    closingTimeframe: "",
+    propertyType: "",
+    propertyAddress: "",
+    propertyCity: "",
+    propertyState: "",
+    propertyZip: "",
+    purchasePrice: "",
+    rehabBudget: "",
+    afterRepairValue: "",
     investmentExperience: "",
-    name: "",
+    exitStrategy: "",
+    entityType: "",
+    firstName: "",
+    lastName: "",
     email: "",
     phone: "",
+    additionalNotes: "",
   });
 
   const createLeadMutation = useMutation({
@@ -54,7 +91,7 @@ export default function GetQuotePage() {
       return await apiRequest("POST", "/api/leads", data);
     },
     onSuccess: () => {
-      setStep(4);
+      setStep(7);
     },
     onError: (error: any) => {
       let errorMessage = "Failed to submit. Please try again.";
@@ -73,37 +110,59 @@ export default function GetQuotePage() {
     setFormData({ ...formData, loanType: type });
   };
 
+  const validateStep = (): boolean => {
+    switch (step) {
+      case 1:
+        if (!formData.loanType) {
+          toast({ title: "Please select a loan product", variant: "destructive" });
+          return false;
+        }
+        return true;
+      case 2:
+        if (!formData.loanPurpose || !formData.propertyIdentified) {
+          toast({ title: "Please complete all required fields", variant: "destructive" });
+          return false;
+        }
+        return true;
+      case 3:
+        if (!formData.propertyType || !formData.propertyCity || !formData.propertyState || !formData.purchasePrice) {
+          toast({ title: "Please complete all required fields", variant: "destructive" });
+          return false;
+        }
+        return true;
+      case 4:
+        if (!formData.investmentExperience) {
+          toast({ title: "Please select your experience level", variant: "destructive" });
+          return false;
+        }
+        return true;
+      case 5:
+        if (!formData.firstName || !formData.lastName || !formData.email || !formData.phone) {
+          toast({ title: "Please complete all required fields", variant: "destructive" });
+          return false;
+        }
+        return true;
+      default:
+        return true;
+    }
+  };
+
   const handleNextStep = () => {
-    if (step === 1 && !formData.loanType) {
-      toast({
-        title: "Please select a loan type",
-        description: "Choose the type of financing you're looking for.",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (step === 2 && (!formData.propertyValue || !formData.propertyLocation)) {
-      toast({
-        title: "Please complete all fields",
-        description: "Property value and location are required.",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (step < 3) {
+    if (validateStep() && step < 6) {
       setStep((step + 1) as Step);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handlePrevStep = () => {
+    if (step > 1) {
+      setStep((step - 1) as Step);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
   const handleSubmit = () => {
-    if (!formData.name || !formData.email || !formData.phone) {
-      toast({
-        title: "Please complete all fields",
-        description: "Name, email, and phone are required.",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (!validateStep()) return;
 
     const loanTypeMap: Record<LoanType, string> = {
       dscr: "DSCR",
@@ -112,354 +171,755 @@ export default function GetQuotePage() {
       "": "Other",
     };
 
+    const location = [formData.propertyCity, formData.propertyState].filter(Boolean).join(", ");
+
     createLeadMutation.mutate({
-      name: formData.name,
+      name: `${formData.firstName} ${formData.lastName}`,
       email: formData.email,
       phone: formData.phone,
       loanType: loanTypeMap[formData.loanType],
-      propertyLocation: formData.propertyLocation,
-      propertyValue: formData.propertyValue,
+      propertyLocation: location,
+      propertyValue: formData.purchasePrice,
       investmentExperience: formData.investmentExperience,
+      message: formData.additionalNotes || undefined,
     });
   };
 
-  const loanTypes = [
-    {
-      id: "dscr" as LoanType,
-      icon: Home,
-      title: "DSCR Rental Loan",
-      description: "Financing for rental properties",
-      features: ["5.75%+ rates", "Up to 80% LTV", "30-year terms"],
-    },
-    {
-      id: "fix-flip" as LoanType,
-      icon: TrendingUp,
-      title: "Fix & Flip Loan",
-      description: "Short-term financing for flip projects",
-      features: ["8.90%+ rates", "Up to 90% LTC", "48-hr closing"],
-    },
+  const loanProducts = [
     {
       id: "construction" as LoanType,
       icon: Building2,
-      title: "New Construction",
-      description: "Ground-up construction financing",
-      features: ["9.90%+ rates", "Up to 82.5% LTC", "48-hr draws"],
+      title: "SAFBUILD",
+      subtitle: "Ground Up Construction Loan",
+      features: [
+        "Ground Up Construction or Additions",
+        "Minimum Cash to Close",
+        "No Junk Fees",
+        "No Prepayment Penalty",
+        "48 Hour Draw Funding",
+        "48 Hour Closings",
+      ],
+    },
+    {
+      id: "fix-flip" as LoanType,
+      icon: Hammer,
+      title: "SAFFIX",
+      subtitle: "Bridge/Fix and Flip Loan",
+      features: [
+        "Minimum Cash to Close",
+        "No Appraisal Required",
+        "No Junk Fees",
+        "No Prepayment Penalty",
+        "$ for Renovation",
+        "48 Hour Draw Funding",
+        "48 Hour Closings",
+      ],
+    },
+    {
+      id: "dscr" as LoanType,
+      icon: Home,
+      title: "SAFRENT",
+      subtitle: "Rental Loan",
+      features: [
+        "No Minimum DSCR",
+        "STR: Qualify on 100% AirDNA",
+        "Multifamily up to 10 Units",
+        "Mixed Use up to 8 Units",
+        "Term Sheet in 24 Hours",
+        "85% LTV / 75% LTV (Cash-Out)",
+      ],
     },
   ];
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navigation />
-
-      <section className="pt-28 pb-20">
-        <div className="max-w-3xl mx-auto px-6">
-          <div className="text-center mb-8">
-            <img 
-              src={logoIcon} 
-              alt="SAF" 
-              className="h-12 w-12 object-contain mx-auto mb-4"
-            />
-            <h1 className="text-3xl md:text-4xl font-bold mb-2">Get Your Personalized Rate</h1>
-            <p className="text-muted-foreground">
-              Answer a few questions to see your financing options
-            </p>
-          </div>
-
-          <div className="flex justify-center mb-8">
-            <div className="flex items-center gap-2">
-              {[1, 2, 3].map((s) => (
-                <div key={s} className="flex items-center">
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                      step >= s
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground"
-                    }`}
-                  >
-                    {step > s ? <CheckCircle2 className="h-5 w-5" /> : s}
-                  </div>
-                  {s < 3 && (
-                    <div
-                      className={`w-12 h-1 mx-1 ${
-                        step > s ? "bg-primary" : "bg-muted"
-                      }`}
-                    />
-                  )}
-                </div>
-              ))}
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <header className="border-b border-white/10 bg-black/20 backdrop-blur-sm">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+          <Link href="/" data-testid="link-logo-home">
+            <div className="flex items-center gap-2 cursor-pointer">
+              <img src={logoIcon} alt="SAF" className="h-10 w-10 object-contain" />
+              <span className="font-bold text-xl text-white hidden sm:inline">Secured Asset Funding</span>
             </div>
-          </div>
+          </Link>
+          <Link href="/" data-testid="link-close">
+            <Button variant="ghost" className="text-white/70 hover:text-white">
+              Close
+            </Button>
+          </Link>
+        </div>
+      </header>
 
-          {step === 1 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>What type of financing are you looking for?</CardTitle>
-                <CardDescription>
-                  Select the loan product that best fits your investment strategy
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {loanTypes.map((loan) => (
-                  <div
-                    key={loan.id}
-                    className={`p-4 border rounded-lg cursor-pointer transition-all hover-elevate ${
-                      formData.loanType === loan.id
-                        ? "border-primary bg-primary/5"
-                        : "border-border"
-                    }`}
-                    onClick={() => handleLoanTypeSelect(loan.id)}
-                    data-testid={`option-loan-${loan.id}`}
-                  >
-                    <div className="flex items-start gap-4">
-                      <div className={`p-2 rounded-lg ${
-                        formData.loanType === loan.id ? "bg-primary/10" : "bg-muted"
-                      }`}>
-                        <loan.icon className={`h-6 w-6 ${
-                          formData.loanType === loan.id ? "text-primary" : "text-muted-foreground"
-                        }`} />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-semibold mb-1">{loan.title}</h3>
-                        <p className="text-sm text-muted-foreground mb-2">{loan.description}</p>
-                        <div className="flex flex-wrap gap-2">
-                          {loan.features.map((feature) => (
-                            <span
-                              key={feature}
-                              className="text-xs bg-muted px-2 py-1 rounded"
-                            >
-                              {feature}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                        formData.loanType === loan.id
-                          ? "border-primary bg-primary"
-                          : "border-muted-foreground"
-                      }`}>
-                        {formData.loanType === loan.id && (
-                          <div className="w-2 h-2 rounded-full bg-primary-foreground" />
-                        )}
-                      </div>
+      <div className="max-w-6xl mx-auto px-6 py-8">
+        <div className="flex justify-center mb-12 overflow-x-auto pb-4">
+          <div className="flex items-center gap-0 min-w-max">
+            {steps.map((s, index) => {
+              const Icon = s.icon;
+              const isActive = step === s.number;
+              const isCompleted = step > s.number;
+              
+              return (
+                <div key={s.number} className="flex items-center">
+                  <div className="flex flex-col items-center">
+                    <div className="text-xs text-white/50 mb-2">Step {s.number}</div>
+                    <div
+                      className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
+                        isCompleted
+                          ? "bg-[#e55c2b] text-white"
+                          : isActive
+                          ? "bg-[#e55c2b] text-white ring-4 ring-[#e55c2b]/30"
+                          : "bg-white/10 text-white/40"
+                      }`}
+                    >
+                      {isCompleted ? <Check className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
+                    </div>
+                    <div className={`text-xs mt-2 font-medium ${isActive || isCompleted ? "text-white" : "text-white/40"}`}>
+                      {s.label}
                     </div>
                   </div>
-                ))}
+                  {index < steps.length - 1 && (
+                    <div className={`w-16 h-0.5 mx-2 mt-[-12px] ${step > s.number ? "bg-[#e55c2b]" : "bg-white/10"}`} />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
 
+        <div className="max-w-4xl mx-auto">
+          {step === 1 && (
+            <div className="space-y-6">
+              <div className="text-center mb-8">
+                <h1 className="text-3xl font-bold text-white mb-2">Loan Product</h1>
+                <p className="text-white/60">Choose your loan product</p>
+              </div>
+
+              <div className="grid md:grid-cols-3 gap-6">
+                {loanProducts.map((product) => {
+                  const Icon = product.icon;
+                  const isSelected = formData.loanType === product.id;
+                  
+                  return (
+                    <div
+                      key={product.id}
+                      className={`relative bg-white/5 backdrop-blur-sm rounded-2xl p-6 cursor-pointer transition-all border-2 ${
+                        isSelected
+                          ? "border-[#e55c2b] bg-[#e55c2b]/10"
+                          : "border-transparent hover:border-white/20 hover:bg-white/10"
+                      }`}
+                      onClick={() => handleLoanTypeSelect(product.id)}
+                      data-testid={`option-loan-${product.id}`}
+                    >
+                      <div className="text-center mb-6">
+                        <div className={`w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-4 ${
+                          isSelected ? "bg-[#e55c2b]" : "bg-white/10"
+                        }`}>
+                          <Icon className={`h-8 w-8 ${isSelected ? "text-white" : "text-white/60"}`} />
+                        </div>
+                        <h3 className="text-xl font-bold text-white">{product.title}</h3>
+                        <p className="text-white/60 text-sm">{product.subtitle}</p>
+                      </div>
+                      
+                      <ul className="space-y-2">
+                        {product.features.map((feature, idx) => (
+                          <li key={idx} className="flex items-start gap-2 text-sm text-white/80">
+                            <CheckCircle2 className={`h-4 w-4 mt-0.5 flex-shrink-0 ${isSelected ? "text-[#e55c2b]" : "text-white/40"}`} />
+                            <span>{feature}</span>
+                          </li>
+                        ))}
+                      </ul>
+
+                      <Button
+                        className={`w-full mt-6 ${
+                          isSelected
+                            ? "bg-[#e55c2b] hover:bg-[#d44d1f] text-white"
+                            : "bg-white/10 hover:bg-white/20 text-white"
+                        }`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleLoanTypeSelect(product.id);
+                        }}
+                      >
+                        {isSelected ? "Selected" : "Select"}
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="flex justify-end pt-6">
                 <Button
-                  className="w-full mt-6"
-                  size="lg"
                   onClick={handleNextStep}
                   disabled={!formData.loanType}
-                  data-testid="button-next-step1"
+                  className="bg-[#e55c2b] hover:bg-[#d44d1f] text-white px-8"
+                  data-testid="button-next"
                 >
-                  Continue
-                  <ArrowRight className="ml-2 h-5 w-5" />
+                  Save & Next
+                  <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
 
           {step === 2 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Tell us about your property</CardTitle>
-                <CardDescription>
-                  Help us understand your investment so we can provide accurate pricing
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="propertyValue">Estimated Property Value / Purchase Price</Label>
-                  <Select
-                    value={formData.propertyValue}
-                    onValueChange={(value) => setFormData({ ...formData, propertyValue: value })}
+            <div className="space-y-6">
+              <div className="text-center mb-8">
+                <h1 className="text-3xl font-bold text-white mb-2">Deal Intro</h1>
+                <p className="text-white/60">Tell us about your deal</p>
+              </div>
+
+              <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 space-y-6">
+                <div className="space-y-3">
+                  <Label className="text-white">What is the purpose of this loan? *</Label>
+                  <RadioGroup
+                    value={formData.loanPurpose}
+                    onValueChange={(value) => setFormData({ ...formData, loanPurpose: value })}
+                    className="grid grid-cols-2 gap-3"
                   >
-                    <SelectTrigger data-testid="select-property-value">
-                      <SelectValue placeholder="Select a range" />
+                    {["Purchase", "Refinance", "Cash-Out Refinance", "Rate/Term Refinance"].map((option) => (
+                      <div
+                        key={option}
+                        className={`flex items-center space-x-3 p-4 rounded-lg border cursor-pointer transition-all ${
+                          formData.loanPurpose === option
+                            ? "border-[#e55c2b] bg-[#e55c2b]/10"
+                            : "border-white/10 hover:border-white/20"
+                        }`}
+                        onClick={() => setFormData({ ...formData, loanPurpose: option })}
+                      >
+                        <RadioGroupItem value={option} id={option} className="border-white/40" />
+                        <Label htmlFor={option} className="text-white cursor-pointer">{option}</Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                </div>
+
+                <div className="space-y-3">
+                  <Label className="text-white">Have you identified a property? *</Label>
+                  <RadioGroup
+                    value={formData.propertyIdentified}
+                    onValueChange={(value) => setFormData({ ...formData, propertyIdentified: value })}
+                    className="grid grid-cols-2 gap-3"
+                  >
+                    {["Yes, I have a property", "No, still looking"].map((option) => (
+                      <div
+                        key={option}
+                        className={`flex items-center space-x-3 p-4 rounded-lg border cursor-pointer transition-all ${
+                          formData.propertyIdentified === option
+                            ? "border-[#e55c2b] bg-[#e55c2b]/10"
+                            : "border-white/10 hover:border-white/20"
+                        }`}
+                        onClick={() => setFormData({ ...formData, propertyIdentified: option })}
+                      >
+                        <RadioGroupItem value={option} id={option} className="border-white/40" />
+                        <Label htmlFor={option} className="text-white cursor-pointer">{option}</Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                </div>
+
+                <div className="space-y-3">
+                  <Label className="text-white">When do you need to close?</Label>
+                  <Select
+                    value={formData.closingTimeframe}
+                    onValueChange={(value) => setFormData({ ...formData, closingTimeframe: value })}
+                  >
+                    <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                      <SelectValue placeholder="Select timeframe" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="under-100k">Under $100,000</SelectItem>
-                      <SelectItem value="100k-250k">$100,000 - $250,000</SelectItem>
-                      <SelectItem value="250k-500k">$250,000 - $500,000</SelectItem>
-                      <SelectItem value="500k-1m">$500,000 - $1,000,000</SelectItem>
-                      <SelectItem value="1m-2m">$1,000,000 - $2,000,000</SelectItem>
-                      <SelectItem value="over-2m">Over $2,000,000</SelectItem>
+                      <SelectItem value="asap">ASAP (Within 2 weeks)</SelectItem>
+                      <SelectItem value="30-days">Within 30 days</SelectItem>
+                      <SelectItem value="60-days">Within 60 days</SelectItem>
+                      <SelectItem value="90-days">Within 90 days</SelectItem>
+                      <SelectItem value="not-sure">Not sure yet</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="flex justify-between pt-6">
+                <Button
+                  variant="outline"
+                  onClick={handlePrevStep}
+                  className="border-white/20 text-white hover:bg-white/10"
+                  data-testid="button-back"
+                >
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back
+                </Button>
+                <Button
+                  onClick={handleNextStep}
+                  className="bg-[#e55c2b] hover:bg-[#d44d1f] text-white px-8"
+                  data-testid="button-next"
+                >
+                  Save & Next
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {step === 3 && (
+            <div className="space-y-6">
+              <div className="text-center mb-8">
+                <h1 className="text-3xl font-bold text-white mb-2">Property Info</h1>
+                <p className="text-white/60">Tell us about the property</p>
+              </div>
+
+              <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 space-y-6">
+                <div className="space-y-3">
+                  <Label className="text-white">Property Type *</Label>
+                  <Select
+                    value={formData.propertyType}
+                    onValueChange={(value) => setFormData({ ...formData, propertyType: value })}
+                  >
+                    <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                      <SelectValue placeholder="Select property type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="sfr">Single Family Residence</SelectItem>
+                      <SelectItem value="condo">Condo/Townhouse</SelectItem>
+                      <SelectItem value="2-4-unit">2-4 Unit</SelectItem>
+                      <SelectItem value="5-plus">5+ Units</SelectItem>
+                      <SelectItem value="mixed-use">Mixed Use</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="propertyLocation">Property Location (City, State)</Label>
+                <div className="space-y-3">
+                  <Label className="text-white">Property Address</Label>
                   <Input
-                    id="propertyLocation"
-                    placeholder="e.g., Austin, TX"
-                    value={formData.propertyLocation}
-                    onChange={(e) => setFormData({ ...formData, propertyLocation: e.target.value })}
-                    data-testid="input-property-location"
+                    placeholder="123 Main Street"
+                    value={formData.propertyAddress}
+                    onChange={(e) => setFormData({ ...formData, propertyAddress: e.target.value })}
+                    className="bg-white/5 border-white/10 text-white placeholder:text-white/40"
+                    data-testid="input-address"
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Real Estate Investment Experience</Label>
-                  <RadioGroup
-                    value={formData.investmentExperience}
-                    onValueChange={(value) => setFormData({ ...formData, investmentExperience: value })}
-                    className="grid grid-cols-2 gap-4 pt-2"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="first-time" id="first-time" data-testid="radio-first-time" />
-                      <Label htmlFor="first-time" className="cursor-pointer">First-time investor</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="1-3" id="1-3" data-testid="radio-1-3" />
-                      <Label htmlFor="1-3" className="cursor-pointer">1-3 properties</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="4-10" id="4-10" data-testid="radio-4-10" />
-                      <Label htmlFor="4-10" className="cursor-pointer">4-10 properties</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="10+" id="10+" data-testid="radio-10plus" />
-                      <Label htmlFor="10+" className="cursor-pointer">10+ properties</Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-
-                <div className="flex gap-3 pt-4">
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    onClick={() => setStep(1)}
-                    data-testid="button-back-step2"
-                  >
-                    <ArrowLeft className="mr-2 h-5 w-5" />
-                    Back
-                  </Button>
-                  <Button
-                    className="flex-1"
-                    size="lg"
-                    onClick={handleNextStep}
-                    data-testid="button-next-step2"
-                  >
-                    Continue
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {step === 3 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Last step - your contact information</CardTitle>
-                <CardDescription>
-                  We'll send your personalized rate quote to this email
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Full Name</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-3">
+                    <Label className="text-white">City *</Label>
                     <Input
-                      id="name"
-                      placeholder="John Smith"
-                      className="pl-10"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      data-testid="input-name"
+                      placeholder="City"
+                      value={formData.propertyCity}
+                      onChange={(e) => setFormData({ ...formData, propertyCity: e.target.value })}
+                      className="bg-white/5 border-white/10 text-white placeholder:text-white/40"
+                      data-testid="input-city"
+                    />
+                  </div>
+                  <div className="space-y-3">
+                    <Label className="text-white">State *</Label>
+                    <Input
+                      placeholder="TX"
+                      value={formData.propertyState}
+                      onChange={(e) => setFormData({ ...formData, propertyState: e.target.value })}
+                      className="bg-white/5 border-white/10 text-white placeholder:text-white/40"
+                      data-testid="input-state"
+                    />
+                  </div>
+                  <div className="space-y-3">
+                    <Label className="text-white">ZIP</Label>
+                    <Input
+                      placeholder="78701"
+                      value={formData.propertyZip}
+                      onChange={(e) => setFormData({ ...formData, propertyZip: e.target.value })}
+                      className="bg-white/5 border-white/10 text-white placeholder:text-white/40"
+                      data-testid="input-zip"
                     />
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-3">
+                    <Label className="text-white">Purchase Price / Value *</Label>
                     <Input
-                      id="email"
-                      type="email"
-                      placeholder="john@example.com"
-                      className="pl-10"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      data-testid="input-email"
+                      placeholder="$500,000"
+                      value={formData.purchasePrice}
+                      onChange={(e) => setFormData({ ...formData, purchasePrice: e.target.value })}
+                      className="bg-white/5 border-white/10 text-white placeholder:text-white/40"
+                      data-testid="input-purchase-price"
                     />
                   </div>
+                  {(formData.loanType === "fix-flip" || formData.loanType === "construction") && (
+                    <>
+                      <div className="space-y-3">
+                        <Label className="text-white">Rehab/Construction Budget</Label>
+                        <Input
+                          placeholder="$100,000"
+                          value={formData.rehabBudget}
+                          onChange={(e) => setFormData({ ...formData, rehabBudget: e.target.value })}
+                          className="bg-white/5 border-white/10 text-white placeholder:text-white/40"
+                          data-testid="input-rehab-budget"
+                        />
+                      </div>
+                      <div className="space-y-3">
+                        <Label className="text-white">After Repair Value (ARV)</Label>
+                        <Input
+                          placeholder="$750,000"
+                          value={formData.afterRepairValue}
+                          onChange={(e) => setFormData({ ...formData, afterRepairValue: e.target.value })}
+                          className="bg-white/5 border-white/10 text-white placeholder:text-white/40"
+                          data-testid="input-arv"
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
+              </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="phone"
-                      type="tel"
-                      placeholder="(555) 123-4567"
-                      className="pl-10"
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      data-testid="input-phone"
-                    />
-                  </div>
-                </div>
-
-                <p className="text-xs text-muted-foreground">
-                  By submitting, you agree to receive communications from Secured Asset Funding. 
-                  We respect your privacy and will never share your information.
-                </p>
-
-                <div className="flex gap-3 pt-4">
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    onClick={() => setStep(2)}
-                    data-testid="button-back-step3"
-                  >
-                    <ArrowLeft className="mr-2 h-5 w-5" />
-                    Back
-                  </Button>
-                  <Button
-                    className="flex-1"
-                    size="lg"
-                    onClick={handleSubmit}
-                    disabled={createLeadMutation.isPending}
-                    data-testid="button-submit"
-                  >
-                    {createLeadMutation.isPending ? "Submitting..." : "Get My Rate"}
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+              <div className="flex justify-between pt-6">
+                <Button
+                  variant="outline"
+                  onClick={handlePrevStep}
+                  className="border-white/20 text-white hover:bg-white/10"
+                  data-testid="button-back"
+                >
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back
+                </Button>
+                <Button
+                  onClick={handleNextStep}
+                  className="bg-[#e55c2b] hover:bg-[#d44d1f] text-white px-8"
+                  data-testid="button-next"
+                >
+                  Save & Next
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </div>
           )}
 
           {step === 4 && (
-            <Card className="text-center">
-              <CardContent className="pt-12 pb-12">
-                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <CheckCircle2 className="h-8 w-8 text-primary" />
+            <div className="space-y-6">
+              <div className="text-center mb-8">
+                <h1 className="text-3xl font-bold text-white mb-2">Strategy</h1>
+                <p className="text-white/60">Tell us about your investment strategy</p>
+              </div>
+
+              <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 space-y-6">
+                <div className="space-y-3">
+                  <Label className="text-white">Real Estate Investment Experience *</Label>
+                  <RadioGroup
+                    value={formData.investmentExperience}
+                    onValueChange={(value) => setFormData({ ...formData, investmentExperience: value })}
+                    className="grid grid-cols-2 gap-3"
+                  >
+                    {[
+                      "First-time investor",
+                      "1-3 completed deals",
+                      "4-10 completed deals",
+                      "10+ completed deals"
+                    ].map((option) => (
+                      <div
+                        key={option}
+                        className={`flex items-center space-x-3 p-4 rounded-lg border cursor-pointer transition-all ${
+                          formData.investmentExperience === option
+                            ? "border-[#e55c2b] bg-[#e55c2b]/10"
+                            : "border-white/10 hover:border-white/20"
+                        }`}
+                        onClick={() => setFormData({ ...formData, investmentExperience: option })}
+                      >
+                        <RadioGroupItem value={option} id={option} className="border-white/40" />
+                        <Label htmlFor={option} className="text-white cursor-pointer">{option}</Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
                 </div>
-                <h2 className="text-2xl font-bold mb-2">Thank You!</h2>
-                <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                  Your rate request has been received. A loan specialist will contact you within 24 hours with your personalized financing options.
+
+                <div className="space-y-3">
+                  <Label className="text-white">Exit Strategy</Label>
+                  <Select
+                    value={formData.exitStrategy}
+                    onValueChange={(value) => setFormData({ ...formData, exitStrategy: value })}
+                  >
+                    <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                      <SelectValue placeholder="Select exit strategy" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="sell">Sell property</SelectItem>
+                      <SelectItem value="refinance-rental">Refinance to long-term rental</SelectItem>
+                      <SelectItem value="hold-rental">Hold as rental</SelectItem>
+                      <SelectItem value="str">Short-term rental (Airbnb)</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-3">
+                  <Label className="text-white">Entity Type</Label>
+                  <Select
+                    value={formData.entityType}
+                    onValueChange={(value) => setFormData({ ...formData, entityType: value })}
+                  >
+                    <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                      <SelectValue placeholder="Select entity type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="llc">LLC</SelectItem>
+                      <SelectItem value="corp">Corporation</SelectItem>
+                      <SelectItem value="partnership">Partnership</SelectItem>
+                      <SelectItem value="individual">Individual</SelectItem>
+                      <SelectItem value="trust">Trust</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="flex justify-between pt-6">
+                <Button
+                  variant="outline"
+                  onClick={handlePrevStep}
+                  className="border-white/20 text-white hover:bg-white/10"
+                  data-testid="button-back"
+                >
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back
+                </Button>
+                <Button
+                  onClick={handleNextStep}
+                  className="bg-[#e55c2b] hover:bg-[#d44d1f] text-white px-8"
+                  data-testid="button-next"
+                >
+                  Save & Next
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {step === 5 && (
+            <div className="space-y-6">
+              <div className="text-center mb-8">
+                <h1 className="text-3xl font-bold text-white mb-2">Borrower Info</h1>
+                <p className="text-white/60">Your contact information</p>
+              </div>
+
+              <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-3">
+                    <Label className="text-white">First Name *</Label>
+                    <Input
+                      placeholder="John"
+                      value={formData.firstName}
+                      onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                      className="bg-white/5 border-white/10 text-white placeholder:text-white/40"
+                      data-testid="input-first-name"
+                    />
+                  </div>
+                  <div className="space-y-3">
+                    <Label className="text-white">Last Name *</Label>
+                    <Input
+                      placeholder="Smith"
+                      value={formData.lastName}
+                      onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                      className="bg-white/5 border-white/10 text-white placeholder:text-white/40"
+                      data-testid="input-last-name"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <Label className="text-white">Email Address *</Label>
+                  <Input
+                    type="email"
+                    placeholder="john@example.com"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="bg-white/5 border-white/10 text-white placeholder:text-white/40"
+                    data-testid="input-email"
+                  />
+                </div>
+
+                <div className="space-y-3">
+                  <Label className="text-white">Phone Number *</Label>
+                  <Input
+                    type="tel"
+                    placeholder="(555) 123-4567"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    className="bg-white/5 border-white/10 text-white placeholder:text-white/40"
+                    data-testid="input-phone"
+                  />
+                </div>
+
+                <div className="space-y-3">
+                  <Label className="text-white">Additional Notes</Label>
+                  <Textarea
+                    placeholder="Tell us anything else about your deal..."
+                    value={formData.additionalNotes}
+                    onChange={(e) => setFormData({ ...formData, additionalNotes: e.target.value })}
+                    className="bg-white/5 border-white/10 text-white placeholder:text-white/40 min-h-[100px]"
+                    data-testid="input-notes"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-between pt-6">
+                <Button
+                  variant="outline"
+                  onClick={handlePrevStep}
+                  className="border-white/20 text-white hover:bg-white/10"
+                  data-testid="button-back"
+                >
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back
+                </Button>
+                <Button
+                  onClick={handleNextStep}
+                  className="bg-[#e55c2b] hover:bg-[#d44d1f] text-white px-8"
+                  data-testid="button-next"
+                >
+                  Save & Next
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {step === 6 && (
+            <div className="space-y-6">
+              <div className="text-center mb-8">
+                <h1 className="text-3xl font-bold text-white mb-2">Submit Application</h1>
+                <p className="text-white/60">Review and submit your application</p>
+              </div>
+
+              <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 space-y-6">
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-white border-b border-white/10 pb-2">Loan Details</h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-white/60">Loan Product</span>
+                        <span className="text-white font-medium">
+                          {formData.loanType === "dscr" ? "SAFRENT" : formData.loanType === "fix-flip" ? "SAFFIX" : "SAFBUILD"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-white/60">Purpose</span>
+                        <span className="text-white font-medium">{formData.loanPurpose || "—"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-white/60">Timeframe</span>
+                        <span className="text-white font-medium">{formData.closingTimeframe || "—"}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-white border-b border-white/10 pb-2">Property Details</h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-white/60">Location</span>
+                        <span className="text-white font-medium">{formData.propertyCity}, {formData.propertyState}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-white/60">Property Type</span>
+                        <span className="text-white font-medium">{formData.propertyType || "—"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-white/60">Purchase Price</span>
+                        <span className="text-white font-medium">{formData.purchasePrice || "—"}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-white border-b border-white/10 pb-2">Strategy</h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-white/60">Experience</span>
+                        <span className="text-white font-medium">{formData.investmentExperience || "—"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-white/60">Exit Strategy</span>
+                        <span className="text-white font-medium">{formData.exitStrategy || "—"}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-white border-b border-white/10 pb-2">Contact Info</h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-white/60">Name</span>
+                        <span className="text-white font-medium">{formData.firstName} {formData.lastName}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-white/60">Email</span>
+                        <span className="text-white font-medium">{formData.email}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-white/60">Phone</span>
+                        <span className="text-white font-medium">{formData.phone}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <p className="text-xs text-white/40 pt-4 border-t border-white/10">
+                  By submitting this application, you agree to receive communications from Secured Asset Funding. 
+                  We respect your privacy and will never share your information with third parties.
                 </p>
-                <div className="flex justify-center gap-4">
-                  <Button variant="outline" onClick={() => window.location.href = "/"} data-testid="button-back-home">
+              </div>
+
+              <div className="flex justify-between pt-6">
+                <Button
+                  variant="outline"
+                  onClick={handlePrevStep}
+                  className="border-white/20 text-white hover:bg-white/10"
+                  data-testid="button-back"
+                >
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back
+                </Button>
+                <Button
+                  onClick={handleSubmit}
+                  disabled={createLeadMutation.isPending}
+                  className="bg-[#e55c2b] hover:bg-[#d44d1f] text-white px-8"
+                  data-testid="button-submit"
+                >
+                  {createLeadMutation.isPending ? "Submitting..." : "Submit Application"}
+                  <Send className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {step === 7 && (
+            <div className="text-center py-12">
+              <div className="w-20 h-20 bg-[#e55c2b]/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                <CheckCircle2 className="h-10 w-10 text-[#e55c2b]" />
+              </div>
+              <h2 className="text-3xl font-bold text-white mb-4">Application Submitted!</h2>
+              <p className="text-white/60 mb-8 max-w-md mx-auto">
+                Thank you for your application. A loan specialist will contact you within 24 hours to discuss your financing options.
+              </p>
+              <div className="flex justify-center gap-4">
+                <Link href="/" data-testid="link-home">
+                  <Button variant="outline" className="border-white/20 text-white hover:bg-white/10">
                     Back to Home
                   </Button>
-                  <Button onClick={() => window.location.href = "/calculator"} data-testid="button-try-calculator">
+                </Link>
+                <Link href="/calculator" data-testid="link-calculator">
+                  <Button className="bg-[#e55c2b] hover:bg-[#d44d1f] text-white">
                     Try Our Calculator
                   </Button>
-                </div>
-              </CardContent>
-            </Card>
+                </Link>
+              </div>
+            </div>
           )}
         </div>
-      </section>
+      </div>
 
-      <Footer />
+      <footer className="border-t border-white/10 mt-12 py-6">
+        <div className="max-w-6xl mx-auto px-6 flex flex-wrap justify-center gap-4 text-sm text-white/40">
+          <span>© 2025 Secured Asset Funding. All rights reserved.</span>
+          <span>|</span>
+          <Link href="/terms" className="hover:text-white">Terms of Use</Link>
+          <span>|</span>
+          <Link href="/privacy" className="hover:text-white">Privacy Policy</Link>
+        </div>
+      </footer>
     </div>
   );
 }
