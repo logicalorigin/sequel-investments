@@ -21,8 +21,9 @@ import {
   Star
 } from "lucide-react";
 import heroImage from "@assets/generated_images/Mortgage_office_hero_background_15b464fc.png";
-import dscrImage from "@assets/generated_images/DSCR_loan_rental_property_4c761fb2.png";
-import hardMoneyImage from "@assets/generated_images/Hard_money_fix-and-flip_property_fb58005e.png";
+import dscrImage from "@assets/generated_images/cabin_vacation_rental_property.png";
+import fixFlipImage from "@assets/generated_images/interior_renovation_in_progress.png";
+import newConstructionImage from "@assets/generated_images/multi-unit_building_framed_construction.png";
 import testimonial1 from "@assets/generated_images/Investor_testimonial_headshot_1_2a222601.png";
 import testimonial2 from "@assets/generated_images/Investor_testimonial_headshot_2_bb13b1a2.png";
 import testimonial3 from "@assets/generated_images/Investor_testimonial_headshot_3_a4e6c79b.png";
@@ -156,8 +157,8 @@ export default function HomePage() {
             <Card className="overflow-hidden hover-elevate active-elevate-2 transition-all" data-testid="card-product-fixflip">
               <div className="aspect-video overflow-hidden">
                 <img 
-                  src={hardMoneyImage} 
-                  alt="Fix & Flip Property" 
+                  src={fixFlipImage} 
+                  alt="Fix & Flip Property - Interior Renovation" 
                   className="w-full h-full object-cover"
                 />
               </div>
@@ -194,8 +195,12 @@ export default function HomePage() {
             </Card>
 
             <Card className="overflow-hidden hover-elevate active-elevate-2 transition-all" data-testid="card-product-construction">
-              <div className="aspect-video overflow-hidden bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                <Building2 className="h-16 w-16 text-primary/60" />
+              <div className="aspect-video overflow-hidden">
+                <img 
+                  src={newConstructionImage} 
+                  alt="New Construction - Multi-Unit Framing" 
+                  className="w-full h-full object-cover"
+                />
               </div>
               <CardHeader>
                 <div className="flex items-center gap-2 mb-2">

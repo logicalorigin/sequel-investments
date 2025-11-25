@@ -15,6 +15,7 @@ import {
   HardHat,
   ArrowRight
 } from "lucide-react";
+import constructionImage from "@assets/generated_images/multi-unit_building_framed_construction.png";
 import { useToast } from "@/hooks/use-toast";
 
 export default function NewConstructionPage() {
@@ -31,14 +32,20 @@ export default function NewConstructionPage() {
     <div className="min-h-screen bg-background">
       <Navigation />
 
-      <section className="relative pt-32 pb-20 bg-gradient-to-br from-primary/10 via-background to-background">
-        <div className="max-w-7xl mx-auto px-6">
+      <section className="relative pt-32 pb-20 overflow-hidden">
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: `url(${constructionImage})` }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/70 to-black/80" />
+        
+        <div className="relative z-10 max-w-7xl mx-auto px-6">
           <div className="max-w-3xl">
             <Badge className="mb-4" variant="secondary">New Construction Loans</Badge>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6" data-testid="text-hero-title">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6" data-testid="text-hero-title">
               Build Your Vision. We'll Fund It.
             </h1>
-            <p className="text-xl text-muted-foreground mb-8">
+            <p className="text-xl text-white/90 mb-8">
               Streamlined ground-up construction financing with 48-hour draws and up to 82.5% LTC. Rates from 9.90%.
             </p>
             
@@ -53,16 +60,16 @@ export default function NewConstructionPage() {
 
             <div className="flex flex-wrap gap-6">
               <div className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5 text-primary" />
-                <span className="font-medium">Up to 82.5% LTC</span>
+                <DollarSign className="h-5 w-5 text-white" />
+                <span className="font-medium text-white">Up to 82.5% LTC</span>
               </div>
               <div className="flex items-center gap-2">
-                <Clock className="h-5 w-5 text-primary" />
-                <span className="font-medium">48-Hour Draws</span>
+                <Clock className="h-5 w-5 text-white" />
+                <span className="font-medium text-white">48-Hour Draws</span>
               </div>
               <div className="flex items-center gap-2">
-                <HardHat className="h-5 w-5 text-primary" />
-                <span className="font-medium">Ground-Up Builds</span>
+                <HardHat className="h-5 w-5 text-white" />
+                <span className="font-medium text-white">Ground-Up Builds</span>
               </div>
             </div>
           </div>
