@@ -26,7 +26,7 @@ import logoIcon from "@assets/ChatGPT Image Jun 25, 2025, 12_32_43 PM_1764028581
 import { Link } from "wouter";
 
 type LoanType = "dscr" | "fix-flip" | "construction" | "";
-type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7;
+type Step = 1 | 2 | 3 | 4 | 5 | 6;
 
 interface FormData {
   loanType: LoanType;
@@ -45,6 +45,7 @@ interface FormData {
   annualRents: string;
   annualTaxes: string;
   annualInsurance: string;
+  annualHOA: string;
   investmentExperience: string;
   exitStrategy: string;
   entityType: string;
@@ -59,9 +60,8 @@ const steps = [
   { number: 1, label: "Loan Product", icon: FileText },
   { number: 2, label: "Deal Intro", icon: Target },
   { number: 3, label: "Property Info", icon: MapPin },
-  { number: 4, label: "Strategy", icon: Target },
-  { number: 5, label: "Borrower Info", icon: User },
-  { number: 6, label: "Submit App", icon: Send },
+  { number: 4, label: "Borrower Info", icon: User },
+  { number: 5, label: "Submit App", icon: Send },
 ];
 
 export default function GetQuotePage() {
@@ -84,6 +84,7 @@ export default function GetQuotePage() {
     annualRents: "",
     annualTaxes: "",
     annualInsurance: "",
+    annualHOA: "",
     investmentExperience: "",
     exitStrategy: "",
     entityType: "",
@@ -99,7 +100,7 @@ export default function GetQuotePage() {
       return await apiRequest("POST", "/api/leads", data);
     },
     onSuccess: () => {
-      setStep(7);
+      setStep(6);
     },
     onError: (error: any) => {
       let errorMessage = "Failed to submit. Please try again.";
@@ -618,6 +619,16 @@ export default function GetQuotePage() {
                         data-testid="input-annual-insurance"
                       />
                     </div>
+                    <div className="space-y-3">
+                      <Label className="text-white">Annual HOA (if applicable)</Label>
+                      <Input
+                        placeholder="$1,200"
+                        value={formData.annualHOA}
+                        onChange={(e) => setFormData({ ...formData, annualHOA: e.target.value })}
+                        className="bg-white/5 border-white/10 text-white placeholder:text-white/40"
+                        data-testid="input-annual-hoa"
+                      />
+                    </div>
                   </div>
                 )}
               </div>
@@ -645,104 +656,6 @@ export default function GetQuotePage() {
           )}
 
           {step === 4 && (
-            <div className="space-y-6">
-              <div className="text-center mb-8">
-                <h1 className="text-3xl font-bold text-white mb-2">Strategy</h1>
-                <p className="text-white/60">Tell us about your investment strategy</p>
-              </div>
-
-              <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 space-y-6">
-                <div className="space-y-3">
-                  <Label className="text-white">Real Estate Investment Experience *</Label>
-                  <RadioGroup
-                    value={formData.investmentExperience}
-                    onValueChange={(value) => setFormData({ ...formData, investmentExperience: value })}
-                    className="grid grid-cols-2 gap-3"
-                  >
-                    {[
-                      "First-time investor",
-                      "1-3 completed deals",
-                      "4-10 completed deals",
-                      "10+ completed deals"
-                    ].map((option) => (
-                      <div
-                        key={option}
-                        className={`flex items-center space-x-3 p-4 rounded-lg border cursor-pointer transition-all ${
-                          formData.investmentExperience === option
-                            ? "border-[#e55c2b] bg-[#e55c2b]/10"
-                            : "border-white/10 hover:border-white/20"
-                        }`}
-                        onClick={() => setFormData({ ...formData, investmentExperience: option })}
-                      >
-                        <RadioGroupItem value={option} id={option} className="border-white/40" />
-                        <Label htmlFor={option} className="text-white cursor-pointer">{option}</Label>
-                      </div>
-                    ))}
-                  </RadioGroup>
-                </div>
-
-                <div className="space-y-3">
-                  <Label className="text-white">Exit Strategy</Label>
-                  <Select
-                    value={formData.exitStrategy}
-                    onValueChange={(value) => setFormData({ ...formData, exitStrategy: value })}
-                  >
-                    <SelectTrigger className="bg-white/5 border-white/10 text-white">
-                      <SelectValue placeholder="Select exit strategy" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="sell">Sell property</SelectItem>
-                      <SelectItem value="refinance-rental">Refinance to long-term rental</SelectItem>
-                      <SelectItem value="hold-rental">Hold as rental</SelectItem>
-                      <SelectItem value="str">Short-term rental (Airbnb)</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-3">
-                  <Label className="text-white">Entity Type</Label>
-                  <Select
-                    value={formData.entityType}
-                    onValueChange={(value) => setFormData({ ...formData, entityType: value })}
-                  >
-                    <SelectTrigger className="bg-white/5 border-white/10 text-white">
-                      <SelectValue placeholder="Select entity type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="llc">LLC</SelectItem>
-                      <SelectItem value="corp">Corporation</SelectItem>
-                      <SelectItem value="partnership">Partnership</SelectItem>
-                      <SelectItem value="individual">Individual</SelectItem>
-                      <SelectItem value="trust">Trust</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="flex justify-between pt-6">
-                <Button
-                  variant="outline"
-                  onClick={handlePrevStep}
-                  className="border-white/20 text-white hover:bg-white/10"
-                  data-testid="button-back"
-                >
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Back
-                </Button>
-                <Button
-                  onClick={handleNextStep}
-                  className="bg-[#e55c2b] hover:bg-[#d44d1f] text-white px-8"
-                  data-testid="button-next"
-                >
-                  Save & Next
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {step === 5 && (
             <div className="space-y-6">
               <div className="text-center mb-8">
                 <h1 className="text-3xl font-bold text-white mb-2">Borrower Info</h1>
@@ -831,7 +744,7 @@ export default function GetQuotePage() {
             </div>
           )}
 
-          {step === 6 && (
+          {step === 5 && (
             <div className="space-y-6">
               <div className="text-center mb-8">
                 <h1 className="text-3xl font-bold text-white mb-2">Submit Application</h1>
@@ -940,7 +853,7 @@ export default function GetQuotePage() {
             </div>
           )}
 
-          {step === 7 && (
+          {step === 6 && (
             <div className="text-center py-12">
               <div className="w-20 h-20 bg-[#e55c2b]/20 rounded-full flex items-center justify-center mx-auto mb-6">
                 <CheckCircle2 className="h-10 w-10 text-[#e55c2b]" />
