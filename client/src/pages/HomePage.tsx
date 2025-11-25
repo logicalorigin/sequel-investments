@@ -120,6 +120,9 @@ export default function HomePage() {
                   src={dscrImage} 
                   alt="DSCR Loan - Rental Property" 
                   className="w-full h-full object-cover"
+                  loading="eager"
+                  decoding="async"
+                  style={{ imageRendering: 'auto' }}
                 />
               </div>
               <CardHeader>
@@ -160,6 +163,9 @@ export default function HomePage() {
                   src={fixFlipImage} 
                   alt="Fix & Flip Property - Interior Renovation" 
                   className="w-full h-full object-cover"
+                  loading="eager"
+                  decoding="async"
+                  style={{ imageRendering: 'auto' }}
                 />
               </div>
               <CardHeader>
@@ -200,6 +206,9 @@ export default function HomePage() {
                   src={newConstructionImage} 
                   alt="New Construction - Multi-Unit Framing" 
                   className="w-full h-full object-cover"
+                  loading="eager"
+                  decoding="async"
+                  style={{ imageRendering: 'auto' }}
                 />
               </div>
               <CardHeader>
