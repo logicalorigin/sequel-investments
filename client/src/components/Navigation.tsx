@@ -22,8 +22,8 @@ export function Navigation() {
     { href: "/dscr-loans", label: "DSCR Loans" },
     { href: "/fix-flip", label: "Fix & Flip" },
     { href: "/new-construction", label: "New Construction" },
+    { href: "/where-we-lend", label: "Where We Lend" },
     { href: "/calculator", label: "Calculator" },
-    { href: "/about", label: "About" },
   ];
 
   return (

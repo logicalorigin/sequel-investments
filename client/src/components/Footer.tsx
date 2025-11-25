@@ -82,6 +82,13 @@ export function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/where-we-lend" data-testid="link-footer-where-we-lend">
+                  <span className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
+                    Where We Lend
+                  </span>
+                </Link>
+              </li>
+              <li>
                 <Link href="/contact" data-testid="link-footer-contact">
                   <span className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
                     Contact
@@ -91,11 +98,6 @@ export function Footer() {
               <li>
                 <span className="text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
                   Privacy Policy
-                </span>
-              </li>
-              <li>
-                <span className="text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
-                  Terms of Service
                 </span>
               </li>
             </ul>

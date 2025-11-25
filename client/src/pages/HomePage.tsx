@@ -1,10 +1,12 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { DSCRCalculator } from "@/components/DSCRCalculator";
 import { LeadForm } from "@/components/LeadForm";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
+import USMap from "@/components/USMap";
+import { type StateData, getEligibleStates } from "@shared/schema";
 import { 
   Home, 
   TrendingUp, 
@@ -18,7 +20,8 @@ import {
   Headphones,
   Target,
   ArrowRight,
-  Star
+  Star,
+  MapPin
 } from "lucide-react";
 import heroImage from "@assets/generated_images/Mortgage_office_hero_background_15b464fc.png";
 import dscrImage from "@assets/AdobeStock_379512388_1764037043026.jpeg";
@@ -31,12 +34,18 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function HomePage() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
+  const eligibleStates = getEligibleStates();
 
   const handleFormSuccess = () => {
     toast({
       title: "Thank you for your interest!",
       description: "A loan specialist will contact you within 24 hours.",
     });
+  };
+
+  const handleStateClick = (state: StateData) => {
+    setLocation(`/states/${state.slug}`);
   };
 
   return (
@@ -246,7 +255,43 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="py-24 bg-card">
+      <section className="py-24 bg-card" data-testid="section-where-we-lend">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Where We Lend</h2>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              Secured Asset Funding is a nationwide private lender serving real estate investors across 48 states + DC. 
+              Click on a state to explore our loan programs in your area.
+            </p>
+          </div>
+
+          <div className="max-w-4xl mx-auto mb-12">
+            <USMap onStateClick={handleStateClick} />
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            {eligibleStates.slice(0, 12).map((state) => (
+              <Link key={state.slug} href={`/states/${state.slug}`}>
+                <div className="text-center p-3 rounded-lg border bg-background hover-elevate transition-all cursor-pointer" data-testid={`state-link-${state.slug}`}>
+                  <p className="font-semibold text-primary">{state.abbreviation}</p>
+                  <p className="text-xs text-muted-foreground">{state.name}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+
+          <div className="text-center mt-8">
+            <Link href="/where-we-lend">
+              <Button variant="outline" size="lg" data-testid="button-view-all-states">
+                <MapPin className="mr-2 h-4 w-4" />
+                View All States
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="py-24 bg-background">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">Why Choose Secured Asset Funding</h2>
