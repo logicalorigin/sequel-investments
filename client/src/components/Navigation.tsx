@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
-import logoIcon from "@assets/ChatGPT Image Jun 25, 2025, 12_32_43 PM_1764036286977.png";
+import logoIcon from "@assets/ChatGPT Image Jun 25, 2025, 12_32_43 PM_1764036434057.png";
 
 export function Navigation() {
   const [location] = useLocation();
