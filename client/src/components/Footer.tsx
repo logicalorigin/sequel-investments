@@ -2,6 +2,7 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Facebook, Twitter, Linkedin, Mail } from "lucide-react";
+import logoIcon from "@assets/ChatGPT Image Jun 25, 2025, 12_32_43 PM_1764028581255.png";
 
 export function Footer() {
   return (
@@ -9,14 +10,19 @@ export function Footer() {
       <div className="max-w-7xl mx-auto px-6 py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
           <div>
-            <div className="flex items-center gap-2 mb-6">
-              <div className="w-8 h-8 bg-primary rounded-md flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-lg">P</span>
+            <div className="flex items-center gap-3 mb-6">
+              <img 
+                src={logoIcon} 
+                alt="SAF" 
+                className="h-10 w-10 object-contain"
+              />
+              <div className="flex flex-col">
+                <span className="font-bold text-lg leading-tight">Secured Asset</span>
+                <span className="font-bold text-lg leading-tight">Funding</span>
               </div>
-              <span className="font-bold text-xl">PrimeLend</span>
             </div>
             <p className="text-muted-foreground mb-4">
-              Specializing in non-QM mortgage solutions for real estate investors nationwide.
+              Investor-focused financing solutions for DSCR, Fix & Flip, and New Construction loans nationwide.
             </p>
             <div className="flex gap-3">
               <Button size="icon" variant="outline" data-testid="button-social-facebook">
@@ -42,9 +48,16 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/hard-money" data-testid="link-footer-hardmoney">
+                <Link href="/fix-flip" data-testid="link-footer-fixflip">
                   <span className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
-                    Hard Money Loans
+                    Fix & Flip Loans
+                  </span>
+                </Link>
+              </li>
+              <li>
+                <Link href="/new-construction" data-testid="link-footer-construction">
+                  <span className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
+                    New Construction
                   </span>
                 </Link>
               </li>
@@ -110,10 +123,10 @@ export function Footer() {
         <div className="pt-8 border-t">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-muted-foreground text-sm">
-              © 2024 PrimeLend. All rights reserved. NMLS #123456
+              © 2024 Secured Asset Funding. All rights reserved. NMLS #123456
             </p>
             <p className="text-muted-foreground text-sm">
-              Licensed in all 50 states
+              Licensed in 48 states + DC
             </p>
           </div>
         </div>

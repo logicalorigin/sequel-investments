@@ -186,8 +186,10 @@ export function LeadForm({ onSubmitSuccess, defaultLoanType, compact = false }: 
                 </FormControl>
                 <SelectContent>
                   <SelectItem value="DSCR">DSCR Loan</SelectItem>
-                  <SelectItem value="Hard Money">Hard Money Loan</SelectItem>
-                  <SelectItem value="Both">Both Options</SelectItem>
+                  <SelectItem value="Fix & Flip">Fix & Flip Loan</SelectItem>
+                  <SelectItem value="New Construction">New Construction Loan</SelectItem>
+                  <SelectItem value="Hard Money">Hard Money (Other)</SelectItem>
+                  <SelectItem value="Both">Multiple Loan Types</SelectItem>
                   <SelectItem value="Other">Other</SelectItem>
                 </SelectContent>
               </Select>
