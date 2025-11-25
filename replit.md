@@ -106,14 +106,14 @@ The workflow `Start application` runs `npm run dev` which starts both Express ba
 - `server/routes.ts` - API endpoints with validation
 - `server/storage.ts` - In-memory storage interface
 
-### Form Validation
+### Lead Data Schema
 
-Lead submissions require:
-- Name: min 2 characters
-- Email: valid email format
-- Phone: min 10 characters
-- Loan type: "DSCR", "Hard Money", or "Other"
-- Property location: min 2 characters
+Lead submissions capture structured data:
+- **Required fields**: name (min 2 chars), email (valid format), phone (min 10 digits)
+- **Loan type**: "DSCR", "Fix & Flip", "New Construction", "Hard Money", "Both", "Other"
+- **Optional fields**: propertyLocation, propertyValue, investmentExperience, message, howHeardAboutUs
+
+The GetQuotePage captures propertyValue and investmentExperience as dedicated fields (not concatenated into message), enabling structured lead analysis.
 
 ### Trust Indicators
 
