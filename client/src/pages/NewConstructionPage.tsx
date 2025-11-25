@@ -15,7 +15,7 @@ import {
   HardHat,
   ArrowRight
 } from "lucide-react";
-import constructionImage from "@assets/AdobeStock_244499432_1764037043029.jpeg";
+import constructionImage from "@assets/stock_images/new_construction_hom_ee055247.jpg";
 import { useToast } from "@/hooks/use-toast";
 
 export default function NewConstructionPage() {

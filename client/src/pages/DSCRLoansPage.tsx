@@ -22,7 +22,7 @@ import {
   Building,
   ArrowRight
 } from "lucide-react";
-import dscrImage from "@assets/AdobeStock_863386741_1764037043028.jpeg";
+import dscrImage from "@assets/stock_images/luxury_modern_single_2639d1bd.jpg";
 import { useToast } from "@/hooks/use-toast";
 
 export default function DSCRLoansPage() {

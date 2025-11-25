@@ -15,7 +15,7 @@ import {
   Building,
   ArrowRight
 } from "lucide-react";
-import fixFlipImage from "@assets/AdobeStock_285980154_1764037043029.jpeg";
+import fixFlipImage from "@assets/stock_images/house_renovation_con_aaeb0f05.jpg";
 import { useToast } from "@/hooks/use-toast";
 
 export default function FixFlipPage() {
