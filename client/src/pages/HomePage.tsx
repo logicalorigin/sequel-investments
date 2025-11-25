@@ -28,7 +28,7 @@ import dscrImage from "@assets/stock_images/luxury_modern_single_2639d1bd.jpg";
 import fixFlipImage from "@assets/stock_images/house_renovation_con_aaeb0f05.jpg";
 import newConstructionImage from "@assets/stock_images/new_construction_hom_ee055247.jpg";
 import dscrCardImage from "@assets/stock_images/luxury_beach_house_v_60312048.jpg";
-import fixFlipCardImage from "@assets/stock_images/house_remodel_in_pro_2abf95eb.jpg";
+import fixFlipCardImage from "@assets/image_1764095965996.png";
 import newConstructionCardImage from "@assets/stock_images/multi-family_apartme_e7cec58d.jpg";
 import testimonial1 from "@assets/generated_images/Investor_testimonial_headshot_1_2a222601.png";
 import testimonial2 from "@assets/generated_images/Investor_testimonial_headshot_2_bb13b1a2.png";
