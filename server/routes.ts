@@ -4,6 +4,8 @@ import { storage } from "./storage";
 import { insertLeadSchema, insertLoanApplicationSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { setupAuth, isAuthenticated } from "./replitAuth";
+import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
+import { ObjectPermission } from "./objectAcl";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication
@@ -216,6 +218,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching document types:", error);
       return res.status(500).json({ error: "Failed to fetch document types" });
+    }
+  });
+
+  // Object Storage routes for document uploads
+  app.post("/api/objects/upload", isAuthenticated, async (req: any, res) => {
+    try {
+      const objectStorageService = new ObjectStorageService();
+      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+      res.json({ uploadURL });
+    } catch (error) {
+      console.error("Error getting upload URL:", error);
+      res.status(500).json({ error: "Failed to get upload URL" });
+    }
+  });
+
+  app.get("/objects/:objectPath(*)", isAuthenticated, async (req: any, res) => {
+    const userId = req.user?.claims?.sub;
+    const objectStorageService = new ObjectStorageService();
+    try {
+      const objectFile = await objectStorageService.getObjectEntityFile(req.path);
+      const canAccess = await objectStorageService.canAccessObjectEntity({
+        objectFile,
+        userId: userId,
+        requestedPermission: ObjectPermission.READ,
+      });
+      if (!canAccess) {
+        return res.sendStatus(401);
+      }
+      objectStorageService.downloadObject(objectFile, res);
+    } catch (error) {
+      console.error("Error checking object access:", error);
+      if (error instanceof ObjectNotFoundError) {
+        return res.sendStatus(404);
+      }
+      return res.sendStatus(500);
+    }
+  });
+
+  app.put("/api/documents/:id/file", isAuthenticated, async (req: any, res) => {
+    const userId = req.user?.claims?.sub;
+    
+    if (!req.body.uploadURL) {
+      return res.status(400).json({ error: "uploadURL is required" });
+    }
+
+    try {
+      const doc = await storage.getDocument(req.params.id);
+      if (!doc) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      const application = await storage.getLoanApplication(doc.loanApplicationId);
+      if (!application || application.userId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const objectStorageService = new ObjectStorageService();
+      const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(
+        req.body.uploadURL,
+        {
+          owner: userId,
+          visibility: "private",
+        }
+      );
+
+      const updated = await storage.updateDocument(req.params.id, {
+        status: "uploaded",
+        fileUrl: objectPath,
+        fileName: req.body.fileName || "document",
+        fileSize: req.body.fileSize || 0,
+        mimeType: req.body.mimeType || "application/octet-stream",
+        uploadedAt: new Date(),
+      });
+
+      res.status(200).json(updated);
+    } catch (error) {
+      console.error("Error updating document file:", error);
+      res.status(500).json({ error: "Internal server error" });
     }
   });
 
