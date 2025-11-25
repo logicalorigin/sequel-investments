@@ -1,8 +1,122 @@
-import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp } from "drizzle-orm/pg-core";
+import { sql, relations } from "drizzle-orm";
+import { pgTable, text, varchar, timestamp, integer, jsonb, index, pgEnum } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Session storage table for Replit Auth
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => [index("IDX_session_expire").on(table.expire)],
+);
+
+// User storage table for Replit Auth
+export const users = pgTable("users", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: varchar("email").unique(),
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  profileImageUrl: varchar("profile_image_url"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type UpsertUser = typeof users.$inferInsert;
+export type User = typeof users.$inferSelect;
+
+// Document status enum
+export const documentStatusEnum = pgEnum("document_status", ["pending", "uploaded", "approved", "rejected", "if_applicable"]);
+
+// Loan application status enum
+export const loanApplicationStatusEnum = pgEnum("loan_application_status", ["draft", "submitted", "in_review", "approved", "funded", "denied", "withdrawn"]);
+
+// Loan Applications table
+export const loanApplications = pgTable("loan_applications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  loanType: text("loan_type").notNull(),
+  propertyAddress: text("property_address"),
+  propertyCity: text("property_city"),
+  propertyState: text("property_state"),
+  propertyZip: text("property_zip"),
+  loanAmount: integer("loan_amount"),
+  status: loanApplicationStatusEnum("status").default("draft").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const loanApplicationsRelations = relations(loanApplications, ({ one, many }) => ({
+  user: one(users, {
+    fields: [loanApplications.userId],
+    references: [users.id],
+  }),
+  documents: many(documents),
+}));
+
+export type LoanApplication = typeof loanApplications.$inferSelect;
+export type InsertLoanApplication = typeof loanApplications.$inferInsert;
+
+export const insertLoanApplicationSchema = createInsertSchema(loanApplications).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Document types - static list of required documents per loan type
+export const documentTypes = pgTable("document_types", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  description: text("description"),
+  category: text("category").notNull(),
+  loanTypes: text("loan_types").array().notNull(),
+  isRequired: text("is_required").default("required").notNull(),
+  sortOrder: integer("sort_order").default(0).notNull(),
+});
+
+export type DocumentType = typeof documentTypes.$inferSelect;
+export type InsertDocumentType = typeof documentTypes.$inferInsert;
+
+// Documents table - tracks uploaded documents for each loan application
+export const documents = pgTable("documents", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  loanApplicationId: varchar("loan_application_id").notNull().references(() => loanApplications.id),
+  documentTypeId: varchar("document_type_id").notNull().references(() => documentTypes.id),
+  status: documentStatusEnum("status").default("pending").notNull(),
+  fileName: text("file_name"),
+  fileUrl: text("file_url"),
+  fileSize: integer("file_size"),
+  mimeType: text("mime_type"),
+  comment: text("comment"),
+  uploadedAt: timestamp("uploaded_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const documentsRelations = relations(documents, ({ one }) => ({
+  loanApplication: one(loanApplications, {
+    fields: [documents.loanApplicationId],
+    references: [loanApplications.id],
+  }),
+  documentType: one(documentTypes, {
+    fields: [documents.documentTypeId],
+    references: [documentTypes.id],
+  }),
+}));
+
+export type Document = typeof documents.$inferSelect;
+export type InsertDocument = typeof documents.$inferInsert;
+
+export const insertDocumentSchema = createInsertSchema(documents).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Leads table (existing)
 export const leads = pgTable("leads", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
@@ -35,13 +149,30 @@ export const insertLeadSchema = createInsertSchema(leads).omit({
 export type InsertLead = z.infer<typeof insertLeadSchema>;
 export type Lead = typeof leads.$inferSelect;
 
+// Default document types for loan applications
+export const DEFAULT_DOCUMENT_TYPES = [
+  { name: "Purchase Contract", description: "Signed purchase agreement", category: "Property Documentation", loanTypes: ["DSCR", "Fix & Flip", "New Construction", "Hard Money"], isRequired: "required", sortOrder: 1 },
+  { name: "Entity Documents", description: "LLC operating agreement, articles of incorporation, or trust documents", category: "Borrower Documentation", loanTypes: ["DSCR", "Fix & Flip", "New Construction", "Hard Money"], isRequired: "required", sortOrder: 2 },
+  { name: "Photo ID", description: "Government-issued photo identification", category: "Borrower Documentation", loanTypes: ["DSCR", "Fix & Flip", "New Construction", "Hard Money"], isRequired: "required", sortOrder: 3 },
+  { name: "Bank Statements", description: "Last 2 months of bank statements showing reserves", category: "Financial Documentation", loanTypes: ["DSCR", "Fix & Flip", "New Construction", "Hard Money"], isRequired: "required", sortOrder: 4 },
+  { name: "Lease Agreement", description: "Current lease agreement for rental property", category: "Property Documentation", loanTypes: ["DSCR"], isRequired: "if_applicable", sortOrder: 5 },
+  { name: "Rent Roll", description: "Current rent roll showing tenant information", category: "Property Documentation", loanTypes: ["DSCR"], isRequired: "if_applicable", sortOrder: 6 },
+  { name: "Property Insurance", description: "Proof of hazard insurance", category: "Property Documentation", loanTypes: ["DSCR", "Fix & Flip", "New Construction", "Hard Money"], isRequired: "required", sortOrder: 7 },
+  { name: "Title Insurance", description: "Title commitment or preliminary title report", category: "Property Documentation", loanTypes: ["DSCR", "Fix & Flip", "New Construction", "Hard Money"], isRequired: "required", sortOrder: 8 },
+  { name: "Scope of Work", description: "Detailed renovation budget and timeline", category: "Project Documentation", loanTypes: ["Fix & Flip", "New Construction"], isRequired: "required", sortOrder: 9 },
+  { name: "Contractor Agreement", description: "Signed agreement with licensed contractor", category: "Project Documentation", loanTypes: ["Fix & Flip", "New Construction"], isRequired: "required", sortOrder: 10 },
+  { name: "Construction Plans", description: "Architectural plans and permits", category: "Project Documentation", loanTypes: ["New Construction"], isRequired: "required", sortOrder: 11 },
+  { name: "Property Appraisal", description: "Current appraisal report", category: "Property Documentation", loanTypes: ["DSCR", "Fix & Flip", "New Construction", "Hard Money"], isRequired: "if_applicable", sortOrder: 12 },
+  { name: "Experience Resume", description: "Track record of completed real estate transactions", category: "Borrower Documentation", loanTypes: ["Fix & Flip", "New Construction"], isRequired: "if_applicable", sortOrder: 13 },
+];
+
 // State data for "Where We Lend" section and state-specific SEO pages
 export interface StateData {
   abbreviation: string;
   name: string;
   slug: string;
   loansClosed: number;
-  loanVolume: number; // in millions
+  loanVolume: number;
   isEligible: boolean;
   eligiblePrograms: {
     dscr: boolean;
@@ -106,17 +237,14 @@ export const statesData: StateData[] = [
   { abbreviation: "WY", name: "Wyoming", slug: "wyoming", loansClosed: 11, loanVolume: 3.2, isEligible: true, eligiblePrograms: { dscr: true, fixFlip: true, hardMoney: true, newConstruction: true } },
 ];
 
-// Helper function to get state by slug
 export function getStateBySlug(slug: string): StateData | undefined {
   return statesData.find(state => state.slug === slug);
 }
 
-// Helper function to get state by abbreviation
 export function getStateByAbbreviation(abbr: string): StateData | undefined {
   return statesData.find(state => state.abbreviation === abbr);
 }
 
-// Get all eligible states
 export function getEligibleStates(): StateData[] {
   return statesData.filter(state => state.isEligible);
 }
