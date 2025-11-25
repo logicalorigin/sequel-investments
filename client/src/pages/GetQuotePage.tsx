@@ -201,9 +201,9 @@ export default function GetQuotePage() {
       title: "DSCR",
       subtitle: "Rental Loan",
       features: [
+        "80% LTV Purchase",
+        "75% LTV Cash-Out",
         "Long Term & Short Term Rental Loans",
-        "Up to 80% LTV Purchase",
-        "Up to 75% LTV Cash-Out",
         "No W2 or Tax Returns Required",
         "Term Sheet in 24 Hours",
       ],
@@ -214,11 +214,10 @@ export default function GetQuotePage() {
       title: "Fix & Flip",
       subtitle: "Bridge Loan",
       features: [
-        "No Experience Necessary",
-        "Up to 92.5% LTC",
+        "92.5% LTC",
         "100% Renovation Financing",
+        "No Experience Necessary",
         "No Inspection Needed",
-        "48 Hour Draw Funding",
         "48 Hour Closings",
       ],
     },
@@ -228,10 +227,10 @@ export default function GetQuotePage() {
       title: "New Construction",
       subtitle: "Ground Up Loan",
       features: [
+        "90% LTC",
+        "1-4 Units",
         "No Experience Necessary",
-        "Up to 90% LTC",
         "No Inspection Needed",
-        "48 Hour Draw Funding",
         "48 Hour Closings",
       ],
     },
@@ -307,7 +306,7 @@ export default function GetQuotePage() {
                   return (
                     <div
                       key={product.id}
-                      className={`relative bg-white/5 backdrop-blur-sm rounded-2xl p-6 cursor-pointer transition-all border-2 ${
+                      className={`relative bg-white/5 backdrop-blur-sm rounded-2xl p-6 cursor-pointer transition-all border-2 flex flex-col min-h-[380px] ${
                         isSelected
                           ? "border-[#e55c2b] bg-[#e55c2b]/10"
                           : "border-transparent hover:border-white/20 hover:bg-white/10"
@@ -316,19 +315,17 @@ export default function GetQuotePage() {
                       data-testid={`option-loan-${product.id}`}
                     >
                       <div className="text-center mb-6">
-                        <div className={`w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-4 ${
-                          isSelected ? "bg-[#e55c2b]" : "bg-white/10"
-                        }`}>
-                          <Icon className={`h-8 w-8 ${isSelected ? "text-white" : "text-white/60"}`} />
+                        <div className="w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-4 bg-[#e55c2b]/20">
+                          <Icon className="h-8 w-8 text-[#e55c2b]" />
                         </div>
                         <h3 className="text-xl font-bold text-white">{product.title}</h3>
                         <p className="text-white/60 text-sm">{product.subtitle}</p>
                       </div>
                       
-                      <ul className="space-y-2">
+                      <ul className="space-y-2 flex-1">
                         {product.features.map((feature, idx) => (
                           <li key={idx} className="flex items-start gap-2 text-sm text-white/80">
-                            <CheckCircle2 className={`h-4 w-4 mt-0.5 flex-shrink-0 ${isSelected ? "text-[#e55c2b]" : "text-white/40"}`} />
+                            <CheckCircle2 className="h-4 w-4 mt-0.5 flex-shrink-0 text-[#e55c2b]" />
                             <span>{feature}</span>
                           </li>
                         ))}
