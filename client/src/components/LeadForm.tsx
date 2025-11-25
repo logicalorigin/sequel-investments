@@ -27,10 +27,11 @@ import { Loader2 } from "lucide-react";
 interface LeadFormProps {
   onSubmitSuccess?: () => void;
   defaultLoanType?: string;
+  defaultLocation?: string;
   compact?: boolean;
 }
 
-export function LeadForm({ onSubmitSuccess, defaultLoanType, compact = false }: LeadFormProps) {
+export function LeadForm({ onSubmitSuccess, defaultLoanType, defaultLocation, compact = false }: LeadFormProps) {
   const { toast } = useToast();
   
   const form = useForm<InsertLead>({
@@ -40,7 +41,7 @@ export function LeadForm({ onSubmitSuccess, defaultLoanType, compact = false }: 
       email: "",
       phone: "",
       loanType: (defaultLoanType as any) || "DSCR",
-      propertyLocation: "",
+      propertyLocation: defaultLocation || "",
       message: "",
       howHeardAboutUs: "",
     },

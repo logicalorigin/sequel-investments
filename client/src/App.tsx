@@ -11,6 +11,9 @@ import CalculatorPage from "@/pages/CalculatorPage";
 import AboutPage from "@/pages/AboutPage";
 import ContactPage from "@/pages/ContactPage";
 import GetQuotePage from "@/pages/GetQuotePage";
+import WhereWeLendPage from "@/pages/WhereWeLendPage";
+import StateInvestmentPage from "@/pages/StateInvestmentPage";
+import StateLoanTypePage from "@/pages/StateLoanTypePage";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -25,6 +28,9 @@ function Router() {
       <Route path="/about" component={AboutPage} />
       <Route path="/contact" component={ContactPage} />
       <Route path="/get-quote" component={GetQuotePage} />
+      <Route path="/where-we-lend" component={WhereWeLendPage} />
+      <Route path="/states/:stateSlug" component={StateInvestmentPage} />
+      <Route path="/states/:stateSlug/:loanType" component={StateLoanTypePage} />
       <Route component={NotFound} />
     </Switch>
   );
