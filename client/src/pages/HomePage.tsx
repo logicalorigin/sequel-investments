@@ -24,9 +24,9 @@ import {
   Star,
   MapPin
 } from "lucide-react";
-import dscrImage from "@assets/AdobeStock_379512388_1764037043026.jpeg";
-import fixFlipImage from "@assets/AdobeStock_285980154_1764037043029.jpeg";
-import newConstructionImage from "@assets/AdobeStock_244499432_1764037043029.jpeg";
+import dscrImage from "@assets/stock_images/luxury_modern_single_2639d1bd.jpg";
+import fixFlipImage from "@assets/stock_images/house_renovation_con_aaeb0f05.jpg";
+import newConstructionImage from "@assets/stock_images/new_construction_hom_ee055247.jpg";
 import testimonial1 from "@assets/generated_images/Investor_testimonial_headshot_1_2a222601.png";
 import testimonial2 from "@assets/generated_images/Investor_testimonial_headshot_2_bb13b1a2.png";
 import testimonial3 from "@assets/generated_images/Investor_testimonial_headshot_3_a4e6c79b.png";

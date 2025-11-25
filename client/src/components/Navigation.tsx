@@ -68,7 +68,13 @@ export function Navigation() {
 
           <div className="hidden lg:flex items-center gap-3">
             <Link href="/portal" data-testid="link-nav-portal">
-              <Button variant="outline" size="default">Client Portal</Button>
+              <Button 
+                variant="outline" 
+                size="default"
+                className={isScrolled ? "" : "border-white/40 text-white hover:bg-white/10 hover:text-white"}
+              >
+                Client Portal
+              </Button>
             </Link>
             <Link href="/get-quote" data-testid="button-nav-getrate">
               <Button size="default">Get Funded</Button>
