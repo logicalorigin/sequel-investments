@@ -128,7 +128,7 @@ export default function GetQuotePage() {
       id: "dscr" as LoanType,
       icon: Home,
       title: "DSCR Rental Loan",
-      description: "Long-term financing for rental properties",
+      description: "Financing for rental properties",
       features: ["5.75%+ rates", "Up to 80% LTV", "30-year terms"],
     },
     {

@@ -128,7 +128,7 @@ export default function HomePage() {
                   <CardTitle className="text-xl">DSCR Loans</CardTitle>
                 </div>
                 <CardDescription>
-                  Long-term rental financing with no W2 required
+                  Rental financing with no W2 required
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
