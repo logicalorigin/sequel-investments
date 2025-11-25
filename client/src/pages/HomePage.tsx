@@ -27,9 +27,9 @@ import {
 import dscrImage from "@assets/stock_images/luxury_modern_single_2639d1bd.jpg";
 import fixFlipImage from "@assets/stock_images/house_renovation_con_aaeb0f05.jpg";
 import newConstructionImage from "@assets/stock_images/new_construction_hom_ee055247.jpg";
-import dscrCardImage from "@assets/stock_images/beautiful_rental_pro_06265c90.jpg";
-import fixFlipCardImage from "@assets/stock_images/house_renovation_rem_69bc5787.jpg";
-import newConstructionCardImage from "@assets/stock_images/new_home_constructio_a0290fd2.jpg";
+import dscrCardImage from "@assets/stock_images/luxury_beach_house_v_60312048.jpg";
+import fixFlipCardImage from "@assets/stock_images/house_remodel_in_pro_2abf95eb.jpg";
+import newConstructionCardImage from "@assets/stock_images/multi-family_apartme_e7cec58d.jpg";
 import testimonial1 from "@assets/generated_images/Investor_testimonial_headshot_1_2a222601.png";
 import testimonial2 from "@assets/generated_images/Investor_testimonial_headshot_2_bb13b1a2.png";
 import testimonial3 from "@assets/generated_images/Investor_testimonial_headshot_3_a4e6c79b.png";
@@ -249,7 +249,7 @@ export default function HomePage() {
               <div className="aspect-video overflow-hidden">
                 <img 
                   src={dscrCardImage} 
-                  alt="DSCR Loan - Rental Property" 
+                  alt="DSCR Loan - Beach Vacation Rental Property" 
                   className="w-full h-full object-cover"
                   loading="eager"
                   decoding="async"
@@ -292,7 +292,7 @@ export default function HomePage() {
               <div className="aspect-video overflow-hidden">
                 <img 
                   src={fixFlipCardImage} 
-                  alt="Fix & Flip Property - Interior Renovation" 
+                  alt="Fix & Flip Property - Remodel In Progress" 
                   className="w-full h-full object-cover"
                   loading="eager"
                   decoding="async"
@@ -335,7 +335,7 @@ export default function HomePage() {
               <div className="aspect-video overflow-hidden">
                 <img 
                   src={newConstructionCardImage} 
-                  alt="New Construction - Multi-Unit Framing" 
+                  alt="New Construction - Multi-Family Framing" 
                   className="w-full h-full object-cover"
                   loading="eager"
                   decoding="async"
