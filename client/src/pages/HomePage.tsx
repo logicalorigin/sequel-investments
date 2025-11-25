@@ -21,9 +21,9 @@ import {
   Star
 } from "lucide-react";
 import heroImage from "@assets/generated_images/Mortgage_office_hero_background_15b464fc.png";
-import dscrImage from "@assets/generated_images/cabin_vacation_rental_property.png";
-import fixFlipImage from "@assets/generated_images/interior_renovation_in_progress.png";
-import newConstructionImage from "@assets/generated_images/multi-unit_building_framed_construction.png";
+import dscrImage from "@assets/AdobeStock_379512388_1764037043026.jpeg";
+import fixFlipImage from "@assets/AdobeStock_285980154_1764037043029.jpeg";
+import newConstructionImage from "@assets/AdobeStock_244499432_1764037043029.jpeg";
 import testimonial1 from "@assets/generated_images/Investor_testimonial_headshot_1_2a222601.png";
 import testimonial2 from "@assets/generated_images/Investor_testimonial_headshot_2_bb13b1a2.png";
 import testimonial3 from "@assets/generated_images/Investor_testimonial_headshot_3_a4e6c79b.png";
