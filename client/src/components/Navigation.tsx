@@ -2,8 +2,6 @@ import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
-import logoFull from "@assets/ChatGPT Image Jun 25, 2025, 12_56_17 PM_1764028561921.png";
-import logoIcon from "@assets/ChatGPT Image Jun 25, 2025, 12_32_43 PM_1764028581255.png";
 
 export function Navigation() {
   const [location] = useLocation();
@@ -30,20 +28,17 @@ export function Navigation() {
   return (
     <nav
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled ? "bg-background/95 backdrop-blur-md border-b" : "bg-transparent"
+        isScrolled ? "bg-background/95 backdrop-blur-md border-b" : "bg-black/30 backdrop-blur-sm"
       }`}
     >
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex items-center justify-between h-20">
           <Link href="/" data-testid="link-home">
             <div className="flex items-center gap-2 cursor-pointer hover-elevate active-elevate-2 px-2 py-1 rounded-md -ml-2">
-              <img 
-                src={logoIcon} 
-                alt="SAF" 
-                className="h-10 w-10 object-contain"
-              />
-              <span className="font-bold text-xl text-foreground hidden sm:inline">Secured Asset Funding</span>
-              <span className="font-bold text-xl text-foreground sm:hidden">SAF</span>
+              <span className={`font-bold text-xl hidden sm:inline ${isScrolled ? "text-foreground" : "text-white"}`}>
+                Secured Asset Funding
+              </span>
+              <span className={`font-bold text-xl sm:hidden ${isScrolled ? "text-foreground" : "text-white"}`}>SAF</span>
             </div>
           </Link>
 
@@ -54,7 +49,9 @@ export function Navigation() {
                   className={`text-sm font-medium transition-colors cursor-pointer ${
                     location === link.href
                       ? "text-primary"
-                      : "text-foreground/80 hover:text-foreground"
+                      : isScrolled 
+                        ? "text-foreground/80 hover:text-foreground"
+                        : "text-white/90 hover:text-white"
                   }`}
                 >
                   {link.label}
@@ -65,12 +62,12 @@ export function Navigation() {
 
           <div className="hidden lg:block">
             <Link href="/get-quote" data-testid="button-nav-getrate">
-              <Button size="default">Get Your Rate</Button>
+              <Button size="default">Get Funded</Button>
             </Link>
           </div>
 
           <button
-            className="lg:hidden"
+            className={`lg:hidden ${isScrolled ? "text-foreground" : "text-white"}`}
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             data-testid="button-mobile-menu"
           >
@@ -100,7 +97,7 @@ export function Navigation() {
             ))}
             <Link href="/get-quote" data-testid="button-mobile-getrate">
               <Button className="w-full" onClick={() => setIsMobileMenuOpen(false)}>
-                Get Your Rate
+                Get Funded
               </Button>
             </Link>
           </div>
