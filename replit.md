@@ -74,8 +74,9 @@ The design is inspired by leading fintech lenders like Kiavi and Easy Street Cap
 - `Navigation` - Sticky header with SAF logo, nav links, and "Get Your Rate" CTA
 - `Footer` - 4-column layout with company info, loan products, quick links, newsletter
 - `LeadForm` - Reusable lead capture form with field-level error handling
-- `DSCRCalculator` - Interactive calculator with property value, rent, expenses inputs
+- `DSCRCalculator` - Interactive DSCR calculator with dynamic rate calculation based on credit score (660-800), LTV (up to 80%), DSCR (0.75-2.0+), and property type (SFR, 2-4 unit)
 - `GetQuotePage` - Multi-step quote flow: loan type → property details → contact info
+- `USMap` - Interactive SVG map of US states using SimpleMaps coordinates (viewBox: 0 0 1000 589). States are color-coded by loan volume and clickable for navigation to state detail pages
 
 ### Assets
 
