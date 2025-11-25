@@ -49,6 +49,7 @@ The design is inspired by leading fintech lenders like Kiavi and Easy Street Cap
 - `/fix-flip` - Fix & Flip product page (replaces old hard-money route)
 - `/new-construction` - New Construction product page
 - `/calculator` - Interactive DSCR calculator page
+- `/str-calculator` - STR (Short-Term Rental) income estimator with market data
 - `/about` - About us page with company info and track record
 - `/contact` - Contact page with lead form and contact details
 - `/get-quote` - Multi-step quote application flow (Kiavi-style)
@@ -75,6 +76,7 @@ The design is inspired by leading fintech lenders like Kiavi and Easy Street Cap
 - `Footer` - 4-column layout with company info, loan products, quick links, newsletter
 - `LeadForm` - Reusable lead capture form with field-level error handling
 - `DSCRCalculator` - Interactive DSCR calculator with dynamic rate calculation based on credit score (660-800), LTV (up to 80%), DSCR (0.75-2.0+), and property type (SFR, 2-4 unit)
+- `STRCalculatorPage` - Short-term rental income estimator with state-based market data, bedroom/property type multipliers, operating expense calculation, and DSCR analysis for loan qualification
 - `GetQuotePage` - Multi-step quote flow: loan type → property details → contact info
 - `USMap` - Interactive SVG map of US states using SimpleMaps coordinates (viewBox: 0 0 1000 589). States are color-coded by loan volume and clickable for navigation to state detail pages
 
@@ -84,10 +86,13 @@ The design is inspired by leading fintech lenders like Kiavi and Easy Street Cap
 - Full logo: `attached_assets/ChatGPT Image Jun 25, 2025, 12_56_17 PM_1764028561921.png`
 - Icon only: `attached_assets/ChatGPT Image Jun 25, 2025, 12_32_43 PM_1764028581255.png`
 
+**Stock Images** (used in hero carousel and product pages):
+- DSCR/Luxury Home: `attached_assets/stock_images/luxury_modern_single_2639d1bd.jpg`
+- Fix & Flip/Renovation: `attached_assets/stock_images/house_renovation_con_aaeb0f05.jpg`
+- New Construction: `attached_assets/stock_images/new_construction_hom_ee055247.jpg`
+
 **Generated Images**:
 - Hero background: `attached_assets/generated_images/Mortgage_office_hero_background_*.png`
-- DSCR property: `attached_assets/generated_images/DSCR_loan_rental_property_*.png`
-- Fix & Flip property: `attached_assets/generated_images/Hard_money_fix-and-flip_property_*.png`
 - Testimonial headshots (3 images)
 
 ## Development
