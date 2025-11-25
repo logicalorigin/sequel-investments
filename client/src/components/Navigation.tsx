@@ -23,8 +23,6 @@ export function Navigation() {
     { href: "/fix-flip", label: "Fix & Flip" },
     { href: "/new-construction", label: "New Construction" },
     { href: "/where-we-lend", label: "Where We Lend" },
-    { href: "/calculator", label: "DSCR Calculator" },
-    { href: "/str-calculator", label: "STR Calculator" },
   ];
 
   return (
