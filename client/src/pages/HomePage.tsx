@@ -33,6 +33,7 @@ import newConstructionCardImage from "@assets/image_1764097000811.png";
 import testimonial1 from "@assets/generated_images/Investor_testimonial_headshot_1_2a222601.png";
 import testimonial2 from "@assets/generated_images/Investor_testimonial_headshot_2_bb13b1a2.png";
 import testimonial3 from "@assets/generated_images/Investor_testimonial_headshot_3_a4e6c79b.png";
+import rateTermImage from "@assets/image_1764113864033.png";
 import { useToast } from "@/hooks/use-toast";
 
 const heroSlides = [
@@ -59,6 +60,14 @@ const heroSlides = [
     loanAmount: "$580,000",
     rate: "10.25%",
     closedIn: "10 Days",
+  },
+  {
+    id: "rateterm",
+    image: rateTermImage,
+    loanType: "Rate & Term Refinance",
+    loanAmount: "$900,000",
+    rate: "6.875%",
+    closedIn: "35 Days",
   },
 ];
 
