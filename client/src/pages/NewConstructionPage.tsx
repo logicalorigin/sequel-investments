@@ -43,10 +43,10 @@ export default function NewConstructionPage() {
           <div className="max-w-3xl">
             <Badge className="mb-4" variant="secondary">New Construction Loans</Badge>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6" data-testid="text-hero-title">
-              Build Your Vision. We'll Fund It.
+              Turn Your Plans Into Profits
             </h1>
             <p className="text-xl text-white/90 mb-8">
-              Streamlined ground-up construction financing with 48-hour draws and up to 82.5% LTC. Rates from 9.90%.
+              Streamlined ground-up construction financing for 1-4 unit properties. 9-24 month terms, up to 90% LTC. Rates from 9.90%.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 mb-8">
@@ -61,15 +61,15 @@ export default function NewConstructionPage() {
             <div className="flex flex-wrap gap-6">
               <div className="flex items-center gap-2">
                 <DollarSign className="h-5 w-5 text-white" />
-                <span className="font-medium text-white">Up to 82.5% LTC</span>
+                <span className="font-medium text-white">Up to 90% LTC</span>
               </div>
               <div className="flex items-center gap-2">
                 <Clock className="h-5 w-5 text-white" />
-                <span className="font-medium text-white">48-Hour Draws</span>
+                <span className="font-medium text-white">9-24 Month Terms</span>
               </div>
               <div className="flex items-center gap-2">
                 <HardHat className="h-5 w-5 text-white" />
-                <span className="font-medium text-white">Ground-Up Builds</span>
+                <span className="font-medium text-white">1-4 Unit Properties</span>
               </div>
             </div>
           </div>

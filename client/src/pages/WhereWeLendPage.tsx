@@ -41,16 +41,8 @@ export default function WhereWeLendPage() {
             </p>
           </div>
 
-          <div className="max-w-4xl mx-auto mb-8">
+          <div className="max-w-4xl mx-auto">
             <USMap onStateClick={handleStateClick} />
-          </div>
-
-          <div className="text-center">
-            <Link href="/contact">
-              <Button size="lg" data-testid="button-contact-us">
-                Contact Us
-              </Button>
-            </Link>
           </div>
         </div>
       </section>

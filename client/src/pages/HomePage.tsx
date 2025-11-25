@@ -186,7 +186,7 @@ export default function HomePage() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
+                  <div className="flex justify-between gap-4 text-sm">
                     <span className="text-muted-foreground">Loan Amount</span>
                     <span className="font-semibold">{activeSlide.loanAmount}</span>
                   </div>
@@ -198,13 +198,6 @@ export default function HomePage() {
                     <span className="text-muted-foreground">Closed In</span>
                     <span className="font-semibold text-green-600">{activeSlide.closedIn}</span>
                   </div>
-                </div>
-              </div>
-
-              <div className="absolute -top-4 -right-4 bg-card rounded-xl shadow-xl p-4 border">
-                <div className="flex items-center gap-2">
-                  <Zap className="h-5 w-5 text-primary" />
-                  <span className="font-semibold text-sm">Fast Funding</span>
                 </div>
               </div>
             </div>
@@ -316,11 +309,11 @@ export default function HomePage() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">LTC up to</span>
-                    <span className="font-semibold">90%</span>
+                    <span className="font-semibold">92.5%</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Closing</span>
-                    <span className="font-semibold">48 hours</span>
+                    <span className="text-muted-foreground">Loan Amounts</span>
+                    <span className="font-semibold">$75k - $5M</span>
                   </div>
                 </div>
                 <Link href="/fix-flip">
@@ -359,11 +352,11 @@ export default function HomePage() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">LTC up to</span>
-                    <span className="font-semibold">82.5%</span>
+                    <span className="font-semibold">90%</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Draw time</span>
-                    <span className="font-semibold">48 hours</span>
+                    <span className="text-muted-foreground">Terms</span>
+                    <span className="font-semibold">9-24 months</span>
                   </div>
                 </div>
                 <Link href="/new-construction">

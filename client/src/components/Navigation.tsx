@@ -38,7 +38,7 @@ export function Navigation() {
               <img 
                 src={logoIcon} 
                 alt="SAF" 
-                className={`h-10 w-10 object-contain transition-all duration-300 ${
+                className={`h-12 w-12 object-contain transition-all duration-300 ${
                   isScrolled ? "" : "brightness-0 invert"
                 }`}
               />
