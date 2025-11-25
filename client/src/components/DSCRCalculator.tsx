@@ -1,21 +1,25 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Link } from "wouter";
-import { CheckCircle2, AlertCircle, ArrowRight, Calculator, Building, TrendingUp } from "lucide-react";
+import { CheckCircle2, AlertCircle, ArrowRight, Calculator, Building, TrendingUp, Info } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 type LoanType = "dscr" | "fixflip";
+type PropertyType = "sfr" | "2-4unit";
 
 export function DSCRCalculator() {
   const [loanType, setLoanType] = useState<LoanType>("dscr");
   
   const [purchasePrice, setPurchasePrice] = useState("400000");
-  const [downPaymentPercent, setDownPaymentPercent] = useState([20]);
-  const [interestRate, setInterestRate] = useState([6.5]);
+  const [downPaymentPercent, setDownPaymentPercent] = useState([25]);
+  const [creditScore, setCreditScore] = useState([740]);
+  const [propertyType, setPropertyType] = useState<PropertyType>("sfr");
   const [monthlyRent, setMonthlyRent] = useState("3200");
   const [monthlyExpenses, setMonthlyExpenses] = useState("600");
   
@@ -32,14 +36,52 @@ export function DSCRCalculator() {
     }).format(value);
   };
 
+  const calculateInterestRate = (ltv: number, dscr: number) => {
+    const BASE_RATE = 5.75;
+    
+    let creditAdjustment = 0;
+    const score = creditScore[0];
+    if (score >= 760) creditAdjustment = 0;
+    else if (score >= 740) creditAdjustment = 0.25;
+    else if (score >= 720) creditAdjustment = 0.5;
+    else if (score >= 700) creditAdjustment = 0.75;
+    else if (score >= 680) creditAdjustment = 1.0;
+    else creditAdjustment = 1.25;
+    
+    let ltvAdjustment = 0;
+    if (ltv <= 60) ltvAdjustment = -0.25;
+    else if (ltv <= 65) ltvAdjustment = 0;
+    else if (ltv <= 70) ltvAdjustment = 0.25;
+    else if (ltv <= 75) ltvAdjustment = 0.5;
+    else ltvAdjustment = 0.75;
+    
+    let dscrAdjustment = 0;
+    if (dscr >= 1.5) dscrAdjustment = -0.125;
+    else if (dscr >= 1.25) dscrAdjustment = 0;
+    else if (dscr >= 1.0) dscrAdjustment = 0.25;
+    else if (dscr >= 0.75) dscrAdjustment = 0.5;
+    else dscrAdjustment = 0.75;
+    
+    let propertyAdjustment = 0;
+    if (propertyType === "2-4unit") propertyAdjustment = 0.25;
+    
+    const finalRate = BASE_RATE + creditAdjustment + ltvAdjustment + dscrAdjustment + propertyAdjustment;
+    return Math.max(5.75, Math.min(9.0, finalRate));
+  };
+
   const calculateDSCR = () => {
     const price = parseFloat(purchasePrice) || 0;
     const downPayment = price * (downPaymentPercent[0] / 100);
     const loanAmount = price - downPayment;
-    const rate = interestRate[0] / 100 / 12;
-    const term = 30 * 12;
+    const ltv = price > 0 ? (loanAmount / price) * 100 : 0;
     const rent = parseFloat(monthlyRent) || 0;
     const expenses = parseFloat(monthlyExpenses) || 0;
+    
+    const preliminaryDscr = rent > 0 && expenses >= 0 ? rent / (expenses + 1000) : 1.0;
+    
+    const calculatedRate = calculateInterestRate(ltv, preliminaryDscr);
+    const rate = calculatedRate / 100 / 12;
+    const term = 30 * 12;
     
     const monthlyPayment = loanAmount > 0 
       ? (loanAmount * rate * Math.pow(1 + rate, term)) / (Math.pow(1 + rate, term) - 1)
@@ -60,6 +102,7 @@ export function DSCRCalculator() {
     
     return {
       dscr: dscr.toFixed(2),
+      dscrValue: dscr,
       monthlyPayment: monthlyPayment,
       loanAmount: loanAmount,
       downPayment: downPayment,
@@ -71,7 +114,8 @@ export function DSCRCalculator() {
       annualCashFlow: annualCashFlow,
       cashOnCashReturn: cashOnCashReturn,
       qualificationStatus,
-      ltv: (loanAmount / price) * 100,
+      ltv: ltv,
+      interestRate: calculatedRate,
     };
   };
 
@@ -131,15 +175,52 @@ export function DSCRCalculator() {
   const dscrResults = calculateDSCR();
   const flipResults = calculateFixFlip();
 
+  const rateBreakdown = useMemo(() => {
+    const BASE_RATE = 5.75;
+    const score = creditScore[0];
+    const ltv = dscrResults.ltv;
+    const dscr = dscrResults.dscrValue;
+
+    let creditAdj = 0;
+    let creditLabel = "";
+    if (score >= 760) { creditAdj = 0; creditLabel = "760+ (Excellent)"; }
+    else if (score >= 740) { creditAdj = 0.25; creditLabel = "740-759 (Very Good)"; }
+    else if (score >= 720) { creditAdj = 0.5; creditLabel = "720-739 (Good)"; }
+    else if (score >= 700) { creditAdj = 0.75; creditLabel = "700-719 (Fair)"; }
+    else if (score >= 680) { creditAdj = 1.0; creditLabel = "680-699"; }
+    else { creditAdj = 1.25; creditLabel = "660-679"; }
+
+    let ltvAdj = 0;
+    let ltvLabel = "";
+    if (ltv <= 60) { ltvAdj = -0.25; ltvLabel = "≤60% (Best)"; }
+    else if (ltv <= 65) { ltvAdj = 0; ltvLabel = "61-65%"; }
+    else if (ltv <= 70) { ltvAdj = 0.25; ltvLabel = "66-70%"; }
+    else if (ltv <= 75) { ltvAdj = 0.5; ltvLabel = "71-75%"; }
+    else { ltvAdj = 0.75; ltvLabel = "76-80%"; }
+
+    let dscrAdj = 0;
+    let dscrLabel = "";
+    if (dscr >= 1.5) { dscrAdj = -0.125; dscrLabel = "1.50+ (Excellent)"; }
+    else if (dscr >= 1.25) { dscrAdj = 0; dscrLabel = "1.25-1.49 (Good)"; }
+    else if (dscr >= 1.0) { dscrAdj = 0.25; dscrLabel = "1.00-1.24"; }
+    else if (dscr >= 0.75) { dscrAdj = 0.5; dscrLabel = "0.75-0.99"; }
+    else { dscrAdj = 0.75; dscrLabel = "<0.75"; }
+
+    let propAdj = propertyType === "2-4unit" ? 0.25 : 0;
+    let propLabel = propertyType === "sfr" ? "Single Family" : "2-4 Unit";
+
+    return { BASE_RATE, creditAdj, creditLabel, ltvAdj, ltvLabel, dscrAdj, dscrLabel, propAdj, propLabel };
+  }, [creditScore, dscrResults.ltv, dscrResults.dscrValue, propertyType]);
+
   return (
     <Card className="w-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Calculator className="h-6 w-6 text-primary" />
-          Investment Calculator
+          DSCR Calculator
         </CardTitle>
         <CardDescription>
-          Analyze your investment scenario with our comprehensive calculator
+          Calculate your estimated interest rate and DSCR qualification
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -156,8 +237,54 @@ export function DSCRCalculator() {
           </TabsList>
 
           <TabsContent value="dscr" className="space-y-6">
+            <div className="bg-accent/20 border border-accent/30 rounded-lg p-4 mb-4">
+              <h3 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                <Info className="h-4 w-4" />
+                Your Estimated Rate
+              </h3>
+              <div className="flex items-baseline gap-2">
+                <span className="text-4xl font-bold text-primary" data-testid="text-calc-rate">
+                  {dscrResults.interestRate.toFixed(3)}%
+                </span>
+                <span className="text-muted-foreground text-sm">30-Year Fixed</span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                Rate based on credit score, LTV, DSCR, and property type
+              </p>
+            </div>
+
             <div className="grid md:grid-cols-2 gap-6">
-              <div className="space-y-4">
+              <div className="space-y-5">
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <Label className="flex items-center gap-1">
+                      Credit Score
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="max-w-xs text-xs">Most important factor in rate calculation. Minimum 660 required.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </Label>
+                    <span className="text-sm font-medium">{creditScore[0]}</span>
+                  </div>
+                  <Slider
+                    value={creditScore}
+                    onValueChange={setCreditScore}
+                    min={660}
+                    max={800}
+                    step={5}
+                    className="py-2"
+                    data-testid="slider-calc-credit-score"
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                    <span>660 (Min)</span>
+                    <span>800</span>
+                  </div>
+                </div>
+
                 <div>
                   <Label htmlFor="purchasePrice">Purchase Price ($)</Label>
                   <Input
@@ -172,13 +299,23 @@ export function DSCRCalculator() {
 
                 <div>
                   <div className="flex justify-between mb-2">
-                    <Label>Down Payment</Label>
+                    <Label className="flex items-center gap-1">
+                      Down Payment (LTV: {(100 - downPaymentPercent[0]).toFixed(0)}%)
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="max-w-xs text-xs">Maximum LTV is 80%. Lower LTV = better rate.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </Label>
                     <span className="text-sm font-medium">{downPaymentPercent[0]}%</span>
                   </div>
                   <Slider
                     value={downPaymentPercent}
                     onValueChange={setDownPaymentPercent}
-                    min={10}
+                    min={20}
                     max={50}
                     step={5}
                     className="py-2"
@@ -190,26 +327,30 @@ export function DSCRCalculator() {
                 </div>
 
                 <div>
-                  <div className="flex justify-between mb-2">
-                    <Label>Interest Rate</Label>
-                    <span className="text-sm font-medium">{interestRate[0].toFixed(2)}%</span>
-                  </div>
-                  <Slider
-                    value={interestRate}
-                    onValueChange={setInterestRate}
-                    min={5.75}
-                    max={9}
-                    step={0.125}
-                    className="py-2"
-                    data-testid="slider-calc-interest-rate"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Rates from 5.75% based on qualifications
-                  </p>
+                  <Label className="flex items-center gap-1 mb-2">
+                    Property Type
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="max-w-xs text-xs">SFR typically gets best rates. 2-4 unit adds +0.25%.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </Label>
+                  <Select value={propertyType} onValueChange={(v) => setPropertyType(v as PropertyType)}>
+                    <SelectTrigger data-testid="select-calc-property-type">
+                      <SelectValue placeholder="Select property type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="sfr">Single Family Residence (SFR)</SelectItem>
+                      <SelectItem value="2-4unit">2-4 Unit Multifamily</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-5">
                 <div>
                   <Label htmlFor="monthlyRent">Monthly Rental Income ($)</Label>
                   <Input
@@ -235,6 +376,44 @@ export function DSCRCalculator() {
                   <p className="text-sm text-muted-foreground mt-1">
                     Taxes, insurance, HOA, maintenance
                   </p>
+                </div>
+
+                <div className="bg-muted/50 rounded-lg p-4 space-y-2 text-sm">
+                  <h4 className="font-semibold text-xs uppercase tracking-wide text-muted-foreground mb-3">
+                    Rate Breakdown
+                  </h4>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Base Rate:</span>
+                    <span className="font-medium">{rateBreakdown.BASE_RATE.toFixed(2)}%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Credit ({rateBreakdown.creditLabel}):</span>
+                    <span className={`font-medium ${rateBreakdown.creditAdj > 0 ? "text-red-600" : rateBreakdown.creditAdj < 0 ? "text-green-600" : ""}`}>
+                      {rateBreakdown.creditAdj > 0 ? "+" : ""}{rateBreakdown.creditAdj.toFixed(2)}%
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">LTV ({rateBreakdown.ltvLabel}):</span>
+                    <span className={`font-medium ${rateBreakdown.ltvAdj > 0 ? "text-red-600" : rateBreakdown.ltvAdj < 0 ? "text-green-600" : ""}`}>
+                      {rateBreakdown.ltvAdj > 0 ? "+" : ""}{rateBreakdown.ltvAdj.toFixed(2)}%
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">DSCR ({rateBreakdown.dscrLabel}):</span>
+                    <span className={`font-medium ${rateBreakdown.dscrAdj > 0 ? "text-red-600" : rateBreakdown.dscrAdj < 0 ? "text-green-600" : ""}`}>
+                      {rateBreakdown.dscrAdj > 0 ? "+" : ""}{rateBreakdown.dscrAdj.toFixed(3)}%
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Property ({rateBreakdown.propLabel}):</span>
+                    <span className={`font-medium ${rateBreakdown.propAdj > 0 ? "text-red-600" : ""}`}>
+                      {rateBreakdown.propAdj > 0 ? "+" : ""}{rateBreakdown.propAdj.toFixed(2)}%
+                    </span>
+                  </div>
+                  <div className="border-t pt-2 mt-2 flex justify-between font-semibold">
+                    <span>Your Rate:</span>
+                    <span className="text-primary">{dscrResults.interestRate.toFixed(3)}%</span>
+                  </div>
                 </div>
               </div>
             </div>
