@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
-import logoIcon from "@assets/ChatGPT Image Jun 25, 2025, 12_32_43 PM_1764036434057.png";
+import logoIcon from "@assets/logo_saf_only_removed_bg (1)_1764095523171.png";
 
 export function Navigation() {
   const [location] = useLocation();
@@ -38,7 +38,9 @@ export function Navigation() {
               <img 
                 src={logoIcon} 
                 alt="SAF" 
-                className="h-10 w-10 object-contain"
+                className={`h-10 w-10 object-contain transition-all duration-300 ${
+                  isScrolled ? "" : "brightness-0 invert"
+                }`}
               />
               <span className={`font-bold text-xl hidden sm:inline ${isScrolled ? "text-foreground" : "text-white"}`}>
                 Secured Asset Funding
