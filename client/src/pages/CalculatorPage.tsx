@@ -13,10 +13,10 @@ export default function CalculatorPage() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="max-w-3xl mx-auto text-center">
             <h1 className="text-5xl md:text-6xl font-bold mb-6" data-testid="text-calculator-title">
-              Investment Calculator
+              DSCR Calculator
             </h1>
             <p className="text-xl text-muted-foreground">
-              Analyze DSCR for rental properties or estimate flip profits with our comprehensive investment calculator
+              Calculate your estimated rate based on credit score, LTV, DSCR ratio, and property type
             </p>
           </div>
         </div>
