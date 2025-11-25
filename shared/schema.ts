@@ -22,7 +22,7 @@ export const insertLeadSchema = createInsertSchema(leads).omit({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
   phone: z.string().min(10, "Phone number must be at least 10 digits"),
-  loanType: z.enum(["DSCR", "Hard Money", "Both", "Other"]),
+  loanType: z.enum(["DSCR", "Fix & Flip", "New Construction", "Hard Money", "Both", "Other"]),
   propertyLocation: z.string().optional(),
   message: z.string().optional(),
   howHeardAboutUs: z.string().optional(),

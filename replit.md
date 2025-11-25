@@ -1,14 +1,41 @@
-# PrimeLend - Non-QM Mortgage Broker Platform
+# Secured Asset Funding - Real Estate Investment Lending Platform
 
 ## Overview
 
-PrimeLend is a marketing and lead generation website for a non-QM (non-qualified mortgage) broker specializing in DSCR (Debt Service Coverage Ratio) loans and Hard Money loans for real estate investors. The platform provides educational content about loan products, an interactive DSCR calculator, and lead capture forms to connect potential borrowers with loan specialists.
+Secured Asset Funding (SAF) is a professional marketing and lead generation website for an investor-focused real estate lender specializing in DSCR Loans, Fix & Flip Loans, and New Construction financing. The platform provides educational content about loan products, an interactive DSCR calculator, multi-step quote application flow, and lead capture forms to connect potential borrowers with loan specialists.
 
-The application is built as a full-stack TypeScript solution with a React frontend and Express backend, designed for rapid deployment and easy maintenance.
+The design is inspired by leading fintech lenders like Kiavi and Easy Street Capital, featuring modern aesthetics, trust indicators, and conversion-focused layouts.
 
-## User Preferences
+## Loan Products
 
-Preferred communication style: Simple, everyday language.
+### DSCR Loans (Long-Term Rental)
+- Rates from 5.75%
+- Up to 80% LTV (purchase/refi), 75% LTV (cash-out)
+- Loan amounts: $100K - $3M
+- 30-year fixed or 5/6 ARM options
+- No minimum DSCR requirement
+- No W2 or tax returns required
+- Short-term rental (STR) friendly
+- No seasoning required for BRRRR refinance
+
+### Fix & Flip Loans
+- Rates from 8.90%
+- Up to 90% LTC / 70% ARV
+- Loan amounts: $80K - $2M
+- 6-12 month terms (interest-only)
+- 48-hour closings available
+- No appraisal required
+- 48-hour draw process
+- No prepayment penalty
+
+### New Construction Loans
+- Rates from 9.90%
+- Up to 82.5% LTC
+- 12-18 month terms
+- 48-hour draw turnaround
+- Spec homes and infill development
+- Multi-home developments
+- In-house servicing
 
 ## System Architecture
 
@@ -16,126 +43,82 @@ Preferred communication style: Simple, everyday language.
 
 **Framework**: React 18 with TypeScript, using Vite as the build tool and development server.
 
-**Routing**: Client-side routing implemented with Wouter, a lightweight alternative to React Router. Routes include:
-- Homepage with hero section and loan product overview
-- DSCR Loans detail page
-- Hard Money Loans detail page  
-- Interactive Calculator page
-- About page
-- Contact page
+**Routing**: Client-side routing implemented with Wouter. Routes include:
+- `/` - Homepage with hero, stats, product cards, why choose us, calculator, testimonials
+- `/dscr-loans` - DSCR Loans product page with detailed terms and sidebar form
+- `/fix-flip` - Fix & Flip product page (replaces old hard-money route)
+- `/new-construction` - New Construction product page
+- `/calculator` - Interactive DSCR calculator page
+- `/about` - About us page with company info and track record
+- `/contact` - Contact page with lead form and contact details
+- `/get-quote` - Multi-step quote application flow (Kiavi-style)
 
-**UI Component System**: shadcn/ui component library in "New York" style, built on Radix UI primitives. Provides accessible, pre-styled components including forms, cards, dialogs, navigation menus, and data display elements.
+**UI Component System**: shadcn/ui component library in "New York" style, built on Radix UI primitives.
 
-**Styling**: Tailwind CSS with custom design tokens defined in CSS variables. Theme supports light/dark modes with HSL color system. Typography uses Inter font family for modern, professional appearance aligned with financial services aesthetic.
+**Styling**: Tailwind CSS with custom design tokens. Theme supports light/dark modes. Typography uses Inter font family.
 
-**State Management**: TanStack Query (React Query) for server state management, form state handled by React Hook Form with Zod validation.
-
-**Design Philosophy**: Conversion-focused design inspired by modern fintech companies (Better.com, SoFi, Stripe) emphasizing trust, credibility, and clear calls-to-action.
+**State Management**: TanStack Query for server state, React Hook Form with Zod validation for forms.
 
 ### Backend Architecture
 
 **Server Framework**: Express.js running on Node.js with TypeScript.
 
-**API Design**: RESTful JSON API with two primary endpoints:
-- `POST /api/leads` - Creates new lead submissions with validation
+**API Endpoints**:
+- `POST /api/leads` - Creates new lead submissions with Zod validation
 - `GET /api/leads` - Retrieves all leads (administrative function)
 
-**Data Validation**: Zod schemas shared between client and server (in `/shared` directory) ensure type safety and consistent validation rules. Uses `zod-validation-error` for user-friendly error messages.
+**Storage**: In-memory storage (`MemStorage` class) with interface abstraction for easy database swap.
 
-**Storage Strategy**: Currently implements in-memory storage (`MemStorage` class) using a Map data structure. This is designed as an abstraction layer (`IStorage` interface) allowing easy swap to database persistence without changing application logic.
+### Key Components
 
-**Development Server**: Vite middleware integration in development mode enables hot module replacement and fast refresh. Production build serves static assets from Express.
+- `Navigation` - Sticky header with SAF logo, nav links, and "Get Your Rate" CTA
+- `Footer` - 4-column layout with company info, loan products, quick links, newsletter
+- `LeadForm` - Reusable lead capture form with field-level error handling
+- `DSCRCalculator` - Interactive calculator with property value, rent, expenses inputs
+- `GetQuotePage` - Multi-step quote flow: loan type → property details → contact info
 
-### Data Layer
+### Assets
 
-**Schema Definition**: Drizzle ORM used to define database schema in TypeScript. The `leads` table includes:
-- Contact information (name, email, phone)
-- Loan preferences (type, property location)
-- Lead source tracking (how they heard about the service)
-- Timestamps
+**Logo Files**:
+- Full logo: `attached_assets/ChatGPT Image Jun 25, 2025, 12_56_17 PM_1764028561921.png`
+- Icon only: `attached_assets/ChatGPT Image Jun 25, 2025, 12_32_43 PM_1764028581255.png`
 
-**Database Configuration**: Configured for PostgreSQL (via Neon serverless driver) but currently using in-memory storage. The Drizzle config points to a PostgreSQL connection, ready for database provisioning.
+**Generated Images**:
+- Hero background: `attached_assets/generated_images/Mortgage_office_hero_background_*.png`
+- DSCR property: `attached_assets/generated_images/DSCR_loan_rental_property_*.png`
+- Fix & Flip property: `attached_assets/generated_images/Hard_money_fix-and-flip_property_*.png`
+- Testimonial headshots (3 images)
 
-**Type Generation**: Drizzle generates TypeScript types from schema, ensuring end-to-end type safety from database to UI.
+## Development
 
-### Form Handling & Validation
+### Running the Project
 
-**Validation Schema**: Single source of truth defined in `shared/schema.ts` using Zod:
-- Name: minimum 2 characters
+The workflow `Start application` runs `npm run dev` which starts both Express backend and Vite frontend on port 5000.
+
+### Key Files
+
+- `client/src/App.tsx` - Route definitions
+- `client/src/components/Navigation.tsx` - Header with SAF branding
+- `client/src/components/Footer.tsx` - Footer with company info
+- `client/src/components/LeadForm.tsx` - Reusable lead capture form
+- `client/src/pages/GetQuotePage.tsx` - Multi-step quote application
+- `shared/schema.ts` - Zod schemas and types for lead data
+- `server/routes.ts` - API endpoints with validation
+- `server/storage.ts` - In-memory storage interface
+
+### Form Validation
+
+Lead submissions require:
+- Name: min 2 characters
 - Email: valid email format
-- Phone: minimum 10 digits
-- Loan type: enum of "DSCR", "Hard Money", "Both", "Other"
-- Optional fields: property location, message, referral source
+- Phone: min 10 characters
+- Loan type: "DSCR", "Hard Money", or "Other"
+- Property location: min 2 characters
 
-**Client-side Forms**: React Hook Form with Zod resolver provides instant validation feedback. Forms are reusable across pages with configurable defaults (e.g., pre-selecting DSCR loan type on DSCR page).
+### Trust Indicators
 
-**Server-side Validation**: Express middleware validates all incoming requests against same Zod schema, returning field-specific error messages for client display.
-
-### Asset Management
-
-**Static Assets**: Images stored in `/attached_assets/generated_images/` directory and imported via Vite alias `@assets`. Includes hero images, loan product photos, and testimonial headshots.
-
-**Build Process**: Vite bundles all assets with content hashing for cache busting. Production build outputs to `/dist/public`.
-
-### Interactive Features
-
-**DSCR Calculator**: Client-side calculation component that:
-- Accepts property value, monthly rent, and expenses as inputs
-- Calculates estimated monthly mortgage payment (assuming 80% LTV, 7.5% rate, 30-year term)
-- Computes DSCR ratio (monthly rent / total debt obligations)
-- Displays qualification status (DSCR >= 1.0)
-- Updates in real-time as user adjusts values
-
-### Navigation & Layout
-
-**Responsive Navigation**: Fixed header with logo, navigation links, and mobile hamburger menu. Background opacity changes on scroll for visual hierarchy.
-
-**Footer**: Multi-column layout with company info, loan product links, quick links, and newsletter signup. Includes social media icons.
-
-**Page Structure**: Consistent layout with hero sections, content areas, and lead capture forms. Uses gradient backgrounds and card components for visual separation.
-
-## External Dependencies
-
-### UI Libraries
-- **Radix UI**: Headless component primitives (@radix-ui/react-*) for accessible interactive elements
-- **shadcn/ui**: Pre-styled component system built on Radix UI
-- **Tailwind CSS**: Utility-first CSS framework
-- **Lucide React**: Icon library
-
-### Data Fetching & Forms
-- **TanStack Query**: Server state management and caching
-- **React Hook Form**: Form state management with minimal re-renders
-- **Zod**: Schema validation library
-- **@hookform/resolvers**: Zod integration for React Hook Form
-
-### Routing & Navigation
-- **Wouter**: Lightweight client-side routing (< 2KB alternative to React Router)
-
-### Database & ORM
-- **Drizzle ORM**: TypeScript ORM with migrations support
-- **@neondatabase/serverless**: PostgreSQL driver optimized for serverless/edge environments
-- **drizzle-zod**: Generates Zod schemas from Drizzle tables
-
-### Build Tools
-- **Vite**: Frontend build tool and dev server
-- **esbuild**: Fast JavaScript bundler for backend code
-- **TypeScript**: Type safety across entire stack
-- **PostCSS**: CSS processing with Autoprefixer
-
-### Development Tools
-- **@replit/vite-plugin-***: Replit-specific development enhancements (error overlay, cartographer, dev banner)
-- **tsx**: TypeScript execution for development server
-
-### Utility Libraries
-- **clsx** & **tailwind-merge**: Class name composition utilities
-- **class-variance-authority**: Variant-based component styling
-- **date-fns**: Date manipulation and formatting
-- **nanoid**: Unique ID generation
-
-### Planned Integrations
-The architecture supports future integration of:
-- PostgreSQL database (Drizzle config already present)
-- Email service for lead notifications
-- CRM integration for lead management
-- Analytics tracking (Google Analytics, Mixpanel, etc.)
-- Live chat support
+Homepage displays:
+- $500M+ Loans Funded
+- 1,500+ Investors Served
+- 48hrs Fastest Closing
+- 48 States + DC Licensed

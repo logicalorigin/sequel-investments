@@ -4,6 +4,7 @@ import { LeadForm } from "@/components/LeadForm";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Phone, Mail, MapPin, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Link } from "wouter";
 
 export default function ContactPage() {
   const { toast } = useToast();
@@ -22,11 +23,11 @@ export default function ContactPage() {
       <section className="pt-32 pb-16 bg-gradient-to-b from-primary/10 to-background">
         <div className="max-w-7xl mx-auto px-6">
           <div className="max-w-3xl mx-auto text-center">
-            <h1 className="text-5xl md:text-6xl font-bold mb-6" data-testid="text-contact-title">
+            <h1 className="text-4xl md:text-5xl font-bold mb-6" data-testid="text-contact-title">
               Get in Touch
             </h1>
             <p className="text-xl text-muted-foreground">
-              Have questions? We're here to help you find the perfect loan solution for your investment
+              Have questions? We're here to help you find the perfect financing solution for your investment
             </p>
           </div>
         </div>
@@ -77,14 +78,14 @@ export default function ContactPage() {
                 </CardHeader>
                 <CardContent>
                   <a 
-                    href="mailto:info@primelend.com" 
+                    href="mailto:info@securedassetfunding.com" 
                     className="text-lg font-semibold text-primary hover:underline"
                     data-testid="link-email"
                   >
-                    info@primelend.com
+                    info@securedassetfunding.com
                   </a>
                   <p className="text-sm text-muted-foreground mt-2">
-                    We'll respond to all emails within 4 business hours
+                    We respond to all emails within 4 business hours
                   </p>
                 </CardContent>
               </Card>
@@ -96,9 +97,9 @@ export default function ContactPage() {
                 </CardHeader>
                 <CardContent>
                   <address className="not-italic text-muted-foreground">
-                    123 Financial Plaza<br />
-                    Suite 500<br />
-                    New York, NY 10004
+                    1201 E Cesar Chavez Street<br />
+                    Suite 1<br />
+                    Austin, TX 78702
                   </address>
                   <p className="text-sm text-muted-foreground mt-3">
                     Office visits by appointment only
@@ -136,13 +137,13 @@ export default function ContactPage() {
           <h2 className="text-3xl font-bold mb-4">Frequently Asked Questions</h2>
           <p className="text-muted-foreground mb-8">
             Before you reach out, check if your question is answered in our{" "}
-            <a href="/dscr-loans#faq" className="text-primary hover:underline">
-              DSCR FAQ
-            </a>{" "}
+            <Link href="/dscr-loans">
+              <span className="text-primary hover:underline cursor-pointer">DSCR FAQ</span>
+            </Link>{" "}
             or{" "}
-            <a href="/hard-money#faq" className="text-primary hover:underline">
-              Hard Money FAQ
-            </a>{" "}
+            <Link href="/fix-flip">
+              <span className="text-primary hover:underline cursor-pointer">Fix & Flip FAQ</span>
+            </Link>{" "}
             sections.
           </p>
           <p className="text-sm text-muted-foreground">
