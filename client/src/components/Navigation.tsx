@@ -66,7 +66,10 @@ export function Navigation() {
             ))}
           </div>
 
-          <div className="hidden lg:block">
+          <div className="hidden lg:flex items-center gap-3">
+            <Link href="/portal" data-testid="link-nav-portal">
+              <Button variant="outline" size="default">Client Portal</Button>
+            </Link>
             <Link href="/get-quote" data-testid="button-nav-getrate">
               <Button size="default">Get Funded</Button>
             </Link>
@@ -101,11 +104,18 @@ export function Navigation() {
                 </div>
               </Link>
             ))}
-            <Link href="/get-quote" data-testid="button-mobile-getrate">
-              <Button className="w-full" onClick={() => setIsMobileMenuOpen(false)}>
-                Get Funded
-              </Button>
-            </Link>
+            <div className="flex flex-col gap-3 pt-2">
+              <Link href="/portal" data-testid="link-mobile-portal">
+                <Button variant="outline" className="w-full" onClick={() => setIsMobileMenuOpen(false)}>
+                  Client Portal
+                </Button>
+              </Link>
+              <Link href="/get-quote" data-testid="button-mobile-getrate">
+                <Button className="w-full" onClick={() => setIsMobileMenuOpen(false)}>
+                  Get Funded
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       )}
