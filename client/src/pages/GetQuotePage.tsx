@@ -33,6 +33,7 @@ interface FormData {
   loanPurpose: string;
   propertyIdentified: string;
   closingTimeframe: string;
+  desiredCloseDate: string;
   propertyType: string;
   propertyAddress: string;
   propertyCity: string;
@@ -41,6 +42,9 @@ interface FormData {
   purchasePrice: string;
   rehabBudget: string;
   afterRepairValue: string;
+  annualRents: string;
+  annualTaxes: string;
+  annualInsurance: string;
   investmentExperience: string;
   exitStrategy: string;
   entityType: string;
@@ -68,6 +72,7 @@ export default function GetQuotePage() {
     loanPurpose: "",
     propertyIdentified: "",
     closingTimeframe: "",
+    desiredCloseDate: "",
     propertyType: "",
     propertyAddress: "",
     propertyCity: "",
@@ -76,6 +81,9 @@ export default function GetQuotePage() {
     purchasePrice: "",
     rehabBudget: "",
     afterRepairValue: "",
+    annualRents: "",
+    annualTaxes: "",
+    annualInsurance: "",
     investmentExperience: "",
     exitStrategy: "",
     entityType: "",
@@ -373,22 +381,38 @@ export default function GetQuotePage() {
                   <RadioGroup
                     value={formData.loanPurpose}
                     onValueChange={(value) => setFormData({ ...formData, loanPurpose: value })}
-                    className="grid grid-cols-2 gap-3"
+                    className="grid grid-cols-3 gap-3"
                   >
-                    {["Purchase", "Refinance", "Cash-Out Refinance", "Rate/Term Refinance"].map((option) => (
-                      <div
-                        key={option}
-                        className={`flex items-center space-x-3 p-4 rounded-lg border cursor-pointer transition-all ${
-                          formData.loanPurpose === option
-                            ? "border-[#e55c2b] bg-[#e55c2b]/10"
-                            : "border-white/10 hover:border-white/20"
-                        }`}
-                        onClick={() => setFormData({ ...formData, loanPurpose: option })}
-                      >
-                        <RadioGroupItem value={option} id={option} className="border-white/40" />
-                        <Label htmlFor={option} className="text-white cursor-pointer">{option}</Label>
-                      </div>
-                    ))}
+                    {formData.loanType === "dscr" 
+                      ? ["Purchase", "Cash-Out", "Rate & Term"].map((option) => (
+                          <div
+                            key={option}
+                            className={`flex items-center space-x-3 p-4 rounded-lg border cursor-pointer transition-all ${
+                              formData.loanPurpose === option
+                                ? "border-[#e55c2b] bg-[#e55c2b]/10"
+                                : "border-white/10 hover:border-white/20"
+                            }`}
+                            onClick={() => setFormData({ ...formData, loanPurpose: option })}
+                          >
+                            <RadioGroupItem value={option} id={option} className="border-white/40" />
+                            <Label htmlFor={option} className="text-white cursor-pointer">{option}</Label>
+                          </div>
+                        ))
+                      : ["Purchase", "Refinance"].map((option) => (
+                          <div
+                            key={option}
+                            className={`flex items-center space-x-3 p-4 rounded-lg border cursor-pointer transition-all ${
+                              formData.loanPurpose === option
+                                ? "border-[#e55c2b] bg-[#e55c2b]/10"
+                                : "border-white/10 hover:border-white/20"
+                            }`}
+                            onClick={() => setFormData({ ...formData, loanPurpose: option })}
+                          >
+                            <RadioGroupItem value={option} id={option} className="border-white/40" />
+                            <Label htmlFor={option} className="text-white cursor-pointer">{option}</Label>
+                          </div>
+                        ))
+                    }
                   </RadioGroup>
                 </div>
 
@@ -417,22 +441,14 @@ export default function GetQuotePage() {
                 </div>
 
                 <div className="space-y-3">
-                  <Label className="text-white">When do you need to close?</Label>
-                  <Select
-                    value={formData.closingTimeframe}
-                    onValueChange={(value) => setFormData({ ...formData, closingTimeframe: value })}
-                  >
-                    <SelectTrigger className="bg-white/5 border-white/10 text-white">
-                      <SelectValue placeholder="Select timeframe" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="asap">ASAP (Within 2 weeks)</SelectItem>
-                      <SelectItem value="30-days">Within 30 days</SelectItem>
-                      <SelectItem value="60-days">Within 60 days</SelectItem>
-                      <SelectItem value="90-days">Within 90 days</SelectItem>
-                      <SelectItem value="not-sure">Not sure yet</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label className="text-white">Desired Close Date</Label>
+                  <Input
+                    type="date"
+                    value={formData.desiredCloseDate}
+                    onChange={(e) => setFormData({ ...formData, desiredCloseDate: e.target.value })}
+                    className="bg-white/5 border-white/10 text-white [color-scheme:dark]"
+                    data-testid="input-close-date"
+                  />
                 </div>
               </div>
 
@@ -540,6 +556,30 @@ export default function GetQuotePage() {
                       data-testid="input-purchase-price"
                     />
                   </div>
+                  {formData.loanType === "dscr" && (
+                    <>
+                      <div className="space-y-3">
+                        <Label className="text-white">Annual Rents *</Label>
+                        <Input
+                          placeholder="$36,000"
+                          value={formData.annualRents}
+                          onChange={(e) => setFormData({ ...formData, annualRents: e.target.value })}
+                          className="bg-white/5 border-white/10 text-white placeholder:text-white/40"
+                          data-testid="input-annual-rents"
+                        />
+                      </div>
+                      <div className="space-y-3">
+                        <Label className="text-white">Annual Taxes</Label>
+                        <Input
+                          placeholder="$6,000"
+                          value={formData.annualTaxes}
+                          onChange={(e) => setFormData({ ...formData, annualTaxes: e.target.value })}
+                          className="bg-white/5 border-white/10 text-white placeholder:text-white/40"
+                          data-testid="input-annual-taxes"
+                        />
+                      </div>
+                    </>
+                  )}
                   {(formData.loanType === "fix-flip" || formData.loanType === "construction") && (
                     <>
                       <div className="space-y-3">
@@ -565,6 +605,21 @@ export default function GetQuotePage() {
                     </>
                   )}
                 </div>
+
+                {formData.loanType === "dscr" && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-3">
+                      <Label className="text-white">Annual Insurance</Label>
+                      <Input
+                        placeholder="$2,400"
+                        value={formData.annualInsurance}
+                        onChange={(e) => setFormData({ ...formData, annualInsurance: e.target.value })}
+                        className="bg-white/5 border-white/10 text-white placeholder:text-white/40"
+                        data-testid="input-annual-insurance"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-between pt-6">
