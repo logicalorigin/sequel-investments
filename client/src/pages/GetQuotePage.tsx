@@ -118,7 +118,8 @@ export default function GetQuotePage() {
       phone: formData.phone,
       loanType: loanTypeMap[formData.loanType],
       propertyLocation: formData.propertyLocation,
-      message: `Property Value: ${formData.propertyValue}, Experience: ${formData.investmentExperience}`,
+      propertyValue: formData.propertyValue,
+      investmentExperience: formData.investmentExperience,
     });
   };
 
