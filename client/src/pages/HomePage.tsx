@@ -23,7 +23,6 @@ import {
   Star,
   MapPin
 } from "lucide-react";
-import heroImage from "@assets/generated_images/Mortgage_office_hero_background_15b464fc.png";
 import dscrImage from "@assets/AdobeStock_379512388_1764037043026.jpeg";
 import fixFlipImage from "@assets/AdobeStock_285980154_1764037043029.jpeg";
 import newConstructionImage from "@assets/AdobeStock_244499432_1764037043029.jpeg";
@@ -52,39 +51,103 @@ export default function HomePage() {
     <div className="min-h-screen bg-background">
       <Navigation />
 
-      <section className="relative h-[75vh] min-h-[650px] flex items-center overflow-hidden">
-        <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${heroImage})` }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-transparent" />
-        
-        <div className="relative z-10 max-w-7xl mx-auto px-6">
-          <div className="max-w-2xl">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight" data-testid="text-hero-title">
-              Funding Solutions.<br />
-              For Investors. By Investors.
-            </h1>
-            <p className="text-lg md:text-xl text-white/90 mb-8 leading-relaxed">
-              Secured Asset Funding is your trusted partner for real estate investment loans. We specialize in providing fast and reliable financing solutions for real estate investors. Our experienced team is dedicated to helping you achieve your investment goals.
-            </p>
-            
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Link href="/get-quote">
-                <Button size="lg" className="text-lg px-8" data-testid="button-hero-getrate">
-                  Get Funded
-                </Button>
-              </Link>
-              <Link href="/calculator">
-                <Button 
-                  size="lg" 
-                  variant="outline" 
-                  className="text-lg px-8 bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20"
-                  data-testid="button-hero-calculator"
-                >
-                  Try Our Calculator
-                </Button>
-              </Link>
+      <section className="relative min-h-[85vh] pt-24 pb-16 overflow-hidden bg-background">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid lg:grid-cols-[0.4fr_0.6fr] gap-12 lg:gap-8 items-center min-h-[70vh]">
+            <div className="space-y-8">
+              <div className="flex items-center gap-3">
+                <div className="flex -space-x-2">
+                  <img src={testimonial1} alt="Investor" className="w-10 h-10 rounded-full border-2 border-background object-cover" />
+                  <img src={testimonial2} alt="Investor" className="w-10 h-10 rounded-full border-2 border-background object-cover" />
+                  <img src={testimonial3} alt="Investor" className="w-10 h-10 rounded-full border-2 border-background object-cover" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex">
+                    {[1,2,3,4,5].map((i) => (
+                      <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                    ))}
+                  </div>
+                  <span className="text-sm text-muted-foreground">Trusted by 1,500+ investors</span>
+                </div>
+              </div>
+
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight" data-testid="text-hero-title">
+                Close faster.<br />
+                Earn more.<br />
+                <span className="text-primary">No tax returns required.</span>
+              </h1>
+
+              <p className="text-lg md:text-xl text-muted-foreground max-w-lg">
+                DSCR, Fix & Flip, and Construction loans — funded in as little as 48 hours.
+              </p>
+
+              <div className="flex flex-col sm:flex-row items-start gap-4">
+                <Link href="/get-quote">
+                  <Button size="lg" className="text-lg" data-testid="button-hero-apply">
+                    Apply Now
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                </Link>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-4 sm:gap-6 pt-4">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-5 w-5 text-primary" />
+                  <span className="text-sm font-medium">$500M+ Funded</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-5 w-5 text-primary" />
+                  <span className="text-sm font-medium">48 States + DC</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-5 w-5 text-primary" />
+                  <span className="text-sm font-medium">48hr Closings</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="relative lg:pl-8">
+              <div className="relative rounded-2xl overflow-hidden shadow-2xl">
+                <img 
+                  src={dscrImage} 
+                  alt="Investment Property" 
+                  className="w-full h-[500px] object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+              </div>
+              
+              <div className="absolute -bottom-6 -left-6 bg-card rounded-xl shadow-xl p-5 border max-w-[280px]">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center">
+                    <CheckCircle2 className="h-5 w-5 text-green-500" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm">Loan Approved</p>
+                    <p className="text-xs text-muted-foreground">DSCR Rental Loan</p>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Loan Amount</span>
+                    <span className="font-semibold">$320,000</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Interest Rate</span>
+                    <span className="font-semibold text-primary">6.25%</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Closed In</span>
+                    <span className="font-semibold text-green-600">5 Days</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="absolute -top-4 -right-4 bg-card rounded-xl shadow-xl p-4 border">
+                <div className="flex items-center gap-2">
+                  <Zap className="h-5 w-5 text-primary" />
+                  <span className="font-semibold text-sm">48hr Funding</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
