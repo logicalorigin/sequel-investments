@@ -1,6 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
 import { DSCRCalculator } from "@/components/DSCRCalculator";
 import { LeadForm } from "@/components/LeadForm";
@@ -43,41 +42,40 @@ export default function HomePage() {
     <div className="min-h-screen bg-background">
       <Navigation />
 
-      <section className="relative h-[75vh] min-h-[650px] flex items-center justify-center overflow-hidden">
+      <section className="relative h-[75vh] min-h-[650px] flex items-center overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: `url(${heroImage})` }}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/75 via-black/65 to-black/75" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-transparent" />
         
-        <div className="relative z-10 max-w-7xl mx-auto px-6 text-center">
-          <Badge className="mb-6 bg-white/10 text-white border-white/20 backdrop-blur-sm" variant="outline">
-            Investor-Focused Lending
-          </Badge>
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6" data-testid="text-hero-title">
-            Financing Built for the Speed<br className="hidden md:block" /> of Real Estate Investing
-          </h1>
-          <p className="text-xl md:text-2xl text-white/90 mb-10 max-w-3xl mx-auto">
-            Fast, reliable financing for DSCR rentals, fix & flip projects, and new construction. Close in as fast as 48 hours.
-          </p>
-          
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-            <Link href="/get-quote">
-              <Button size="lg" className="text-lg px-8" data-testid="button-hero-getrate">
-                Get Your Rate
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            </Link>
-            <Link href="/calculator">
-              <Button 
-                size="lg" 
-                variant="outline" 
-                className="text-lg px-8 bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20"
-                data-testid="button-hero-calculator"
-              >
-                Try Our Calculator
-              </Button>
-            </Link>
+        <div className="relative z-10 max-w-7xl mx-auto px-6">
+          <div className="max-w-2xl">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight" data-testid="text-hero-title">
+              Funding Solutions.<br />
+              For Investors. By Investors.
+            </h1>
+            <p className="text-lg md:text-xl text-white/90 mb-8 leading-relaxed">
+              Secured Asset Funding is your trusted partner for real estate investment loans. We specialize in providing fast and reliable financing solutions for real estate investors. Our experienced team is dedicated to helping you achieve your investment goals.
+            </p>
+            
+            <div className="flex flex-col sm:flex-row gap-4">
+              <Link href="/get-quote">
+                <Button size="lg" className="text-lg px-8" data-testid="button-hero-getrate">
+                  Get Funded
+                </Button>
+              </Link>
+              <Link href="/calculator">
+                <Button 
+                  size="lg" 
+                  variant="outline" 
+                  className="text-lg px-8 bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20"
+                  data-testid="button-hero-calculator"
+                >
+                  Try Our Calculator
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </section>
