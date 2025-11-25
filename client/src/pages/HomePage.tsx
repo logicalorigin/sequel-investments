@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link, useLocation } from "wouter";
@@ -31,10 +32,45 @@ import testimonial2 from "@assets/generated_images/Investor_testimonial_headshot
 import testimonial3 from "@assets/generated_images/Investor_testimonial_headshot_3_a4e6c79b.png";
 import { useToast } from "@/hooks/use-toast";
 
+const heroSlides = [
+  {
+    id: "dscr",
+    image: dscrImage,
+    loanType: "DSCR Rental Loan",
+    loanAmount: "$320,000",
+    rate: "6.25%",
+    closedIn: "21 Days",
+  },
+  {
+    id: "fixflip",
+    image: fixFlipImage,
+    loanType: "Fix & Flip Loan",
+    loanAmount: "$425,000",
+    rate: "9.50%",
+    closedIn: "4 Days",
+  },
+  {
+    id: "construction",
+    image: newConstructionImage,
+    loanType: "New Construction",
+    loanAmount: "$580,000",
+    rate: "10.25%",
+    closedIn: "10 Days",
+  },
+];
+
 export default function HomePage() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const eligibleStates = getEligibleStates();
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, []);
 
   const handleFormSuccess = () => {
     toast({
@@ -46,6 +82,8 @@ export default function HomePage() {
   const handleStateClick = (state: StateData) => {
     setLocation(`/states/${state.slug}`);
   };
+
+  const activeSlide = heroSlides[currentSlide];
 
   return (
     <div className="min-h-screen bg-background">
@@ -72,13 +110,12 @@ export default function HomePage() {
               </div>
 
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight" data-testid="text-hero-title">
-                Close faster.<br />
-                Earn more.<br />
-                <span className="text-primary">No tax returns required.</span>
+                Funding Solutions.<br />
+                <span className="text-primary">For Investors. By Investors.</span>
               </h1>
 
               <p className="text-lg md:text-xl text-muted-foreground max-w-lg">
-                DSCR, Fix & Flip, and Construction loans — funded in as little as 48 hours.
+                DSCR, Fix & Flip, and Construction loans — fast, flexible financing with no tax returns required.
               </p>
 
               <div className="flex flex-col sm:flex-row items-start gap-4">
@@ -108,12 +145,31 @@ export default function HomePage() {
 
             <div className="relative lg:pl-8">
               <div className="relative rounded-2xl overflow-hidden shadow-2xl">
-                <img 
-                  src={dscrImage} 
-                  alt="Investment Property" 
-                  className="w-full h-[500px] object-cover"
-                />
+                {heroSlides.map((slide, index) => (
+                  <img 
+                    key={slide.id}
+                    src={slide.image} 
+                    alt={slide.loanType}
+                    className={`w-full h-[500px] object-cover absolute inset-0 transition-opacity duration-700 ${
+                      index === currentSlide ? "opacity-100" : "opacity-0"
+                    }`}
+                  />
+                ))}
+                <div className="w-full h-[500px]" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+              </div>
+
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+                {heroSlides.map((slide, index) => (
+                  <button
+                    key={slide.id}
+                    onClick={() => setCurrentSlide(index)}
+                    className={`w-2 h-2 rounded-full transition-all ${
+                      index === currentSlide ? "bg-white w-6" : "bg-white/50"
+                    }`}
+                    data-testid={`button-carousel-${slide.id}`}
+                  />
+                ))}
               </div>
               
               <div className="absolute -bottom-6 -left-6 bg-card rounded-xl shadow-xl p-5 border max-w-[280px]">
@@ -122,22 +178,22 @@ export default function HomePage() {
                     <CheckCircle2 className="h-5 w-5 text-green-500" />
                   </div>
                   <div>
-                    <p className="font-semibold text-sm">Loan Approved</p>
-                    <p className="text-xs text-muted-foreground">DSCR Rental Loan</p>
+                    <p className="font-semibold text-sm">Funded</p>
+                    <p className="text-xs text-muted-foreground">{activeSlide.loanType}</p>
                   </div>
                 </div>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Loan Amount</span>
-                    <span className="font-semibold">$320,000</span>
+                    <span className="font-semibold">{activeSlide.loanAmount}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Interest Rate</span>
-                    <span className="font-semibold text-primary">6.25%</span>
+                    <span className="font-semibold text-primary">{activeSlide.rate}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Closed In</span>
-                    <span className="font-semibold text-green-600">5 Days</span>
+                    <span className="font-semibold text-green-600">{activeSlide.closedIn}</span>
                   </div>
                 </div>
               </div>
@@ -145,7 +201,7 @@ export default function HomePage() {
               <div className="absolute -top-4 -right-4 bg-card rounded-xl shadow-xl p-4 border">
                 <div className="flex items-center gap-2">
                   <Zap className="h-5 w-5 text-primary" />
-                  <span className="font-semibold text-sm">48hr Funding</span>
+                  <span className="font-semibold text-sm">Fast Funding</span>
                 </div>
               </div>
             </div>
