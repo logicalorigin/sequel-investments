@@ -97,10 +97,16 @@ export default function USMap({ onStateClick }: USMapProps) {
     }
   };
 
-  const getStateColor = (stateAbbr: string): string => {
+  const getStateColor = (stateAbbr: string, isHovered: boolean = false): string => {
     const stateData = statesData.find(s => s.abbreviation === stateAbbr);
-    if (!stateData || !stateData.isLicensed) {
-      return "#e5e7eb"; // Gray for unlicensed
+    
+    // If hovered and eligible, return theme color (orange)
+    if (isHovered && stateData?.isEligible) {
+      return "#e55c2b"; // Theme orange color
+    }
+    
+    if (!stateData || !stateData.isEligible) {
+      return "#e5e7eb"; // Gray for not eligible
     }
     // Color based on loan volume
     const volume = stateData.loanVolume;
@@ -121,19 +127,20 @@ export default function USMap({ onStateClick }: USMapProps) {
       >
         {Object.entries(statePaths).map(([stateAbbr, path]) => {
           const stateData = statesData.find(s => s.abbreviation === stateAbbr);
-          const isLicensed = stateData?.isLicensed ?? false;
+          const isEligible = stateData?.isEligible ?? false;
+          const isHovered = hoveredState?.abbreviation === stateAbbr;
           
           return (
             <Link
               key={stateAbbr}
-              href={`/states/${stateAbbr.toLowerCase()}`}
+              href={isEligible && stateData ? `/states/${stateData.slug}` : '#'}
             >
               <path
                 d={path}
-                fill={getStateColor(stateAbbr)}
+                fill={getStateColor(stateAbbr, isHovered)}
                 stroke="#ffffff"
                 strokeWidth="1"
-                className={`transition-all duration-200 ${isLicensed ? 'cursor-pointer hover:brightness-110' : 'cursor-default'}`}
+                className={`transition-all duration-200 ${isEligible ? 'cursor-pointer' : 'cursor-default'}`}
                 onMouseEnter={(e) => handleMouseEnter(e, stateAbbr)}
                 onMouseLeave={handleMouseLeave}
                 onClick={() => handleClick(stateAbbr)}
@@ -157,13 +164,18 @@ export default function USMap({ onStateClick }: USMapProps) {
           <div className="font-semibold text-gray-900 dark:text-white">
             {hoveredState.name}
           </div>
-          {hoveredState.isLicensed ? (
+          {hoveredState.isEligible ? (
             <>
-              <div className="text-green-600 dark:text-green-400 text-xs font-medium">
+              <div className="text-[#e55c2b] text-xs font-medium">
                 Licensed Lender
               </div>
-              <div className="text-gray-600 dark:text-gray-300 text-xs mt-1">
-                Loan Volume: {formatLoanVolume(hoveredState.loanVolume)}
+              <div className="flex flex-col gap-0.5 mt-1">
+                <div className="text-gray-600 dark:text-gray-300 text-xs">
+                  Loans Closed: <span className="font-semibold">{hoveredState.loansClosed}</span>
+                </div>
+                <div className="text-gray-600 dark:text-gray-300 text-xs">
+                  Loan Volume: <span className="font-semibold">{formatLoanVolume(hoveredState.loanVolume)}</span>
+                </div>
               </div>
             </>
           ) : (
