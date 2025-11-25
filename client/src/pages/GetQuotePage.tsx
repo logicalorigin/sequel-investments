@@ -22,7 +22,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import logoIcon from "@assets/ChatGPT Image Jun 25, 2025, 12_32_43 PM_1764028581255.png";
+import logoIcon from "@assets/logo_saf_only_removed_bg (1)_1764095523171.png";
 import { Link } from "wouter";
 
 type LoanType = "dscr" | "fix-flip" | "construction" | "";
@@ -201,12 +201,11 @@ export default function GetQuotePage() {
       title: "DSCR",
       subtitle: "Rental Loan",
       features: [
-        "No Minimum DSCR",
-        "STR: Qualify on 100% AirDNA",
-        "Multifamily up to 10 Units",
-        "Mixed Use up to 8 Units",
+        "Long Term & Short Term Rental Loans",
+        "Up to 80% LTV Purchase",
+        "Up to 75% LTV Cash-Out",
+        "No W2 or Tax Returns Required",
         "Term Sheet in 24 Hours",
-        "85% LTV / 75% LTV (Cash-Out)",
       ],
     },
     {
@@ -215,11 +214,10 @@ export default function GetQuotePage() {
       title: "Fix & Flip",
       subtitle: "Bridge Loan",
       features: [
-        "Minimum Cash to Close",
-        "No Appraisal Required",
-        "No Junk Fees",
-        "No Prepayment Penalty",
-        "$ for Renovation",
+        "No Experience Necessary",
+        "Up to 92.5% LTC",
+        "100% Renovation Financing",
+        "No Inspection Needed",
         "48 Hour Draw Funding",
         "48 Hour Closings",
       ],
@@ -230,10 +228,9 @@ export default function GetQuotePage() {
       title: "New Construction",
       subtitle: "Ground Up Loan",
       features: [
-        "Ground Up Construction or Additions",
-        "Minimum Cash to Close",
-        "No Junk Fees",
-        "No Prepayment Penalty",
+        "No Experience Necessary",
+        "Up to 90% LTC",
+        "No Inspection Needed",
         "48 Hour Draw Funding",
         "48 Hour Closings",
       ],
@@ -246,7 +243,7 @@ export default function GetQuotePage() {
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link href="/" data-testid="link-logo-home">
             <div className="flex items-center gap-2 cursor-pointer">
-              <img src={logoIcon} alt="SAF" className="h-10 w-10 object-contain" />
+              <img src={logoIcon} alt="SAF" className="h-10 w-10 object-contain brightness-0 invert" />
               <span className="font-bold text-xl text-white hidden sm:inline">Secured Asset Funding</span>
             </div>
           </Link>
