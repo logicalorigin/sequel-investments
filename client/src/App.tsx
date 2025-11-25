@@ -17,6 +17,8 @@ import StateLoanTypePage from "@/pages/StateLoanTypePage";
 import PortalPage from "@/pages/PortalPage";
 import ApplicationDocumentsPage from "@/pages/ApplicationDocumentsPage";
 import STRCalculatorPage from "@/pages/STRCalculatorPage";
+import RecentFundingsPage from "@/pages/RecentFundingsPage";
+import PropertyDetailPage from "@/pages/PropertyDetailPage";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -37,6 +39,8 @@ function Router() {
       <Route path="/portal" component={PortalPage} />
       <Route path="/portal/application/:id" component={ApplicationDocumentsPage} />
       <Route path="/str-calculator" component={STRCalculatorPage} />
+      <Route path="/fundings" component={RecentFundingsPage} />
+      <Route path="/fundings/:propertyId" component={PropertyDetailPage} />
       <Route component={NotFound} />
     </Switch>
   );
