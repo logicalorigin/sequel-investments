@@ -14,6 +14,8 @@ import GetQuotePage from "@/pages/GetQuotePage";
 import WhereWeLendPage from "@/pages/WhereWeLendPage";
 import StateInvestmentPage from "@/pages/StateInvestmentPage";
 import StateLoanTypePage from "@/pages/StateLoanTypePage";
+import PortalPage from "@/pages/PortalPage";
+import ApplicationDocumentsPage from "@/pages/ApplicationDocumentsPage";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -31,6 +33,8 @@ function Router() {
       <Route path="/where-we-lend" component={WhereWeLendPage} />
       <Route path="/states/:stateSlug" component={StateInvestmentPage} />
       <Route path="/states/:stateSlug/:loanType" component={StateLoanTypePage} />
+      <Route path="/portal" component={PortalPage} />
+      <Route path="/portal/application/:id" component={ApplicationDocumentsPage} />
       <Route component={NotFound} />
     </Switch>
   );
