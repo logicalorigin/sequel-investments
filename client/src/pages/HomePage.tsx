@@ -397,7 +397,7 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="max-w-2xl mx-auto">
+          <div className="w-full">
             <DSCRCalculator />
           </div>
         </div>
