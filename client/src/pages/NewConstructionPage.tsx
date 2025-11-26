@@ -5,6 +5,7 @@ import { Link } from "wouter";
 import { LeadForm } from "@/components/LeadForm";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
+import { ConstructionCalculator } from "@/components/ConstructionCalculator";
 import { 
   Building2, 
   CheckCircle2, 
@@ -213,6 +214,11 @@ export default function NewConstructionPage() {
                     <strong>Note:</strong> We do not finance horizontal development or land-only loans. Projects must include vertical construction.
                   </p>
                 </div>
+              </div>
+
+              <div>
+                <h2 className="text-3xl font-bold mb-6">Construction Loan Calculator</h2>
+                <ConstructionCalculator />
               </div>
             </div>
 
