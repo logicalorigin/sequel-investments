@@ -28,13 +28,14 @@ The design is inspired by leading fintech lenders like Kiavi and Easy Street Cap
 - 48-hour draw process
 - No prepayment penalty
 
-### New Construction Loans
+### New Construction Loans (Ground-Up Construction)
 - Rates from 9.90%
-- Up to 82.5% LTC
-- 12-18 month terms
+- Up to 90% LTC
+- 9-month base term (extensions available)
 - 48-hour draw turnaround
+- Project size: 1-4 units
+- Multi-home developments (up to 4 units per parcel)
 - Spec homes and infill development
-- Multi-home developments
 - In-house servicing
 
 ## System Architecture
@@ -101,11 +102,18 @@ The borrower portal is modeled after Easy Street Capital's portal design with th
 - Document status tabs (Needs/Documents) with Completed/Outstanding badges
 
 **Investment Analysis Page** (`/portal/investment-analysis`):
+- Property type icon selector (SFR, Duplex, Triplex, Fourplex, Townhome/Condo) with visual SVG icons
 - Deal type selector (Rehab, New Construction, Rental)
 - Property inputs: Address, ARV, Purchase Price, Down Payment
 - Cost inputs: Rehab Budget, Requested Rehab Funding, Annual Taxes/Insurance/HOA, Closing Costs
 - Loan inputs: Loan Term, Hold Time, Interest Rate
 - Results panel: Total Project Cost, Cash Invested, Total Profit, ROI (%), Profit Margin (%), LTC (%), LTV (%)
+
+**Construction Calculator Features**:
+- "Land is Owned" checkbox that applies land value as equity
+- When checked, land value is applied as equity towards project financing
+- ROI calculation includes total capital deployed (land equity + cash invested)
+- 90% LTC cap enforced against both ARV and total project cost
 
 ### Assets
 
