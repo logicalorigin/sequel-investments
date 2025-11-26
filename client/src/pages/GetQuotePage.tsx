@@ -935,9 +935,9 @@ export default function GetQuotePage() {
                     Back to Home
                   </Button>
                 </Link>
-                <Link href="/calculator" data-testid="link-calculator">
+                <Link href="/login" data-testid="link-portal">
                   <Button className="bg-[#e55c2b] hover:bg-[#d44d1f] text-white">
-                    Try Our Calculator
+                    Go to Client Portal
                   </Button>
                 </Link>
               </div>
