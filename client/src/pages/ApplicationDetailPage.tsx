@@ -388,95 +388,307 @@ export default function ApplicationDetailPage() {
           <div className="lg:col-span-2 space-y-6">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between gap-2">
-                <CardTitle className="flex items-center gap-2">
-                  <Home className="h-5 w-5 text-primary" />
-                  Loan Info
-                </CardTitle>
+                <div className="flex items-center gap-3">
+                  <CardTitle className="flex items-center gap-2">
+                    <Home className="h-5 w-5 text-primary" />
+                    Loan Info
+                  </CardTitle>
+                  <Badge 
+                    className={`text-xs font-semibold ${
+                      application.loanType?.toLowerCase().includes("dscr") 
+                        ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
+                        : application.loanType?.toLowerCase().includes("flip") 
+                        ? "bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300"
+                        : application.loanType?.toLowerCase().includes("construction")
+                        ? "bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300"
+                        : "bg-muted text-muted-foreground"
+                    }`}
+                    data-testid="badge-loan-type"
+                  >
+                    {application.loanType || "Loan"}
+                  </Badge>
+                </div>
                 <Badge variant="outline" className="text-xs">
                   <Calendar className="h-3 w-3 mr-1" />
                   Created {formatDate(application.createdAt)}
                 </Badge>
               </CardHeader>
               <CardContent>
-                <div className="grid md:grid-cols-3 gap-6">
-                  <div className="space-y-4">
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Guarantor</p>
-                      <p className="font-medium">{application.guarantor || "N/A"}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Renovation/Construction Budget</p>
-                      <p className="font-medium">{formatCurrency(application.rehabBudget)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Purchase Price</p>
-                      <p className="font-medium">{formatCurrency(application.purchasePrice)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Requested Closing Date</p>
-                      <p className="font-medium">{formatDate(application.requestedClosingDate)}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Entity</p>
-                      <p className="font-medium">{application.entity || "N/A"}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Loan Product</p>
-                      <p className="font-medium">{application.loanType}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Interest Type</p>
-                      <p className="font-medium">{application.interestType || "N/A"}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Closing Date</p>
-                      <p className="font-medium">{formatDate(application.closingDate)}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Property Address</p>
-                      <p className="font-medium">
-                        {application.propertyAddress || "N/A"}
-                        {application.propertyCity && `, ${application.propertyCity}`}
-                        {application.propertyState && `, ${application.propertyState}`}
-                        {application.propertyZip && ` ${application.propertyZip}`}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Interest Rate</p>
-                      <p className="font-medium">{application.interestRate ? `${application.interestRate}%` : "N/A"}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Loan to Cost Ratio (LTC)</p>
-                      <p className="font-medium">{application.ltc ? `${application.ltc}%` : "N/A"}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Interest Reserves</p>
-                      <p className="font-medium">N/A</p>
-                    </div>
-                  </div>
+                <div className="mb-4">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Property Address</p>
+                  <p className="font-medium text-base">
+                    {application.propertyAddress || "N/A"}
+                    {application.propertyCity && `, ${application.propertyCity}`}
+                    {application.propertyState && `, ${application.propertyState}`}
+                    {application.propertyZip && ` ${application.propertyZip}`}
+                  </p>
                 </div>
+
+                <Separator className="my-4" />
+
+                {(() => {
+                  const analyzerData = application.analyzerData as Record<string, unknown> | null;
+                  const isDSCR = application.loanType?.toLowerCase().includes("dscr");
+                  const isFlip = application.loanType?.toLowerCase().includes("flip");
+                  const isConstruction = application.loanType?.toLowerCase().includes("construction");
+                  
+                  if (isDSCR) {
+                    return (
+                      <div className="grid md:grid-cols-3 gap-6">
+                        <div className="space-y-4">
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Purchase Price</p>
+                            <p className="font-medium">{formatCurrency(application.purchasePrice)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Monthly Rent</p>
+                            <p className="font-medium">{formatCurrency(analyzerData?.monthlyRent as number | null)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">DSCR Ratio</p>
+                            <p className="font-medium">{(analyzerData?.dscr as string | number) || "N/A"}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Property Type</p>
+                            <p className="font-medium">{(analyzerData?.propertyType as string) || "N/A"}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-4">
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Interest Rate</p>
+                            <p className="font-medium">{application.interestRate ? `${application.interestRate}%` : "N/A"}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Interest Type</p>
+                            <p className="font-medium">{application.interestType || "N/A"}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">LTV Ratio</p>
+                            <p className="font-medium">{application.ltv ? `${application.ltv}%` : "N/A"}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Prepayment Penalty</p>
+                            <p className="font-medium">{(analyzerData?.prepaymentPenalty as string) || "N/A"}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-4">
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Guarantor</p>
+                            <p className="font-medium">{application.guarantor || "N/A"}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Entity</p>
+                            <p className="font-medium">{application.entity || "N/A"}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Closing Date</p>
+                            <p className="font-medium">{formatDate(application.closingDate)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Requested Closing</p>
+                            <p className="font-medium">{formatDate(application.requestedClosingDate)}</p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  } else if (isFlip) {
+                    return (
+                      <div className="grid md:grid-cols-3 gap-6">
+                        <div className="space-y-4">
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Purchase Price</p>
+                            <p className="font-medium">{formatCurrency(application.purchasePrice)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">After Repair Value (ARV)</p>
+                            <p className="font-medium">{formatCurrency(application.arv)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Rehab Budget</p>
+                            <p className="font-medium">{formatCurrency(application.rehabBudget)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Exit Strategy</p>
+                            <p className="font-medium">{(analyzerData?.exitStrategy as string) || "Sale"}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-4">
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Interest Rate</p>
+                            <p className="font-medium">{application.interestRate ? `${application.interestRate}%` : "N/A"}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Loan to Cost (LTC)</p>
+                            <p className="font-medium">{application.ltc ? `${application.ltc}%` : "N/A"}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Loan to ARV</p>
+                            <p className="font-medium">{application.ltv ? `${application.ltv}%` : "N/A"}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Holding Period</p>
+                            <p className="font-medium">{application.holdTimeMonths ? `${application.holdTimeMonths} Months` : "N/A"}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-4">
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Guarantor</p>
+                            <p className="font-medium">{application.guarantor || "N/A"}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Entity</p>
+                            <p className="font-medium">{application.entity || "N/A"}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Experience Level</p>
+                            <p className="font-medium">{(analyzerData?.experienceLevel as string) || "N/A"}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Requested Closing</p>
+                            <p className="font-medium">{formatDate(application.requestedClosingDate)}</p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  } else if (isConstruction) {
+                    return (
+                      <div className="grid md:grid-cols-3 gap-6">
+                        <div className="space-y-4">
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Land Cost</p>
+                            <p className="font-medium">{formatCurrency(application.purchasePrice)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Construction Budget</p>
+                            <p className="font-medium">{formatCurrency(application.rehabBudget)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">After Completion Value</p>
+                            <p className="font-medium">{formatCurrency(application.arv)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Exit Strategy</p>
+                            <p className="font-medium">{(analyzerData?.exitStrategy as string) || "Sale/Refinance"}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-4">
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Interest Rate</p>
+                            <p className="font-medium">{application.interestRate ? `${application.interestRate}%` : "N/A"}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Loan to Cost (LTC)</p>
+                            <p className="font-medium">{application.ltc ? `${application.ltc}%` : "N/A"}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Loan to Value (LTV)</p>
+                            <p className="font-medium">{application.ltv ? `${application.ltv}%` : "N/A"}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Construction Timeline</p>
+                            <p className="font-medium">{application.loanTermMonths ? `${application.loanTermMonths} Months` : "N/A"}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-4">
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Guarantor</p>
+                            <p className="font-medium">{application.guarantor || "N/A"}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Entity</p>
+                            <p className="font-medium">{application.entity || "N/A"}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Property Type</p>
+                            <p className="font-medium">{(analyzerData?.propertyType as string) || "N/A"}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Requested Closing</p>
+                            <p className="font-medium">{formatDate(application.requestedClosingDate)}</p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  } else {
+                    return (
+                      <div className="grid md:grid-cols-3 gap-6">
+                        <div className="space-y-4">
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Purchase Price</p>
+                            <p className="font-medium">{formatCurrency(application.purchasePrice)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Interest Rate</p>
+                            <p className="font-medium">{application.interestRate ? `${application.interestRate}%` : "N/A"}</p>
+                          </div>
+                        </div>
+                        <div className="space-y-4">
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Entity</p>
+                            <p className="font-medium">{application.entity || "N/A"}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Guarantor</p>
+                            <p className="font-medium">{application.guarantor || "N/A"}</p>
+                          </div>
+                        </div>
+                        <div className="space-y-4">
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Closing Date</p>
+                            <p className="font-medium">{formatDate(application.closingDate)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Requested Closing</p>
+                            <p className="font-medium">{formatDate(application.requestedClosingDate)}</p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+                })()}
 
                 <Separator className="my-6" />
 
                 <div className="grid md:grid-cols-3 gap-6">
-                  <div>
+                  <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
                     <p className="text-xs text-muted-foreground uppercase tracking-wide">Loan Amount</p>
-                    <p className="font-medium text-lg">{formatCurrency(application.loanAmount)}</p>
+                    <p className="font-bold text-xl text-primary" data-testid="text-loan-amount">{formatCurrency(application.loanAmount)}</p>
                   </div>
-                  <div>
+                  <div className="p-4 bg-muted/50 rounded-lg">
                     <p className="text-xs text-muted-foreground uppercase tracking-wide">Loan Term</p>
-                    <p className="font-medium text-lg">{application.loanTermMonths ? `${application.loanTermMonths} Months` : "N/A"}</p>
+                    <p className="font-semibold text-lg">{application.loanTermMonths ? `${application.loanTermMonths} Months` : "N/A"}</p>
                   </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Rehab Funding</p>
-                    <p className="font-medium text-lg">{formatCurrency(application.requestedRehabFunding)}</p>
-                  </div>
+                  {(application.loanType?.toLowerCase().includes("flip") || application.loanType?.toLowerCase().includes("construction")) && (
+                    <div className="p-4 bg-muted/50 rounded-lg">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Rehab/Construction Funding</p>
+                      <p className="font-semibold text-lg">{formatCurrency(application.requestedRehabFunding)}</p>
+                    </div>
+                  )}
+                  {application.loanType?.toLowerCase().includes("dscr") && (
+                    <div className="p-4 bg-muted/50 rounded-lg">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Estimated Monthly Payment</p>
+                      <p className="font-semibold text-lg">
+                        {(() => {
+                          const rate = parseFloat(application.interestRate || "0");
+                          const term = application.loanTermMonths || 0;
+                          const principal = application.loanAmount || 0;
+                          if (rate && term && principal) {
+                            const monthlyRate = rate / 100 / 12;
+                            const payment = (principal * monthlyRate * Math.pow(1 + monthlyRate, term)) /
+                                          (Math.pow(1 + monthlyRate, term) - 1);
+                            return formatCurrency(payment);
+                          }
+                          return "N/A";
+                        })()}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -598,10 +810,10 @@ export default function ApplicationDetailPage() {
                 />
                 <AmortizationChart
                   loanAmount={application.loanAmount || 0}
-                  interestRate={application.interestRate || 7.5}
+                  interestRate={parseFloat(application.interestRate || "7.5")}
                   termMonths={application.loanTermMonths || 360}
                   interestType={application.interestType || "fixed"}
-                  interestOnlyMonths={application.interestOnlyMonths || 0}
+                  interestOnlyMonths={(application.analyzerData as Record<string, unknown> | null)?.interestOnlyMonths as number || 0}
                 />
               </>
             )}
