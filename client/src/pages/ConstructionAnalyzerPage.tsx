@@ -140,7 +140,7 @@ export default function ConstructionAnalyzerPage() {
   const [arv, setArv] = useState("550000");
   const [annualTaxes, setAnnualTaxes] = useState("6000");
   const [annualInsurance, setAnnualInsurance] = useState("3600");
-  const [loanTermMonths, setLoanTermMonths] = useState(12);
+  const [loanTermMonths, setLoanTermMonths] = useState(9);
   const [creditScore, setCreditScore] = useState([720]);
   const [experience, setExperience] = useState("0");
   const [ltcSlider, setLtcSlider] = useState([90]);
