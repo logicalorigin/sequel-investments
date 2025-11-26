@@ -38,7 +38,9 @@ import {
   Calculator,
   TrendingUp,
   MessageSquare,
+  Trash2,
 } from "lucide-react";
+import { useLocation } from "wouter";
 import {
   Dialog,
   DialogContent,
@@ -186,6 +188,30 @@ export default function ApplicationDetailPage() {
       toast({
         title: "Failed to Remove",
         description: "Please try again later.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const [, navigate] = useLocation();
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("DELETE", `/api/applications/${applicationId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/applications"] });
+      toast({
+        title: "Application Deleted",
+        description: "The loan application has been deleted.",
+      });
+      navigate("/portal");
+    },
+    onError: () => {
+      toast({
+        title: "Delete Failed",
+        description: "Could not delete the application. Please try again.",
         variant: "destructive",
       });
     },
@@ -343,6 +369,39 @@ export default function ApplicationDetailPage() {
                 View Documents
               </Button>
             </Link>
+            <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="icon" className="text-destructive hover:text-destructive" data-testid="button-delete-application">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Delete Application</DialogTitle>
+                  <DialogDescription>
+                    Are you sure you want to delete this loan application? This action cannot be undone and will remove all associated documents and data.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+                    Cancel
+                  </Button>
+                  <Button 
+                    variant="destructive" 
+                    onClick={() => deleteMutation.mutate()}
+                    disabled={deleteMutation.isPending}
+                    data-testid="button-confirm-delete"
+                  >
+                    {deleteMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4 mr-2" />
+                    )}
+                    Delete Application
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
 
@@ -428,41 +487,65 @@ export default function ApplicationDetailPage() {
                 <Separator className="my-4" />
 
                 {(() => {
-                  const analyzerData = application.analyzerData as Record<string, unknown> | null;
-                  const isDSCR = application.loanType?.toLowerCase().includes("dscr");
-                  const isFlip = application.loanType?.toLowerCase().includes("flip");
-                  const isConstruction = application.loanType?.toLowerCase().includes("construction");
+                  const rawAnalyzerData = application.analyzerData as { inputs?: Record<string, unknown>; results?: Record<string, unknown> } | null;
+                  const inputs = rawAnalyzerData?.inputs || {};
+                  const results = rawAnalyzerData?.results || {};
+                  // Prefer analyzerType for accurate detection, fallback to loanType
+                  const isDSCR = application.analyzerType === "dscr" || application.loanType?.toLowerCase().includes("dscr");
+                  const isFlip = application.analyzerType === "fixflip" || application.loanType?.toLowerCase().includes("flip");
+                  const isConstruction = application.analyzerType === "construction" || application.loanType?.toLowerCase().includes("construction");
+
+                  // Helper to get value from inputs, falling back to application field
+                  const getInputValue = (key: string, appField?: number | string | null) => {
+                    const inputVal = inputs[key];
+                    if (inputVal !== undefined && inputVal !== null && inputVal !== "") {
+                      return typeof inputVal === "string" ? parseFloat(inputVal) || inputVal : inputVal;
+                    }
+                    return appField;
+                  };
+
+                  const getResultValue = (key: string) => {
+                    const val = results[key];
+                    return val !== undefined && val !== null ? val : null;
+                  };
                   
                   if (isDSCR) {
+                    const monthlyRent = getInputValue("monthlyRent") as number | null;
+                    const dscrRatio = getResultValue("dscrRatio") as number | null;
+                    const propertyType = (inputs.propertyType as string) || "N/A";
+                    const prepaymentPenalty = (inputs.prepaymentPenalty as string) || "5-4-3-2-1";
+                    const loanAmount = getResultValue("loanAmount") as number | null || application.loanAmount;
+                    const calculatedRate = getResultValue("calculatedRate") as number | null;
+
                     return (
                       <div className="grid md:grid-cols-3 gap-6">
                         <div className="space-y-4">
                           <div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Purchase Price</p>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Property Value</p>
                             <p className="font-medium">{formatCurrency(application.purchasePrice)}</p>
                           </div>
                           <div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Monthly Rent</p>
-                            <p className="font-medium">{formatCurrency(analyzerData?.monthlyRent as number | null)}</p>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Loan Amount</p>
+                            <p className="font-medium">{formatCurrency(loanAmount)}</p>
                           </div>
                           <div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide">DSCR Ratio</p>
-                            <p className="font-medium">{(analyzerData?.dscr as string | number) || "N/A"}</p>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Monthly Rent</p>
+                            <p className="font-medium">{formatCurrency(monthlyRent)}</p>
                           </div>
                           <div>
                             <p className="text-xs text-muted-foreground uppercase tracking-wide">Property Type</p>
-                            <p className="font-medium">{(analyzerData?.propertyType as string) || "N/A"}</p>
+                            <p className="font-medium capitalize">{propertyType?.replace(/_/g, " ")}</p>
                           </div>
                         </div>
                         
                         <div className="space-y-4">
                           <div>
                             <p className="text-xs text-muted-foreground uppercase tracking-wide">Interest Rate</p>
-                            <p className="font-medium">{application.interestRate ? `${application.interestRate}%` : "N/A"}</p>
+                            <p className="font-medium">{calculatedRate ? `${Number(calculatedRate).toFixed(3)}%` : application.interestRate ? `${application.interestRate}%` : "N/A"}</p>
                           </div>
                           <div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Interest Type</p>
-                            <p className="font-medium">{application.interestType || "N/A"}</p>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">DSCR Ratio</p>
+                            <p className="font-medium">{dscrRatio ? Number(dscrRatio).toFixed(2) : "N/A"}</p>
                           </div>
                           <div>
                             <p className="text-xs text-muted-foreground uppercase tracking-wide">LTV Ratio</p>
@@ -470,31 +553,37 @@ export default function ApplicationDetailPage() {
                           </div>
                           <div>
                             <p className="text-xs text-muted-foreground uppercase tracking-wide">Prepayment Penalty</p>
-                            <p className="font-medium">{(analyzerData?.prepaymentPenalty as string) || "N/A"}</p>
+                            <p className="font-medium">{prepaymentPenalty}</p>
                           </div>
                         </div>
                         
                         <div className="space-y-4">
                           <div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Guarantor</p>
-                            <p className="font-medium">{application.guarantor || "N/A"}</p>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Credit Score</p>
+                            <p className="font-medium">{(inputs.creditScore as number[])?.[0] || "N/A"}</p>
                           </div>
                           <div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Entity</p>
-                            <p className="font-medium">{application.entity || "N/A"}</p>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Transaction Type</p>
+                            <p className="font-medium capitalize">{(inputs.transactionType as string)?.replace(/_/g, " ") || "Purchase"}</p>
                           </div>
                           <div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Closing Date</p>
-                            <p className="font-medium">{formatDate(application.closingDate)}</p>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Rental Type</p>
+                            <p className="font-medium capitalize">{(inputs.rentalType as string)?.replace(/_/g, " ") || "Long Term"}</p>
                           </div>
                           <div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Requested Closing</p>
-                            <p className="font-medium">{formatDate(application.requestedClosingDate)}</p>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Loan Term</p>
+                            <p className="font-medium">30 Years</p>
                           </div>
                         </div>
                       </div>
                     );
                   } else if (isFlip) {
+                    const experience = inputs.experience as string;
+                    const experienceLabel = experience === "10+" ? "10+ Deals" : experience === "6-10" ? "6-10 Deals" : experience === "3-5" ? "3-5 Deals" : "1-2 Deals";
+                    const roi = getResultValue("roi") as number | null;
+                    const profitMargin = getResultValue("profitMargin") as number | null;
+                    const loanAmount = getResultValue("loanAmount") as number | null || application.loanAmount;
+
                     return (
                       <div className="grid md:grid-cols-3 gap-6">
                         <div className="space-y-4">
@@ -511,8 +600,8 @@ export default function ApplicationDetailPage() {
                             <p className="font-medium">{formatCurrency(application.rehabBudget)}</p>
                           </div>
                           <div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Exit Strategy</p>
-                            <p className="font-medium">{(analyzerData?.exitStrategy as string) || "Sale"}</p>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Loan Amount</p>
+                            <p className="font-medium">{formatCurrency(loanAmount)}</p>
                           </div>
                         </div>
                         
@@ -526,8 +615,8 @@ export default function ApplicationDetailPage() {
                             <p className="font-medium">{application.ltc ? `${application.ltc}%` : "N/A"}</p>
                           </div>
                           <div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Loan to ARV</p>
-                            <p className="font-medium">{application.ltv ? `${application.ltv}%` : "N/A"}</p>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Projected ROI</p>
+                            <p className="font-medium">{roi ? `${Number(roi).toFixed(1)}%` : "N/A"}</p>
                           </div>
                           <div>
                             <p className="text-xs text-muted-foreground uppercase tracking-wide">Holding Period</p>
@@ -537,31 +626,38 @@ export default function ApplicationDetailPage() {
                         
                         <div className="space-y-4">
                           <div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Guarantor</p>
-                            <p className="font-medium">{application.guarantor || "N/A"}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Entity</p>
-                            <p className="font-medium">{application.entity || "N/A"}</p>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Credit Score</p>
+                            <p className="font-medium">{(inputs.creditScore as number[])?.[0] || "N/A"}</p>
                           </div>
                           <div>
                             <p className="text-xs text-muted-foreground uppercase tracking-wide">Experience Level</p>
-                            <p className="font-medium">{(analyzerData?.experienceLevel as string) || "N/A"}</p>
+                            <p className="font-medium">{experienceLabel}</p>
                           </div>
                           <div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Requested Closing</p>
-                            <p className="font-medium">{formatDate(application.requestedClosingDate)}</p>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Profit Margin</p>
+                            <p className="font-medium">{profitMargin ? `${Number(profitMargin).toFixed(1)}%` : "N/A"}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Property Type</p>
+                            <p className="font-medium capitalize">{(inputs.propertyType as string)?.replace(/_/g, " ") || "SFR"}</p>
                           </div>
                         </div>
                       </div>
                     );
                   } else if (isConstruction) {
+                    const experience = inputs.experience as string;
+                    const experienceLabel = experience === "10+" ? "10+ Builds" : experience === "6-10" ? "6-10 Builds" : experience === "3-5" ? "3-5 Builds" : "1-2 Builds";
+                    const roi = getResultValue("roi") as number | null;
+                    const loanAmount = getResultValue("loanAmount") as number | null || application.loanAmount;
+                    const landOwned = inputs.landOwned as boolean;
+                    const buildDuration = inputs.buildDuration as string || application.holdTimeMonths;
+
                     return (
                       <div className="grid md:grid-cols-3 gap-6">
                         <div className="space-y-4">
                           <div>
                             <p className="text-xs text-muted-foreground uppercase tracking-wide">Land Cost</p>
-                            <p className="font-medium">{formatCurrency(application.purchasePrice)}</p>
+                            <p className="font-medium">{formatCurrency(application.purchasePrice)} {landOwned && <span className="text-xs text-green-600">(Owned)</span>}</p>
                           </div>
                           <div>
                             <p className="text-xs text-muted-foreground uppercase tracking-wide">Construction Budget</p>
@@ -572,8 +668,8 @@ export default function ApplicationDetailPage() {
                             <p className="font-medium">{formatCurrency(application.arv)}</p>
                           </div>
                           <div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Exit Strategy</p>
-                            <p className="font-medium">{(analyzerData?.exitStrategy as string) || "Sale/Refinance"}</p>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Loan Amount</p>
+                            <p className="font-medium">{formatCurrency(loanAmount)}</p>
                           </div>
                         </div>
                         
@@ -587,31 +683,31 @@ export default function ApplicationDetailPage() {
                             <p className="font-medium">{application.ltc ? `${application.ltc}%` : "N/A"}</p>
                           </div>
                           <div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Loan to Value (LTV)</p>
-                            <p className="font-medium">{application.ltv ? `${application.ltv}%` : "N/A"}</p>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Projected ROI</p>
+                            <p className="font-medium">{roi ? `${Number(roi).toFixed(1)}%` : "N/A"}</p>
                           </div>
                           <div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Construction Timeline</p>
-                            <p className="font-medium">{application.loanTermMonths ? `${application.loanTermMonths} Months` : "N/A"}</p>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Build Duration</p>
+                            <p className="font-medium">{buildDuration ? `${buildDuration} Months` : "N/A"}</p>
                           </div>
                         </div>
                         
                         <div className="space-y-4">
                           <div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Guarantor</p>
-                            <p className="font-medium">{application.guarantor || "N/A"}</p>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Credit Score</p>
+                            <p className="font-medium">{(inputs.creditScore as number[])?.[0] || "N/A"}</p>
                           </div>
                           <div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Entity</p>
-                            <p className="font-medium">{application.entity || "N/A"}</p>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Experience Level</p>
+                            <p className="font-medium">{experienceLabel}</p>
                           </div>
                           <div>
                             <p className="text-xs text-muted-foreground uppercase tracking-wide">Property Type</p>
-                            <p className="font-medium">{(analyzerData?.propertyType as string) || "N/A"}</p>
+                            <p className="font-medium capitalize">{(inputs.propertyType as string)?.replace(/_/g, " ") || "SFR"}</p>
                           </div>
                           <div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Requested Closing</p>
-                            <p className="font-medium">{formatDate(application.requestedClosingDate)}</p>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Exit Strategy</p>
+                            <p className="font-medium">Sale/Refinance</p>
                           </div>
                         </div>
                       </div>
