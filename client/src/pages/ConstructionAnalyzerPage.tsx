@@ -288,7 +288,7 @@ export default function ConstructionAnalyzerPage() {
         rehabBudget: parseFloat(constructionBudget) || 0, // Construction budget as rehab
         loanAmount: results.loanAmount,
         interestRate: calculatedRate.toFixed(3),
-        ltc: results.ltcPercent.toFixed(1),
+        ltc: results.ltc.toFixed(1),
         annualTaxes: parseFloat(annualTaxes) || 0,
         annualInsurance: parseFloat(annualInsurance) || 0,
         holdTimeMonths: parseFloat(buildDuration) || 9,

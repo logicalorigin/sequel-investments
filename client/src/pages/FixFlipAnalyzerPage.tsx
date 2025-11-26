@@ -284,7 +284,7 @@ export default function FixFlipAnalyzerPage() {
         rehabBudget: parseFloat(rehabBudget) || 0,
         loanAmount: results.loanAmount,
         interestRate: calculatedRate.toFixed(3),
-        ltc: results.ltcPercent.toFixed(1),
+        ltc: results.ltc.toFixed(1),
         annualTaxes: parseFloat(annualTaxes) || 0,
         annualInsurance: parseFloat(annualInsurance) || 0,
         annualHOA: parseFloat(annualHOA) || 0,

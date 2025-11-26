@@ -33,6 +33,9 @@ import {
   Loader2,
   FileDown,
   Printer,
+  DollarSign,
+  Home,
+  Percent,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import type { SavedScenario } from "@shared/schema";
@@ -153,6 +156,55 @@ export function ScenarioManager({
 
   // Filter scenarios by the mapped schema type
   const filteredScenarios = scenarios.filter(s => s.type === schemaType);
+
+  // Helper to format currency compactly
+  const formatCompactCurrency = (value: number | undefined | null): string => {
+    if (value === undefined || value === null || Number.isNaN(value)) return "N/A";
+    if (value >= 1000000) {
+      return `$${(value / 1000000).toFixed(1)}M`;
+    }
+    if (value >= 1000) {
+      return `$${(value / 1000).toFixed(0)}K`;
+    }
+    return `$${value.toFixed(0)}`;
+  };
+
+  // Extract loan info from scenario data for display
+  const getScenarioLoanInfo = (scenario: SavedScenario) => {
+    try {
+      const data = typeof scenario.data === 'string' 
+        ? JSON.parse(scenario.data) 
+        : scenario.data;
+      
+      if (!data) return null;
+
+      if (schemaType === 'dscr') {
+        return {
+          propertyValue: parseFloat(data.propertyValue) || 0,
+          loanAmount: parseFloat(data.requestedLoanAmount) || 0,
+          monthlyRent: parseFloat(data.monthlyRent) || 0,
+          address: data.propertyAddress || "",
+        };
+      } else if (schemaType === 'fixflip') {
+        return {
+          purchasePrice: parseFloat(data.purchasePrice) || 0,
+          arv: parseFloat(data.arv) || 0,
+          rehabBudget: parseFloat(data.rehabBudget) || 0,
+          address: data.propertyAddress || "",
+        };
+      } else if (schemaType === 'construction') {
+        return {
+          landCost: parseFloat(data.landCost) || 0,
+          constructionBudget: parseFloat(data.constructionBudget) || 0,
+          arv: parseFloat(data.arv) || 0,
+          address: data.propertyAddress || "",
+        };
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  };
 
   const handleExportPDF = () => {
     if (analyzerType === "dscr" && resultsData) {
@@ -298,39 +350,104 @@ export function ScenarioManager({
               <p className="text-sm text-muted-foreground">Loading scenarios...</p>
             </div>
           ) : filteredScenarios.length > 0 ? (
-            <ScrollArea className="max-h-[300px] pr-4">
+            <ScrollArea className="max-h-[400px] pr-4">
               <div className="space-y-2">
-                {filteredScenarios.map((scenario) => (
-                  <div
-                    key={scenario.id}
-                    className="flex items-center justify-between p-3 rounded-lg border hover-elevate cursor-pointer group"
-                    onClick={() => handleLoad(scenario)}
-                    data-testid={`scenario-item-${scenario.id}`}
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <FileText className="h-5 w-5 text-primary shrink-0" />
-                      <div className="min-w-0">
-                        <p className="font-medium text-sm truncate">{scenario.name}</p>
-                        <p className="text-xs text-muted-foreground flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {formatDistanceToNow(new Date(scenario.createdAt), { addSuffix: true })}
-                        </p>
-                      </div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteMutation.mutate(scenario.id);
-                      }}
-                      data-testid={`button-delete-scenario-${scenario.id}`}
+                {filteredScenarios.map((scenario) => {
+                  const loanInfo = getScenarioLoanInfo(scenario);
+                  return (
+                    <div
+                      key={scenario.id}
+                      className="p-3 rounded-lg border hover-elevate cursor-pointer group"
+                      onClick={() => handleLoad(scenario)}
+                      data-testid={`scenario-item-${scenario.id}`}
                     >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
-                ))}
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <FileText className="h-4 w-4 text-primary shrink-0" />
+                          <p className="font-medium text-sm truncate">{scenario.name}</p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteMutation.mutate(scenario.id);
+                          }}
+                          data-testid={`button-delete-scenario-${scenario.id}`}
+                        >
+                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                        </Button>
+                      </div>
+                      
+                      {loanInfo && (
+                        <div className="bg-muted/50 rounded-md p-2 mb-2">
+                          {loanInfo.address && (
+                            <p className="text-xs text-muted-foreground truncate mb-1 flex items-center gap-1">
+                              <Home className="h-3 w-3" />
+                              {loanInfo.address}
+                            </p>
+                          )}
+                          <div className="grid grid-cols-3 gap-2 text-xs">
+                            {schemaType === 'dscr' && 'propertyValue' in loanInfo && (
+                              <>
+                                <div>
+                                  <span className="text-muted-foreground">Value:</span>
+                                  <span className="ml-1 font-medium">{formatCompactCurrency(loanInfo.propertyValue)}</span>
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground">Loan:</span>
+                                  <span className="ml-1 font-medium">{formatCompactCurrency(loanInfo.loanAmount)}</span>
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground">Rent:</span>
+                                  <span className="ml-1 font-medium">{formatCompactCurrency(loanInfo.monthlyRent)}/mo</span>
+                                </div>
+                              </>
+                            )}
+                            {schemaType === 'fixflip' && 'purchasePrice' in loanInfo && (
+                              <>
+                                <div>
+                                  <span className="text-muted-foreground">Purchase:</span>
+                                  <span className="ml-1 font-medium">{formatCompactCurrency(loanInfo.purchasePrice)}</span>
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground">ARV:</span>
+                                  <span className="ml-1 font-medium">{formatCompactCurrency(loanInfo.arv)}</span>
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground">Rehab:</span>
+                                  <span className="ml-1 font-medium">{formatCompactCurrency(loanInfo.rehabBudget)}</span>
+                                </div>
+                              </>
+                            )}
+                            {schemaType === 'construction' && 'landCost' in loanInfo && (
+                              <>
+                                <div>
+                                  <span className="text-muted-foreground">Land:</span>
+                                  <span className="ml-1 font-medium">{formatCompactCurrency(loanInfo.landCost)}</span>
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground">Build:</span>
+                                  <span className="ml-1 font-medium">{formatCompactCurrency(loanInfo.constructionBudget)}</span>
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground">ARV:</span>
+                                  <span className="ml-1 font-medium">{formatCompactCurrency(loanInfo.arv)}</span>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      
+                      <p className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {formatDistanceToNow(new Date(scenario.createdAt), { addSuffix: true })}
+                      </p>
+                    </div>
+                  );
+                })}
               </div>
             </ScrollArea>
           ) : (
