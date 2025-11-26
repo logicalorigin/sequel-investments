@@ -361,3 +361,286 @@ export function getStateByAbbreviation(abbr: string): StateData | undefined {
 export function getEligibleStates(): StateData[] {
   return statesData.filter(state => state.isEligible);
 }
+
+// ============================================
+// NOTIFICATIONS
+// ============================================
+export const notificationTypeEnum = pgEnum("notification_type", [
+  "status_change",
+  "document_request",
+  "document_approved",
+  "document_rejected",
+  "payment_reminder",
+  "co_borrower_invite",
+  "co_borrower_accepted",
+  "general"
+]);
+
+export const notifications = pgTable("notifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  type: notificationTypeEnum("type").default("general").notNull(),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  isRead: text("is_read").default("false").notNull(),
+  linkUrl: text("link_url"),
+  relatedApplicationId: varchar("related_application_id").references(() => loanApplications.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  application: one(loanApplications, {
+    fields: [notifications.relatedApplicationId],
+    references: [loanApplications.id],
+  }),
+}));
+
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = typeof notifications.$inferInsert;
+
+export const insertNotificationSchema = createInsertSchema(notifications).omit({
+  id: true,
+  createdAt: true,
+});
+
+// ============================================
+// SAVED SCENARIOS (for analyzers)
+// ============================================
+export const scenarioTypeEnum = pgEnum("scenario_type", ["dscr", "fixflip", "construction"]);
+
+export const savedScenarios = pgTable("saved_scenarios", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  name: text("name").notNull(),
+  type: scenarioTypeEnum("type").notNull(),
+  data: jsonb("data").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const savedScenariosRelations = relations(savedScenarios, ({ one }) => ({
+  user: one(users, {
+    fields: [savedScenarios.userId],
+    references: [users.id],
+  }),
+}));
+
+export type SavedScenario = typeof savedScenarios.$inferSelect;
+export type InsertSavedScenario = typeof savedScenarios.$inferInsert;
+
+export const insertSavedScenarioSchema = createInsertSchema(savedScenarios).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// ============================================
+// USER PREFERENCES
+// ============================================
+export const userPreferences = pgTable("user_preferences", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id).unique(),
+  
+  // Investment preferences
+  investmentGoals: text("investment_goals").array(),
+  preferredPropertyTypes: text("preferred_property_types").array(),
+  preferredMarkets: text("preferred_markets").array(),
+  investmentBudgetMin: integer("investment_budget_min"),
+  investmentBudgetMax: integer("investment_budget_max"),
+  experienceLevel: text("experience_level"),
+  
+  // Notification settings
+  emailNotifications: text("email_notifications").default("true").notNull(),
+  statusChangeAlerts: text("status_change_alerts").default("true").notNull(),
+  documentAlerts: text("document_alerts").default("true").notNull(),
+  paymentReminders: text("payment_reminders").default("true").notNull(),
+  marketingEmails: text("marketing_emails").default("false").notNull(),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const userPreferencesRelations = relations(userPreferences, ({ one }) => ({
+  user: one(users, {
+    fields: [userPreferences.userId],
+    references: [users.id],
+  }),
+}));
+
+export type UserPreferences = typeof userPreferences.$inferSelect;
+export type InsertUserPreferences = typeof userPreferences.$inferInsert;
+
+export const insertUserPreferencesSchema = createInsertSchema(userPreferences).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// ============================================
+// CONNECTED ENTITIES (LLCs, Partners)
+// ============================================
+export const entityTypeEnum = pgEnum("entity_type", ["llc", "corporation", "trust", "partnership", "individual"]);
+
+export const connectedEntities = pgTable("connected_entities", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  name: text("name").notNull(),
+  type: entityTypeEnum("type").notNull(),
+  ein: text("ein"),
+  stateOfFormation: text("state_of_formation"),
+  dateOfFormation: text("date_of_formation"),
+  address: text("address"),
+  city: text("city"),
+  state: text("state"),
+  zip: text("zip"),
+  isDefault: text("is_default").default("false").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const connectedEntitiesRelations = relations(connectedEntities, ({ one }) => ({
+  user: one(users, {
+    fields: [connectedEntities.userId],
+    references: [users.id],
+  }),
+}));
+
+export type ConnectedEntity = typeof connectedEntities.$inferSelect;
+export type InsertConnectedEntity = typeof connectedEntities.$inferInsert;
+
+export const insertConnectedEntitySchema = createInsertSchema(connectedEntities).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// ============================================
+// DOCUMENT SIGNATURES (E-Sign)
+// ============================================
+export const signatureStatusEnum = pgEnum("signature_status", ["pending", "signed", "declined"]);
+
+export const documentSignatures = pgTable("document_signatures", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  documentId: varchar("document_id").notNull().references(() => documents.id),
+  signerId: varchar("signer_id").notNull().references(() => users.id),
+  status: signatureStatusEnum("status").default("pending").notNull(),
+  signatureData: text("signature_data"),
+  signedAt: timestamp("signed_at"),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const documentSignaturesRelations = relations(documentSignatures, ({ one }) => ({
+  document: one(documents, {
+    fields: [documentSignatures.documentId],
+    references: [documents.id],
+  }),
+  signer: one(users, {
+    fields: [documentSignatures.signerId],
+    references: [users.id],
+  }),
+}));
+
+export type DocumentSignature = typeof documentSignatures.$inferSelect;
+export type InsertDocumentSignature = typeof documentSignatures.$inferInsert;
+
+export const insertDocumentSignatureSchema = createInsertSchema(documentSignatures).omit({
+  id: true,
+  createdAt: true,
+});
+
+// ============================================
+// CO-BORROWERS (Collaboration)
+// ============================================
+export const coBorrowerStatusEnum = pgEnum("co_borrower_status", ["pending", "accepted", "declined"]);
+export const coBorrowerRoleEnum = pgEnum("co_borrower_role", ["co_borrower", "guarantor", "viewer"]);
+
+export const coBorrowers = pgTable("co_borrowers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  loanApplicationId: varchar("loan_application_id").notNull().references(() => loanApplications.id),
+  invitedByUserId: varchar("invited_by_user_id").notNull().references(() => users.id),
+  invitedUserId: varchar("invited_user_id").references(() => users.id),
+  invitedEmail: text("invited_email").notNull(),
+  role: coBorrowerRoleEnum("role").default("co_borrower").notNull(),
+  status: coBorrowerStatusEnum("status").default("pending").notNull(),
+  inviteToken: text("invite_token"),
+  acceptedAt: timestamp("accepted_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const coBorrowersRelations = relations(coBorrowers, ({ one }) => ({
+  application: one(loanApplications, {
+    fields: [coBorrowers.loanApplicationId],
+    references: [loanApplications.id],
+  }),
+  invitedBy: one(users, {
+    fields: [coBorrowers.invitedByUserId],
+    references: [users.id],
+  }),
+  invitedUser: one(users, {
+    fields: [coBorrowers.invitedUserId],
+    references: [users.id],
+  }),
+}));
+
+export type CoBorrower = typeof coBorrowers.$inferSelect;
+export type InsertCoBorrower = typeof coBorrowers.$inferInsert;
+
+export const insertCoBorrowerSchema = createInsertSchema(coBorrowers).omit({
+  id: true,
+  createdAt: true,
+});
+
+// ============================================
+// APPLICATION TIMELINE EVENTS
+// ============================================
+export const timelineEventTypeEnum = pgEnum("timeline_event_type", [
+  "application_created",
+  "application_submitted",
+  "status_changed",
+  "document_uploaded",
+  "document_approved",
+  "document_rejected",
+  "co_borrower_added",
+  "signature_requested",
+  "signature_completed",
+  "stage_advanced",
+  "note_added",
+  "loan_funded",
+  "loan_closed"
+]);
+
+export const applicationTimeline = pgTable("application_timeline", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  loanApplicationId: varchar("loan_application_id").notNull().references(() => loanApplications.id),
+  eventType: timelineEventTypeEnum("event_type").notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  metadata: jsonb("metadata"),
+  createdByUserId: varchar("created_by_user_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const applicationTimelineRelations = relations(applicationTimeline, ({ one }) => ({
+  application: one(loanApplications, {
+    fields: [applicationTimeline.loanApplicationId],
+    references: [loanApplications.id],
+  }),
+  createdBy: one(users, {
+    fields: [applicationTimeline.createdByUserId],
+    references: [users.id],
+  }),
+}));
+
+export type ApplicationTimelineEvent = typeof applicationTimeline.$inferSelect;
+export type InsertApplicationTimelineEvent = typeof applicationTimeline.$inferInsert;
+
+export const insertApplicationTimelineEventSchema = createInsertSchema(applicationTimeline).omit({
+  id: true,
+  createdAt: true,
+});
