@@ -11,12 +11,14 @@ import {
   insertDocumentSignatureSchema,
   insertCoBorrowerSchema,
   insertApplicationTimelineEventSchema,
+  getStateBySlug,
 } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { ObjectPermission } from "./objectAcl";
 import crypto from "crypto";
+import { getMarketData, refreshAllMarketData, getMarketDataStatus } from "./services/marketDataService";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication
@@ -951,6 +953,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating timeline event:", error);
       return res.status(500).json({ error: "Failed to create timeline event" });
+    }
+  });
+
+  // ============================================
+  // MARKET DATA ROUTES
+  // ============================================
+  app.get("/api/market-data/:stateSlug", async (req, res) => {
+    try {
+      const { stateSlug } = req.params;
+      const state = getStateBySlug(stateSlug);
+      
+      if (!state) {
+        return res.status(404).json({ error: "State not found" });
+      }
+      
+      const marketData = await getMarketData(stateSlug);
+      return res.json(marketData);
+    } catch (error) {
+      console.error("Error fetching market data:", error);
+      return res.status(500).json({ error: "Failed to fetch market data" });
+    }
+  });
+
+  app.get("/api/market-data", async (req, res) => {
+    try {
+      const status = await getMarketDataStatus();
+      return res.json(status);
+    } catch (error) {
+      console.error("Error fetching market data status:", error);
+      return res.status(500).json({ error: "Failed to fetch market data status" });
+    }
+  });
+
+  app.post("/api/market-data/refresh", isAuthenticated, async (req: any, res) => {
+    try {
+      const result = await refreshAllMarketData();
+      return res.json({
+        message: "Market data refresh completed",
+        ...result,
+      });
+    } catch (error) {
+      console.error("Error refreshing market data:", error);
+      return res.status(500).json({ error: "Failed to refresh market data" });
     }
   });
 

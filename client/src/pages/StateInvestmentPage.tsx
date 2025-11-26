@@ -1,13 +1,15 @@
 import { useEffect, useState, useMemo } from "react";
 import { useParams, Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { LeadForm } from "@/components/LeadForm";
-import { getStateBySlug, type StateData } from "@shared/schema";
+import { getStateBySlug, type StateData, type MarketDataResponse } from "@shared/schema";
 import { 
   Home, 
   TrendingUp, 
@@ -22,6 +24,7 @@ import {
   Star,
   Quote,
   Calculator,
+  RefreshCw,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -93,15 +96,7 @@ function generateRecentFundings(state: StateData): RecentFunding[] {
   return fundings;
 }
 
-interface MarketData {
-  medianHomePrice: number;
-  avgCapRate: number;
-  avgDaysOnMarket: number;
-  priceGrowthYoY: number;
-  rentGrowthYoY: number;
-}
-
-function getMarketData(state: StateData): MarketData {
+function getFallbackMarketData(state: StateData): MarketDataResponse {
   const basePrices: { [key: string]: number } = {
     "california": 750000,
     "new-york": 680000,
@@ -121,11 +116,17 @@ function getMarketData(state: StateData): MarketData {
   const variance = (state.loansClosed % 50000);
   
   return {
+    stateSlug: state.slug,
+    stateName: state.name,
     medianHomePrice: basePrice + variance,
     avgCapRate: 5.5 + (state.loanVolume % 2),
     avgDaysOnMarket: 25 + (state.loansClosed % 20),
     priceGrowthYoY: 3.5 + (state.loanVolume % 4),
     rentGrowthYoY: 4.2 + (state.loansClosed % 3),
+    medianRent: Math.round((basePrice + variance) * 0.006),
+    source: "fallback",
+    dataDate: new Date(),
+    isCached: false,
   };
 }
 
@@ -349,8 +350,13 @@ export default function StateInvestmentPage() {
   ];
 
   const recentFundings = generateRecentFundings(state);
-  const marketData = getMarketData(state);
   const testimonials = getTestimonials(state);
+  
+  const { data: marketData, isLoading: isLoadingMarket } = useQuery<MarketDataResponse>({
+    queryKey: ['/api/market-data', state.slug],
+  });
+  
+  const displayMarketData = marketData || getFallbackMarketData(state);
 
   const fundingsByType = {
     dscr: recentFundings.filter(f => f.loanType === "DSCR").length,
@@ -462,40 +468,55 @@ export default function StateInvestmentPage() {
 
       <section className="py-12 bg-background">
         <div className="max-w-7xl mx-auto px-6">
-          <h2 className="text-2xl font-bold mb-6">{state.name} Real Estate Market Data</h2>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold">{state.name} Real Estate Market Data</h2>
+            <div className="flex items-center gap-2">
+              {isLoadingMarket && (
+                <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />
+              )}
+              <Badge 
+                variant={displayMarketData.source === "rentcast" ? "default" : displayMarketData.source === "zillow" ? "secondary" : "outline"}
+                className="text-xs"
+              >
+                {displayMarketData.source === "rentcast" ? "RentCast" : 
+                 displayMarketData.source === "zillow" ? "Zillow" : 
+                 displayMarketData.isCached ? "Cached" : "Estimated"}
+              </Badge>
+            </div>
+          </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4">
             <Card>
               <CardContent className="pt-4 text-center">
                 <DollarSign className="h-6 w-6 text-primary mx-auto mb-2" />
-                <p className="text-2xl font-bold">{formatCurrency(marketData.medianHomePrice)}</p>
+                <p className="text-2xl font-bold">{formatCurrency(displayMarketData.medianHomePrice)}</p>
                 <p className="text-xs text-muted-foreground">Median Home Price</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="pt-4 text-center">
                 <Percent className="h-6 w-6 text-primary mx-auto mb-2" />
-                <p className="text-2xl font-bold">{marketData.avgCapRate.toFixed(1)}%</p>
+                <p className="text-2xl font-bold">{displayMarketData.avgCapRate.toFixed(1)}%</p>
                 <p className="text-xs text-muted-foreground">Avg. Cap Rate</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="pt-4 text-center">
                 <Calendar className="h-6 w-6 text-primary mx-auto mb-2" />
-                <p className="text-2xl font-bold">{marketData.avgDaysOnMarket}</p>
+                <p className="text-2xl font-bold">{displayMarketData.avgDaysOnMarket}</p>
                 <p className="text-xs text-muted-foreground">Avg. Days on Market</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="pt-4 text-center">
                 <TrendingUp className="h-6 w-6 text-green-500 mx-auto mb-2" />
-                <p className="text-2xl font-bold text-green-600">+{marketData.priceGrowthYoY.toFixed(1)}%</p>
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400">+{displayMarketData.priceGrowthYoY.toFixed(1)}%</p>
                 <p className="text-xs text-muted-foreground">Price Growth YoY</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="pt-4 text-center">
                 <TrendingUp className="h-6 w-6 text-green-500 mx-auto mb-2" />
-                <p className="text-2xl font-bold text-green-600">+{marketData.rentGrowthYoY.toFixed(1)}%</p>
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400">+{displayMarketData.rentGrowthYoY.toFixed(1)}%</p>
                 <p className="text-xs text-muted-foreground">Rent Growth YoY</p>
               </CardContent>
             </Card>

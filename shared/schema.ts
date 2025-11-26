@@ -649,3 +649,52 @@ export const insertApplicationTimelineEventSchema = createInsertSchema(applicati
   id: true,
   createdAt: true,
 });
+
+// ============================================
+// MARKET DATA CACHE
+// ============================================
+export const marketDataSourceEnum = pgEnum("market_data_source", ["rentcast", "zillow", "manual"]);
+
+export const marketDataSnapshots = pgTable("market_data_snapshots", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  stateSlug: varchar("state_slug", { length: 50 }).notNull(),
+  source: marketDataSourceEnum("source").notNull(),
+  
+  medianHomePrice: integer("median_home_price"),
+  avgCapRate: text("avg_cap_rate"),
+  avgDaysOnMarket: integer("avg_days_on_market"),
+  priceGrowthYoY: text("price_growth_yoy"),
+  rentGrowthYoY: text("rent_growth_yoy"),
+  medianRent: integer("median_rent"),
+  
+  dataDate: timestamp("data_date").notNull(),
+  fetchedAt: timestamp("fetched_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  
+  metadata: jsonb("metadata"),
+  isManualOverride: text("is_manual_override").default("false").notNull(),
+}, (table) => [
+  index("idx_market_data_state_date").on(table.stateSlug, table.dataDate),
+]);
+
+export type MarketDataSnapshot = typeof marketDataSnapshots.$inferSelect;
+export type InsertMarketDataSnapshot = typeof marketDataSnapshots.$inferInsert;
+
+export const insertMarketDataSnapshotSchema = createInsertSchema(marketDataSnapshots).omit({
+  id: true,
+  fetchedAt: true,
+});
+
+export interface MarketDataResponse {
+  stateSlug: string;
+  stateName: string;
+  medianHomePrice: number;
+  avgCapRate: number;
+  avgDaysOnMarket: number;
+  priceGrowthYoY: number;
+  rentGrowthYoY: number;
+  medianRent: number;
+  source: string;
+  dataDate: Date;
+  isCached: boolean;
+}
