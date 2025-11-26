@@ -1,17 +1,19 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link, useLocation } from "wouter";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import USMap from "@/components/USMap";
+import USMap3D from "@/components/USMap3D";
 import { statesData, getEligibleStates, type StateData } from "@shared/schema";
-import { MapPin, Check, X } from "lucide-react";
+import { MapPin, Check, X, Box, MapIcon } from "lucide-react";
 
 export default function WhereWeLendPage() {
   const eligibleStates = getEligibleStates();
   const ineligibleStates = statesData.filter(s => !s.isEligible);
   const [, setLocation] = useLocation();
+  const [mapView, setMapView] = useState<"3d" | "2d">("3d");
 
   useEffect(() => {
     document.title = "Where We Lend - Secured Asset Funding | 48 States + DC";
@@ -31,7 +33,7 @@ export default function WhereWeLendPage() {
 
       <section className="relative pt-12 pb-20 overflow-hidden bg-card">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-12">
+          <div className="text-center mb-8">
             <h1 className="text-4xl md:text-5xl font-bold mb-6" data-testid="text-page-title">
               Where We Lend
             </h1>
@@ -41,8 +43,33 @@ export default function WhereWeLendPage() {
             </p>
           </div>
 
-          <div className="max-w-4xl mx-auto">
-            <USMap onStateClick={handleStateClick} />
+          <div className="flex justify-center gap-2 mb-6">
+            <Button
+              variant={mapView === "3d" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setMapView("3d")}
+              data-testid="button-map-3d"
+            >
+              <Box className="h-4 w-4 mr-2" />
+              3D Interactive
+            </Button>
+            <Button
+              variant={mapView === "2d" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setMapView("2d")}
+              data-testid="button-map-2d"
+            >
+              <MapIcon className="h-4 w-4 mr-2" />
+              Classic Map
+            </Button>
+          </div>
+
+          <div className="max-w-5xl mx-auto">
+            {mapView === "3d" ? (
+              <USMap3D onStateClick={handleStateClick} />
+            ) : (
+              <USMap onStateClick={handleStateClick} />
+            )}
           </div>
         </div>
       </section>
