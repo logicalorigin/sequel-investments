@@ -75,11 +75,11 @@ export function ConstructionCalculator() {
     const totalProjectExpenses = land + construction + interestPayments + closingCosts + sellingCosts;
     const profit = completed - totalProjectExpenses;
     
-    const actualCashInvested = landIsOwned 
-      ? constructionCashRequired + closingCosts
+    const totalCapitalDeployed = landIsOwned 
+      ? landEquityApplied + constructionCashRequired + closingCosts
       : downPaymentRequired + constructionCashRequired + closingCosts;
     
-    const roi = actualCashInvested > 0 ? (profit / actualCashInvested) * 100 : 0;
+    const roi = totalCapitalDeployed > 0 ? (profit / totalCapitalDeployed) * 100 : 0;
     const annualizedROI = months > 0 ? (roi / months) * 12 : 0;
     
     let qualificationStatus: "excellent" | "good" | "marginal" | "needs-review" = "needs-review";
