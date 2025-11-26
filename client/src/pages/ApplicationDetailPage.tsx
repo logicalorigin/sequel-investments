@@ -28,6 +28,7 @@ import {
   CheckCircle2,
   History,
   Upload,
+  Download,
   Users,
   AlertCircle,
   UserPlus,
@@ -35,6 +36,7 @@ import {
   Loader2,
   Calculator,
   TrendingUp,
+  MessageSquare,
 } from "lucide-react";
 import {
   Dialog,
@@ -84,10 +86,10 @@ const statusColors: Record<string, string> = {
 };
 
 const docStatusConfig: Record<string, { label: string; color: string }> = {
-  pending: { label: "Outstanding", color: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300" },
-  uploaded: { label: "Uploaded", color: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300" },
-  approved: { label: "Completed", color: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300" },
-  rejected: { label: "Rejected", color: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300" },
+  pending: { label: "Outstanding", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300" },
+  uploaded: { label: "Pending Review", color: "bg-teal-100 text-teal-700 dark:bg-teal-900/50 dark:text-teal-300" },
+  approved: { label: "Completed", color: "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300" },
+  rejected: { label: "Revision Required", color: "bg-pink-100 text-pink-700 dark:bg-pink-900/50 dark:text-pink-300" },
   if_applicable: { label: "If Applicable", color: "bg-muted text-muted-foreground" },
 };
 
@@ -480,123 +482,108 @@ export default function ApplicationDetailPage() {
             </Card>
 
             <Card>
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between gap-2">
                 <CardTitle className="flex items-center gap-2">
                   <FileText className="h-5 w-5 text-primary" />
-                  Document Status
+                  Document Checklist
                 </CardTitle>
+                <div className="flex items-center gap-2">
+                  {outstandingDocs > 0 && (
+                    <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800">
+                      {outstandingDocs} Outstanding
+                    </Badge>
+                  )}
+                  {completedDocs > 0 && (
+                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800">
+                      {completedDocs} Completed
+                    </Badge>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
-                <Tabs defaultValue="needs" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2 mb-4">
-                    <TabsTrigger value="needs" className="relative" data-testid="tab-needs">
-                      Needs
-                      {outstandingDocs > 0 && (
-                        <span className="ml-2 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">
-                          {outstandingDocs}
-                        </span>
-                      )}
-                    </TabsTrigger>
-                    <TabsTrigger value="documents" data-testid="tab-documents">
-                      Documents
-                      {completedDocs > 0 && (
-                        <span className="ml-2 bg-green-500 text-white text-xs px-1.5 py-0.5 rounded-full">
-                          {completedDocs}
-                        </span>
-                      )}
-                    </TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="needs" className="space-y-2">
-                    {docsLoading ? (
-                      <div className="animate-pulse space-y-2">
-                        {[1, 2, 3].map(i => (
-                          <div key={i} className="h-12 bg-muted rounded" />
-                        ))}
-                      </div>
-                    ) : documents && documents.filter(d => d.status === "pending" || d.status === "rejected").length > 0 ? (
-                      <div className="border rounded-lg overflow-hidden">
-                        <table className="w-full">
-                          <thead className="bg-muted/50">
-                            <tr>
-                              <th className="text-left px-4 py-2 text-xs font-medium text-muted-foreground">Document Name</th>
-                              <th className="text-left px-4 py-2 text-xs font-medium text-muted-foreground hidden md:table-cell">Description</th>
-                              <th className="text-center px-4 py-2 text-xs font-medium text-muted-foreground">Status</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {documents.filter(d => d.status === "pending" || d.status === "rejected").map((doc) => {
-                              const status = docStatusConfig[doc.status] || docStatusConfig.pending;
-                              return (
-                                <tr key={doc.id} className="border-t">
-                                  <td className="px-4 py-3 text-sm font-medium">{doc.documentType?.name || "Document"}</td>
-                                  <td className="px-4 py-3 text-sm text-muted-foreground hidden md:table-cell">{doc.documentType?.description}</td>
-                                  <td className="px-4 py-3 text-center">
-                                    <Badge className={status.color}>{status.label}</Badge>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    ) : (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <CheckCircle2 className="h-12 w-12 mx-auto mb-2 text-green-500" />
-                        <p>All documents submitted!</p>
-                      </div>
-                    )}
-                  </TabsContent>
-
-                  <TabsContent value="documents" className="space-y-2">
-                    {docsLoading ? (
-                      <div className="animate-pulse space-y-2">
-                        {[1, 2, 3].map(i => (
-                          <div key={i} className="h-12 bg-muted rounded" />
-                        ))}
-                      </div>
-                    ) : documents && documents.filter(d => d.status === "approved" || d.status === "uploaded").length > 0 ? (
-                      <div className="border rounded-lg overflow-hidden">
-                        <table className="w-full">
-                          <thead className="bg-muted/50">
-                            <tr>
-                              <th className="text-left px-4 py-2 text-xs font-medium text-muted-foreground">Document Name</th>
-                              <th className="text-left px-4 py-2 text-xs font-medium text-muted-foreground hidden md:table-cell">Description</th>
-                              <th className="text-center px-4 py-2 text-xs font-medium text-muted-foreground">Status</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {documents.filter(d => d.status === "approved" || d.status === "uploaded").map((doc) => {
-                              const status = docStatusConfig[doc.status] || docStatusConfig.pending;
-                              return (
-                                <tr key={doc.id} className="border-t">
-                                  <td className="px-4 py-3 text-sm font-medium">{doc.documentType?.name || "Document"}</td>
-                                  <td className="px-4 py-3 text-sm text-muted-foreground hidden md:table-cell">{doc.documentType?.description}</td>
-                                  <td className="px-4 py-3 text-center">
-                                    <Badge className={status.color}>{status.label}</Badge>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    ) : (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <FileText className="h-12 w-12 mx-auto mb-2" />
-                        <p>No completed documents yet</p>
-                      </div>
-                    )}
-                  </TabsContent>
-                </Tabs>
-
-                <div className="mt-4 flex justify-center">
-                  <Link href={`/portal/application/${applicationId}/documents`}>
-                    <Button variant="outline" data-testid="button-upload-documents">
-                      Upload Documents
-                    </Button>
-                  </Link>
-                </div>
+                {docsLoading ? (
+                  <div className="animate-pulse space-y-2">
+                    {[1, 2, 3, 4, 5].map(i => (
+                      <div key={i} className="h-12 bg-muted rounded" />
+                    ))}
+                  </div>
+                ) : documents && documents.length > 0 ? (
+                  <div className="border rounded-lg overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="bg-muted/50">
+                          <tr>
+                            <th className="text-left px-4 py-3 text-xs font-semibold text-primary uppercase tracking-wide">Document Name</th>
+                            <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide hidden lg:table-cell">Description</th>
+                            <th className="text-center px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Status</th>
+                            <th className="text-center px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Documents</th>
+                            <th className="text-center px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Comments</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {documents.map((doc) => {
+                            const status = docStatusConfig[doc.status] || docStatusConfig.pending;
+                            const hasFile = doc.status === "uploaded" || doc.status === "approved";
+                            return (
+                              <tr key={doc.id} className="border-t hover-elevate" data-testid={`doc-row-${doc.id}`}>
+                                <td className="px-4 py-3">
+                                  <span className="text-sm font-medium">{doc.documentType?.name || "Document"}</span>
+                                </td>
+                                <td className="px-4 py-3 text-sm text-muted-foreground hidden lg:table-cell max-w-xs">
+                                  <span className="line-clamp-2">{doc.documentType?.description || "-"}</span>
+                                </td>
+                                <td className="px-4 py-3 text-center">
+                                  <Badge className={status.color} data-testid={`doc-status-${doc.id}`}>
+                                    {status.label}
+                                  </Badge>
+                                </td>
+                                <td className="px-4 py-3">
+                                  <div className="flex items-center justify-center gap-1">
+                                    <Link href={`/portal/application/${applicationId}/documents`}>
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/30"
+                                        data-testid={`button-upload-${doc.id}`}
+                                      >
+                                        <Upload className="h-4 w-4" />
+                                      </Button>
+                                    </Link>
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className={`h-8 w-8 ${hasFile ? "text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/30" : "text-muted-foreground/40 cursor-not-allowed"}`}
+                                      disabled={!hasFile}
+                                      data-testid={`button-download-${doc.id}`}
+                                    >
+                                      <Download className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </td>
+                                <td className="px-4 py-3 text-center">
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                    data-testid={`button-comment-${doc.id}`}
+                                  >
+                                    <MessageSquare className="h-4 w-4" />
+                                  </Button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <FileText className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
+                    <p className="font-medium">No documents required yet</p>
+                    <p className="text-sm mt-1">Documents will appear here as your application progresses</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
