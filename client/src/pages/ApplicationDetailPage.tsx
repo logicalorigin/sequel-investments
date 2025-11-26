@@ -512,13 +512,24 @@ export default function ApplicationDetailPage() {
                   if (isDSCR) {
                     const monthlyRent = getInputValue("monthlyRent") as number | null;
                     const dscrRatio = getResultValue("dscrRatio") as number | null;
-                    const propertyType = (inputs.propertyType as string) || "N/A";
+                    const rawPropertyType = (inputs.propertyType as string) || "sfr";
+                    const propertyTypeLabels: Record<string, string> = {
+                      sfr: "SFR",
+                      duplex: "2-Unit",
+                      triplex: "3-Unit",
+                      fourplex: "4-Unit",
+                      townhome: "Condo",
+                    };
+                    const propertyTypeLabel = propertyTypeLabels[rawPropertyType] || rawPropertyType.toUpperCase();
                     const prepaymentPenalty = (inputs.prepaymentPenalty as string) || "5-4-3-2-1";
                     const loanAmount = getResultValue("loanAmount") as number | null || application.loanAmount;
                     const calculatedRate = getResultValue("calculatedRate") as number | null;
+                    const monthlyPITIA = getResultValue("monthlyPITIA") as number | null;
+                    const transactionType = (inputs.transactionType as string) || "purchase";
+                    const rentalType = (inputs.rentalType as string) || "long_term";
 
                     return (
-                      <div className="grid md:grid-cols-3 gap-6">
+                      <div className="grid md:grid-cols-4 gap-6">
                         <div className="space-y-4">
                           <div>
                             <p className="text-xs text-muted-foreground uppercase tracking-wide">Property Value</p>
@@ -534,7 +545,7 @@ export default function ApplicationDetailPage() {
                           </div>
                           <div>
                             <p className="text-xs text-muted-foreground uppercase tracking-wide">Property Type</p>
-                            <p className="font-medium capitalize">{propertyType?.replace(/_/g, " ")}</p>
+                            <p className="font-medium">{propertyTypeLabel}</p>
                           </div>
                         </div>
                         
@@ -552,27 +563,34 @@ export default function ApplicationDetailPage() {
                             <p className="font-medium">{application.ltv ? `${application.ltv}%` : "N/A"}</p>
                           </div>
                           <div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Prepayment Penalty</p>
-                            <p className="font-medium">{prepaymentPenalty}</p>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Est. Monthly Payment</p>
+                            <p className="font-medium">{monthlyPITIA ? formatCurrency(monthlyPITIA) : "N/A"}</p>
                           </div>
                         </div>
                         
                         <div className="space-y-4">
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Loan Term</p>
+                            <p className="font-medium">30-Year Fixed</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Prepayment Penalty</p>
+                            <p className="font-medium">{prepaymentPenalty === "0" ? "None" : prepaymentPenalty}</p>
+                          </div>
                           <div>
                             <p className="text-xs text-muted-foreground uppercase tracking-wide">Credit Score</p>
                             <p className="font-medium">{(inputs.creditScore as number[])?.[0] || "N/A"}</p>
                           </div>
                           <div>
                             <p className="text-xs text-muted-foreground uppercase tracking-wide">Transaction Type</p>
-                            <p className="font-medium capitalize">{(inputs.transactionType as string)?.replace(/_/g, " ") || "Purchase"}</p>
+                            <p className="font-medium capitalize">{transactionType.replace(/_/g, " ")}</p>
                           </div>
+                        </div>
+
+                        <div className="space-y-4">
                           <div>
                             <p className="text-xs text-muted-foreground uppercase tracking-wide">Rental Type</p>
-                            <p className="font-medium capitalize">{(inputs.rentalType as string)?.replace(/_/g, " ") || "Long Term"}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Loan Term</p>
-                            <p className="font-medium">30 Years</p>
+                            <p className="font-medium capitalize">{rentalType.replace(/_/g, " ")}</p>
                           </div>
                         </div>
                       </div>

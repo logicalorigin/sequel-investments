@@ -47,6 +47,15 @@ const rentalTypes = [
   { id: "short_term", label: "Short-Term (STR)", icon: Sun },
 ];
 
+const prepaymentOptions = [
+  { id: "5-4-3-2-1", label: "5-4-3-2-1" },
+  { id: "4-3-2-1-0", label: "4-3-2-1-0" },
+  { id: "3-2-1-0", label: "3-2-1-0" },
+  { id: "2-1-0", label: "2-1-0" },
+  { id: "1-0", label: "1-0" },
+  { id: "0", label: "None" },
+];
+
 function PropertyTypeIcon({ type, className = "" }: { type: string; className?: string }) {
   const baseClass = `${className}`;
   
@@ -149,6 +158,7 @@ export default function DSCRAnalyzerPage() {
   const [annualHOA, setAnnualHOA] = useState("0");
   const [creditScore, setCreditScore] = useState([740]);
   const [ltvSlider, setLtvSlider] = useState([80]);
+  const [prepaymentPenalty, setPrepaymentPenalty] = useState("5-4-3-2-1");
   const [dataLoaded, setDataLoaded] = useState(false);
 
   const { fetchPropertyData, isLoading: isAutofilling } = usePropertyAutofill({
@@ -213,7 +223,8 @@ export default function DSCRAnalyzerPage() {
     annualInsurance,
     annualHOA,
     creditScore,
-  }), [propertyType, transactionType, rentalType, propertyAddress, propertyValue, requestedLoanAmount, monthlyRent, annualTaxes, annualInsurance, annualHOA, creditScore]);
+    prepaymentPenalty,
+  }), [propertyType, transactionType, rentalType, propertyAddress, propertyValue, requestedLoanAmount, monthlyRent, annualTaxes, annualInsurance, annualHOA, creditScore, prepaymentPenalty]);
 
   const handleLoadScenario = useCallback((data: Record<string, any>) => {
     if (data.propertyType) setPropertyType(data.propertyType);
@@ -227,6 +238,7 @@ export default function DSCRAnalyzerPage() {
     if (data.annualInsurance) setAnnualInsurance(data.annualInsurance);
     if (data.annualHOA) setAnnualHOA(data.annualHOA);
     if (data.creditScore) setCreditScore(data.creditScore);
+    if (data.prepaymentPenalty) setPrepaymentPenalty(data.prepaymentPenalty);
   }, []);
 
   useEffect(() => {
@@ -558,6 +570,27 @@ export default function DSCRAnalyzerPage() {
                         </button>
                       );
                     })}
+                  </div>
+                </div>
+
+                {/* Prepayment Penalty - Single Row */}
+                <div className="flex items-center gap-3">
+                  <Label className="w-24 shrink-0 text-sm">Prepay</Label>
+                  <div className="flex gap-1 flex-1 flex-wrap">
+                    {prepaymentOptions.map((option) => (
+                      <button
+                        key={option.id}
+                        onClick={() => setPrepaymentPenalty(option.id)}
+                        className={`py-1.5 px-2.5 rounded-md border text-xs font-medium transition-all ${
+                          prepaymentPenalty === option.id
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border hover:border-primary/50"
+                        }`}
+                        data-testid={`button-prepay-${option.id}`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
                   </div>
                 </div>
               </CardContent>
