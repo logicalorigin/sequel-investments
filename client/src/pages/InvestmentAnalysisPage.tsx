@@ -1,7 +1,10 @@
 import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import type { LoanApplication } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +28,7 @@ import {
   ArrowRight,
   Home,
   Building,
+  FileText,
 } from "lucide-react";
 
 const propertyTypes = [
@@ -125,6 +129,7 @@ function PropertyTypeIcon({ type, className = "" }: { type: string; className?: 
 export default function InvestmentAnalysisPage() {
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
   const [address, setAddress] = useState("");
   const [propertyType, setPropertyType] = useState("sfr");
@@ -158,6 +163,33 @@ export default function InvestmentAnalysisPage() {
       }, 500);
     }
   }, [authLoading, isAuthenticated, toast]);
+
+  const getLoanType = () => {
+    switch (dealType) {
+      case "rental": return "dscr";
+      case "rehab": return "fix_flip";
+      case "new_construction": return "new_construction";
+      default: return "dscr";
+    }
+  };
+
+  const createApplicationMutation = useMutation({
+    mutationFn: async (loanType: string) => {
+      const res = await apiRequest("POST", "/api/applications", { loanType });
+      return await res.json() as LoanApplication;
+    },
+    onSuccess: (newApp: LoanApplication) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/applications"] });
+      setLocation(`/portal/application/${newApp.id}`);
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to create application. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
 
   const getInitials = (firstName?: string | null, lastName?: string | null) => {
     const first = firstName?.charAt(0) || "";
@@ -633,6 +665,22 @@ export default function InvestmentAnalysisPage() {
                       {formatCurrency(results.loanAmount)}
                     </p>
                   </div>
+
+                  <Button 
+                    className="w-full mt-4"
+                    onClick={() => createApplicationMutation.mutate(getLoanType())}
+                    disabled={createApplicationMutation.isPending}
+                    data-testid="button-get-term-sheet"
+                  >
+                    {createApplicationMutation.isPending ? (
+                      "Creating Application..."
+                    ) : (
+                      <>
+                        <FileText className="h-4 w-4 mr-2" />
+                        Get a Term Sheet
+                      </>
+                    )}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
