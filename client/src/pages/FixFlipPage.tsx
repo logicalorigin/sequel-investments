@@ -38,7 +38,6 @@ export default function FixFlipPage() {
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-
       <section className="relative pt-12 pb-20 overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-center"
@@ -82,7 +81,6 @@ export default function FixFlipPage() {
           </div>
         </div>
       </section>
-
       <section className="py-20 bg-background">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid lg:grid-cols-3 gap-12">
@@ -185,11 +183,11 @@ export default function FixFlipPage() {
                       </div>
                       <div className="flex justify-between py-3 border-b">
                         <span className="text-muted-foreground">Loan-to-Cost (LTC)</span>
-                        <span className="font-semibold">Up to 90%</span>
+                        <span className="font-semibold">Up to 92.5%</span>
                       </div>
                       <div className="flex justify-between py-3 border-b">
                         <span className="text-muted-foreground">ARV</span>
-                        <span className="font-semibold">Up to 70%</span>
+                        <span className="font-semibold">Up to 75%</span>
                       </div>
                       <div className="flex justify-between py-3 border-b">
                         <span className="text-muted-foreground">Term Length</span>
@@ -280,7 +278,6 @@ export default function FixFlipPage() {
           </div>
         </div>
       </section>
-
       <section className="py-16 bg-primary">
         <div className="max-w-7xl mx-auto px-6 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-primary-foreground mb-4">
@@ -297,7 +294,6 @@ export default function FixFlipPage() {
           </Link>
         </div>
       </section>
-
       <Footer />
     </div>
   );
