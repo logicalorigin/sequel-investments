@@ -61,7 +61,7 @@ The design is inspired by leading fintech lenders like Kiavi and Easy Street Cap
 - `/portal/dscr-analyzer` - Dedicated DSCR Analyzer for rental property cash flow analysis
 - `/portal/fixflip-analyzer` - Dedicated Fix & Flip Analyzer for rehab deal profitability
 - `/portal/construction-analyzer` - Dedicated Construction Analyzer for ground-up build analysis
-- `/portal/profile` - User profile settings with password management
+- `/portal/profile` - User profile settings with investment preferences, notification settings, connected entities, and password management
 
 **UI Component System**: shadcn/ui component library in "New York" style, built on Radix UI primitives.
 
@@ -139,7 +139,23 @@ The borrower portal is modeled after Easy Street Capital's portal design with th
 **Profile Page** (`/portal/profile`):
 - User profile information display (name, email from Replit Auth)
 - Password management section with change password form
-- Investment profile with account status and member since date
+- Investment preferences section with:
+  - Preferred loan types (DSCR, Fix & Flip, New Construction, Bridge Loan) - clickable badges
+  - Target markets (California, Texas, Florida, etc.) - clickable badges
+  - Investment experience dropdown
+  - Investment goal dropdown
+  - Budget range inputs (min/max)
+- Notification settings with toggles for:
+  - Email updates
+  - Application status notifications
+  - Document request notifications
+  - SMS alerts
+  - Marketing emails
+- Connected entities management:
+  - List of business entities (LLCs, etc.)
+  - Add new entity input and button
+  - Remove entity functionality
+- Account overview with status and member since date
 - Quick action buttons for Portfolio and Analysis
 - Danger zone with account deletion dialog
 
