@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -8,6 +8,16 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { 
   Home, 
   FileText, 
@@ -19,7 +29,8 @@ import {
   DollarSign,
   ArrowRight,
   Banknote,
-  Calendar
+  Calendar,
+  Trash2
 } from "lucide-react";
 import type { LoanApplication, ServicedLoan } from "@shared/schema";
 
@@ -59,6 +70,8 @@ export default function PortalPage() {
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [applicationToDelete, setApplicationToDelete] = useState<LoanApplication | null>(null);
 
   useEffect(() => {
     document.title = "Customer Portal | Secured Asset Funding";
@@ -104,6 +117,41 @@ export default function PortalPage() {
       });
     },
   });
+
+  const deleteApplicationMutation = useMutation({
+    mutationFn: async (applicationId: string) => {
+      await apiRequest("DELETE", `/api/applications/${applicationId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/applications"] });
+      toast({
+        title: "Application removed",
+        description: "The application has been successfully deleted.",
+      });
+      setDeleteDialogOpen(false);
+      setApplicationToDelete(null);
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete application. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDeleteClick = (e: React.MouseEvent, app: LoanApplication) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setApplicationToDelete(app);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (applicationToDelete) {
+      deleteApplicationMutation.mutate(applicationToDelete.id);
+    }
+  };
 
   if (authLoading) {
     return (
@@ -328,42 +376,51 @@ export default function PortalPage() {
           ) : applications && applications.length > 0 ? (
             <div className="space-y-4">
               {applications.map((app) => (
-                <Link key={app.id} href={`/portal/application/${app.id}`}>
-                  <Card className="hover-elevate cursor-pointer" data-testid={`card-application-${app.id}`}>
-                    <CardContent className="py-4">
-                      <div className="flex items-center justify-between gap-4 flex-wrap">
-                        <div className="flex items-center gap-4">
-                          <div className="p-2 rounded-lg bg-primary/10">
-                            {app.loanType === "DSCR" ? (
-                              <Home className="h-5 w-5 text-primary" />
-                            ) : app.loanType === "Fix & Flip" ? (
-                              <FileText className="h-5 w-5 text-primary" />
-                            ) : (
-                              <Building2 className="h-5 w-5 text-primary" />
-                            )}
-                          </div>
-                          <div>
-                            <p className="font-semibold">{app.loanType} Loan</p>
-                            <p className="text-sm text-muted-foreground">
-                              {app.propertyAddress || "Property address not set"}
-                            </p>
-                          </div>
+                <Card key={app.id} className="hover-elevate" data-testid={`card-application-${app.id}`}>
+                  <CardContent className="py-4">
+                    <div className="flex items-center justify-between gap-4 flex-wrap">
+                      <Link href={`/portal/application/${app.id}`} className="flex items-center gap-4 flex-1 cursor-pointer">
+                        <div className="p-2 rounded-lg bg-primary/10">
+                          {app.loanType === "DSCR" ? (
+                            <Home className="h-5 w-5 text-primary" />
+                          ) : app.loanType === "Fix & Flip" ? (
+                            <FileText className="h-5 w-5 text-primary" />
+                          ) : (
+                            <Building2 className="h-5 w-5 text-primary" />
+                          )}
                         </div>
-                        
-                        <div className="flex items-center gap-4">
-                          <Badge className={statusColors[app.status]}>
-                            {statusLabels[app.status]}
-                          </Badge>
-                          <div className="text-sm text-muted-foreground hidden sm:block">
-                            <Clock className="h-4 w-4 inline mr-1" />
-                            {new Date(app.createdAt).toLocaleDateString()}
-                          </div>
-                          <ArrowRight className="h-5 w-5 text-muted-foreground" />
+                        <div>
+                          <p className="font-semibold">{app.loanType} Loan</p>
+                          <p className="text-sm text-muted-foreground">
+                            {app.propertyAddress || "Property address not set"}
+                          </p>
                         </div>
+                      </Link>
+                      
+                      <div className="flex items-center gap-3">
+                        <Badge className={statusColors[app.status]}>
+                          {statusLabels[app.status]}
+                        </Badge>
+                        <div className="text-sm text-muted-foreground hidden sm:block">
+                          <Clock className="h-4 w-4 inline mr-1" />
+                          {new Date(app.createdAt).toLocaleDateString()}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => handleDeleteClick(e, app)}
+                          className="text-muted-foreground hover:text-destructive"
+                          data-testid={`button-delete-application-${app.id}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                        <Link href={`/portal/application/${app.id}`}>
+                          <ArrowRight className="h-5 w-5 text-muted-foreground cursor-pointer" />
+                        </Link>
                       </div>
-                    </CardContent>
-                  </Card>
-                </Link>
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           ) : (
@@ -379,6 +436,30 @@ export default function PortalPage() {
           )}
         </div>
       </main>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Application</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove this {applicationToDelete?.loanType} loan application
+              {applicationToDelete?.propertyAddress ? ` for ${applicationToDelete.propertyAddress}` : ""}? 
+              This action cannot be undone and all associated documents will be deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-confirm-delete"
+            >
+              {deleteApplicationMutation.isPending ? "Removing..." : "Remove"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
