@@ -61,7 +61,12 @@ export function ObjectUploader({
     setUploadError(null);
     
     try {
-      const { url } = await onGetUploadParameters();
+      const result = await onGetUploadParameters();
+      const url = result.url;
+      
+      if (!url) {
+        throw new Error("Failed to get upload URL");
+      }
       
       const response = await fetch(url, {
         method: "PUT",
@@ -72,7 +77,9 @@ export function ObjectUploader({
       });
 
       if (!response.ok) {
-        throw new Error("Upload failed");
+        const errorText = await response.text().catch(() => "");
+        console.error("Upload response error:", response.status, errorText);
+        throw new Error(`Upload failed: ${response.status}`);
       }
 
       onComplete?.({
@@ -86,9 +93,12 @@ export function ObjectUploader({
 
       setShowModal(false);
       setSelectedFile(null);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Upload error:", error);
-      setUploadError("Failed to upload file. Please try again.");
+      const errorMessage = error.message?.includes("503") || error.message?.includes("storage")
+        ? "File storage is temporarily unavailable. Please try again later."
+        : "Failed to upload file. Please try again.";
+      setUploadError(errorMessage);
     } finally {
       setIsUploading(false);
     }
