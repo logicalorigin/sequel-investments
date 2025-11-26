@@ -15,22 +15,25 @@ import { PortalHeader } from "@/components/PortalHeader";
 import { ScenarioManager } from "@/components/ScenarioManager";
 import { 
   TrendingUp,
-  Percent,
   Home,
   FileText,
-  ArrowDown,
-  ArrowUpRight,
-  Minus,
   HardHat,
 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 
 const propertyTypes = [
-  { id: "sfr", label: "Single Family", icon: "sfr" },
-  { id: "duplex", label: "Duplex", icon: "duplex" },
-  { id: "triplex", label: "Triplex", icon: "triplex" },
-  { id: "fourplex", label: "Fourplex", icon: "fourplex" },
-  { id: "townhome", label: "Townhome/Condo", icon: "townhome" },
+  { id: "sfr", label: "SFR", icon: "sfr" },
+  { id: "duplex", label: "2-Unit", icon: "duplex" },
+  { id: "triplex", label: "3-Unit", icon: "triplex" },
+  { id: "fourplex", label: "4-Unit", icon: "fourplex" },
+  { id: "townhome", label: "Condo", icon: "townhome" },
+];
+
+const experienceLevels = [
+  { id: "1", label: "1-2 Builds", rateAdj: 1.0, downPaymentAdj: 5 },
+  { id: "3-5", label: "3-5 Builds", rateAdj: 0.5, downPaymentAdj: 2.5 },
+  { id: "6-10", label: "6-10 Builds", rateAdj: 0.25, downPaymentAdj: 0 },
+  { id: "10+", label: "10+ Builds", rateAdj: 0, downPaymentAdj: 0 },
 ];
 
 function PropertyTypeIcon({ type, className = "" }: { type: string; className?: string }) {
@@ -43,7 +46,6 @@ function PropertyTypeIcon({ type, className = "" }: { type: string; className?: 
         <rect x="26" y="38" width="12" height="18" stroke="currentColor" strokeWidth="2" fill="none"/>
         <rect x="16" y="34" width="8" height="8" stroke="currentColor" strokeWidth="2" fill="none"/>
         <rect x="40" y="34" width="8" height="8" stroke="currentColor" strokeWidth="2" fill="none"/>
-        <path d="M32 8L32 2" stroke="currentColor" strokeWidth="2"/>
       </svg>
     );
   }
@@ -55,8 +57,6 @@ function PropertyTypeIcon({ type, className = "" }: { type: string; className?: 
         <rect x="34" y="20" width="24" height="36" stroke="currentColor" strokeWidth="2" fill="none"/>
         <rect x="12" y="42" width="8" height="14" stroke="currentColor" strokeWidth="2" fill="none"/>
         <rect x="44" y="42" width="8" height="14" stroke="currentColor" strokeWidth="2" fill="none"/>
-        <rect x="12" y="28" width="6" height="6" stroke="currentColor" strokeWidth="2" fill="none"/>
-        <rect x="46" y="28" width="6" height="6" stroke="currentColor" strokeWidth="2" fill="none"/>
         <path d="M6 20L18 10L30 20" stroke="currentColor" strokeWidth="2" fill="none"/>
         <path d="M34 20L46 10L58 20" stroke="currentColor" strokeWidth="2" fill="none"/>
       </svg>
@@ -69,9 +69,6 @@ function PropertyTypeIcon({ type, className = "" }: { type: string; className?: 
         <rect x="4" y="22" width="18" height="34" stroke="currentColor" strokeWidth="2" fill="none"/>
         <rect x="23" y="22" width="18" height="34" stroke="currentColor" strokeWidth="2" fill="none"/>
         <rect x="42" y="22" width="18" height="34" stroke="currentColor" strokeWidth="2" fill="none"/>
-        <rect x="8" y="44" width="6" height="12" stroke="currentColor" strokeWidth="2" fill="none"/>
-        <rect x="29" y="44" width="6" height="12" stroke="currentColor" strokeWidth="2" fill="none"/>
-        <rect x="48" y="44" width="6" height="12" stroke="currentColor" strokeWidth="2" fill="none"/>
         <path d="M4 22L13 14L22 22" stroke="currentColor" strokeWidth="2" fill="none"/>
         <path d="M23 22L32 14L41 22" stroke="currentColor" strokeWidth="2" fill="none"/>
         <path d="M42 22L51 14L60 22" stroke="currentColor" strokeWidth="2" fill="none"/>
@@ -85,10 +82,6 @@ function PropertyTypeIcon({ type, className = "" }: { type: string; className?: 
         <rect x="6" y="18" width="52" height="38" stroke="currentColor" strokeWidth="2" fill="none"/>
         <line x1="32" y1="18" x2="32" y2="56" stroke="currentColor" strokeWidth="2"/>
         <line x1="6" y1="37" x2="58" y2="37" stroke="currentColor" strokeWidth="2"/>
-        <rect x="12" y="24" width="6" height="6" stroke="currentColor" strokeWidth="2" fill="none"/>
-        <rect x="38" y="24" width="6" height="6" stroke="currentColor" strokeWidth="2" fill="none"/>
-        <rect x="12" y="44" width="6" height="6" stroke="currentColor" strokeWidth="2" fill="none"/>
-        <rect x="38" y="44" width="6" height="6" stroke="currentColor" strokeWidth="2" fill="none"/>
         <path d="M6 18L32 6L58 18" stroke="currentColor" strokeWidth="2" fill="none"/>
       </svg>
     );
@@ -101,12 +94,9 @@ function PropertyTypeIcon({ type, className = "" }: { type: string; className?: 
         <rect x="36" y="24" width="20" height="32" stroke="currentColor" strokeWidth="2" fill="none"/>
         <rect x="14" y="42" width="8" height="14" stroke="currentColor" strokeWidth="2" fill="none"/>
         <rect x="42" y="42" width="8" height="14" stroke="currentColor" strokeWidth="2" fill="none"/>
-        <rect x="14" y="30" width="4" height="4" stroke="currentColor" strokeWidth="2" fill="none"/>
-        <rect x="44" y="30" width="4" height="4" stroke="currentColor" strokeWidth="2" fill="none"/>
         <path d="M8 24L18 14L28 24" stroke="currentColor" strokeWidth="2" fill="none"/>
         <path d="M36 24L46 14L56 24" stroke="currentColor" strokeWidth="2" fill="none"/>
         <line x1="28" y1="14" x2="36" y2="14" stroke="currentColor" strokeWidth="2"/>
-        <line x1="28" y1="24" x2="36" y2="24" stroke="currentColor" strokeWidth="2"/>
       </svg>
     );
   }
@@ -127,50 +117,74 @@ export default function ConstructionAnalyzerPage() {
 
   const [propertyType, setPropertyType] = useState("sfr");
   const [propertyAddress, setPropertyAddress] = useState("");
-  const [arv, setArv] = useState("550000");
   const [landCost, setLandCost] = useState("100000");
   const [constructionBudget, setConstructionBudget] = useState("350000");
+  const [arv, setArv] = useState("550000");
   const [downPayment, setDownPayment] = useState("45000");
   const [requestedConstructionFunding, setRequestedConstructionFunding] = useState("315000");
   const [totalClosingCosts, setTotalClosingCosts] = useState("12000");
   const [annualTaxes, setAnnualTaxes] = useState("6000");
   const [annualInsurance, setAnnualInsurance] = useState("3600");
   const [buildDuration, setBuildDuration] = useState("9");
-  const [interestRate, setInterestRate] = useState("11.5");
+  const [creditScore, setCreditScore] = useState([720]);
+  const [experience, setExperience] = useState("1");
   const [ltcSlider, setLtcSlider] = useState([90]);
   const [landOwned, setLandOwned] = useState(false);
 
   const maxLtc = 90;
 
+  const calculatedRate = useMemo(() => {
+    const BASE_RATE = 10.9;
+    let rate = BASE_RATE;
+    
+    const score = creditScore[0];
+    if (score >= 720) rate += 0;
+    else if (score >= 700) rate += 0.5;
+    else if (score >= 680) rate += 1.0;
+    else rate += 1.5;
+    
+    const expLevel = experienceLevels.find(e => e.id === experience);
+    rate += expLevel?.rateAdj || 0;
+    
+    return Math.max(9.9, Math.min(13.5, rate));
+  }, [creditScore, experience]);
+
+  const minDownPaymentPercent = useMemo(() => {
+    const expLevel = experienceLevels.find(e => e.id === experience);
+    return 10 + (expLevel?.downPaymentAdj || 0);
+  }, [experience]);
+
   const getCurrentScenarioData = useCallback(() => ({
     propertyType,
     propertyAddress,
-    arv,
     landCost,
     constructionBudget,
+    arv,
     downPayment,
     requestedConstructionFunding,
     totalClosingCosts,
     annualTaxes,
     annualInsurance,
     buildDuration,
-    interestRate,
+    creditScore,
+    experience,
     landOwned,
-  }), [propertyType, propertyAddress, arv, landCost, constructionBudget, downPayment, requestedConstructionFunding, totalClosingCosts, annualTaxes, annualInsurance, buildDuration, interestRate, landOwned]);
+  }), [propertyType, propertyAddress, landCost, constructionBudget, arv, downPayment, requestedConstructionFunding, totalClosingCosts, annualTaxes, annualInsurance, buildDuration, creditScore, experience, landOwned]);
 
   const handleLoadScenario = useCallback((data: Record<string, any>) => {
     if (data.propertyType) setPropertyType(data.propertyType);
     if (data.propertyAddress) setPropertyAddress(data.propertyAddress);
-    if (data.arv) setArv(data.arv);
     if (data.landCost) setLandCost(data.landCost);
     if (data.constructionBudget) setConstructionBudget(data.constructionBudget);
+    if (data.arv) setArv(data.arv);
     if (data.downPayment) setDownPayment(data.downPayment);
     if (data.requestedConstructionFunding) setRequestedConstructionFunding(data.requestedConstructionFunding);
     if (data.totalClosingCosts) setTotalClosingCosts(data.totalClosingCosts);
     if (data.annualTaxes) setAnnualTaxes(data.annualTaxes);
     if (data.annualInsurance) setAnnualInsurance(data.annualInsurance);
     if (data.buildDuration) setBuildDuration(data.buildDuration);
-    if (data.interestRate) setInterestRate(data.interestRate);
+    if (data.creditScore) setCreditScore(data.creditScore);
+    if (data.experience) setExperience(data.experience);
     if (typeof data.landOwned === 'boolean') setLandOwned(data.landOwned);
   }, []);
 
@@ -227,7 +241,7 @@ export default function ConstructionAnalyzerPage() {
     const taxesVal = parseFloat(annualTaxes) || 0;
     const insuranceVal = parseFloat(annualInsurance) || 0;
     const holdMonths = parseFloat(buildDuration) || 9;
-    const rate = parseFloat(interestRate) || 11.5;
+    const rate = calculatedRate;
 
     const landEquity = landOwned ? landCostVal : 0;
     const loanAmount = landOwned 
@@ -276,7 +290,7 @@ export default function ConstructionAnalyzerPage() {
       constructionEquity: constructionBudgetVal - constructionFundingVal,
       landEquity,
     };
-  }, [arv, landCost, constructionBudget, downPayment, requestedConstructionFunding, totalClosingCosts, annualTaxes, annualInsurance, buildDuration, interestRate, landOwned]);
+  }, [arv, landCost, constructionBudget, downPayment, requestedConstructionFunding, totalClosingCosts, annualTaxes, annualInsurance, buildDuration, calculatedRate, landOwned]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -303,14 +317,14 @@ export default function ConstructionAnalyzerPage() {
     <div className="min-h-screen bg-background">
       <PortalHeader user={user} />
 
-      <main className="max-w-7xl mx-auto px-6 py-8">
-        <div className="mb-8 flex items-start justify-between gap-4">
+      <main className="max-w-7xl mx-auto px-6 py-6">
+        <div className="mb-6 flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold mb-2" data-testid="text-page-title">
-              New Construction Analyzer
+            <h1 className="text-2xl font-bold" data-testid="text-page-title">
+              Construction Analyzer
             </h1>
-            <p className="text-muted-foreground">
-              Calculate your ground-up construction deal profitability
+            <p className="text-sm text-muted-foreground">
+              Calculate your ground-up construction profitability
             </p>
           </div>
           <ScenarioManager
@@ -320,45 +334,39 @@ export default function ConstructionAnalyzerPage() {
           />
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-6">
-            {/* Property Type Selection */}
+        <div className="grid lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-4">
+            {/* Property Type - Condensed Single Row */}
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Home className="h-5 w-5 text-primary" />
-                  Property Type
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-5 gap-2">
-                  {propertyTypes.map((type) => (
-                    <button
-                      key={type.id}
-                      onClick={() => setPropertyType(type.id)}
-                      className={`p-3 rounded-lg border-2 transition-all flex flex-col items-center gap-2 ${
-                        propertyType === type.id
-                          ? "border-primary bg-primary/10"
-                          : "border-border hover:border-primary/50"
-                      }`}
-                      data-testid={`button-property-type-${type.id}`}
-                    >
-                      <PropertyTypeIcon type={type.icon} className="w-8 h-8" />
-                      <span className="text-xs font-medium text-center">{type.label}</span>
-                    </button>
-                  ))}
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-3">
+                  <Label className="w-24 shrink-0 text-sm">Property</Label>
+                  <div className="flex gap-1.5 flex-1">
+                    {propertyTypes.map((type) => (
+                      <button
+                        key={type.id}
+                        onClick={() => setPropertyType(type.id)}
+                        className={`flex-1 py-2 px-2 rounded-md border transition-all flex flex-col items-center gap-1 ${
+                          propertyType === type.id
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border hover:border-primary/50"
+                        }`}
+                        data-testid={`button-property-type-${type.id}`}
+                      >
+                        <PropertyTypeIcon type={type.icon} className="w-5 h-5" />
+                        <span className="text-[10px] font-medium">{type.label}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Property Details */}
+            {/* Property Details - Land → Construction → ARV */}
             <Card>
-              <CardHeader>
-                <CardTitle>Property Details</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="pt-4 space-y-3">
                 <div>
-                  <Label>Property Address</Label>
+                  <Label className="text-sm">Property Address</Label>
                   <AddressAutocomplete
                     value={propertyAddress}
                     onChange={setPropertyAddress}
@@ -367,101 +375,154 @@ export default function ConstructionAnalyzerPage() {
                     data-testid="input-property-address"
                   />
                 </div>
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <Label htmlFor="arv">After Repair Value (ARV)</Label>
-                    <div className="relative mt-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                      <Input
-                        id="arv"
-                        type="number"
-                        value={arv}
-                        onChange={(e) => setArv(e.target.value)}
-                        className="pl-7"
-                        data-testid="input-arv"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="landCost">Land Cost</Label>
-                      <div className="flex items-center space-x-2">
+                    <div className="flex items-center justify-between mb-1">
+                      <Label htmlFor="landCost" className="text-sm">Land Cost</Label>
+                      <div className="flex items-center space-x-1">
                         <Checkbox
                           id="landOwned"
                           checked={landOwned}
                           onCheckedChange={(checked) => setLandOwned(checked as boolean)}
+                          className="h-3 w-3"
                           data-testid="checkbox-land-owned"
                         />
-                        <label htmlFor="landOwned" className="text-xs text-muted-foreground cursor-pointer">
-                          Land is Owned
+                        <label htmlFor="landOwned" className="text-[10px] text-muted-foreground cursor-pointer">
+                          Owned
                         </label>
                       </div>
                     </div>
-                    <div className="relative mt-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                       <Input
                         id="landCost"
                         type="number"
                         value={landCost}
                         onChange={(e) => setLandCost(e.target.value)}
-                        className="pl-7"
+                        className="pl-7 h-9"
                         data-testid="input-land-cost"
                       />
                     </div>
                     {landOwned && (
-                      <p className="text-xs text-green-600 mt-1">
-                        Land value applied as equity
-                      </p>
+                      <p className="text-[10px] text-green-600 mt-0.5">As equity</p>
                     )}
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Construction & Financing */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <HardHat className="h-5 w-5 text-primary" />
-                  Construction & Financing
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="constructionBudget">Construction Budget</Label>
+                    <Label htmlFor="constructionBudget" className="text-sm">Construction Budget</Label>
                     <div className="relative mt-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                       <Input
                         id="constructionBudget"
                         type="number"
                         value={constructionBudget}
                         onChange={(e) => setConstructionBudget(e.target.value)}
-                        className="pl-7"
+                        className="pl-7 h-9"
                         data-testid="input-construction-budget"
                       />
                     </div>
                   </div>
                   <div>
-                    <Label htmlFor="constructionFunding">Requested Construction Funding (90%)</Label>
+                    <Label htmlFor="arv" className="text-sm">After Completion Value</Label>
                     <div className="relative mt-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                       <Input
-                        id="constructionFunding"
+                        id="arv"
                         type="number"
-                        value={requestedConstructionFunding}
-                        onChange={(e) => setRequestedConstructionFunding(e.target.value)}
-                        className="pl-7"
-                        data-testid="input-construction-funding"
+                        value={arv}
+                        onChange={(e) => setArv(e.target.value)}
+                        className="pl-7 h-9"
+                        data-testid="input-arv"
                       />
                     </div>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
 
+            {/* Borrower Profile - FICO & Experience */}
+            <div className="grid md:grid-cols-2 gap-4">
+              <Card>
+                <CardContent className="pt-4 space-y-4">
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <Label className="text-sm">Credit Score</Label>
+                      <span className="text-sm font-bold text-primary">{creditScore[0]}</span>
+                    </div>
+                    <Slider
+                      value={creditScore}
+                      onValueChange={setCreditScore}
+                      min={660}
+                      max={800}
+                      step={5}
+                      className="w-full"
+                      data-testid="slider-credit-score"
+                    />
+                    <div className="flex justify-between text-[10px] text-muted-foreground mt-0.5">
+                      <span>660</span>
+                      <span>800</span>
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-sm mb-2 block">Build Experience</Label>
+                    <div className="flex gap-1.5">
+                      {experienceLevels.map((level) => (
+                        <button
+                          key={level.id}
+                          onClick={() => setExperience(level.id)}
+                          className={`flex-1 py-2 px-1 rounded-md border text-[10px] font-medium transition-all ${
+                            experience === level.id
+                              ? "border-primary bg-primary/10 text-primary"
+                              : "border-border hover:border-primary/50"
+                          }`}
+                          data-testid={`button-experience-${level.id}`}
+                        >
+                          {level.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Rate Breakdown */}
+              <Card>
+                <CardContent className="pt-4">
+                  <div className="bg-muted/50 rounded-lg p-3 space-y-1.5 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Base Rate:</span>
+                      <span className="font-medium">10.900%</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Credit ({creditScore[0]}):</span>
+                      <span className={`font-medium ${creditScore[0] < 720 ? "text-red-600" : ""}`}>
+                        +{creditScore[0] >= 720 ? "0.000" : creditScore[0] >= 700 ? "0.500" : creditScore[0] >= 680 ? "1.000" : "1.500"}%
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Experience ({experience}):</span>
+                      <span className={`font-medium ${experienceLevels.find(e => e.id === experience)?.rateAdj ? "text-red-600" : ""}`}>
+                        +{experienceLevels.find(e => e.id === experience)?.rateAdj.toFixed(3) || "0.000"}%
+                      </span>
+                    </div>
+                    <div className="border-t pt-1.5 mt-1.5 flex justify-between font-semibold text-sm">
+                      <span>Your Rate:</span>
+                      <span className="text-primary">{calculatedRate.toFixed(3)}%</span>
+                    </div>
+                    <div className="text-[10px] text-muted-foreground pt-1">
+                      Min Down Payment: {minDownPaymentPercent}%
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Financing Details */}
+            <Card>
+              <CardContent className="pt-4 space-y-4">
                 <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <Label>Loan-to-Cost (LTC)</Label>
-                    <div className="flex items-center gap-2">
+                  <div className="flex justify-between items-center mb-1">
+                    <Label className="text-sm">Loan-to-Cost (LTC)</Label>
+                    <div className="flex items-center gap-1">
                       <Input
                         type="number"
                         value={ltcSlider[0]}
@@ -469,11 +530,11 @@ export default function ConstructionAnalyzerPage() {
                           const val = Math.min(parseInt(e.target.value) || 0, maxLtc);
                           setLtcSlider([val]);
                         }}
-                        className="w-20 h-8 text-center"
+                        className="w-14 h-7 text-center text-sm"
                         max={maxLtc}
                         data-testid="input-ltc"
                       />
-                      <span className="text-lg font-bold text-primary">%</span>
+                      <span className="text-sm font-medium text-primary">%</span>
                     </div>
                   </div>
                   <Slider
@@ -485,37 +546,51 @@ export default function ConstructionAnalyzerPage() {
                     className="w-full"
                     data-testid="slider-ltc"
                   />
-                  <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                  <div className="flex justify-between text-[10px] text-muted-foreground mt-0.5">
                     <span>0%</span>
                     <span>{maxLtc}% Max</span>
                   </div>
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <Label htmlFor="downPayment">Down Payment</Label>
+                    <Label htmlFor="downPayment" className="text-sm">Down Payment</Label>
                     <div className="relative mt-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                       <Input
                         id="downPayment"
                         type="number"
                         value={downPayment}
                         onChange={(e) => setDownPayment(e.target.value)}
-                        className="pl-7"
+                        className="pl-7 h-9"
                         data-testid="input-down-payment"
                       />
                     </div>
                   </div>
                   <div>
-                    <Label htmlFor="closingCosts">Closing Costs</Label>
+                    <Label htmlFor="constructionFunding" className="text-sm">Construction Funding</Label>
                     <div className="relative mt-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                      <Input
+                        id="constructionFunding"
+                        type="number"
+                        value={requestedConstructionFunding}
+                        onChange={(e) => setRequestedConstructionFunding(e.target.value)}
+                        className="pl-7 h-9"
+                        data-testid="input-construction-funding"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="closingCosts" className="text-sm">Closing Costs</Label>
+                    <div className="relative mt-1">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                       <Input
                         id="closingCosts"
                         type="number"
                         value={totalClosingCosts}
                         onChange={(e) => setTotalClosingCosts(e.target.value)}
-                        className="pl-7"
+                        className="pl-7 h-9"
                         data-testid="input-closing-costs"
                       />
                     </div>
@@ -524,62 +599,45 @@ export default function ConstructionAnalyzerPage() {
               </CardContent>
             </Card>
 
-            {/* Loan Terms & Holding Costs */}
+            {/* Holding Costs - Condensed */}
             <Card>
-              <CardHeader>
-                <CardTitle>Loan Terms & Holding Costs</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid md:grid-cols-2 gap-4">
+              <CardContent className="pt-4">
+                <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <Label htmlFor="buildDuration">Build Duration (months)</Label>
+                    <Label htmlFor="buildDuration" className="text-sm">Build (Months)</Label>
                     <Input
                       id="buildDuration"
                       type="number"
                       value={buildDuration}
                       onChange={(e) => setBuildDuration(e.target.value)}
-                      className="mt-1"
+                      className="mt-1 h-9"
                       data-testid="input-build-duration"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="interestRate">Interest Rate (%)</Label>
-                    <Input
-                      id="interestRate"
-                      type="number"
-                      step="0.1"
-                      value={interestRate}
-                      onChange={(e) => setInterestRate(e.target.value)}
-                      className="mt-1"
-                      data-testid="input-interest-rate"
-                    />
-                  </div>
-                </div>
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="annualTaxes">Annual Taxes</Label>
+                    <Label htmlFor="annualTaxes" className="text-sm">Annual Taxes</Label>
                     <div className="relative mt-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                       <Input
                         id="annualTaxes"
                         type="number"
                         value={annualTaxes}
                         onChange={(e) => setAnnualTaxes(e.target.value)}
-                        className="pl-7"
+                        className="pl-7 h-9"
                         data-testid="input-annual-taxes"
                       />
                     </div>
                   </div>
                   <div>
-                    <Label htmlFor="annualInsurance">Annual Insurance</Label>
+                    <Label htmlFor="annualInsurance" className="text-sm">Annual Insurance</Label>
                     <div className="relative mt-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                       <Input
                         id="annualInsurance"
                         type="number"
                         value={annualInsurance}
                         onChange={(e) => setAnnualInsurance(e.target.value)}
-                        className="pl-7"
+                        className="pl-7 h-9"
                         data-testid="input-annual-insurance"
                       />
                     </div>
@@ -592,182 +650,153 @@ export default function ConstructionAnalyzerPage() {
           {/* Results Panel */}
           <div>
             <Card 
-              className={`sticky top-12 border transition-colors ${
-                results.roi >= 10 
-                  ? "bg-gradient-to-br from-green-500/20 to-green-500/10 border-green-500/30"
-                  : results.roi >= 5
-                  ? "bg-gradient-to-br from-yellow-500/20 to-yellow-500/10 border-yellow-500/30"
-                  : "bg-gradient-to-br from-red-500/20 to-red-500/10 border-red-500/30"
+              className={`sticky top-4 border transition-colors ${
+                results.roi >= 20 
+                  ? "bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20"
+                  : results.roi >= 10
+                  ? "bg-gradient-to-br from-yellow-500/10 to-yellow-500/5 border-yellow-500/20"
+                  : "bg-gradient-to-br from-red-500/10 to-red-500/5 border-red-500/20"
               }`}
               data-testid="card-results"
             >
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-primary" />
-                    Results
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {results.roi >= 10 ? (
-                      <ArrowUpRight className="h-5 w-5 text-green-600" />
-                    ) : results.roi >= 5 ? (
-                      <Minus className="h-5 w-5 text-yellow-600" />
-                    ) : (
-                      <ArrowDown className="h-5 w-5 text-red-600" />
-                    )}
-                  </div>
+              <CardHeader className="pb-2 pt-4">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-primary" />
+                  Build Analysis
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {/* Main Results */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-background rounded-lg p-3">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Total Project Cost</p>
-                      <p className="text-lg font-bold text-primary" data-testid="result-project-cost">
-                        {formatCurrency(results.totalProjectCost)}
-                      </p>
-                    </div>
-                    <div className="bg-background rounded-lg p-3">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Capital Deployed</p>
-                      <p className="text-lg font-bold" data-testid="result-capital-deployed">
-                        {formatCurrency(results.totalCapitalDeployed)}
-                      </p>
-                    </div>
+              <CardContent className="space-y-3 pb-4">
+                {/* ROI and Profit Margin */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-background rounded-lg p-2.5">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">ROI</p>
+                    <p className={`text-lg font-bold ${results.roi >= 20 ? "text-green-600" : results.roi >= 10 ? "text-yellow-600" : "text-red-600"}`} data-testid="result-roi">
+                      {results.roi.toFixed(1)}%
+                    </p>
                   </div>
+                  <div className="bg-background rounded-lg p-2.5">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">Profit Margin</p>
+                    <p className={`text-lg font-bold ${results.profitMargin >= 15 ? "text-green-600" : results.profitMargin >= 10 ? "text-yellow-600" : "text-red-600"}`} data-testid="result-profit-margin">
+                      {results.profitMargin.toFixed(1)}%
+                    </p>
+                  </div>
+                </div>
 
-                  <div className="bg-background rounded-lg p-3">
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Total Profit</p>
-                    <p className={`text-xl font-bold ${results.totalProfit >= 0 ? "text-green-600" : "text-red-600"}`} data-testid="result-profit">
+                {/* Total Profit and Capital Deployed */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-background rounded-lg p-2.5">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">Total Profit</p>
+                    <p className={`text-sm font-bold ${results.totalProfit >= 0 ? "text-green-600" : "text-red-600"}`} data-testid="result-total-profit">
                       {formatCurrency(results.totalProfit)}
                     </p>
                   </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-background rounded-lg p-3">
-                      <div className="flex items-center gap-1 mb-1">
-                        <Percent className="h-3 w-3 text-muted-foreground" />
-                        <p className="text-xs text-muted-foreground uppercase tracking-wide">ROI</p>
-                      </div>
-                      <p className={`text-lg font-bold ${
-                        results.roi >= 10 
-                          ? "text-green-600" 
-                          : results.roi >= 5 
-                          ? "text-yellow-600" 
-                          : "text-red-600"
-                      }`} data-testid="result-roi">
-                        {results.roi.toFixed(1)}%
-                      </p>
-                    </div>
-                    <div className="bg-background rounded-lg p-3">
-                      <div className="flex items-center gap-1 mb-1">
-                        <Percent className="h-3 w-3 text-muted-foreground" />
-                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Profit Margin</p>
-                      </div>
-                      <p className={`text-lg font-bold ${results.profitMargin >= 0 ? "text-green-600" : "text-red-600"}`} data-testid="result-margin">
-                        {results.profitMargin.toFixed(1)}%
-                      </p>
-                    </div>
+                  <div className="bg-background rounded-lg p-2.5">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">Capital Deployed</p>
+                    <p className="text-sm font-semibold" data-testid="result-capital-deployed">
+                      {formatCurrency(results.totalCapitalDeployed)}
+                    </p>
                   </div>
+                </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-background rounded-lg p-3">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">LTC</p>
-                      <p className="text-lg font-bold" data-testid="result-ltc">
-                        {results.ltc.toFixed(1)}%
-                      </p>
-                    </div>
-                    <div className="bg-background rounded-lg p-3">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">LTV</p>
-                      <p className="text-lg font-bold" data-testid="result-ltv">
-                        {results.ltv.toFixed(1)}%
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="bg-background rounded-lg p-3">
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Loan Amount</p>
-                    <p className="text-lg font-semibold" data-testid="result-loan-amount">
+                {/* Loan Details */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-background rounded-lg p-2.5">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">Loan Amount</p>
+                    <p className="text-sm font-semibold" data-testid="result-loan-amount">
                       {formatCurrency(results.loanAmount)}
                     </p>
                   </div>
-
-                  {/* Costs Breakdown */}
-                  <div className="bg-background rounded-lg p-3">
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">Costs Breakdown</p>
-                    <div className="space-y-1.5 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Land Cost:</span>
-                        <span className="font-medium">{formatCurrency(results.landCost)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Construction Budget:</span>
-                        <span className="font-medium">{formatCurrency(results.constructionBudget)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Closing Costs:</span>
-                        <span className="font-medium">{formatCurrency(results.closingCosts)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Holding Costs:</span>
-                        <span className="font-medium">{formatCurrency(results.holdingCosts)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Interest Cost:</span>
-                        <span className="font-medium">{formatCurrency(results.interestCost)}</span>
-                      </div>
-                      <div className="flex justify-between pt-1.5 border-t">
-                        <span className="font-medium">Total Project Cost:</span>
-                        <span className="font-bold text-primary">{formatCurrency(results.totalProjectCost)}</span>
-                      </div>
-                    </div>
+                  <div className="bg-background rounded-lg p-2.5">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">Interest Rate</p>
+                    <p className="text-sm font-bold text-primary" data-testid="result-interest-rate">
+                      {calculatedRate.toFixed(3)}%
+                    </p>
                   </div>
-
-                  {/* Cash to Close */}
-                  <div className="bg-background rounded-lg p-3">
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">Capital Required</p>
-                    <div className="space-y-1.5 text-sm">
-                      {landOwned && (
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Land Equity:</span>
-                          <span className="font-medium text-green-600">{formatCurrency(results.landEquity)}</span>
-                        </div>
-                      )}
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Down Payment:</span>
-                        <span className="font-medium">{formatCurrency(results.downPayment)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Construction Equity:</span>
-                        <span className="font-medium">{formatCurrency(results.constructionEquity)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Closing Costs:</span>
-                        <span className="font-medium">{formatCurrency(results.closingCosts)}</span>
-                      </div>
-                      <div className="flex justify-between pt-1.5 border-t">
-                        <span className="font-medium">Total Capital:</span>
-                        <span className="font-bold">{formatCurrency(results.totalCapitalDeployed)}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <Button 
-                    className="w-full"
-                    onClick={() => createApplicationMutation.mutate()}
-                    disabled={createApplicationMutation.isPending}
-                    data-testid="button-get-term-sheet"
-                  >
-                    {createApplicationMutation.isPending ? (
-                      "Creating Application..."
-                    ) : (
-                      <>
-                        <FileText className="h-4 w-4 mr-2" />
-                        Get Term Sheet
-                      </>
-                    )}
-                  </Button>
                 </div>
+
+                {/* LTC and LTV */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-background rounded-lg p-2.5">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">LTC</p>
+                    <p className={`text-sm font-bold ${results.ltc > 90 ? "text-red-600" : "text-green-600"}`} data-testid="result-ltc">
+                      {results.ltc.toFixed(1)}%
+                    </p>
+                  </div>
+                  <div className="bg-background rounded-lg p-2.5">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">LTV (ACV)</p>
+                    <p className={`text-sm font-bold ${results.ltv > 70 ? "text-red-600" : results.ltv > 65 ? "text-yellow-600" : "text-green-600"}`} data-testid="result-ltv">
+                      {results.ltv.toFixed(1)}%
+                    </p>
+                  </div>
+                </div>
+
+                {/* Cost Breakdown */}
+                <div className="bg-background rounded-lg p-2.5">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1.5">Cost Breakdown</p>
+                  <div className="space-y-1 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Land{landOwned ? " (Equity)" : ""}:</span>
+                      <span className="font-medium">{formatCurrency(results.landCost)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Construction:</span>
+                      <span className="font-medium">{formatCurrency(results.constructionBudget)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Closing:</span>
+                      <span className="font-medium">{formatCurrency(results.closingCosts)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Holding:</span>
+                      <span className="font-medium">{formatCurrency(results.holdingCosts)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Interest:</span>
+                      <span className="font-medium">{formatCurrency(results.interestCost)}</span>
+                    </div>
+                    <div className="flex justify-between pt-1 border-t font-semibold">
+                      <span>Total:</span>
+                      <span>{formatCurrency(results.totalProjectCost)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Qualification Status - No emoji */}
+                <div className={`p-2.5 rounded-lg border text-xs ${
+                  results.roi >= 20 
+                    ? "bg-green-500/10 border-green-500/20" 
+                    : results.roi >= 10 
+                    ? "bg-yellow-500/10 border-yellow-500/20"
+                    : "bg-red-500/10 border-red-500/20"
+                }`}>
+                  <span className={`font-semibold ${
+                    results.roi >= 20 ? "text-green-600" : results.roi >= 10 ? "text-yellow-600" : "text-red-600"
+                  }`}>
+                    {results.roi >= 30 
+                      ? "Excellent! Strong profit potential." 
+                      : results.roi >= 20 
+                      ? "Good deal! Solid returns expected."
+                      : results.roi >= 10 
+                      ? "Marginal - review costs carefully."
+                      : "Consider renegotiating terms."}
+                  </span>
+                </div>
+
+                <Button 
+                  className="w-full"
+                  onClick={() => createApplicationMutation.mutate()}
+                  disabled={createApplicationMutation.isPending}
+                  data-testid="button-get-term-sheet"
+                >
+                  {createApplicationMutation.isPending ? (
+                    "Creating Application..."
+                  ) : (
+                    <>
+                      <FileText className="h-4 w-4 mr-2" />
+                      Get Term Sheet
+                    </>
+                  )}
+                </Button>
               </CardContent>
             </Card>
           </div>
