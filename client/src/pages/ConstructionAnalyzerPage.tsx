@@ -135,6 +135,7 @@ export default function ConstructionAnalyzerPage() {
 
   const [propertyType, setPropertyType] = useState("sfr");
   const [propertyAddress, setPropertyAddress] = useState("");
+  const [propertyState, setPropertyState] = useState("");
   const [landCost, setLandCost] = useState("100000");
   const [constructionBudget, setConstructionBudget] = useState("350000");
   const [arv, setArv] = useState("550000");
@@ -182,6 +183,10 @@ export default function ConstructionAnalyzerPage() {
       }
     }
 
+    if (state) {
+      setPropertyState(state);
+    }
+
     if (streetAddress) {
       await fetchPropertyData(streetAddress, city, state, zip);
     }
@@ -189,9 +194,11 @@ export default function ConstructionAnalyzerPage() {
 
   const maxLtc = 90;
 
+  const isCaliforniaProperty = propertyState === "CA";
+  const baseRate = isCaliforniaProperty ? 8.9 : 9.9;
+
   const calculatedRate = useMemo(() => {
-    const BASE_RATE = 8.9;
-    let rate = BASE_RATE;
+    let rate = baseRate;
     
     const score = creditScore[0];
     if (score >= 720) rate += 0;
@@ -199,12 +206,27 @@ export default function ConstructionAnalyzerPage() {
     else if (score >= 680) rate += 1.0;
     else rate += 1.5;
     
-    return Math.max(8.9, Math.min(12.5, rate));
-  }, [creditScore]);
+    return Math.max(baseRate, Math.min(12.9, rate));
+  }, [creditScore, baseRate]);
+
+  const originationPoints = useMemo(() => {
+    const minRate = baseRate;
+    const maxRate = 12.9;
+    const maxPoints = 2.0;
+    const minPoints = 0.0;
+    
+    if (calculatedRate >= maxRate) return minPoints;
+    if (calculatedRate <= minRate) return maxPoints;
+    
+    const rateRange = maxRate - minRate;
+    const ratePosition = (calculatedRate - minRate) / rateRange;
+    return maxPoints - (ratePosition * (maxPoints - minPoints));
+  }, [calculatedRate, baseRate]);
 
   const getCurrentScenarioData = useCallback(() => ({
     propertyType,
     propertyAddress,
+    propertyState,
     landCost,
     constructionBudget,
     arv,
@@ -215,11 +237,12 @@ export default function ConstructionAnalyzerPage() {
     experience,
     ltcSlider,
     landOwned,
-  }), [propertyType, propertyAddress, landCost, constructionBudget, arv, annualTaxes, annualInsurance, loanTermMonths, creditScore, experience, ltcSlider, landOwned]);
+  }), [propertyType, propertyAddress, propertyState, landCost, constructionBudget, arv, annualTaxes, annualInsurance, loanTermMonths, creditScore, experience, ltcSlider, landOwned]);
 
   const handleLoadScenario = useCallback((data: Record<string, any>) => {
     if (data.propertyType) setPropertyType(data.propertyType);
     if (data.propertyAddress) setPropertyAddress(data.propertyAddress);
+    if (data.propertyState) setPropertyState(data.propertyState);
     if (data.landCost) setLandCost(data.landCost);
     if (data.constructionBudget) setConstructionBudget(data.constructionBudget);
     if (data.arv) setArv(data.arv);
@@ -443,7 +466,7 @@ export default function ConstructionAnalyzerPage() {
               </CardContent>
             </Card>
 
-            {/* Property Details - Land → Construction → ARV */}
+            {/* Property Details - Land → Construction → ARV, then Loan Term & Holding Costs */}
             <Card>
               <CardContent className="pt-4 space-y-3">
                 <div>
@@ -521,6 +544,52 @@ export default function ConstructionAnalyzerPage() {
                     </div>
                   </div>
                 </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <Label htmlFor="loanTerm" className="text-sm">Loan Term</Label>
+                    <select
+                      id="loanTerm"
+                      value={loanTermMonths}
+                      onChange={(e) => setLoanTermMonths(parseInt(e.target.value))}
+                      className="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                      data-testid="select-loan-term"
+                    >
+                      {loanTermOptions.map((months) => (
+                        <option key={months} value={months}>
+                          {months} Months
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <Label htmlFor="annualTaxes" className="text-sm">Annual Taxes</Label>
+                    <div className="relative mt-1">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                      <Input
+                        id="annualTaxes"
+                        type="number"
+                        value={annualTaxes}
+                        onChange={(e) => setAnnualTaxes(e.target.value)}
+                        className="pl-7 h-9"
+                        data-testid="input-annual-taxes"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="annualInsurance" className="text-sm">Annual Insurance</Label>
+                    <div className="relative mt-1">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                      <Input
+                        id="annualInsurance"
+                        type="number"
+                        value={annualInsurance}
+                        onChange={(e) => setAnnualInsurance(e.target.value)}
+                        className="pl-7 h-9"
+                        data-testid="input-annual-insurance"
+                      />
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
@@ -574,8 +643,8 @@ export default function ConstructionAnalyzerPage() {
                 <CardContent className="pt-4">
                   <div className="bg-muted/50 rounded-lg p-3 space-y-1.5 text-xs">
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Base Rate:</span>
-                      <span className="font-medium">8.900%</span>
+                      <span className="text-muted-foreground">Base Rate{isCaliforniaProperty ? " (CA)" : ""}:</span>
+                      <span className="font-medium">{baseRate.toFixed(3)}%</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Credit ({creditScore[0]}):</span>
@@ -586,6 +655,10 @@ export default function ConstructionAnalyzerPage() {
                     <div className="border-t pt-1.5 mt-1.5 flex justify-between font-semibold text-sm">
                       <span>Estimated Rate:</span>
                       <span className="text-primary">{calculatedRate.toFixed(3)}%</span>
+                    </div>
+                    <div className="flex justify-between pt-1.5 border-t mt-1.5">
+                      <span className="text-muted-foreground">Origination Points:</span>
+                      <span className="font-semibold text-primary">{originationPoints.toFixed(2)}%</span>
                     </div>
                     <div className="text-[10px] text-muted-foreground pt-1 italic">
                       Contact your rep for accurate estimate
@@ -633,60 +706,6 @@ export default function ConstructionAnalyzerPage() {
               </CardContent>
             </Card>
 
-            {/* Loan Term & Holding Costs */}
-            <Card>
-              <CardContent className="pt-4 space-y-4">
-                <div>
-                  <Label className="text-sm mb-2 block">Loan Term (Months)</Label>
-                  <div className="flex gap-1.5">
-                    {loanTermOptions.map((months) => (
-                      <button
-                        key={months}
-                        onClick={() => setLoanTermMonths(months)}
-                        className={`flex-1 py-2 px-1 rounded-md border text-xs font-medium transition-all ${
-                          loanTermMonths === months
-                            ? "border-primary bg-primary/10 text-primary"
-                            : "border-border hover:border-primary/50"
-                        }`}
-                        data-testid={`button-loan-term-${months}`}
-                      >
-                        {months}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label htmlFor="annualTaxes" className="text-sm">Annual Taxes</Label>
-                    <div className="relative mt-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                      <Input
-                        id="annualTaxes"
-                        type="number"
-                        value={annualTaxes}
-                        onChange={(e) => setAnnualTaxes(e.target.value)}
-                        className="pl-7 h-9"
-                        data-testid="input-annual-taxes"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="annualInsurance" className="text-sm">Annual Insurance</Label>
-                    <div className="relative mt-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                      <Input
-                        id="annualInsurance"
-                        type="number"
-                        value={annualInsurance}
-                        onChange={(e) => setAnnualInsurance(e.target.value)}
-                        className="pl-7 h-9"
-                        data-testid="input-annual-insurance"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           </div>
 
           {/* Results Panel */}
