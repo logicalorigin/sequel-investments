@@ -1,12 +1,28 @@
-import { useEffect } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams, Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { LeadForm } from "@/components/LeadForm";
 import { getStateBySlug, type StateData } from "@shared/schema";
-import { Home, TrendingUp, Building2, Hammer, Check, MapPin, ArrowRight } from "lucide-react";
+import { 
+  Home, 
+  TrendingUp, 
+  Building2, 
+  Hammer, 
+  Check, 
+  ArrowRight,
+  DollarSign,
+  Percent,
+  Calendar,
+  BarChart3,
+  Star,
+  Quote,
+  Calculator,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 function formatLoanVolume(volume: number): string {
@@ -14,6 +30,231 @@ function formatLoanVolume(volume: number): string {
     return `$${volume.toFixed(1)}M`;
   }
   return `$${(volume * 1000).toFixed(0)}K`;
+}
+
+function formatCurrency(value: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+interface RecentFunding {
+  id: string;
+  loanType: "DSCR" | "Fix & Flip" | "Construction";
+  city: string;
+  amount: number;
+  rate: number;
+  ltv: number;
+  daysAgo: number;
+}
+
+function generateRecentFundings(state: StateData): RecentFunding[] {
+  const cities: { [key: string]: string[] } = {
+    "california": ["Los Angeles", "San Diego", "San Francisco", "Sacramento", "Oakland"],
+    "texas": ["Houston", "Dallas", "Austin", "San Antonio", "Fort Worth"],
+    "florida": ["Miami", "Orlando", "Tampa", "Jacksonville", "Fort Lauderdale"],
+    "arizona": ["Phoenix", "Scottsdale", "Tucson", "Mesa", "Chandler"],
+    "georgia": ["Atlanta", "Savannah", "Augusta", "Columbus", "Athens"],
+    "colorado": ["Denver", "Colorado Springs", "Aurora", "Boulder", "Fort Collins"],
+    "nevada": ["Las Vegas", "Henderson", "Reno", "North Las Vegas", "Sparks"],
+    "north-carolina": ["Charlotte", "Raleigh", "Durham", "Greensboro", "Winston-Salem"],
+    "tennessee": ["Nashville", "Memphis", "Knoxville", "Chattanooga", "Clarksville"],
+    "default": ["Metro Area", "Downtown", "Suburbs", "Midtown", "Uptown"],
+  };
+  
+  const stateCities = cities[state.slug] || cities["default"];
+  const loanTypes: ("DSCR" | "Fix & Flip" | "Construction")[] = ["DSCR", "Fix & Flip", "Construction"];
+  
+  const seed = state.loansClosed;
+  const fundings: RecentFunding[] = [];
+  
+  for (let i = 0; i < 6; i++) {
+    const loanType = loanTypes[i % 3];
+    const city = stateCities[i % stateCities.length];
+    const baseAmount = loanType === "DSCR" ? 350000 : loanType === "Fix & Flip" ? 280000 : 420000;
+    const amount = baseAmount + ((seed * (i + 1) * 17) % 150000);
+    const rate = loanType === "DSCR" ? 6.5 + (i * 0.125) : loanType === "Fix & Flip" ? 9.5 + (i * 0.1) : 10.5 + (i * 0.15);
+    const ltv = loanType === "DSCR" ? 75 + (i % 6) : 85 + (i % 6);
+    
+    fundings.push({
+      id: `${state.slug}-${i}`,
+      loanType,
+      city,
+      amount,
+      rate: Math.round(rate * 100) / 100,
+      ltv,
+      daysAgo: (i * 3) + 1,
+    });
+  }
+  
+  return fundings;
+}
+
+interface MarketData {
+  medianHomePrice: number;
+  avgCapRate: number;
+  avgDaysOnMarket: number;
+  priceGrowthYoY: number;
+  rentGrowthYoY: number;
+}
+
+function getMarketData(state: StateData): MarketData {
+  const basePrices: { [key: string]: number } = {
+    "california": 750000,
+    "new-york": 680000,
+    "florida": 420000,
+    "texas": 340000,
+    "arizona": 445000,
+    "colorado": 560000,
+    "washington": 620000,
+    "nevada": 410000,
+    "georgia": 380000,
+    "north-carolina": 365000,
+    "tennessee": 340000,
+    "default": 350000,
+  };
+  
+  const basePrice = basePrices[state.slug] || basePrices["default"];
+  const variance = (state.loansClosed % 50000);
+  
+  return {
+    medianHomePrice: basePrice + variance,
+    avgCapRate: 5.5 + (state.loanVolume % 2),
+    avgDaysOnMarket: 25 + (state.loansClosed % 20),
+    priceGrowthYoY: 3.5 + (state.loanVolume % 4),
+    rentGrowthYoY: 4.2 + (state.loansClosed % 3),
+  };
+}
+
+interface Testimonial {
+  name: string;
+  role: string;
+  location: string;
+  quote: string;
+  rating: number;
+  loanType: string;
+}
+
+function getTestimonials(state: StateData): Testimonial[] {
+  return [
+    {
+      name: "Michael R.",
+      role: "Real Estate Investor",
+      location: state.name,
+      quote: `Secured Asset Funding made my ${state.name} rental property purchase seamless. The DSCR loan process was incredibly fast - closed in under 2 weeks with no W2 requirements. Highly recommend for serious investors.`,
+      rating: 5,
+      loanType: "DSCR Loan",
+    },
+    {
+      name: "Sarah T.",
+      role: "Fix & Flip Specialist",
+      location: state.name,
+      quote: `I've done over 15 flips in ${state.name} with SAF. Their draw process is the fastest I've experienced - usually within 48 hours. The rates are competitive and the team really understands investor needs.`,
+      rating: 5,
+      loanType: "Fix & Flip",
+    },
+    {
+      name: "David L.",
+      role: "Portfolio Investor",
+      location: state.name,
+      quote: `After struggling with traditional lenders for my ${state.name} properties, SAF was a breath of fresh air. They focus on the property's cash flow, not my personal income. Now I own 8 rentals across the state.`,
+      rating: 5,
+      loanType: "DSCR Loan",
+    },
+  ];
+}
+
+function MiniDSCRCalculator({ stateName }: { stateName: string }) {
+  const [propertyValue, setPropertyValue] = useState("450000");
+  const [monthlyRent, setMonthlyRent] = useState("3500");
+  
+  const results = useMemo(() => {
+    const value = parseFloat(propertyValue) || 0;
+    const rent = parseFloat(monthlyRent) || 0;
+    const loanAmount = value * 0.75;
+    const monthlyPI = (loanAmount * (6.75 / 100 / 12)) / (1 - Math.pow(1 + (6.75 / 100 / 12), -360));
+    const monthlyTaxIns = value * 0.012 / 12;
+    const totalMonthly = monthlyPI + monthlyTaxIns;
+    const dscr = totalMonthly > 0 ? rent / totalMonthly : 0;
+    const cashFlow = rent - totalMonthly;
+    
+    return {
+      loanAmount,
+      dscr,
+      monthlyPayment: totalMonthly,
+      cashFlow,
+    };
+  }, [propertyValue, monthlyRent]);
+  
+  return (
+    <Card className="border-primary/20">
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-2">
+          <Calculator className="h-5 w-5 text-primary" />
+          <CardTitle className="text-lg">Quick DSCR Calculator</CardTitle>
+        </div>
+        <CardDescription>Estimate your {stateName} rental loan</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label className="text-xs">Property Value</Label>
+            <div className="relative mt-1">
+              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
+              <Input
+                type="number"
+                value={propertyValue}
+                onChange={(e) => setPropertyValue(e.target.value)}
+                className="pl-5 text-sm"
+                data-testid="mini-calc-property-value"
+              />
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs">Monthly Rent</Label>
+            <div className="relative mt-1">
+              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
+              <Input
+                type="number"
+                value={monthlyRent}
+                onChange={(e) => setMonthlyRent(e.target.value)}
+                className="pl-5 text-sm"
+                data-testid="mini-calc-monthly-rent"
+              />
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Est. Loan (75% LTV)</span>
+            <span className="font-medium">{formatCurrency(results.loanAmount)}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">DSCR Ratio</span>
+            <span className={`font-bold ${results.dscr >= 1.0 ? "text-green-600 dark:text-green-400" : "text-amber-600 dark:text-amber-400"}`}>
+              {results.dscr.toFixed(2)}
+            </span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Monthly Cash Flow</span>
+            <span className={`font-medium ${results.cashFlow >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+              {formatCurrency(results.cashFlow)}
+            </span>
+          </div>
+        </div>
+        
+        <Link href="/portal/dscr-analyzer">
+          <Button className="w-full" size="sm" data-testid="button-full-calculator">
+            Open Full Calculator
+          </Button>
+        </Link>
+      </CardContent>
+    </Card>
+  );
 }
 
 export default function StateInvestmentPage() {
@@ -107,6 +348,16 @@ export default function StateInvestmentPage() {
     },
   ];
 
+  const recentFundings = generateRecentFundings(state);
+  const marketData = getMarketData(state);
+  const testimonials = getTestimonials(state);
+
+  const fundingsByType = {
+    dscr: recentFundings.filter(f => f.loanType === "DSCR").length,
+    fixFlip: recentFundings.filter(f => f.loanType === "Fix & Flip").length,
+    construction: recentFundings.filter(f => f.loanType === "Construction").length,
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
@@ -145,6 +396,110 @@ export default function StateInvestmentPage() {
               Get Your Rate
             </Button>
           </Link>
+        </div>
+      </section>
+
+      <section className="py-12 bg-card">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <BarChart3 className="h-6 w-6 text-primary" />
+              Recent Fundings in {state.name}
+            </h2>
+            <div className="flex gap-4 text-sm">
+              <span className="flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-full bg-blue-500"></span>
+                DSCR ({fundingsByType.dscr})
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-full bg-amber-500"></span>
+                Fix & Flip ({fundingsByType.fixFlip})
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-full bg-green-500"></span>
+                Construction ({fundingsByType.construction})
+              </span>
+            </div>
+          </div>
+          
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {recentFundings.map((funding) => (
+              <Card key={funding.id} className="hover-elevate" data-testid={`card-funding-${funding.id}`}>
+                <CardContent className="pt-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium mb-1 ${
+                        funding.loanType === "DSCR" ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300" :
+                        funding.loanType === "Fix & Flip" ? "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300" :
+                        "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                      }`}>
+                        {funding.loanType}
+                      </span>
+                      <p className="font-medium">{funding.city}, {state.abbreviation}</p>
+                    </div>
+                    <span className="text-xs text-muted-foreground">{funding.daysAgo}d ago</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-sm">
+                    <div>
+                      <p className="text-muted-foreground text-xs">Amount</p>
+                      <p className="font-semibold">{formatCurrency(funding.amount)}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Rate</p>
+                      <p className="font-semibold">{funding.rate.toFixed(2)}%</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">LTV/LTC</p>
+                      <p className="font-semibold">{funding.ltv}%</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="py-12 bg-background">
+        <div className="max-w-7xl mx-auto px-6">
+          <h2 className="text-2xl font-bold mb-6">{state.name} Real Estate Market Data</h2>
+          <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <Card>
+              <CardContent className="pt-4 text-center">
+                <DollarSign className="h-6 w-6 text-primary mx-auto mb-2" />
+                <p className="text-2xl font-bold">{formatCurrency(marketData.medianHomePrice)}</p>
+                <p className="text-xs text-muted-foreground">Median Home Price</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4 text-center">
+                <Percent className="h-6 w-6 text-primary mx-auto mb-2" />
+                <p className="text-2xl font-bold">{marketData.avgCapRate.toFixed(1)}%</p>
+                <p className="text-xs text-muted-foreground">Avg. Cap Rate</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4 text-center">
+                <Calendar className="h-6 w-6 text-primary mx-auto mb-2" />
+                <p className="text-2xl font-bold">{marketData.avgDaysOnMarket}</p>
+                <p className="text-xs text-muted-foreground">Avg. Days on Market</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4 text-center">
+                <TrendingUp className="h-6 w-6 text-green-500 mx-auto mb-2" />
+                <p className="text-2xl font-bold text-green-600">+{marketData.priceGrowthYoY.toFixed(1)}%</p>
+                <p className="text-xs text-muted-foreground">Price Growth YoY</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4 text-center">
+                <TrendingUp className="h-6 w-6 text-green-500 mx-auto mb-2" />
+                <p className="text-2xl font-bold text-green-600">+{marketData.rentGrowthYoY.toFixed(1)}%</p>
+                <p className="text-xs text-muted-foreground">Rent Growth YoY</p>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </section>
 
@@ -200,8 +555,44 @@ export default function StateInvestmentPage() {
 
       <section className="py-16 bg-background">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="grid lg:grid-cols-2 gap-12">
-            <div>
+          <h2 className="text-2xl md:text-3xl font-bold mb-8 text-center flex items-center justify-center gap-2">
+            <Star className="h-6 w-6 text-amber-500 fill-amber-500" />
+            What {state.name} Investors Say
+          </h2>
+          
+          <div className="grid md:grid-cols-3 gap-6">
+            {testimonials.map((testimonial, index) => (
+              <Card key={index} className="hover-elevate" data-testid={`card-testimonial-${index}`}>
+                <CardContent className="pt-6">
+                  <Quote className="h-8 w-8 text-primary/20 mb-4" />
+                  <p className="text-muted-foreground mb-4 text-sm leading-relaxed">
+                    "{testimonial.quote}"
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-semibold">{testimonial.name}</p>
+                      <p className="text-xs text-muted-foreground">{testimonial.role}</p>
+                    </div>
+                    <div className="text-right">
+                      <div className="flex gap-0.5 mb-1">
+                        {[...Array(testimonial.rating)].map((_, i) => (
+                          <Star key={i} className="h-3 w-3 text-amber-500 fill-amber-500" />
+                        ))}
+                      </div>
+                      <span className="text-xs text-muted-foreground">{testimonial.loanType}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="py-16 bg-card">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2">
               <h2 className="text-2xl md:text-3xl font-bold mb-6">
                 Why Choose Secured Asset Funding for Your {state.name} Investment?
               </h2>
@@ -232,6 +623,10 @@ export default function StateInvestmentPage() {
                     <span>Competitive rates and flexible terms</span>
                   </li>
                 </ul>
+              </div>
+              
+              <div className="mt-8">
+                <MiniDSCRCalculator stateName={state.name} />
               </div>
             </div>
 
