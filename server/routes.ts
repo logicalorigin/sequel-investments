@@ -299,6 +299,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Serviced Loans routes
+  app.get("/api/serviced-loans", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const loans = await storage.getServicedLoans(userId);
+      return res.json(loans);
+    } catch (error) {
+      console.error("Error fetching serviced loans:", error);
+      return res.status(500).json({ error: "Failed to fetch serviced loans" });
+    }
+  });
+
+  app.get("/api/serviced-loans/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const loan = await storage.getServicedLoan(req.params.id);
+      
+      if (!loan) {
+        return res.status(404).json({ error: "Loan not found" });
+      }
+      
+      if (loan.userId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      return res.json(loan);
+    } catch (error) {
+      console.error("Error fetching serviced loan:", error);
+      return res.status(500).json({ error: "Failed to fetch serviced loan" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

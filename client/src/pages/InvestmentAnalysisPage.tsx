@@ -398,30 +398,74 @@ export default function InvestmentAnalysisPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-8">
-                {/* Property Section */}
+                {/* Deal Section - Now first */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide border-b pb-2">Deal</h3>
+                  
+                  <div className="grid grid-cols-3 gap-2">
+                    {dealTypes.map((dt) => (
+                      <button
+                        key={dt.id}
+                        type="button"
+                        onClick={() => setDealType(dt.id)}
+                        className={`px-3 py-2 rounded-lg border-2 text-sm font-medium transition-all ${
+                          dealType === dt.id
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border hover:border-primary/50 hover:bg-muted/50"
+                        }`}
+                        data-testid={`button-deal-type-${dt.id}`}
+                      >
+                        {dt.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* DSCR-specific: Transaction Type */}
+                  {dealType === "rental" && (
+                    <div>
+                      <Label className="mb-2 block">Transaction Type</Label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {transactionTypes.map((tt) => (
+                          <button
+                            key={tt.id}
+                            type="button"
+                            onClick={() => setTransactionType(tt.id)}
+                            className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${
+                              transactionType === tt.id
+                                ? "border-primary bg-primary/10 text-primary"
+                                : "border-border hover:border-primary/50 hover:bg-muted/50"
+                            }`}
+                            data-testid={`button-transaction-type-${tt.id}`}
+                          >
+                            {tt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Property Section - Now second, no duplicate headers */}
                 <div className="space-y-4">
                   <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide border-b pb-2">Property</h3>
                   
-                  <div>
-                    <Label className="mb-3 block">Property Type</Label>
-                    <div className="grid grid-cols-5 gap-2">
-                      {propertyTypes.map((pt) => (
-                        <button
-                          key={pt.id}
-                          type="button"
-                          onClick={() => setPropertyType(pt.id)}
-                          className={`flex flex-col items-center p-2 rounded-lg border-2 transition-all ${
-                            propertyType === pt.id
-                              ? "border-primary bg-primary/5"
-                              : "border-border hover:border-primary/50 hover:bg-muted/50"
-                          }`}
-                          data-testid={`button-property-type-${pt.id}`}
-                        >
-                          <PropertyTypeIcon type={pt.icon} className="w-8 h-8 mb-1 text-muted-foreground" />
-                          <span className="text-[10px] text-center font-medium">{pt.label}</span>
-                        </button>
-                      ))}
-                    </div>
+                  <div className="grid grid-cols-5 gap-2">
+                    {propertyTypes.map((pt) => (
+                      <button
+                        key={pt.id}
+                        type="button"
+                        onClick={() => setPropertyType(pt.id)}
+                        className={`flex flex-col items-center p-2 rounded-lg border-2 transition-all ${
+                          propertyType === pt.id
+                            ? "border-primary bg-primary/5"
+                            : "border-border hover:border-primary/50 hover:bg-muted/50"
+                        }`}
+                        data-testid={`button-property-type-${pt.id}`}
+                      >
+                        <PropertyTypeIcon type={pt.icon} className="w-8 h-8 mb-1 text-muted-foreground" />
+                        <span className="text-[10px] text-center font-medium">{pt.label}</span>
+                      </button>
+                    ))}
                   </div>
 
                   <div>
@@ -466,53 +510,6 @@ export default function InvestmentAnalysisPage() {
                       </div>
                     </div>
                   </div>
-                </div>
-
-                {/* Deal Type Section */}
-                <div className="space-y-4">
-                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide border-b pb-2">Deal Type</h3>
-                  
-                  <div className="grid grid-cols-3 gap-2">
-                    {dealTypes.map((dt) => (
-                      <button
-                        key={dt.id}
-                        type="button"
-                        onClick={() => setDealType(dt.id)}
-                        className={`px-3 py-2 rounded-lg border-2 text-sm font-medium transition-all ${
-                          dealType === dt.id
-                            ? "border-primary bg-primary/10 text-primary"
-                            : "border-border hover:border-primary/50 hover:bg-muted/50"
-                        }`}
-                        data-testid={`button-deal-type-${dt.id}`}
-                      >
-                        {dt.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* DSCR-specific: Transaction Type */}
-                  {dealType === "rental" && (
-                    <div>
-                      <Label className="mb-2 block">Transaction Type</Label>
-                      <div className="grid grid-cols-3 gap-2">
-                        {transactionTypes.map((tt) => (
-                          <button
-                            key={tt.id}
-                            type="button"
-                            onClick={() => setTransactionType(tt.id)}
-                            className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${
-                              transactionType === tt.id
-                                ? "border-primary bg-primary/10 text-primary"
-                                : "border-border hover:border-primary/50 hover:bg-muted/50"
-                            }`}
-                            data-testid={`button-transaction-type-${tt.id}`}
-                          >
-                            {tt.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                 {/* Financing Section */}

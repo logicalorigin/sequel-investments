@@ -11,15 +11,17 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { 
   Home, 
   FileText, 
-  Plus, 
+  Calculator, 
   LogOut, 
   Building2,
   Clock,
   CheckCircle2,
-  AlertCircle,
-  ArrowRight
+  DollarSign,
+  ArrowRight,
+  Banknote,
+  Calendar
 } from "lucide-react";
-import type { LoanApplication } from "@shared/schema";
+import type { LoanApplication, ServicedLoan } from "@shared/schema";
 
 const statusColors: Record<string, string> = {
   draft: "bg-muted text-muted-foreground",
@@ -39,6 +41,18 @@ const statusLabels: Record<string, string> = {
   funded: "Funded",
   denied: "Denied",
   withdrawn: "Withdrawn",
+};
+
+const loanStatusColors: Record<string, string> = {
+  current: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+  late: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+  paid_off: "bg-muted text-muted-foreground",
+};
+
+const loanStatusLabels: Record<string, string> = {
+  current: "Current",
+  late: "Past Due",
+  paid_off: "Paid Off",
 };
 
 export default function PortalPage() {
@@ -65,6 +79,11 @@ export default function PortalPage() {
 
   const { data: applications, isLoading: appsLoading } = useQuery<LoanApplication[]>({
     queryKey: ["/api/applications"],
+    enabled: isAuthenticated,
+  });
+
+  const { data: servicedLoans, isLoading: loansLoading } = useQuery<ServicedLoan[]>({
+    queryKey: ["/api/serviced-loans"],
     enabled: isAuthenticated,
   });
 
@@ -102,6 +121,24 @@ export default function PortalPage() {
     const first = firstName?.charAt(0) || "";
     const last = lastName?.charAt(0) || "";
     return (first + last).toUpperCase() || "U";
+  };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
+
+  const formatDate = (date: Date | string | null) => {
+    if (!date) return "N/A";
+    return new Date(date).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
   };
 
   return (
@@ -151,62 +188,136 @@ export default function PortalPage() {
             Welcome back, {user?.firstName || "Investor"}
           </h1>
           <p className="text-muted-foreground">
-            Manage your loan applications and upload required documents.
+            Manage your loan applications, closed loans, and analyze new investment opportunities.
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
-          <Card className="hover-elevate cursor-pointer" onClick={() => createApplicationMutation.mutate("DSCR")} data-testid="card-new-dscr">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Home className="h-5 w-5 text-primary" />
-                DSCR Loan
-              </CardTitle>
-              <CardDescription>Long-term rental property financing</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button variant="outline" size="sm" className="w-full" disabled={createApplicationMutation.isPending}>
-                <Plus className="h-4 w-4 mr-2" />
-                Start Application
-              </Button>
-            </CardContent>
-          </Card>
+        {/* Analyze a New Deal Section */}
+        <div className="mb-10">
+          <h2 className="text-xl font-bold mb-4">Analyze a New Deal</h2>
+          <p className="text-muted-foreground mb-4">
+            Select a loan type to begin analyzing your next investment opportunity.
+          </p>
+          <div className="grid md:grid-cols-3 gap-6">
+            <Card className="hover-elevate cursor-pointer" onClick={() => setLocation("/portal/investment-analysis")} data-testid="card-analyze-dscr">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Home className="h-5 w-5 text-primary" />
+                  DSCR Loan
+                </CardTitle>
+                <CardDescription>Long-term rental property financing</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button variant="outline" size="sm" className="w-full">
+                  <Calculator className="h-4 w-4 mr-2" />
+                  Analyze
+                </Button>
+              </CardContent>
+            </Card>
 
-          <Card className="hover-elevate cursor-pointer" onClick={() => createApplicationMutation.mutate("Fix & Flip")} data-testid="card-new-fixflip">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-primary" />
-                Fix & Flip
-              </CardTitle>
-              <CardDescription>Short-term renovation financing</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button variant="outline" size="sm" className="w-full" disabled={createApplicationMutation.isPending}>
-                <Plus className="h-4 w-4 mr-2" />
-                Start Application
-              </Button>
-            </CardContent>
-          </Card>
+            <Card className="hover-elevate cursor-pointer" onClick={() => setLocation("/portal/investment-analysis")} data-testid="card-analyze-fixflip">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-primary" />
+                  Fix & Flip
+                </CardTitle>
+                <CardDescription>Short-term renovation financing</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button variant="outline" size="sm" className="w-full">
+                  <Calculator className="h-4 w-4 mr-2" />
+                  Analyze
+                </Button>
+              </CardContent>
+            </Card>
 
-          <Card className="hover-elevate cursor-pointer" onClick={() => createApplicationMutation.mutate("New Construction")} data-testid="card-new-construction">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Building2 className="h-5 w-5 text-primary" />
-                New Construction
-              </CardTitle>
-              <CardDescription>Ground-up development financing</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button variant="outline" size="sm" className="w-full" disabled={createApplicationMutation.isPending}>
-                <Plus className="h-4 w-4 mr-2" />
-                Start Application
-              </Button>
-            </CardContent>
-          </Card>
+            <Card className="hover-elevate cursor-pointer" onClick={() => setLocation("/portal/investment-analysis")} data-testid="card-analyze-construction">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Building2 className="h-5 w-5 text-primary" />
+                  New Construction
+                </CardTitle>
+                <CardDescription>Ground-up development financing</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button variant="outline" size="sm" className="w-full">
+                  <Calculator className="h-4 w-4 mr-2" />
+                  Analyze
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
+        {/* Closed Loans Section */}
+        <div className="mb-10">
+          <h2 className="text-xl font-bold mb-4">Closed Loans</h2>
+          
+          {loansLoading ? (
+            <div className="animate-pulse space-y-4">
+              {[1, 2].map(i => (
+                <div key={i} className="h-24 bg-muted rounded-lg" />
+              ))}
+            </div>
+          ) : servicedLoans && servicedLoans.length > 0 ? (
+            <div className="space-y-4">
+              {servicedLoans.map((loan) => (
+                <Link key={loan.id} href={`/portal/loan/${loan.id}`}>
+                  <Card className="hover-elevate cursor-pointer" data-testid={`card-loan-${loan.id}`}>
+                    <CardContent className="py-4">
+                      <div className="flex items-center justify-between gap-4 flex-wrap">
+                        <div className="flex items-center gap-4">
+                          <div className="p-2 rounded-lg bg-primary/10">
+                            <Banknote className="h-5 w-5 text-primary" />
+                          </div>
+                          <div>
+                            <p className="font-semibold">{loan.propertyAddress}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {loan.loanType} • Loan #{loan.loanNumber}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-6">
+                          <div className="text-right hidden sm:block">
+                            <p className="text-sm text-muted-foreground">Current Balance</p>
+                            <p className="font-semibold">{formatCurrency(loan.currentBalance)}</p>
+                          </div>
+                          <div className="text-right hidden md:block">
+                            <p className="text-sm text-muted-foreground">Monthly Payment</p>
+                            <p className="font-semibold">{formatCurrency(loan.monthlyPayment)}</p>
+                          </div>
+                          <div className="text-right hidden lg:block">
+                            <p className="text-sm text-muted-foreground">Next Payment</p>
+                            <p className="font-medium">{formatDate(loan.nextPaymentDate)}</p>
+                          </div>
+                          <Badge className={loanStatusColors[loan.loanStatus]}>
+                            {loanStatusLabels[loan.loanStatus]}
+                          </Badge>
+                          <ArrowRight className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <Banknote className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="font-semibold mb-2">No closed loans yet</h3>
+                <p className="text-muted-foreground mb-4">
+                  Once your loan closes, you'll be able to view payment details, make payments, and access your loan documents here.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* Your Previous Applications Section */}
         <div>
-          <h2 className="text-xl font-bold mb-4">Your Applications</h2>
+          <h2 className="text-xl font-bold mb-4">Your Previous Applications</h2>
           
           {appsLoading ? (
             <div className="animate-pulse space-y-4">
@@ -261,7 +372,7 @@ export default function PortalPage() {
                 <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                 <h3 className="font-semibold mb-2">No applications yet</h3>
                 <p className="text-muted-foreground mb-4">
-                  Start your first loan application by selecting a loan type above.
+                  Start by analyzing a new deal above to begin your application process.
                 </p>
               </CardContent>
             </Card>
