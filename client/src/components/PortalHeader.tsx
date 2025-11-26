@@ -99,13 +99,6 @@ export function PortalHeader({ user }: PortalHeaderProps) {
                   </div>
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link href="/portal/investment-analysis" className="flex items-center gap-2 cursor-pointer text-muted-foreground" data-testid="link-all-in-one-analyzer">
-                  <Calculator className="h-4 w-4" />
-                  All-in-One Analyzer
-                </Link>
-              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
           

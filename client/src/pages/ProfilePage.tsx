@@ -300,7 +300,7 @@ export default function ProfilePage() {
                       View Portfolio
                     </Button>
                   </a>
-                  <a href="/portal/investment-analysis" className="block">
+                  <a href="/portal" className="block">
                     <Button variant="outline" className="w-full justify-start" data-testid="link-analyze-deal">
                       <MapPin className="h-4 w-4 mr-2" />
                       Analyze New Deal

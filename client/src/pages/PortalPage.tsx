@@ -203,7 +203,7 @@ export default function PortalPage() {
             Select a loan type to begin analyzing your next investment opportunity.
           </p>
           <div className="grid md:grid-cols-3 gap-6">
-            <Card className="hover-elevate cursor-pointer" onClick={() => setLocation("/portal/investment-analysis")} data-testid="card-analyze-dscr">
+            <Card className="hover-elevate cursor-pointer" onClick={() => setLocation("/portal/dscr-analyzer")} data-testid="card-analyze-dscr">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Home className="h-5 w-5 text-primary" />
@@ -219,7 +219,7 @@ export default function PortalPage() {
               </CardContent>
             </Card>
 
-            <Card className="hover-elevate cursor-pointer" onClick={() => setLocation("/portal/investment-analysis")} data-testid="card-analyze-fixflip">
+            <Card className="hover-elevate cursor-pointer" onClick={() => setLocation("/portal/fixflip-analyzer")} data-testid="card-analyze-fixflip">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <FileText className="h-5 w-5 text-primary" />
@@ -235,7 +235,7 @@ export default function PortalPage() {
               </CardContent>
             </Card>
 
-            <Card className="hover-elevate cursor-pointer" onClick={() => setLocation("/portal/investment-analysis")} data-testid="card-analyze-construction">
+            <Card className="hover-elevate cursor-pointer" onClick={() => setLocation("/portal/construction-analyzer")} data-testid="card-analyze-construction">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Building2 className="h-5 w-5 text-primary" />
