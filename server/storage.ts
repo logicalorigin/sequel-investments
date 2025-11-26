@@ -14,6 +14,7 @@ import {
   applicationTimeline,
   marketDataSnapshots,
   documentComments,
+  staffInvites,
   type User, 
   type UpsertUser,
   type Lead, 
@@ -44,6 +45,8 @@ import {
   type InsertMarketDataSnapshot,
   type DocumentComment,
   type InsertDocumentComment,
+  type StaffInvite,
+  type InsertStaffInvite,
   DEFAULT_DOCUMENT_TYPES,
 } from "@shared/schema";
 import { db } from "./db";
@@ -144,6 +147,18 @@ export interface IStorage {
   createDocumentComment(comment: InsertDocumentComment): Promise<DocumentComment>;
   updateDocumentComment(id: string, data: Partial<InsertDocumentComment>): Promise<DocumentComment | undefined>;
   deleteDocumentComment(id: string): Promise<boolean>;
+  
+  // Staff invite operations
+  createStaffInvite(invite: InsertStaffInvite): Promise<StaffInvite>;
+  getStaffInviteByToken(token: string): Promise<StaffInvite | undefined>;
+  getStaffInvites(): Promise<StaffInvite[]>;
+  updateStaffInvite(id: string, data: Partial<InsertStaffInvite>): Promise<StaffInvite | undefined>;
+  acceptStaffInvite(token: string, userId: string): Promise<StaffInvite | undefined>;
+  
+  // Admin operations
+  getAllUsers(): Promise<User[]>;
+  updateUserRole(id: string, role: string): Promise<User | undefined>;
+  getAllLoanApplications(): Promise<LoanApplication[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -243,9 +258,11 @@ export class DatabaseStorage implements IStorage {
         }
       }
       
+      const loanType = loanTypeMap[lead.loanType] || "DSCR";
+      
       const application = await this.createLoanApplication({
         userId,
-        loanType: loanTypeMap[lead.loanType] || "DSCR",
+        loanType,
         propertyAddress: propertyAddress || undefined,
         propertyCity: propertyCity || undefined,
         propertyState: propertyState || undefined,
@@ -254,6 +271,16 @@ export class DatabaseStorage implements IStorage {
         status: "submitted",
         guarantor: lead.name,
       });
+      
+      // Create document checklist based on loan type
+      const docTypes = await this.getDocumentTypesByLoanType(loanType);
+      for (const docType of docTypes) {
+        await this.createDocument({
+          loanApplicationId: application.id,
+          documentTypeId: docType.id,
+          status: docType.isRequired === "if_applicable" ? "if_applicable" : "pending",
+        });
+      }
       
       createdApplications.push(application);
       await this.markLeadConverted(lead.id);
@@ -703,6 +730,85 @@ export class DatabaseStorage implements IStorage {
   async deleteDocumentComment(id: string): Promise<boolean> {
     await db.delete(documentComments).where(eq(documentComments.id, id));
     return true;
+  }
+
+  // Staff invite operations
+  async createStaffInvite(invite: InsertStaffInvite): Promise<StaffInvite> {
+    const [created] = await db
+      .insert(staffInvites)
+      .values(invite)
+      .returning();
+    return created;
+  }
+
+  async getStaffInviteByToken(token: string): Promise<StaffInvite | undefined> {
+    const [invite] = await db.select().from(staffInvites).where(eq(staffInvites.token, token));
+    return invite;
+  }
+
+  async getStaffInvites(): Promise<StaffInvite[]> {
+    return await db.select().from(staffInvites).orderBy(desc(staffInvites.createdAt));
+  }
+
+  async updateStaffInvite(id: string, data: Partial<InsertStaffInvite>): Promise<StaffInvite | undefined> {
+    const [updated] = await db
+      .update(staffInvites)
+      .set(data)
+      .where(eq(staffInvites.id, id))
+      .returning();
+    return updated;
+  }
+
+  async acceptStaffInvite(token: string, userId: string): Promise<StaffInvite | undefined> {
+    const invite = await this.getStaffInviteByToken(token);
+    if (!invite || invite.status !== "pending") {
+      return undefined;
+    }
+    
+    // Check if expired
+    if (new Date(invite.expiresAt) < new Date()) {
+      await db.update(staffInvites)
+        .set({ status: "expired" })
+        .where(eq(staffInvites.id, invite.id));
+      return undefined;
+    }
+    
+    // Update invite status
+    const [updated] = await db
+      .update(staffInvites)
+      .set({
+        status: "accepted",
+        acceptedAt: new Date(),
+        acceptedByUserId: userId,
+      })
+      .where(eq(staffInvites.id, invite.id))
+      .returning();
+    
+    // Update user role
+    await this.updateUserRole(userId, invite.role);
+    
+    return updated;
+  }
+
+  // Admin operations
+  async getAllUsers(): Promise<User[]> {
+    return await db.select().from(users).orderBy(desc(users.createdAt));
+  }
+
+  async updateUserRole(id: string, role: string): Promise<User | undefined> {
+    const [updated] = await db
+      .update(users)
+      .set({ role: role as any, updatedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning();
+    return updated;
+  }
+
+  async getAllLoanApplications(): Promise<LoanApplication[]> {
+    return await db
+      .select()
+      .from(loanApplications)
+      .orderBy(desc(loanApplications.createdAt));
   }
 }
 

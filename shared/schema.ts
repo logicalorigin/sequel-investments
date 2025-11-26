@@ -14,6 +14,9 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
+// User role enum
+export const userRoleEnum = pgEnum("user_role", ["borrower", "staff", "admin"]);
+
 // User storage table for Replit Auth
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -21,6 +24,7 @@ export const users = pgTable("users", {
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
+  role: userRoleEnum("role").default("borrower").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -732,3 +736,42 @@ export interface MarketDataResponse {
   dataDate: Date;
   isCached: boolean;
 }
+
+// ============================================
+// STAFF INVITES
+// ============================================
+export const staffInviteStatusEnum = pgEnum("staff_invite_status", ["pending", "accepted", "expired", "revoked"]);
+
+export const staffInvites = pgTable("staff_invites", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: varchar("email").notNull(),
+  token: varchar("token").notNull().unique(),
+  role: userRoleEnum("role").default("staff").notNull(),
+  status: staffInviteStatusEnum("status").default("pending").notNull(),
+  invitedById: varchar("invited_by_id").references(() => users.id),
+  expiresAt: timestamp("expires_at").notNull(),
+  acceptedAt: timestamp("accepted_at"),
+  acceptedByUserId: varchar("accepted_by_user_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const staffInvitesRelations = relations(staffInvites, ({ one }) => ({
+  invitedBy: one(users, {
+    fields: [staffInvites.invitedById],
+    references: [users.id],
+  }),
+  acceptedByUser: one(users, {
+    fields: [staffInvites.acceptedByUserId],
+    references: [users.id],
+  }),
+}));
+
+export type StaffInvite = typeof staffInvites.$inferSelect;
+export type InsertStaffInvite = typeof staffInvites.$inferInsert;
+
+export const insertStaffInviteSchema = createInsertSchema(staffInvites).omit({
+  id: true,
+  createdAt: true,
+  acceptedAt: true,
+  acceptedByUserId: true,
+});

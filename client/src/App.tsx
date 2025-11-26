@@ -37,6 +37,9 @@ import STRCalculatorPage from "@/pages/STRCalculatorPage";
 import RecentFundingsPage from "@/pages/RecentFundingsPage";
 import PropertyDetailPage from "@/pages/PropertyDetailPage";
 import LoginPage from "@/pages/LoginPage";
+import AdminDashboard from "@/pages/AdminDashboard";
+import AdminApplicationDetail from "@/pages/AdminApplicationDetail";
+import JoinPage from "@/pages/JoinPage";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -66,6 +69,9 @@ function Router() {
       <Route path="/fundings" component={RecentFundingsPage} />
       <Route path="/fundings/:propertyId" component={PropertyDetailPage} />
       <Route path="/login" component={LoginPage} />
+      <Route path="/admin" component={AdminDashboard} />
+      <Route path="/admin/application/:id" component={AdminApplicationDetail} />
+      <Route path="/join/:token" component={JoinPage} />
       <Route component={NotFound} />
     </Switch>
   );

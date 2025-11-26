@@ -1263,6 +1263,307 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============================================
+  // ADMIN / STAFF ROUTES
+  // ============================================
+  
+  // Middleware to check if user is staff or admin
+  const isStaff = async (req: any, res: any, next: any) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user || (user.role !== "staff" && user.role !== "admin")) {
+        return res.status(403).json({ error: "Staff access required" });
+      }
+      
+      req.staffUser = user;
+      next();
+    } catch (error) {
+      console.error("Error checking staff status:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  };
+  
+  // Middleware to check if user is admin
+  const isAdmin = async (req: any, res: any, next: any) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      
+      req.adminUser = user;
+      next();
+    } catch (error) {
+      console.error("Error checking admin status:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  };
+
+  // Get all loan applications (staff view)
+  app.get("/api/admin/applications", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const applications = await storage.getAllLoanApplications();
+      
+      // Enrich with user info
+      const enrichedApps = await Promise.all(
+        applications.map(async (app) => {
+          const user = await storage.getUser(app.userId);
+          return {
+            ...app,
+            borrowerName: user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email : "Unknown",
+            borrowerEmail: user?.email,
+          };
+        })
+      );
+      
+      return res.json(enrichedApps);
+    } catch (error) {
+      console.error("Error fetching all applications:", error);
+      return res.status(500).json({ error: "Failed to fetch applications" });
+    }
+  });
+
+  // Get single application with full details (staff view)
+  app.get("/api/admin/applications/:id", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const application = await storage.getLoanApplication(req.params.id);
+      if (!application) {
+        return res.status(404).json({ error: "Application not found" });
+      }
+      
+      const user = await storage.getUser(application.userId);
+      const documents = await storage.getDocumentsByApplication(application.id);
+      const timeline = await storage.getApplicationTimeline(application.id);
+      
+      return res.json({
+        ...application,
+        borrowerName: user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email : "Unknown",
+        borrowerEmail: user?.email,
+        documents,
+        timeline,
+      });
+    } catch (error) {
+      console.error("Error fetching application:", error);
+      return res.status(500).json({ error: "Failed to fetch application" });
+    }
+  });
+
+  // Update application (staff can update status, processing stage, etc.)
+  app.patch("/api/admin/applications/:id", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const application = await storage.getLoanApplication(id);
+      
+      if (!application) {
+        return res.status(404).json({ error: "Application not found" });
+      }
+      
+      const updated = await storage.updateLoanApplication(id, req.body);
+      
+      // Create timeline event for status/stage changes
+      if (req.body.status && req.body.status !== application.status) {
+        await storage.createTimelineEvent({
+          loanApplicationId: id,
+          eventType: "status_change",
+          title: `Status changed to ${req.body.status}`,
+          description: `Updated by ${req.staffUser.firstName || req.staffUser.email}`,
+          createdByUserId: req.staffUser.id,
+        });
+      }
+      
+      if (req.body.processingStage && req.body.processingStage !== application.processingStage) {
+        await storage.createTimelineEvent({
+          loanApplicationId: id,
+          eventType: "stage_advanced",
+          title: `Stage advanced to ${req.body.processingStage}`,
+          description: `Updated by ${req.staffUser.firstName || req.staffUser.email}`,
+          createdByUserId: req.staffUser.id,
+        });
+      }
+      
+      return res.json(updated);
+    } catch (error) {
+      console.error("Error updating application:", error);
+      return res.status(500).json({ error: "Failed to update application" });
+    }
+  });
+
+  // Get all users (admin only)
+  app.get("/api/admin/users", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      return res.json(users);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      return res.status(500).json({ error: "Failed to fetch users" });
+    }
+  });
+
+  // Update user role (admin only)
+  app.patch("/api/admin/users/:id/role", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { role } = req.body;
+      
+      if (!["borrower", "staff", "admin"].includes(role)) {
+        return res.status(400).json({ error: "Invalid role" });
+      }
+      
+      const updated = await storage.updateUserRole(id, role);
+      if (!updated) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      return res.json(updated);
+    } catch (error) {
+      console.error("Error updating user role:", error);
+      return res.status(500).json({ error: "Failed to update user role" });
+    }
+  });
+
+  // Create staff invite (admin only)
+  app.post("/api/admin/invites", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { email, role = "staff" } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+      
+      if (!["staff", "admin"].includes(role)) {
+        return res.status(400).json({ error: "Invalid role for invite" });
+      }
+      
+      // Generate a secure token
+      const token = crypto.randomBytes(32).toString("hex");
+      
+      // Set expiry to 7 days from now
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7);
+      
+      const invite = await storage.createStaffInvite({
+        email,
+        token,
+        role: role as "staff" | "admin",
+        status: "pending",
+        invitedById: req.adminUser.id,
+        expiresAt,
+      });
+      
+      // In production, you would send an email here with the invite link
+      // For now, return the token so admin can share the link manually
+      const inviteLink = `/join/${token}`;
+      
+      return res.status(201).json({
+        message: "Invite created successfully",
+        invite: {
+          ...invite,
+          inviteLink,
+        },
+      });
+    } catch (error) {
+      console.error("Error creating invite:", error);
+      return res.status(500).json({ error: "Failed to create invite" });
+    }
+  });
+
+  // Get all invites (admin only)
+  app.get("/api/admin/invites", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const invites = await storage.getStaffInvites();
+      return res.json(invites);
+    } catch (error) {
+      console.error("Error fetching invites:", error);
+      return res.status(500).json({ error: "Failed to fetch invites" });
+    }
+  });
+
+  // Revoke invite (admin only)
+  app.delete("/api/admin/invites/:id", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      await storage.updateStaffInvite(id, { status: "revoked" });
+      return res.json({ message: "Invite revoked" });
+    } catch (error) {
+      console.error("Error revoking invite:", error);
+      return res.status(500).json({ error: "Failed to revoke invite" });
+    }
+  });
+
+  // Validate invite token (public route for invite page)
+  app.get("/api/invites/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      const invite = await storage.getStaffInviteByToken(token);
+      
+      if (!invite) {
+        return res.status(404).json({ error: "Invite not found" });
+      }
+      
+      if (invite.status !== "pending") {
+        return res.status(400).json({ error: `Invite has already been ${invite.status}` });
+      }
+      
+      if (new Date(invite.expiresAt) < new Date()) {
+        return res.status(400).json({ error: "Invite has expired" });
+      }
+      
+      return res.json({
+        email: invite.email,
+        role: invite.role,
+        expiresAt: invite.expiresAt,
+      });
+    } catch (error) {
+      console.error("Error validating invite:", error);
+      return res.status(500).json({ error: "Failed to validate invite" });
+    }
+  });
+
+  // Accept invite (authenticated user accepting their invite)
+  app.post("/api/invites/:token/accept", isAuthenticated, async (req: any, res) => {
+    try {
+      const { token } = req.params;
+      const userId = req.user.claims.sub;
+      
+      const invite = await storage.getStaffInviteByToken(token);
+      if (!invite) {
+        return res.status(404).json({ error: "Invite not found" });
+      }
+      
+      // Verify the logged-in user's email matches the invite
+      const user = await storage.getUser(userId);
+      if (!user || user.email?.toLowerCase() !== invite.email.toLowerCase()) {
+        return res.status(403).json({ 
+          error: "This invite is for a different email address. Please log in with the invited email.",
+          invitedEmail: invite.email,
+        });
+      }
+      
+      const accepted = await storage.acceptStaffInvite(token, userId);
+      if (!accepted) {
+        return res.status(400).json({ error: "Unable to accept invite. It may be expired or already used." });
+      }
+      
+      return res.json({
+        message: "Invite accepted! You now have staff access.",
+        role: invite.role,
+      });
+    } catch (error) {
+      console.error("Error accepting invite:", error);
+      return res.status(500).json({ error: "Failed to accept invite" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
