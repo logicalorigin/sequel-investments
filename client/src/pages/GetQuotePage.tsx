@@ -154,7 +154,7 @@ export default function GetQuotePage() {
         }
         return true;
       case 4:
-        if (!formData.investmentExperience) {
+        if (formData.loanType !== "dscr" && !formData.investmentExperience) {
           toast({ title: "Please select your experience level", variant: "destructive" });
           return false;
         }
@@ -751,6 +751,30 @@ export default function GetQuotePage() {
                   />
                 </div>
 
+                {(formData.loanType === "fix-flip" || formData.loanType === "construction") && (
+                  <div className="space-y-3">
+                    <Label className="text-white">Investment Experience *</Label>
+                    <Select
+                      value={formData.investmentExperience}
+                      onValueChange={(value) => setFormData({ ...formData, investmentExperience: value })}
+                    >
+                      <SelectTrigger className="bg-white/5 border-white/10 text-white" data-testid="select-experience">
+                        <SelectValue placeholder="Select your experience level" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="0">0 Deals - First Timer</SelectItem>
+                        <SelectItem value="1-2">1-2 Deals</SelectItem>
+                        <SelectItem value="3-5">3-5 Deals</SelectItem>
+                        <SelectItem value="6-10">6-10 Deals</SelectItem>
+                        <SelectItem value="10+">10+ Deals</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-white/40">
+                      How many {formData.loanType === "fix-flip" ? "fix & flip" : "construction"} projects have you completed?
+                    </p>
+                  </div>
+                )}
+
                 <div className="space-y-3">
                   <Label className="text-white">Additional Notes</Label>
                   <Textarea
@@ -832,19 +856,21 @@ export default function GetQuotePage() {
                     </div>
                   </div>
 
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-white border-b border-white/10 pb-2">Strategy</h3>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-white/60">Experience</span>
-                        <span className="text-white font-medium">{formData.investmentExperience || "—"}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-white/60">Exit Strategy</span>
-                        <span className="text-white font-medium">{formData.exitStrategy || "—"}</span>
+                  {(formData.loanType === "fix-flip" || formData.loanType === "construction") && (
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold text-white border-b border-white/10 pb-2">Experience</h3>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-white/60">Investment Experience</span>
+                          <span className="text-white font-medium">{formData.investmentExperience || "—"} Deals</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-white/60">Exit Strategy</span>
+                          <span className="text-white font-medium">{formData.exitStrategy || "—"}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
 
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold text-white border-b border-white/10 pb-2">Contact Info</h3>
