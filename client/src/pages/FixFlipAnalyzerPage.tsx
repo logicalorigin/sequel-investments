@@ -33,12 +33,14 @@ const propertyTypes = [
 ];
 
 const experienceLevels = [
-  { id: "0", label: "0 Deals", rateAdj: 1.5, downPaymentAdj: 10 },
-  { id: "1", label: "1-2 Deals", rateAdj: 1.0, downPaymentAdj: 5 },
-  { id: "3-5", label: "3-5 Deals", rateAdj: 0.5, downPaymentAdj: 2.5 },
-  { id: "6-10", label: "6-10 Deals", rateAdj: 0.25, downPaymentAdj: 0 },
-  { id: "10+", label: "10+ Deals", rateAdj: 0, downPaymentAdj: 0 },
+  { id: "0", label: "0 Deals", rateAdj: 0 },
+  { id: "1", label: "1-2 Deals", rateAdj: 0 },
+  { id: "3-5", label: "3-5 Deals", rateAdj: 0 },
+  { id: "6-10", label: "6-10 Deals", rateAdj: 0 },
+  { id: "10+", label: "10+ Deals", rateAdj: 0 },
 ];
+
+const loanTermOptions = [6, 9, 12, 15, 18, 21, 24];
 
 function PropertyTypeIcon({ type, className = "" }: { type: string; className?: string }) {
   const baseClass = `${className}`;
@@ -135,15 +137,12 @@ export default function FixFlipAnalyzerPage() {
   const [purchasePrice, setPurchasePrice] = useState("280000");
   const [rehabBudget, setRehabBudget] = useState("60000");
   const [arv, setArv] = useState("400000");
-  const [downPayment, setDownPayment] = useState("28000");
-  const [requestedRehabFunding, setRequestedRehabFunding] = useState("54000");
-  const [totalClosingCosts, setTotalClosingCosts] = useState("8000");
   const [annualTaxes, setAnnualTaxes] = useState("4800");
   const [annualInsurance, setAnnualInsurance] = useState("2400");
   const [annualHOA, setAnnualHOA] = useState("0");
-  const [holdTimeMonths, setHoldTimeMonths] = useState("6");
+  const [loanTermMonths, setLoanTermMonths] = useState(12);
   const [creditScore, setCreditScore] = useState([720]);
-  const [experience, setExperience] = useState("1");
+  const [experience, setExperience] = useState("3-5");
   const [ltcSlider, setLtcSlider] = useState([90]);
   const [dataLoaded, setDataLoaded] = useState(false);
 
@@ -188,9 +187,10 @@ export default function FixFlipAnalyzerPage() {
 
   const maxLtc = 90;
 
-  // Calculate interest rate based on FICO and experience
+  // Calculate interest rate based on FICO
+  // 3+ deals with 720 FICO = 8.9% base rate
   const calculatedRate = useMemo(() => {
-    const BASE_RATE = 9.9;
+    const BASE_RATE = 8.9;
     let rate = BASE_RATE;
     
     // Credit score adjustment
@@ -200,18 +200,10 @@ export default function FixFlipAnalyzerPage() {
     else if (score >= 680) rate += 1.0;
     else rate += 1.5;
     
-    // Experience adjustment
-    const expLevel = experienceLevels.find(e => e.id === experience);
-    rate += expLevel?.rateAdj || 0;
+    // Experience is captured for data intake only, no rate adjustment
     
     return Math.max(8.9, Math.min(12.5, rate));
-  }, [creditScore, experience]);
-
-  // Calculate minimum down payment based on experience
-  const minDownPaymentPercent = useMemo(() => {
-    const expLevel = experienceLevels.find(e => e.id === experience);
-    return 10 + (expLevel?.downPaymentAdj || 0);
-  }, [experience]);
+  }, [creditScore]);
 
   const getCurrentScenarioData = useCallback(() => ({
     propertyType,
@@ -219,16 +211,13 @@ export default function FixFlipAnalyzerPage() {
     purchasePrice,
     rehabBudget,
     arv,
-    downPayment,
-    requestedRehabFunding,
-    totalClosingCosts,
     annualTaxes,
     annualInsurance,
     annualHOA,
-    holdTimeMonths,
+    loanTermMonths,
     creditScore,
     experience,
-  }), [propertyType, propertyAddress, purchasePrice, rehabBudget, arv, downPayment, requestedRehabFunding, totalClosingCosts, annualTaxes, annualInsurance, annualHOA, holdTimeMonths, creditScore, experience]);
+  }), [propertyType, propertyAddress, purchasePrice, rehabBudget, arv, annualTaxes, annualInsurance, annualHOA, loanTermMonths, creditScore, experience]);
 
   const handleLoadScenario = useCallback((data: Record<string, any>) => {
     if (data.propertyType) setPropertyType(data.propertyType);
@@ -236,13 +225,11 @@ export default function FixFlipAnalyzerPage() {
     if (data.purchasePrice) setPurchasePrice(data.purchasePrice);
     if (data.rehabBudget) setRehabBudget(data.rehabBudget);
     if (data.arv) setArv(data.arv);
-    if (data.downPayment) setDownPayment(data.downPayment);
-    if (data.requestedRehabFunding) setRequestedRehabFunding(data.requestedRehabFunding);
-    if (data.totalClosingCosts) setTotalClosingCosts(data.totalClosingCosts);
     if (data.annualTaxes) setAnnualTaxes(data.annualTaxes);
     if (data.annualInsurance) setAnnualInsurance(data.annualInsurance);
     if (data.annualHOA) setAnnualHOA(data.annualHOA);
-    if (data.holdTimeMonths) setHoldTimeMonths(data.holdTimeMonths);
+    if (data.loanTermMonths) setLoanTermMonths(data.loanTermMonths);
+    if (data.holdTimeMonths) setLoanTermMonths(parseInt(data.holdTimeMonths)); // backwards compat
     if (data.creditScore) setCreditScore(data.creditScore);
     if (data.experience) setExperience(data.experience);
   }, []);
@@ -261,15 +248,65 @@ export default function FixFlipAnalyzerPage() {
     }
   }, [linkedApplication, dataLoaded, handleLoadScenario, toast]);
 
-  useEffect(() => {
-    const purchase = parseFloat(purchasePrice) || 0;
-    const rehab = parseFloat(rehabBudget) || 0;
-    const totalCost = purchase + rehab;
-    const targetLoan = totalCost * (ltcSlider[0] / 100);
-    const newDown = Math.max(0, purchase - (targetLoan - rehab * 0.9));
-    setDownPayment(Math.round(newDown).toString());
-    setRequestedRehabFunding(Math.round(rehab * 0.9).toString());
-  }, [ltcSlider, purchasePrice, rehabBudget]);
+
+  const results = useMemo(() => {
+    const arvVal = parseFloat(arv) || 0;
+    const purchasePriceVal = parseFloat(purchasePrice) || 0;
+    const rehabBudgetVal = parseFloat(rehabBudget) || 0;
+    const taxesVal = parseFloat(annualTaxes) || 0;
+    const insuranceVal = parseFloat(annualInsurance) || 0;
+    const hoaVal = parseFloat(annualHOA) || 0;
+    const holdMonths = loanTermMonths;
+    const rate = calculatedRate;
+
+    // Calculate loan amount based on LTC slider (down payment and rehab funding are outputs)
+    const totalCost = purchasePriceVal + rehabBudgetVal;
+    const loanAmount = totalCost * (ltcSlider[0] / 100);
+    
+    // Calculate outputs: rehab funding = 90% of rehab budget, rest comes from loan
+    const rehabFundingVal = Math.round(rehabBudgetVal * 0.9);
+    const purchaseLoanAmount = loanAmount - rehabFundingVal;
+    const downPaymentVal = Math.max(0, purchasePriceVal - purchaseLoanAmount);
+    
+    // Estimated closing costs (2% of loan amount)
+    const closingCostsVal = Math.round(loanAmount * 0.02);
+
+    const ltv = arvVal > 0 ? (loanAmount / arvVal) * 100 : 0;
+    const ltc = totalCost > 0 ? (loanAmount / totalCost) * 100 : 0;
+
+    const monthlyTaxes = taxesVal / 12;
+    const monthlyInsurance = insuranceVal / 12;
+    const monthlyHOA = hoaVal / 12;
+    const monthlyTIA = monthlyTaxes + monthlyInsurance + monthlyHOA;
+
+    const holdingCosts = monthlyTIA * holdMonths;
+    const interestCost = (loanAmount * (rate / 100)) * (holdMonths / 12);
+
+    const totalProjectCost = purchasePriceVal + rehabBudgetVal + closingCostsVal + holdingCosts + interestCost;
+    const cashInvested = downPaymentVal + closingCostsVal + (rehabBudgetVal - rehabFundingVal);
+    const totalProfit = arvVal - totalProjectCost;
+    const roi = cashInvested > 0 ? (totalProfit / cashInvested) * 100 : 0;
+    const profitMargin = arvVal > 0 ? (totalProfit / arvVal) * 100 : 0;
+
+    return {
+      totalProjectCost,
+      cashInvested,
+      totalProfit,
+      roi,
+      profitMargin,
+      ltv,
+      ltc,
+      loanAmount,
+      purchasePrice: purchasePriceVal,
+      rehabBudget: rehabBudgetVal,
+      closingCosts: closingCostsVal,
+      holdingCosts,
+      interestCost,
+      downPayment: downPaymentVal,
+      rehabFunding: rehabFundingVal,
+      rehabEquity: rehabBudgetVal - rehabFundingVal,
+    };
+  }, [arv, purchasePrice, rehabBudget, annualTaxes, annualInsurance, annualHOA, loanTermMonths, ltcSlider, calculatedRate]);
 
   const createApplicationMutation = useMutation({
     mutationFn: async () => {
@@ -289,7 +326,7 @@ export default function FixFlipAnalyzerPage() {
         annualTaxes: parseFloat(annualTaxes) || 0,
         annualInsurance: parseFloat(annualInsurance) || 0,
         annualHOA: parseFloat(annualHOA) || 0,
-        holdTimeMonths: parseFloat(holdTimeMonths) || 6,
+        holdTimeMonths: loanTermMonths,
         analyzerType: "fixflip",
         analyzerData: analyzerData,
       });
@@ -311,58 +348,6 @@ export default function FixFlipAnalyzerPage() {
       });
     },
   });
-
-  const results = useMemo(() => {
-    const arvVal = parseFloat(arv) || 0;
-    const purchasePriceVal = parseFloat(purchasePrice) || 0;
-    const rehabBudgetVal = parseFloat(rehabBudget) || 0;
-    const downPaymentVal = parseFloat(downPayment) || 0;
-    const rehabFundingVal = parseFloat(requestedRehabFunding) || 0;
-    const closingCostsVal = parseFloat(totalClosingCosts) || 0;
-    const taxesVal = parseFloat(annualTaxes) || 0;
-    const insuranceVal = parseFloat(annualInsurance) || 0;
-    const hoaVal = parseFloat(annualHOA) || 0;
-    const holdMonths = parseFloat(holdTimeMonths) || 6;
-    const rate = calculatedRate;
-
-    const loanAmount = purchasePriceVal - downPaymentVal + rehabFundingVal;
-    const ltv = arvVal > 0 ? (loanAmount / arvVal) * 100 : 0;
-
-    const monthlyTaxes = taxesVal / 12;
-    const monthlyInsurance = insuranceVal / 12;
-    const monthlyHOA = hoaVal / 12;
-    const monthlyTIA = monthlyTaxes + monthlyInsurance + monthlyHOA;
-
-    const holdingCosts = monthlyTIA * holdMonths;
-    const interestCost = (loanAmount * (rate / 100)) * (holdMonths / 12);
-
-    const totalProjectCost = purchasePriceVal + rehabBudgetVal + closingCostsVal + holdingCosts + interestCost;
-    const cashInvested = downPaymentVal + closingCostsVal + (rehabBudgetVal - rehabFundingVal);
-    const totalProfit = arvVal - totalProjectCost;
-    const roi = cashInvested > 0 ? (totalProfit / cashInvested) * 100 : 0;
-    const profitMargin = arvVal > 0 ? (totalProfit / arvVal) * 100 : 0;
-
-    const totalCost = purchasePriceVal + rehabBudgetVal;
-    const ltc = totalCost > 0 ? (loanAmount / totalCost) * 100 : 0;
-
-    return {
-      totalProjectCost,
-      cashInvested,
-      totalProfit,
-      roi,
-      profitMargin,
-      ltv,
-      ltc,
-      loanAmount,
-      purchasePrice: purchasePriceVal,
-      rehabBudget: rehabBudgetVal,
-      closingCosts: closingCostsVal,
-      holdingCosts,
-      interestCost,
-      downPayment: downPaymentVal,
-      rehabEquity: rehabBudgetVal - rehabFundingVal,
-    };
-  }, [arv, purchasePrice, rehabBudget, downPayment, requestedRehabFunding, totalClosingCosts, annualTaxes, annualInsurance, annualHOA, holdTimeMonths, calculatedRate]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -501,15 +486,20 @@ export default function FixFlipAnalyzerPage() {
                 </div>
                 <div className="grid grid-cols-4 gap-3">
                   <div>
-                    <Label htmlFor="holdTime" className="text-sm">Hold (Months)</Label>
-                    <Input
-                      id="holdTime"
-                      type="number"
-                      value={holdTimeMonths}
-                      onChange={(e) => setHoldTimeMonths(e.target.value)}
-                      className="mt-1 h-9"
-                      data-testid="input-hold-time"
-                    />
+                    <Label htmlFor="loanTerm" className="text-sm">Loan Term</Label>
+                    <select
+                      id="loanTerm"
+                      value={loanTermMonths}
+                      onChange={(e) => setLoanTermMonths(parseInt(e.target.value))}
+                      className="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                      data-testid="select-loan-term"
+                    >
+                      {loanTermOptions.map((months) => (
+                        <option key={months} value={months}>
+                          {months} Months
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <Label htmlFor="annualTaxes" className="text-sm">Annual Taxes</Label>
@@ -608,7 +598,7 @@ export default function FixFlipAnalyzerPage() {
                   <div className="bg-muted/50 rounded-lg p-3 space-y-1.5 text-xs">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Base Rate:</span>
-                      <span className="font-medium">9.900%</span>
+                      <span className="font-medium">8.900%</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Credit ({creditScore[0]}):</span>
@@ -616,18 +606,12 @@ export default function FixFlipAnalyzerPage() {
                         +{creditScore[0] >= 720 ? "0.000" : creditScore[0] >= 700 ? "0.500" : creditScore[0] >= 680 ? "1.000" : "1.500"}%
                       </span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Experience ({experience} deals):</span>
-                      <span className={`font-medium ${experienceLevels.find(e => e.id === experience)?.rateAdj ? "text-red-600" : ""}`}>
-                        +{experienceLevels.find(e => e.id === experience)?.rateAdj.toFixed(3) || "0.000"}%
-                      </span>
-                    </div>
                     <div className="border-t pt-1.5 mt-1.5 flex justify-between font-semibold text-sm">
-                      <span>Your Rate:</span>
+                      <span>Estimated Rate:</span>
                       <span className="text-primary">{calculatedRate.toFixed(3)}%</span>
                     </div>
-                    <div className="text-[10px] text-muted-foreground pt-1">
-                      Min Down Payment: {minDownPaymentPercent}%
+                    <div className="text-[10px] text-amber-600 pt-2 text-center">
+                      Contact your rep for an accurate estimate
                     </div>
                   </div>
                 </CardContent>
@@ -636,7 +620,7 @@ export default function FixFlipAnalyzerPage() {
 
             {/* Financing Details */}
             <Card>
-              <CardContent className="pt-4 space-y-4">
+              <CardContent className="pt-4">
                 <div>
                   <div className="flex justify-between items-center mb-1">
                     <Label className="text-sm">Loan-to-Cost (LTC)</Label>
@@ -667,51 +651,6 @@ export default function FixFlipAnalyzerPage() {
                   <div className="flex justify-between text-[10px] text-muted-foreground mt-0.5">
                     <span>0%</span>
                     <span>{maxLtc}% Max</span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <Label htmlFor="downPayment" className="text-sm">Down Payment</Label>
-                    <div className="relative mt-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                      <Input
-                        id="downPayment"
-                        type="number"
-                        value={downPayment}
-                        onChange={(e) => setDownPayment(e.target.value)}
-                        className="pl-7 h-9"
-                        data-testid="input-down-payment"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="rehabFunding" className="text-sm">Rehab Funding (90%)</Label>
-                    <div className="relative mt-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                      <Input
-                        id="rehabFunding"
-                        type="number"
-                        value={requestedRehabFunding}
-                        onChange={(e) => setRequestedRehabFunding(e.target.value)}
-                        className="pl-7 h-9"
-                        data-testid="input-rehab-funding"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="closingCosts" className="text-sm">Closing Costs</Label>
-                    <div className="relative mt-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                      <Input
-                        id="closingCosts"
-                        type="number"
-                        value={totalClosingCosts}
-                        onChange={(e) => setTotalClosingCosts(e.target.value)}
-                        className="pl-7 h-9"
-                        data-testid="input-closing-costs"
-                      />
-                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -798,6 +737,22 @@ export default function FixFlipAnalyzerPage() {
                     <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">LTV (ARV)</p>
                     <p className={`text-sm font-bold ${results.ltv > 70 ? "text-red-600" : results.ltv > 65 ? "text-yellow-600" : "text-green-600"}`} data-testid="result-ltv">
                       {results.ltv.toFixed(1)}%
+                    </p>
+                  </div>
+                </div>
+
+                {/* Financing Outputs */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-background rounded-lg p-2.5">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">Down Payment</p>
+                    <p className="text-sm font-semibold" data-testid="result-down-payment">
+                      {formatCurrency(results.downPayment)}
+                    </p>
+                  </div>
+                  <div className="bg-background rounded-lg p-2.5">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">Rehab Funding (90%)</p>
+                    <p className="text-sm font-semibold" data-testid="result-rehab-funding">
+                      {formatCurrency(results.rehabFunding)}
                     </p>
                   </div>
                 </div>

@@ -146,10 +146,7 @@ export default function ApplicationDetailPage() {
 
   const inviteMutation = useMutation({
     mutationFn: async (data: { name: string; email: string; role: string }) => {
-      return apiRequest(`/api/applications/${applicationId}/co-borrowers`, {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
+      return apiRequest("POST", `/api/applications/${applicationId}/co-borrowers`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/applications", applicationId, "co-borrowers"] });
@@ -173,9 +170,7 @@ export default function ApplicationDetailPage() {
 
   const removeCoBorrowerMutation = useMutation({
     mutationFn: async (coBorrowerId: string) => {
-      return apiRequest(`/api/co-borrowers/${coBorrowerId}`, {
-        method: "DELETE",
-      });
+      return apiRequest("DELETE", `/api/co-borrowers/${coBorrowerId}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/applications", applicationId, "co-borrowers"] });
@@ -1207,12 +1202,12 @@ export default function ApplicationDetailPage() {
                         <div className="flex items-center gap-3">
                           <Avatar className="h-8 w-8">
                             <AvatarFallback>
-                              {coBorrower.name?.split(" ").map(n => n[0]).join("").toUpperCase() || "CB"}
+                              {coBorrower.invitedEmail.charAt(0).toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
                           <div>
-                            <p className="text-sm font-medium">{coBorrower.name}</p>
-                            <p className="text-xs text-muted-foreground">{coBorrower.email}</p>
+                            <p className="text-sm font-medium">{coBorrower.invitedEmail}</p>
+                            <p className="text-xs text-muted-foreground capitalize">{coBorrower.role.replace("_", " ")}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
