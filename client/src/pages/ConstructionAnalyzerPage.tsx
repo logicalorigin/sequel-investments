@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { usePropertyAutofill } from "@/hooks/usePropertyAutofill";
 import { useLocation, useSearch } from "wouter";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -18,6 +19,7 @@ import {
   Home,
   FileText,
   HardHat,
+  Loader2,
 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 
@@ -142,6 +144,46 @@ export default function ConstructionAnalyzerPage() {
   const [ltcSlider, setLtcSlider] = useState([90]);
   const [landOwned, setLandOwned] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
+
+  const { fetchPropertyData, isLoading: isAutofilling } = usePropertyAutofill({
+    onDataLoaded: (data) => {
+      if (data.propertyValue) {
+        const estimatedLandCost = Math.round(data.propertyValue * 0.25);
+        setLandCost(estimatedLandCost.toString());
+        const estimatedArv = Math.round(data.propertyValue * 1.4);
+        setArv(estimatedArv.toString());
+      }
+      if (data.annualTaxes) {
+        setAnnualTaxes(data.annualTaxes.toString());
+      }
+      if (data.annualInsurance) {
+        setAnnualInsurance(data.annualInsurance.toString());
+      }
+    },
+  });
+
+  const handleAddressSelect = useCallback(async (place: { formatted_address?: string; address_components?: Array<{ long_name: string; short_name: string; types: string[] }> }) => {
+    let city = "";
+    let state = "";
+    let zip = "";
+    let streetAddress = place.formatted_address || "";
+
+    if (place.address_components) {
+      for (const component of place.address_components) {
+        if (component.types.includes("locality")) {
+          city = component.long_name;
+        } else if (component.types.includes("administrative_area_level_1")) {
+          state = component.short_name;
+        } else if (component.types.includes("postal_code")) {
+          zip = component.long_name;
+        }
+      }
+    }
+
+    if (streetAddress) {
+      await fetchPropertyData(streetAddress, city, state, zip);
+    }
+  }, [fetchPropertyData]);
 
   const maxLtc = 90;
 
@@ -402,14 +444,18 @@ export default function ConstructionAnalyzerPage() {
             <Card>
               <CardContent className="pt-4 space-y-3">
                 <div>
-                  <Label className="text-sm">Property Address</Label>
+                  <Label className="text-sm">Property Address {isAutofilling && <Loader2 className="inline-block h-3 w-3 ml-1 animate-spin" />}</Label>
                   <AddressAutocomplete
                     value={propertyAddress}
                     onChange={setPropertyAddress}
+                    onPlaceSelect={handleAddressSelect}
                     placeholder="Enter property address"
                     className="mt-1"
                     data-testid="input-property-address"
                   />
+                  {isAutofilling && (
+                    <p className="text-xs text-muted-foreground mt-1">Loading property data...</p>
+                  )}
                 </div>
                 <div className="grid grid-cols-3 gap-3">
                   <div>
