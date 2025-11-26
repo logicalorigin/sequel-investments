@@ -29,7 +29,10 @@ import {
   ArrowRight,
   Banknote,
   Calendar,
-  Trash2
+  Trash2,
+  TrendingUp,
+  AlertCircle,
+  FileCheck
 } from "lucide-react";
 import type { LoanApplication, ServicedLoan } from "@shared/schema";
 
@@ -194,6 +197,73 @@ export default function PortalPage() {
           <p className="text-muted-foreground">
             Manage your loan applications, closed loans, and analyze new investment opportunities.
           </p>
+        </div>
+
+        {/* Deal Status Summary Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10" data-testid="deal-status-summary">
+          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-blue-500/20">
+                  <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-blue-700 dark:text-blue-300" data-testid="text-active-count">
+                    {applications?.filter(a => ["submitted", "in_review"].includes(a.status)).length || 0}
+                  </p>
+                  <p className="text-xs text-blue-600/80 dark:text-blue-400/80">Active Applications</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-950 dark:to-yellow-900 border-yellow-200 dark:border-yellow-800">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-yellow-500/20">
+                  <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-yellow-700 dark:text-yellow-300" data-testid="text-pending-count">
+                    {applications?.filter(a => a.status === "draft").length || 0}
+                  </p>
+                  <p className="text-xs text-yellow-600/80 dark:text-yellow-400/80">Pending Drafts</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 border-green-200 dark:border-green-800">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-green-500/20">
+                  <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-green-700 dark:text-green-300" data-testid="text-funded-count">
+                    {servicedLoans?.length || 0}
+                  </p>
+                  <p className="text-xs text-green-600/80 dark:text-green-400/80">Funded Loans</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-primary/10 to-primary/20 border-primary/30">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary/20">
+                  <TrendingUp className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-primary" data-testid="text-total-volume">
+                    {formatCurrency(servicedLoans?.reduce((sum, loan) => sum + loan.originalLoanAmount, 0) || 0)}
+                  </p>
+                  <p className="text-xs text-primary/80">Total Funded</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Analyze a New Deal Section */}

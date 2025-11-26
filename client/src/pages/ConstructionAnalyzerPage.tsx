@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
 import { PortalHeader } from "@/components/PortalHeader";
+import { ScenarioManager } from "@/components/ScenarioManager";
 import { 
   TrendingUp,
   Percent,
@@ -140,6 +141,38 @@ export default function ConstructionAnalyzerPage() {
   const [landOwned, setLandOwned] = useState(false);
 
   const maxLtc = 90;
+
+  const getCurrentScenarioData = useCallback(() => ({
+    propertyType,
+    propertyAddress,
+    arv,
+    landCost,
+    constructionBudget,
+    downPayment,
+    requestedConstructionFunding,
+    totalClosingCosts,
+    annualTaxes,
+    annualInsurance,
+    buildDuration,
+    interestRate,
+    landOwned,
+  }), [propertyType, propertyAddress, arv, landCost, constructionBudget, downPayment, requestedConstructionFunding, totalClosingCosts, annualTaxes, annualInsurance, buildDuration, interestRate, landOwned]);
+
+  const handleLoadScenario = useCallback((data: Record<string, any>) => {
+    if (data.propertyType) setPropertyType(data.propertyType);
+    if (data.propertyAddress) setPropertyAddress(data.propertyAddress);
+    if (data.arv) setArv(data.arv);
+    if (data.landCost) setLandCost(data.landCost);
+    if (data.constructionBudget) setConstructionBudget(data.constructionBudget);
+    if (data.downPayment) setDownPayment(data.downPayment);
+    if (data.requestedConstructionFunding) setRequestedConstructionFunding(data.requestedConstructionFunding);
+    if (data.totalClosingCosts) setTotalClosingCosts(data.totalClosingCosts);
+    if (data.annualTaxes) setAnnualTaxes(data.annualTaxes);
+    if (data.annualInsurance) setAnnualInsurance(data.annualInsurance);
+    if (data.buildDuration) setBuildDuration(data.buildDuration);
+    if (data.interestRate) setInterestRate(data.interestRate);
+    if (typeof data.landOwned === 'boolean') setLandOwned(data.landOwned);
+  }, []);
 
   useEffect(() => {
     const land = parseFloat(landCost) || 0;
@@ -271,13 +304,20 @@ export default function ConstructionAnalyzerPage() {
       <PortalHeader user={user} />
 
       <main className="max-w-7xl mx-auto px-6 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2" data-testid="text-page-title">
-            New Construction Analyzer
-          </h1>
-          <p className="text-muted-foreground">
-            Calculate your ground-up construction deal profitability
-          </p>
+        <div className="mb-8 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold mb-2" data-testid="text-page-title">
+              New Construction Analyzer
+            </h1>
+            <p className="text-muted-foreground">
+              Calculate your ground-up construction deal profitability
+            </p>
+          </div>
+          <ScenarioManager
+            analyzerType="construction"
+            currentData={getCurrentScenarioData()}
+            onLoadScenario={handleLoadScenario}
+          />
         </div>
 
         <div className="grid lg:grid-cols-3 gap-8">

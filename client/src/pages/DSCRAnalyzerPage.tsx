@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
 import { PortalHeader } from "@/components/PortalHeader";
+import { ScenarioManager } from "@/components/ScenarioManager";
 import { 
   Calculator,
   TrendingUp,
@@ -164,6 +165,32 @@ export default function DSCRAnalyzerPage() {
   const [ltvSlider, setLtvSlider] = useState([80]);
 
   const maxLtv = transactionType === "cash_out" ? 75 : 80;
+
+  const getCurrentScenarioData = useCallback(() => ({
+    propertyType,
+    transactionType,
+    propertyAddress,
+    propertyValue,
+    requestedLoanAmount,
+    monthlyRent,
+    annualTaxes,
+    annualInsurance,
+    annualHOA,
+    creditScore,
+  }), [propertyType, transactionType, propertyAddress, propertyValue, requestedLoanAmount, monthlyRent, annualTaxes, annualInsurance, annualHOA, creditScore]);
+
+  const handleLoadScenario = useCallback((data: Record<string, any>) => {
+    if (data.propertyType) setPropertyType(data.propertyType);
+    if (data.transactionType) setTransactionType(data.transactionType);
+    if (data.propertyAddress) setPropertyAddress(data.propertyAddress);
+    if (data.propertyValue) setPropertyValue(data.propertyValue);
+    if (data.requestedLoanAmount) setRequestedLoanAmount(data.requestedLoanAmount);
+    if (data.monthlyRent) setMonthlyRent(data.monthlyRent);
+    if (data.annualTaxes) setAnnualTaxes(data.annualTaxes);
+    if (data.annualInsurance) setAnnualInsurance(data.annualInsurance);
+    if (data.annualHOA) setAnnualHOA(data.annualHOA);
+    if (data.creditScore) setCreditScore(data.creditScore);
+  }, []);
 
   useEffect(() => {
     const value = parseFloat(propertyValue) || 0;
@@ -326,13 +353,20 @@ export default function DSCRAnalyzerPage() {
       <PortalHeader user={user} />
 
       <main className="max-w-7xl mx-auto px-6 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2" data-testid="text-page-title">
-            DSCR Loan Analyzer
-          </h1>
-          <p className="text-muted-foreground">
-            Analyze rental property cash flow and calculate your DSCR loan qualification
-          </p>
+        <div className="mb-8 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold mb-2" data-testid="text-page-title">
+              DSCR Loan Analyzer
+            </h1>
+            <p className="text-muted-foreground">
+              Analyze rental property cash flow and calculate your DSCR loan qualification
+            </p>
+          </div>
+          <ScenarioManager
+            analyzerType="dscr"
+            currentData={getCurrentScenarioData()}
+            onLoadScenario={handleLoadScenario}
+          />
         </div>
 
         <div className="grid lg:grid-cols-3 gap-8">

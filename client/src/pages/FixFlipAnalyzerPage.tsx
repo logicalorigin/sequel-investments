@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
 import { PortalHeader } from "@/components/PortalHeader";
+import { ScenarioManager } from "@/components/ScenarioManager";
 import { 
   Calculator,
   TrendingUp,
@@ -142,6 +143,38 @@ export default function FixFlipAnalyzerPage() {
 
   const maxLtc = 90;
 
+  const getCurrentScenarioData = useCallback(() => ({
+    propertyType,
+    propertyAddress,
+    arv,
+    purchasePrice,
+    rehabBudget,
+    downPayment,
+    requestedRehabFunding,
+    totalClosingCosts,
+    annualTaxes,
+    annualInsurance,
+    annualHOA,
+    holdTimeMonths,
+    interestRate,
+  }), [propertyType, propertyAddress, arv, purchasePrice, rehabBudget, downPayment, requestedRehabFunding, totalClosingCosts, annualTaxes, annualInsurance, annualHOA, holdTimeMonths, interestRate]);
+
+  const handleLoadScenario = useCallback((data: Record<string, any>) => {
+    if (data.propertyType) setPropertyType(data.propertyType);
+    if (data.propertyAddress) setPropertyAddress(data.propertyAddress);
+    if (data.arv) setArv(data.arv);
+    if (data.purchasePrice) setPurchasePrice(data.purchasePrice);
+    if (data.rehabBudget) setRehabBudget(data.rehabBudget);
+    if (data.downPayment) setDownPayment(data.downPayment);
+    if (data.requestedRehabFunding) setRequestedRehabFunding(data.requestedRehabFunding);
+    if (data.totalClosingCosts) setTotalClosingCosts(data.totalClosingCosts);
+    if (data.annualTaxes) setAnnualTaxes(data.annualTaxes);
+    if (data.annualInsurance) setAnnualInsurance(data.annualInsurance);
+    if (data.annualHOA) setAnnualHOA(data.annualHOA);
+    if (data.holdTimeMonths) setHoldTimeMonths(data.holdTimeMonths);
+    if (data.interestRate) setInterestRate(data.interestRate);
+  }, []);
+
   useEffect(() => {
     const purchase = parseFloat(purchasePrice) || 0;
     const rehab = parseFloat(rehabBudget) || 0;
@@ -257,13 +290,20 @@ export default function FixFlipAnalyzerPage() {
       <PortalHeader user={user} />
 
       <main className="max-w-7xl mx-auto px-6 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2" data-testid="text-page-title">
-            Fix & Flip Analyzer
-          </h1>
-          <p className="text-muted-foreground">
-            Calculate your fix and flip deal profitability and ROI
-          </p>
+        <div className="mb-8 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold mb-2" data-testid="text-page-title">
+              Fix & Flip Analyzer
+            </h1>
+            <p className="text-muted-foreground">
+              Calculate your fix and flip deal profitability and ROI
+            </p>
+          </div>
+          <ScenarioManager
+            analyzerType="fix_flip"
+            currentData={getCurrentScenarioData()}
+            onLoadScenario={handleLoadScenario}
+          />
         </div>
 
         <div className="grid lg:grid-cols-3 gap-8">

@@ -1,6 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useParams } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,8 +24,27 @@ import {
   Calendar,
   Home,
   CheckCircle2,
+  History,
+  Upload,
+  Users,
+  AlertCircle,
+  UserPlus,
+  X,
+  Loader2,
 } from "lucide-react";
-import type { LoanApplication, Document, DocumentType } from "@shared/schema";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { formatDistanceToNow } from "date-fns";
+import type { LoanApplication, Document, DocumentType, ApplicationTimelineEvent, CoBorrower } from "@shared/schema";
 
 interface DocumentWithType extends Document {
   documentType?: DocumentType;
@@ -99,6 +119,89 @@ export default function ApplicationDetailPage() {
     queryKey: ["/api/applications", applicationId, "documents"],
     enabled: isAuthenticated && !!applicationId,
   });
+
+  const { data: timelineEvents = [], isLoading: timelineLoading } = useQuery<ApplicationTimelineEvent[]>({
+    queryKey: ["/api/applications", applicationId, "timeline"],
+    enabled: isAuthenticated && !!applicationId,
+  });
+
+  const { data: coBorrowers = [], isLoading: coBorrowersLoading } = useQuery<CoBorrower[]>({
+    queryKey: ["/api/applications", applicationId, "co-borrowers"],
+    enabled: isAuthenticated && !!applicationId,
+  });
+
+  const [showInviteDialog, setShowInviteDialog] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteName, setInviteName] = useState("");
+  const [inviteRole, setInviteRole] = useState("co_borrower");
+
+  const inviteMutation = useMutation({
+    mutationFn: async (data: { name: string; email: string; role: string }) => {
+      return apiRequest(`/api/applications/${applicationId}/co-borrowers`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/applications", applicationId, "co-borrowers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/applications", applicationId, "timeline"] });
+      setShowInviteDialog(false);
+      setInviteEmail("");
+      setInviteName("");
+      toast({
+        title: "Invitation Sent",
+        description: "Co-borrower has been invited to collaborate.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Failed to Send Invitation",
+        description: "Please try again later.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const removeCoBorrowerMutation = useMutation({
+    mutationFn: async (coBorrowerId: string) => {
+      return apiRequest(`/api/co-borrowers/${coBorrowerId}`, {
+        method: "DELETE",
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/applications", applicationId, "co-borrowers"] });
+      toast({
+        title: "Co-Borrower Removed",
+        description: "The co-borrower has been removed from this application.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Failed to Remove",
+        description: "Please try again later.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const getTimelineIcon = (eventType: string) => {
+    switch (eventType) {
+      case "status_change":
+        return <AlertCircle className="h-4 w-4 text-blue-500" />;
+      case "document_uploaded":
+        return <Upload className="h-4 w-4 text-green-500" />;
+      case "document_approved":
+        return <CheckCircle2 className="h-4 w-4 text-green-600" />;
+      case "co_borrower_added":
+        return <Users className="h-4 w-4 text-purple-500" />;
+      case "stage_advanced":
+        return <Check className="h-4 w-4 text-primary" />;
+      case "application_created":
+        return <FileText className="h-4 w-4 text-blue-500" />;
+      default:
+        return <Clock className="h-4 w-4 text-muted-foreground" />;
+    }
+  };
 
   if (authLoading || appLoading) {
     return (
@@ -484,6 +587,54 @@ export default function ApplicationDetailPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
+                  <History className="h-5 w-5 text-primary" />
+                  Activity
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {timelineLoading ? (
+                  <div className="animate-pulse space-y-4">
+                    {[1, 2, 3].map(i => (
+                      <div key={i} className="flex gap-3">
+                        <div className="h-6 w-6 bg-muted rounded-full" />
+                        <div className="flex-1 space-y-1">
+                          <div className="h-3 bg-muted rounded w-3/4" />
+                          <div className="h-2 bg-muted rounded w-1/2" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : timelineEvents.length > 0 ? (
+                  <div className="relative">
+                    <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-border" />
+                    <div className="space-y-4">
+                      {timelineEvents.slice(0, 5).map((event) => (
+                        <div key={event.id} className="relative flex gap-3" data-testid={`timeline-event-${event.id}`}>
+                          <div className="relative z-10 flex h-6 w-6 items-center justify-center rounded-full bg-background border border-border">
+                            {getTimelineIcon(event.eventType)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">{event.title}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatDistanceToNow(new Date(event.createdAt), { addSuffix: true })}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <Clock className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
+                    <p className="text-xs text-muted-foreground">No activity yet</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
                   <User className="h-5 w-5 text-primary" />
                   Contact Info
                 </CardTitle>
@@ -586,6 +737,138 @@ export default function ApplicationDetailPage() {
                     <span className="text-primary">{formatCurrency(totalFundsToClose)}</span>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between gap-2">
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5 text-primary" />
+                  Co-Borrowers
+                </CardTitle>
+                <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" variant="outline" data-testid="button-invite-coborrower">
+                      <UserPlus className="h-4 w-4 mr-1" />
+                      Invite
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Invite Co-Borrower</DialogTitle>
+                      <DialogDescription>
+                        Send an invitation to collaborate on this loan application.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="name">Full Name</Label>
+                        <Input
+                          id="name"
+                          placeholder="John Doe"
+                          value={inviteName}
+                          onChange={(e) => setInviteName(e.target.value)}
+                          data-testid="input-coborrower-name"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="email">Email Address</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          placeholder="john@example.com"
+                          value={inviteEmail}
+                          onChange={(e) => setInviteEmail(e.target.value)}
+                          data-testid="input-coborrower-email"
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowInviteDialog(false)}
+                        data-testid="button-cancel-invite"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={() => inviteMutation.mutate({ 
+                          name: inviteName, 
+                          email: inviteEmail, 
+                          role: inviteRole 
+                        })}
+                        disabled={!inviteEmail || !inviteName || inviteMutation.isPending}
+                        data-testid="button-send-invite"
+                      >
+                        {inviteMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Mail className="h-4 w-4 mr-2" />
+                        )}
+                        Send Invitation
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </CardHeader>
+              <CardContent>
+                {coBorrowersLoading ? (
+                  <div className="animate-pulse space-y-3">
+                    {[1, 2].map(i => (
+                      <div key={i} className="flex items-center gap-3">
+                        <div className="h-8 w-8 bg-muted rounded-full" />
+                        <div className="flex-1 space-y-1">
+                          <div className="h-3 bg-muted rounded w-1/2" />
+                          <div className="h-2 bg-muted rounded w-1/3" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : coBorrowers.length > 0 ? (
+                  <div className="space-y-3">
+                    {coBorrowers.map((coBorrower) => (
+                      <div key={coBorrower.id} className="flex items-center justify-between gap-3 p-2 rounded-lg bg-muted/30" data-testid={`coborrower-${coBorrower.id}`}>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-8 w-8">
+                            <AvatarFallback>
+                              {coBorrower.name?.split(" ").map(n => n[0]).join("").toUpperCase() || "CB"}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="text-sm font-medium">{coBorrower.name}</p>
+                            <p className="text-xs text-muted-foreground">{coBorrower.email}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge className={
+                            coBorrower.status === "accepted" ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300" :
+                            coBorrower.status === "pending" ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300" :
+                            "bg-muted text-muted-foreground"
+                          }>
+                            {coBorrower.status === "accepted" ? "Active" : 
+                             coBorrower.status === "pending" ? "Pending" : coBorrower.status}
+                          </Badge>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6"
+                            onClick={() => removeCoBorrowerMutation.mutate(coBorrower.id)}
+                            disabled={removeCoBorrowerMutation.isPending}
+                            data-testid={`button-remove-coborrower-${coBorrower.id}`}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-6">
+                    <Users className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
+                    <p className="text-sm text-muted-foreground">No co-borrowers yet</p>
+                    <p className="text-xs text-muted-foreground mt-1">Invite partners or co-investors to collaborate</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

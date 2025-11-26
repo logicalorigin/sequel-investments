@@ -39,8 +39,13 @@ import {
   FileText,
   X,
   MessageSquare,
+  PenTool,
+  FileSignature,
+  CheckCircle2,
+  Loader2,
 } from "lucide-react";
-import type { LoanApplication, Document, DocumentType } from "@shared/schema";
+import { SignatureCanvas } from "@/components/SignatureCanvas";
+import type { LoanApplication, Document, DocumentType, DocumentSignature } from "@shared/schema";
 
 interface DocumentWithType extends Document {
   documentType?: DocumentType;
@@ -63,6 +68,8 @@ export default function ApplicationDocumentsPage() {
   const [commentDialogOpen, setCommentDialogOpen] = useState(false);
   const [comment, setComment] = useState("");
   const [uploadingDocId, setUploadingDocId] = useState<string | null>(null);
+  const [signDialogOpen, setSignDialogOpen] = useState(false);
+  const [docToSign, setDocToSign] = useState<DocumentWithType | null>(null);
 
   useEffect(() => {
     document.title = "Document Checklist | Secured Asset Funding";
@@ -89,6 +96,38 @@ export default function ApplicationDocumentsPage() {
   const { data: documents, isLoading: docsLoading } = useQuery<DocumentWithType[]>({
     queryKey: ["/api/applications", applicationId, "documents"],
     enabled: isAuthenticated && !!applicationId,
+  });
+
+  const { data: signatures = [] } = useQuery<DocumentSignature[]>({
+    queryKey: ["/api/applications", applicationId, "signatures"],
+    enabled: isAuthenticated && !!applicationId,
+  });
+
+  const signDocumentMutation = useMutation({
+    mutationFn: async ({ documentId, signatureData }: { documentId: string; signatureData: string }) => {
+      return apiRequest("POST", `/api/applications/${applicationId}/signatures`, {
+        documentId,
+        signatureData,
+        signatureType: "drawn",
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/applications", applicationId, "signatures"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/applications", applicationId, "documents"] });
+      setSignDialogOpen(false);
+      setDocToSign(null);
+      toast({
+        title: "Document Signed",
+        description: "Your signature has been recorded successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Signing Failed",
+        description: "Failed to record your signature. Please try again.",
+        variant: "destructive",
+      });
+    },
   });
 
   const updateDocumentMutation = useMutation({
@@ -184,6 +223,28 @@ export default function ApplicationDocumentsPage() {
     setSelectedDoc(doc);
     setComment(doc.comment || "");
     setCommentDialogOpen(true);
+  };
+
+  const openSignDialog = (doc: DocumentWithType) => {
+    setDocToSign(doc);
+    setSignDialogOpen(true);
+  };
+
+  const handleSignatureComplete = (signatureDataUrl: string) => {
+    if (docToSign) {
+      signDocumentMutation.mutate({
+        documentId: docToSign.id,
+        signatureData: signatureDataUrl,
+      });
+    }
+  };
+
+  const isDocumentSigned = (docId: string) => {
+    return signatures.some(sig => sig.documentId === docId);
+  };
+
+  const getDocumentSignature = (docId: string) => {
+    return signatures.find(sig => sig.documentId === docId);
   };
 
   if (authLoading || appLoading) {
@@ -308,6 +369,7 @@ export default function ApplicationDocumentsPage() {
                         <TableHead>Documentation</TableHead>
                         <TableHead className="w-32">Status</TableHead>
                         <TableHead className="w-16">Docs</TableHead>
+                        <TableHead className="w-20">E-Sign</TableHead>
                         <TableHead>Comments</TableHead>
                         <TableHead className="w-24 text-right">Action</TableHead>
                       </TableRow>
@@ -338,6 +400,26 @@ export default function ApplicationDocumentsPage() {
                                 <Paperclip className="h-4 w-4 text-primary" />
                               ) : (
                                 <Paperclip className="h-4 w-4 text-muted-foreground" />
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {isDocumentSigned(doc.id) ? (
+                                <Badge className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+                                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                                  Signed
+                                </Badge>
+                              ) : doc.documentType?.requiresSignature ? (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => openSignDialog(doc)}
+                                  data-testid={`button-sign-${doc.id}`}
+                                >
+                                  <PenTool className="h-3 w-3 mr-1" />
+                                  Sign
+                                </Button>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">N/A</span>
                               )}
                             </TableCell>
                             <TableCell>
@@ -422,6 +504,43 @@ export default function ApplicationDocumentsPage() {
               Save Comment
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={signDialogOpen} onOpenChange={setSignDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileSignature className="h-5 w-5 text-primary" />
+              E-Sign Document
+            </DialogTitle>
+            <DialogDescription>
+              Sign {docToSign?.documentType?.name} electronically
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="p-4 bg-muted/30 rounded-lg text-sm">
+              <p className="font-medium mb-2">By signing below, you agree that:</p>
+              <ul className="list-disc list-inside text-muted-foreground space-y-1">
+                <li>This electronic signature has the same legal effect as a handwritten signature</li>
+                <li>You are authorized to sign this document</li>
+                <li>All information provided is accurate and complete</li>
+              </ul>
+            </div>
+            
+            <SignatureCanvas
+              onSignatureComplete={handleSignatureComplete}
+              onClear={() => {}}
+            />
+            
+            {signDocumentMutation.isPending && (
+              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Recording your signature...</span>
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

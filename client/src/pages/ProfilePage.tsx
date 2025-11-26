@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { PortalHeader } from "@/components/PortalHeader";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +10,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { 
   User,
   Mail,
@@ -18,6 +29,14 @@ import {
   Shield,
   AlertCircle,
   CheckCircle2,
+  Bell,
+  Target,
+  DollarSign,
+  Home,
+  Plus,
+  Trash2,
+  Loader2,
+  Link2,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -40,6 +59,77 @@ export default function ProfilePage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [passwordError, setPasswordError] = useState("");
+
+  const [investmentPreferences, setInvestmentPreferences] = useState({
+    preferredLoanTypes: [] as string[],
+    targetMarkets: [] as string[],
+    budgetMin: "",
+    budgetMax: "",
+    investmentGoal: "",
+    experience: "",
+  });
+
+  const [notificationSettings, setNotificationSettings] = useState({
+    emailUpdates: true,
+    applicationStatus: true,
+    documentRequests: true,
+    marketingEmails: false,
+    smsAlerts: false,
+  });
+
+  const [newEntity, setNewEntity] = useState("");
+  const [entities, setEntities] = useState<{ id: string; name: string; type: string }[]>([
+    { id: "1", name: "Sample Investment LLC", type: "LLC" },
+  ]);
+
+  const loanTypes = ["DSCR", "Fix & Flip", "New Construction", "Bridge Loan"];
+  const markets = ["California", "Texas", "Florida", "Arizona", "Nevada", "Georgia", "Colorado", "North Carolina"];
+  const experienceLevels = ["New Investor (0-2 properties)", "Intermediate (3-10 properties)", "Experienced (10+ properties)", "Professional (Full-time investor)"];
+  const investmentGoals = ["Build Rental Portfolio", "Fix & Flip for Profit", "Ground-Up Development", "Mixed Strategy"];
+
+  const toggleLoanType = (type: string) => {
+    setInvestmentPreferences(prev => ({
+      ...prev,
+      preferredLoanTypes: prev.preferredLoanTypes.includes(type)
+        ? prev.preferredLoanTypes.filter(t => t !== type)
+        : [...prev.preferredLoanTypes, type],
+    }));
+  };
+
+  const toggleMarket = (market: string) => {
+    setInvestmentPreferences(prev => ({
+      ...prev,
+      targetMarkets: prev.targetMarkets.includes(market)
+        ? prev.targetMarkets.filter(m => m !== market)
+        : [...prev.targetMarkets, market],
+    }));
+  };
+
+  const handleSavePreferences = () => {
+    toast({
+      title: "Preferences Saved",
+      description: "Your investment preferences have been updated.",
+    });
+  };
+
+  const handleAddEntity = () => {
+    if (!newEntity.trim()) return;
+    const newId = Date.now().toString();
+    setEntities([...entities, { id: newId, name: newEntity.trim(), type: "LLC" }]);
+    setNewEntity("");
+    toast({
+      title: "Entity Added",
+      description: `${newEntity.trim()} has been added to your account.`,
+    });
+  };
+
+  const handleRemoveEntity = (id: string) => {
+    setEntities(entities.filter(e => e.id !== id));
+    toast({
+      title: "Entity Removed",
+      description: "The entity has been removed from your account.",
+    });
+  };
 
   const getInitials = (firstName?: string | null, lastName?: string | null) => {
     const first = firstName?.charAt(0) || "";
@@ -265,11 +355,261 @@ export default function ProfilePage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Building2 className="h-5 w-5 text-primary" />
-                Investment Profile
+                <Target className="h-5 w-5 text-primary" />
+                Investment Preferences
               </CardTitle>
               <CardDescription>
-                Your investment experience and preferences
+                Configure your investment strategy and target criteria
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-3">
+                <Label>Preferred Loan Types</Label>
+                <div className="flex flex-wrap gap-2">
+                  {loanTypes.map((type) => (
+                    <Badge
+                      key={type}
+                      variant={investmentPreferences.preferredLoanTypes.includes(type) ? "default" : "outline"}
+                      className="cursor-pointer"
+                      onClick={() => toggleLoanType(type)}
+                      data-testid={`badge-loan-type-${type.toLowerCase().replace(/\s+/g, '-')}`}
+                    >
+                      {type}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <Label>Target Markets</Label>
+                <div className="flex flex-wrap gap-2">
+                  {markets.map((market) => (
+                    <Badge
+                      key={market}
+                      variant={investmentPreferences.targetMarkets.includes(market) ? "default" : "outline"}
+                      className="cursor-pointer"
+                      onClick={() => toggleMarket(market)}
+                      data-testid={`badge-market-${market.toLowerCase()}`}
+                    >
+                      {market}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Investment Experience</Label>
+                  <Select
+                    value={investmentPreferences.experience}
+                    onValueChange={(value) => setInvestmentPreferences(prev => ({ ...prev, experience: value }))}
+                  >
+                    <SelectTrigger data-testid="select-experience">
+                      <SelectValue placeholder="Select your experience level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {experienceLevels.map((level) => (
+                        <SelectItem key={level} value={level}>{level}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Investment Goal</Label>
+                  <Select
+                    value={investmentPreferences.investmentGoal}
+                    onValueChange={(value) => setInvestmentPreferences(prev => ({ ...prev, investmentGoal: value }))}
+                  >
+                    <SelectTrigger data-testid="select-goal">
+                      <SelectValue placeholder="Select your primary goal" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {investmentGoals.map((goal) => (
+                        <SelectItem key={goal} value={goal}>{goal}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="budget-min">Minimum Budget</Label>
+                  <div className="relative">
+                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="budget-min"
+                      type="number"
+                      placeholder="100,000"
+                      value={investmentPreferences.budgetMin}
+                      onChange={(e) => setInvestmentPreferences(prev => ({ ...prev, budgetMin: e.target.value }))}
+                      className="pl-9"
+                      data-testid="input-budget-min"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="budget-max">Maximum Budget</Label>
+                  <div className="relative">
+                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="budget-max"
+                      type="number"
+                      placeholder="500,000"
+                      value={investmentPreferences.budgetMax}
+                      onChange={(e) => setInvestmentPreferences(prev => ({ ...prev, budgetMax: e.target.value }))}
+                      className="pl-9"
+                      data-testid="input-budget-max"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <Button onClick={handleSavePreferences} data-testid="button-save-preferences">
+                Save Preferences
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Bell className="h-5 w-5 text-primary" />
+                Notification Settings
+              </CardTitle>
+              <CardDescription>
+                Control how you receive updates and alerts
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="font-medium">Email Updates</Label>
+                    <p className="text-sm text-muted-foreground">Receive general updates via email</p>
+                  </div>
+                  <Switch
+                    checked={notificationSettings.emailUpdates}
+                    onCheckedChange={(checked) => setNotificationSettings(prev => ({ ...prev, emailUpdates: checked }))}
+                    data-testid="switch-email-updates"
+                  />
+                </div>
+                <Separator />
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="font-medium">Application Status</Label>
+                    <p className="text-sm text-muted-foreground">Get notified when your application status changes</p>
+                  </div>
+                  <Switch
+                    checked={notificationSettings.applicationStatus}
+                    onCheckedChange={(checked) => setNotificationSettings(prev => ({ ...prev, applicationStatus: checked }))}
+                    data-testid="switch-application-status"
+                  />
+                </div>
+                <Separator />
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="font-medium">Document Requests</Label>
+                    <p className="text-sm text-muted-foreground">Get notified when documents are needed</p>
+                  </div>
+                  <Switch
+                    checked={notificationSettings.documentRequests}
+                    onCheckedChange={(checked) => setNotificationSettings(prev => ({ ...prev, documentRequests: checked }))}
+                    data-testid="switch-document-requests"
+                  />
+                </div>
+                <Separator />
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="font-medium">SMS Alerts</Label>
+                    <p className="text-sm text-muted-foreground">Receive urgent updates via text message</p>
+                  </div>
+                  <Switch
+                    checked={notificationSettings.smsAlerts}
+                    onCheckedChange={(checked) => setNotificationSettings(prev => ({ ...prev, smsAlerts: checked }))}
+                    data-testid="switch-sms-alerts"
+                  />
+                </div>
+                <Separator />
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="font-medium">Marketing Emails</Label>
+                    <p className="text-sm text-muted-foreground">Receive news about products and offers</p>
+                  </div>
+                  <Switch
+                    checked={notificationSettings.marketingEmails}
+                    onCheckedChange={(checked) => setNotificationSettings(prev => ({ ...prev, marketingEmails: checked }))}
+                    data-testid="switch-marketing-emails"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Link2 className="h-5 w-5 text-primary" />
+                Connected Entities
+              </CardTitle>
+              <CardDescription>
+                Manage business entities and accounts linked to your profile
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-3">
+                {entities.map((entity) => (
+                  <div key={entity.id} className="flex items-center justify-between p-3 rounded-lg border">
+                    <div className="flex items-center gap-3">
+                      <Building2 className="h-5 w-5 text-primary" />
+                      <div>
+                        <p className="font-medium" data-testid={`text-entity-name-${entity.id}`}>{entity.name}</p>
+                        <p className="text-sm text-muted-foreground">{entity.type}</p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleRemoveEntity(entity.id)}
+                      data-testid={`button-remove-entity-${entity.id}`}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+              
+              <Separator />
+              
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Add new entity (e.g., ABC Investments LLC)"
+                  value={newEntity}
+                  onChange={(e) => setNewEntity(e.target.value)}
+                  data-testid="input-new-entity"
+                />
+                <Button onClick={handleAddEntity} data-testid="button-add-entity">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add
+                </Button>
+              </div>
+              
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <p className="text-sm text-muted-foreground">
+                  Connected entities can be used as borrowing entities on your loan applications. Make sure to have your operating agreements and entity formation documents ready.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Building2 className="h-5 w-5 text-primary" />
+                Account Overview
+              </CardTitle>
+              <CardDescription>
+                Your account status and quick actions
               </CardDescription>
             </CardHeader>
             <CardContent>

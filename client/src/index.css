@@ -286,3 +286,109 @@
     inset: -1px;
   }
 }
+
+/* Print styles for PDF export */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  .print\:hidden,
+  nav,
+  header,
+  footer,
+  button,
+  .no-print,
+  [data-testid*="button-"],
+  [data-testid*="link-"] {
+    display: none !important;
+  }
+
+  .bg-background,
+  .bg-card,
+  .bg-muted {
+    background: white !important;
+  }
+
+  .text-foreground,
+  .text-muted-foreground {
+    color: black !important;
+  }
+
+  .border,
+  .border-border {
+    border-color: #ccc !important;
+  }
+
+  /* Make main content full width */
+  main {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Page title styling */
+  h1 {
+    font-size: 24pt !important;
+    margin-bottom: 8pt !important;
+  }
+
+  /* Card styling for print */
+  .rounded-lg,
+  .rounded-xl {
+    border-radius: 4px !important;
+    border: 1px solid #ccc !important;
+    page-break-inside: avoid;
+  }
+
+  /* Improve text colors for print */
+  .text-green-600 {
+    color: #16a34a !important;
+  }
+
+  .text-red-600 {
+    color: #dc2626 !important;
+  }
+
+  .text-yellow-600 {
+    color: #ca8a04 !important;
+  }
+
+  .text-primary {
+    color: #e55c2b !important;
+  }
+
+  /* Hide sidebar and other navigation elements */
+  [class*="sidebar"],
+  [class*="Sidebar"] {
+    display: none !important;
+  }
+
+  /* Ensure grid layouts work in print */
+  .grid {
+    display: block !important;
+  }
+
+  .lg\:col-span-2,
+  .lg\:col-span-1 {
+    width: 100% !important;
+  }
+
+  /* Page breaks */
+  .page-break-before {
+    page-break-before: always;
+  }
+
+  .page-break-after {
+    page-break-after: always;
+  }
+
+  /* Add header with company name */
+  @page {
+    margin: 1in;
+    @top-center {
+      content: "Secured Asset Funding - Investment Analysis";
+    }
+  }
+}
