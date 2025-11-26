@@ -188,8 +188,11 @@ export default function ApplicationDocumentsPage() {
     },
   });
 
-  const getUploadParameters = async () => {
-    const res = await apiRequest("POST", "/api/objects/upload", {});
+  const getUploadParameters = (doc: DocumentWithType) => async (file: { name: string; size: number; type: string }) => {
+    // Use application-specific upload URL for organized folder structure
+    const res = await apiRequest("POST", `/api/documents/${doc.id}/upload-url`, {
+      fileName: file.name,
+    });
     const data = await res.json();
     return {
       method: "PUT" as const,
@@ -446,7 +449,7 @@ export default function ApplicationDocumentsPage() {
                               <ObjectUploader
                                 maxNumberOfFiles={1}
                                 maxFileSize={10485760}
-                                onGetUploadParameters={getUploadParameters}
+                                onGetUploadParameters={getUploadParameters(doc)}
                                 onComplete={handleUploadComplete(doc)}
                                 buttonVariant="outline"
                                 buttonSize="sm"

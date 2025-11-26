@@ -332,6 +332,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Object Storage routes for document uploads
+  // Generic upload URL (for backwards compatibility)
   app.post("/api/objects/upload", isAuthenticated, async (req: any, res) => {
     try {
       const objectStorageService = new ObjectStorageService();
@@ -339,6 +340,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ uploadURL });
     } catch (error: any) {
       console.error("Error getting upload URL:", error);
+      if (error.message?.includes("PRIVATE_OBJECT_DIR")) {
+        res.status(503).json({ 
+          error: "File storage not configured. Please contact support.",
+          details: "Object storage environment not set up"
+        });
+      } else {
+        res.status(500).json({ error: "Failed to get upload URL. Please try again." });
+      }
+    }
+  });
+
+  // Application-specific document upload URL
+  // Creates organized folder structure: /applications/{appId}/documents/{docId}/{filename}
+  app.post("/api/documents/:id/upload-url", isAuthenticated, async (req: any, res) => {
+    const userId = req.user?.claims?.sub;
+    const { fileName } = req.body;
+
+    if (!fileName) {
+      return res.status(400).json({ error: "fileName is required" });
+    }
+
+    try {
+      const doc = await storage.getDocument(req.params.id);
+      if (!doc) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      const application = await storage.getLoanApplication(doc.loanApplicationId);
+      if (!application || application.userId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const objectStorageService = new ObjectStorageService();
+      const uploadURL = await objectStorageService.getApplicationDocumentUploadURL(
+        doc.loanApplicationId,
+        doc.id,
+        fileName
+      );
+      
+      res.json({ uploadURL });
+    } catch (error: any) {
+      console.error("Error getting document upload URL:", error);
       if (error.message?.includes("PRIVATE_OBJECT_DIR")) {
         res.status(503).json({ 
           error: "File storage not configured. Please contact support.",

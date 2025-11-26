@@ -13,10 +13,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Upload, File, X, Loader2 } from "lucide-react";
 
+interface FileInfo {
+  name: string;
+  size: number;
+  type: string;
+}
+
 interface ObjectUploaderProps {
   maxNumberOfFiles?: number;
   maxFileSize?: number;
-  onGetUploadParameters: () => Promise<{
+  onGetUploadParameters: (file: FileInfo) => Promise<{
     method: "PUT";
     url: string;
   }>;
@@ -61,7 +67,11 @@ export function ObjectUploader({
     setUploadError(null);
     
     try {
-      const result = await onGetUploadParameters();
+      const result = await onGetUploadParameters({
+        name: selectedFile.name,
+        size: selectedFile.size,
+        type: selectedFile.type,
+      });
       const url = result.url;
       
       if (!url) {
