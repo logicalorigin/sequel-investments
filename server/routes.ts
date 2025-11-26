@@ -28,8 +28,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set up staff local authentication (username/password)
   await setupStaffAuth(app);
   
-  // Create default admin user if not exists
-  await createAdminUser("admin", "admin123");
+  // Create default admin user in development mode only
+  // In production, use environment variables or a proper user management system
+  if (process.env.NODE_ENV !== 'production') {
+    await createAdminUser("admin", "admin123");
+  }
   
   // Seed document types on startup
   await storage.seedDocumentTypes();
