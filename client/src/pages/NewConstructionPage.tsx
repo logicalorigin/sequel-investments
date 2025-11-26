@@ -5,7 +5,7 @@ import { Link } from "wouter";
 import { LeadForm } from "@/components/LeadForm";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
-import { ConstructionCalculator } from "@/components/ConstructionCalculator";
+import { TeaserConstructionCalculator } from "@/components/TeaserConstructionCalculator";
 import {
   Accordion,
   AccordionContent,
@@ -233,7 +233,7 @@ export default function NewConstructionPage() {
 
               <div>
                 <h2 className="text-3xl font-bold mb-6">Construction Loan Calculator</h2>
-                <ConstructionCalculator />
+                <TeaserConstructionCalculator />
               </div>
 
               <div>

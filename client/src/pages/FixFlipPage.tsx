@@ -5,7 +5,7 @@ import { Link } from "wouter";
 import { LeadForm } from "@/components/LeadForm";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
-import { FixFlipCalculator } from "@/components/FixFlipCalculator";
+import { TeaserFixFlipCalculator } from "@/components/TeaserFixFlipCalculator";
 import {
   Accordion,
   AccordionContent,
@@ -210,7 +210,7 @@ export default function FixFlipPage() {
 
               <div>
                 <h2 className="text-3xl font-bold mb-6">Fix & Flip Calculator</h2>
-                <FixFlipCalculator />
+                <TeaserFixFlipCalculator />
               </div>
 
               <div>

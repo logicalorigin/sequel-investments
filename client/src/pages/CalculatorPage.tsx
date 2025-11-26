@@ -1,6 +1,6 @@
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
-import { DSCRCalculator } from "@/components/DSCRCalculator";
+import { TeaserDSCRCalculator } from "@/components/TeaserDSCRCalculator";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calculator, TrendingUp, Home, Building, DollarSign, CheckCircle2 } from "lucide-react";
 
@@ -26,7 +26,7 @@ export default function CalculatorPage() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2">
-              <DSCRCalculator />
+              <TeaserDSCRCalculator />
             </div>
 
             <div className="lg:col-span-1 space-y-6">
