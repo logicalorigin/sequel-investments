@@ -118,6 +118,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Create initial timeline event
+      await storage.createTimelineEvent({
+        applicationId: application.id,
+        eventType: "application_created",
+        title: "Application Created",
+        description: `${application.loanType} loan application submitted`,
+      });
+      
+      // Create welcome notification
+      await storage.createNotification({
+        userId,
+        type: "system",
+        title: "Application Submitted",
+        message: `Your ${application.loanType} loan application has been successfully submitted. We'll be in touch soon!`,
+        metadata: { applicationId: application.id },
+      });
+      
       return res.status(201).json(application);
     } catch (error) {
       console.error("Error creating application:", error);
@@ -158,7 +175,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Access denied" });
       }
       
+      const oldStatus = application.status;
+      const oldStage = application.processingStage;
       const updated = await storage.updateLoanApplication(req.params.id, req.body);
+      
+      // Create notifications and timeline events for status changes
+      if (req.body.status && req.body.status !== oldStatus) {
+        const statusLabels: Record<string, string> = {
+          draft: "Draft",
+          submitted: "Submitted",
+          in_review: "In Review",
+          approved: "Approved",
+          funded: "Funded",
+          denied: "Denied",
+          withdrawn: "Withdrawn",
+        };
+        
+        // Create notification for status change
+        await storage.createNotification({
+          userId,
+          type: "status_change",
+          title: `Application Status Updated`,
+          message: `Your loan application status has changed to ${statusLabels[req.body.status] || req.body.status}.`,
+          metadata: { applicationId: req.params.id, newStatus: req.body.status },
+        });
+        
+        // Create timeline event
+        await storage.createTimelineEvent({
+          applicationId: req.params.id,
+          eventType: "status_change",
+          title: `Status changed to ${statusLabels[req.body.status] || req.body.status}`,
+          description: `Application status updated from ${statusLabels[oldStatus] || oldStatus}`,
+        });
+      }
+      
+      // Create timeline event for processing stage change
+      if (req.body.processingStage && req.body.processingStage !== oldStage) {
+        const stageLabels: Record<string, string> = {
+          account_review: "Account Executive Review",
+          underwriting: "Underwriting",
+          term_sheet: "Term Sheet Issued",
+          processing: "Processing",
+          docs_out: "Docs Out",
+          closed: "Closed",
+        };
+        
+        await storage.createNotification({
+          userId,
+          type: "system",
+          title: `Application Stage Advanced`,
+          message: `Your application has moved to: ${stageLabels[req.body.processingStage] || req.body.processingStage}`,
+          metadata: { applicationId: req.params.id },
+        });
+        
+        await storage.createTimelineEvent({
+          applicationId: req.params.id,
+          eventType: "stage_advanced",
+          title: `Advanced to ${stageLabels[req.body.processingStage] || req.body.processingStage}`,
+        });
+      }
+      
       return res.json(updated);
     } catch (error) {
       console.error("Error updating application:", error);
@@ -322,6 +398,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fileSize: req.body.fileSize || 0,
         mimeType: req.body.mimeType || "application/octet-stream",
         uploadedAt: new Date(),
+      });
+      
+      // Get document type name for timeline
+      const docTypes = await storage.getDocumentTypes();
+      const docType = docTypes.find(dt => dt.id === doc.documentTypeId);
+      
+      // Create timeline event for document upload
+      await storage.createTimelineEvent({
+        applicationId: doc.loanApplicationId,
+        eventType: "document_uploaded",
+        title: `${docType?.name || "Document"} Uploaded`,
+        description: req.body.fileName || "Document uploaded successfully",
       });
 
       res.status(200).json(updated);

@@ -1,5 +1,5 @@
 import { sql, relations } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, integer, jsonb, index, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, integer, jsonb, index, pgEnum, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -134,6 +134,7 @@ export const documentTypes = pgTable("document_types", {
   loanTypes: text("loan_types").array().notNull(),
   isRequired: text("is_required").default("required").notNull(),
   sortOrder: integer("sort_order").default(0).notNull(),
+  requiresSignature: boolean("requires_signature").default(false).notNull(),
 });
 
 export type DocumentType = typeof documentTypes.$inferSelect;
