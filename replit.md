@@ -48,7 +48,7 @@ I prefer simple language. I want iterative development. Ask before making major 
   - Origination Points: Linear scale from 2.0% at base rate to 0.0% at 12.9% rate (both analyzers)
 - **Profile Page**: User profile management, password, investment preferences, notification settings, connected entities, and account overview.
 - **Shared Portal Header**: Consistent branding and user menu.
-- **Document Upload Organization**: Automated file organization creates application-specific folders at `/applications/{appId}/documents/{docId}/{uniqueId}_{fileName}` for structured document storage.
+- **Document Upload Organization**: Automated file organization creates deal-specific folders using the property address (e.g., "123 Main Street, Los Angeles, CA") for human-readable document storage. Files are stored as `/{dealName}/{uniqueId}_{fileName}`.
 
 ### Trust Indicators
 
