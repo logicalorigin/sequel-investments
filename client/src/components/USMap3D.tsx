@@ -1,135 +1,71 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import * as THREE from "three";
 import { statesData, type StateData } from "@shared/schema";
+import USMap from "./USMap";
 
 interface USMap3DProps {
   onStateClick?: (state: StateData) => void;
 }
 
-const stateColors: Record<string, string> = {
+const stateColors = {
   high: "#e55c2b",
   medium: "#f5a623", 
   low: "#22c55e",
   ineligible: "#6b7280",
 };
 
-const statePaths: Record<string, string> = {
-  AL: "M 718.31301,344.84758 720.06014,385.42 725.01043,415.31 730,445 L 740,450 750,440 770,433 L 765,410 755,375 740,335 Z",
-  AK: "M 150,480 L 130,520 140,560 180,570 220,550 260,560 280,540 250,500 200,480 Z",
-  AZ: "M 280,300 L 250,380 260,420 320,450 370,440 380,380 360,320 Z",
-  AR: "M 580,320 L 560,380 600,400 650,385 660,340 620,310 Z",
-  CA: "M 120,200 L 100,280 120,360 160,420 200,400 220,320 200,240 160,180 Z",
-  CO: "M 340,240 L 330,320 400,330 470,320 480,240 400,230 Z",
-  CT: "M 870,160 L 855,175 870,190 890,180 Z",
-  DE: "M 840,220 L 835,240 850,250 855,230 Z",
-  FL: "M 750,420 L 730,480 760,530 810,540 850,500 840,450 800,420 Z",
-  GA: "M 750,340 L 730,400 760,440 810,430 830,380 800,330 Z",
-  HI: "M 300,500 L 280,530 310,550 350,540 360,510 330,490 Z",
-  ID: "M 220,100 L 200,180 240,240 290,220 300,140 270,80 Z",
-  IL: "M 620,200 L 600,280 630,340 670,320 680,240 650,180 Z",
-  IN: "M 670,200 L 655,270 680,320 720,300 730,230 700,180 Z",
-  IA: "M 540,180 L 520,240 570,270 620,250 630,190 580,160 Z",
-  KS: "M 420,280 L 400,340 480,350 560,340 570,280 490,270 Z",
-  KY: "M 680,280 L 660,320 720,350 780,340 790,300 740,270 Z",
-  LA: "M 580,400 L 560,460 600,490 660,470 670,420 620,390 Z",
-  ME: "M 900,80 L 880,130 910,160 940,140 950,100 920,60 Z",
-  MD: "M 820,230 L 800,260 840,280 870,260 860,220 Z",
-  MA: "M 880,150 L 865,165 885,180 910,170 Z",
-  MI: "M 660,120 L 640,180 680,200 730,180 740,140 700,100 Z",
-  MN: "M 540,80 L 520,160 570,200 620,180 640,100 590,60 Z",
-  MS: "M 640,340 L 620,420 660,460 700,440 710,370 670,330 Z",
-  MO: "M 560,260 L 540,340 600,370 660,350 670,280 610,250 Z",
-  MT: "M 280,60 L 260,120 340,140 420,120 430,60 350,40 Z",
-  NE: "M 420,200 L 400,260 480,270 560,260 570,200 490,190 Z",
-  NV: "M 180,200 L 160,300 200,360 250,340 260,240 220,180 Z",
-  NH: "M 890,100 L 880,140 900,160 920,140 Z",
-  NJ: "M 850,190 L 840,220 860,240 875,220 Z",
-  NM: "M 320,320 L 300,400 360,430 420,410 430,330 370,300 Z",
-  NY: "M 820,120 L 790,180 840,200 880,180 890,130 850,100 Z",
-  NC: "M 780,300 L 760,340 820,360 880,340 890,300 840,280 Z",
-  ND: "M 440,80 L 420,140 480,160 540,140 550,80 490,60 Z",
-  OH: "M 720,200 L 700,260 740,290 790,270 800,210 760,180 Z",
-  OK: "M 440,320 L 420,380 500,400 570,380 580,330 500,300 Z",
-  OR: "M 120,100 L 100,160 160,200 220,180 230,120 180,80 Z",
-  PA: "M 780,180 L 760,220 810,250 860,230 870,180 820,160 Z",
-  RI: "M 890,165 L 885,175 895,180 Z",
-  SC: "M 780,340 L 760,380 800,400 840,380 850,340 810,320 Z",
-  SD: "M 440,140 L 420,200 480,220 540,200 550,140 490,120 Z",
-  TN: "M 680,320 L 660,350 740,370 820,350 830,320 750,300 Z",
-  TX: "M 380,360 L 340,480 420,540 540,520 580,420 520,340 Z",
-  UT: "M 260,200 L 240,280 290,320 340,300 350,220 300,180 Z",
-  VT: "M 880,100 L 870,130 890,150 910,130 Z",
-  VA: "M 780,260 L 760,300 820,320 880,300 890,260 840,240 Z",
-  WA: "M 160,40 L 140,100 200,130 260,110 270,50 220,20 Z",
-  WV: "M 760,240 L 740,280 780,300 820,280 830,240 790,220 Z",
-  WI: "M 600,120 L 580,180 620,210 670,190 680,130 640,100 Z",
-  WY: "M 320,140 L 300,200 360,220 420,200 430,140 370,120 Z",
-  DC: "M 830,250 L 825,260 840,265 845,255 Z",
-};
-
-const statePositions: Record<string, { x: number; y: number }> = {
-  AL: { x: 0.42, y: 0.62 },
-  AK: { x: -0.6, y: 0.8 },
-  AZ: { x: -0.35, y: 0.5 },
-  AR: { x: 0.22, y: 0.55 },
-  CA: { x: -0.55, y: 0.35 },
-  CO: { x: -0.15, y: 0.4 },
-  CT: { x: 0.72, y: 0.22 },
-  DE: { x: 0.68, y: 0.32 },
-  FL: { x: 0.52, y: 0.78 },
-  GA: { x: 0.48, y: 0.62 },
-  HI: { x: -0.4, y: 0.9 },
-  ID: { x: -0.38, y: 0.12 },
-  IL: { x: 0.32, y: 0.38 },
-  IN: { x: 0.4, y: 0.38 },
-  IA: { x: 0.22, y: 0.28 },
-  KS: { x: 0.05, y: 0.45 },
-  KY: { x: 0.42, y: 0.45 },
-  LA: { x: 0.25, y: 0.72 },
-  ME: { x: 0.78, y: 0.02 },
-  MD: { x: 0.65, y: 0.35 },
-  MA: { x: 0.75, y: 0.18 },
-  MI: { x: 0.42, y: 0.18 },
-  MN: { x: 0.22, y: 0.1 },
-  MS: { x: 0.35, y: 0.65 },
-  MO: { x: 0.22, y: 0.45 },
-  MT: { x: -0.22, y: 0.05 },
-  NE: { x: 0.02, y: 0.3 },
-  NV: { x: -0.48, y: 0.28 },
-  NH: { x: 0.75, y: 0.1 },
-  NJ: { x: 0.7, y: 0.28 },
-  NM: { x: -0.18, y: 0.55 },
-  NY: { x: 0.68, y: 0.18 },
-  NC: { x: 0.58, y: 0.48 },
-  ND: { x: 0.02, y: 0.08 },
-  OH: { x: 0.48, y: 0.32 },
-  OK: { x: 0.05, y: 0.52 },
-  OR: { x: -0.52, y: 0.08 },
-  PA: { x: 0.62, y: 0.25 },
-  RI: { x: 0.76, y: 0.2 },
-  SC: { x: 0.55, y: 0.55 },
-  SD: { x: 0.02, y: 0.18 },
-  TN: { x: 0.42, y: 0.5 },
-  TX: { x: -0.02, y: 0.68 },
-  UT: { x: -0.32, y: 0.35 },
-  VT: { x: 0.72, y: 0.08 },
-  VA: { x: 0.6, y: 0.4 },
-  WA: { x: -0.48, y: -0.02 },
-  WV: { x: 0.55, y: 0.38 },
-  WI: { x: 0.32, y: 0.18 },
-  WY: { x: -0.15, y: 0.2 },
-  DC: { x: 0.64, y: 0.36 },
-};
-
-const stateSizes: Record<string, number> = {
-  TX: 1.8, CA: 1.5, MT: 1.3, AZ: 1.2, NV: 1.1, CO: 1.1, NM: 1.1,
-  OR: 1.0, WY: 1.0, MI: 0.95, UT: 0.9, ID: 0.9, KS: 0.9, NE: 0.9,
-  SD: 0.85, ND: 0.85, MN: 0.95, OK: 0.9, MO: 0.85, WA: 0.85,
-  GA: 0.8, FL: 0.85, IL: 0.8, IA: 0.75, WI: 0.75, NY: 0.8,
-  NC: 0.8, PA: 0.75, OH: 0.7, VA: 0.7, TN: 0.7, KY: 0.65,
-  IN: 0.6, ME: 0.6, SC: 0.55, WV: 0.5, LA: 0.6, MS: 0.6,
-  AL: 0.6, AR: 0.55, MD: 0.4, VT: 0.35, NH: 0.35, MA: 0.4,
-  NJ: 0.35, CT: 0.3, DE: 0.25, RI: 0.2, DC: 0.15, HI: 0.5, AK: 1.0,
+const statePositions: Record<string, { x: number; y: number; scale: number }> = {
+  WA: { x: -0.75, y: 0.85, scale: 0.9 },
+  OR: { x: -0.8, y: 0.65, scale: 0.85 },
+  CA: { x: -0.85, y: 0.35, scale: 1.1 },
+  NV: { x: -0.65, y: 0.45, scale: 0.8 },
+  ID: { x: -0.55, y: 0.7, scale: 0.75 },
+  MT: { x: -0.35, y: 0.85, scale: 0.95 },
+  WY: { x: -0.3, y: 0.65, scale: 0.8 },
+  UT: { x: -0.5, y: 0.45, scale: 0.7 },
+  AZ: { x: -0.55, y: 0.2, scale: 0.85 },
+  CO: { x: -0.25, y: 0.45, scale: 0.8 },
+  NM: { x: -0.35, y: 0.2, scale: 0.8 },
+  ND: { x: -0.05, y: 0.85, scale: 0.7 },
+  SD: { x: -0.05, y: 0.7, scale: 0.7 },
+  NE: { x: -0.05, y: 0.55, scale: 0.75 },
+  KS: { x: -0.05, y: 0.4, scale: 0.75 },
+  OK: { x: -0.05, y: 0.25, scale: 0.75 },
+  TX: { x: -0.1, y: 0.0, scale: 1.3 },
+  MN: { x: 0.15, y: 0.8, scale: 0.8 },
+  IA: { x: 0.2, y: 0.6, scale: 0.65 },
+  MO: { x: 0.22, y: 0.42, scale: 0.7 },
+  AR: { x: 0.22, y: 0.22, scale: 0.6 },
+  LA: { x: 0.25, y: 0.02, scale: 0.6 },
+  WI: { x: 0.35, y: 0.75, scale: 0.65 },
+  IL: { x: 0.38, y: 0.52, scale: 0.65 },
+  MI: { x: 0.48, y: 0.75, scale: 0.75 },
+  IN: { x: 0.48, y: 0.5, scale: 0.55 },
+  OH: { x: 0.58, y: 0.55, scale: 0.6 },
+  KY: { x: 0.52, y: 0.38, scale: 0.6 },
+  TN: { x: 0.48, y: 0.28, scale: 0.65 },
+  MS: { x: 0.38, y: 0.12, scale: 0.55 },
+  AL: { x: 0.48, y: 0.12, scale: 0.55 },
+  GA: { x: 0.58, y: 0.15, scale: 0.65 },
+  FL: { x: 0.65, y: -0.1, scale: 0.85 },
+  SC: { x: 0.68, y: 0.25, scale: 0.5 },
+  NC: { x: 0.72, y: 0.35, scale: 0.65 },
+  VA: { x: 0.72, y: 0.45, scale: 0.55 },
+  WV: { x: 0.62, y: 0.45, scale: 0.45 },
+  PA: { x: 0.72, y: 0.6, scale: 0.6 },
+  NY: { x: 0.78, y: 0.72, scale: 0.7 },
+  VT: { x: 0.85, y: 0.85, scale: 0.35 },
+  NH: { x: 0.9, y: 0.82, scale: 0.35 },
+  ME: { x: 0.95, y: 0.88, scale: 0.55 },
+  MA: { x: 0.92, y: 0.72, scale: 0.4 },
+  RI: { x: 0.95, y: 0.68, scale: 0.25 },
+  CT: { x: 0.88, y: 0.65, scale: 0.3 },
+  NJ: { x: 0.82, y: 0.55, scale: 0.35 },
+  DE: { x: 0.82, y: 0.48, scale: 0.25 },
+  MD: { x: 0.78, y: 0.48, scale: 0.4 },
+  DC: { x: 0.76, y: 0.46, scale: 0.15 },
+  HI: { x: -0.6, y: -0.35, scale: 0.5 },
+  AK: { x: -0.85, y: -0.25, scale: 0.8 },
 };
 
 export default function USMap3D({ onStateClick }: USMap3DProps) {
@@ -137,14 +73,33 @@ export default function USMap3D({ onStateClick }: USMap3DProps) {
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
-  const statesRef = useRef<Map<string, THREE.Mesh>>(new Map());
-  const mouseRef = useRef<THREE.Vector2>(new THREE.Vector2(0, 0));
-  const targetPositionsRef = useRef<Map<string, number>>(new Map());
+  const statesRef = useRef<Map<string, THREE.Group>>(new Map());
+  const mouseRef = useRef<THREE.Vector2>(new THREE.Vector2(10, 10));
   const raycasterRef = useRef<THREE.Raycaster>(new THREE.Raycaster());
   const hoveredStateRef = useRef<string | null>(null);
   const animationFrameRef = useRef<number>(0);
+  const basePositionsRef = useRef<Map<string, THREE.Vector3>>(new Map());
   
   const [hoveredState, setHoveredState] = useState<StateData | null>(null);
+  const [webGLSupported, setWebGLSupported] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const canvas = document.createElement('canvas');
+    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+    setWebGLSupported(!!gl);
+  }, []);
+
+  if (webGLSupported === false) {
+    return <USMap onStateClick={onStateClick} />;
+  }
+
+  if (webGLSupported === null) {
+    return (
+      <div className="w-full h-[550px] rounded-xl bg-muted flex items-center justify-center">
+        <div className="text-muted-foreground">Loading 3D map...</div>
+      </div>
+    );
+  }
 
   const getStateColor = useCallback((abbreviation: string): string => {
     const state = statesData.find(s => s.abbreviation === abbreviation);
@@ -155,20 +110,37 @@ export default function USMap3D({ onStateClick }: USMap3DProps) {
     return stateColors.low;
   }, []);
 
+  const createStateShape = useCallback((scale: number): THREE.Shape => {
+    const shape = new THREE.Shape();
+    const s = scale * 0.18;
+    
+    shape.moveTo(-s, -s * 0.7);
+    shape.lineTo(-s * 0.8, -s);
+    shape.lineTo(s * 0.8, -s);
+    shape.lineTo(s, -s * 0.7);
+    shape.lineTo(s, s * 0.7);
+    shape.lineTo(s * 0.8, s);
+    shape.lineTo(-s * 0.8, s);
+    shape.lineTo(-s, s * 0.7);
+    shape.closePath();
+    
+    return shape;
+  }, []);
+
   useEffect(() => {
     if (!containerRef.current) return;
 
     const container = containerRef.current;
     const width = container.clientWidth;
-    const height = container.clientHeight || 500;
+    const height = container.clientHeight || 550;
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x1a1a2e);
+    scene.background = new THREE.Color(0x0f172a);
     sceneRef.current = scene;
 
-    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
-    camera.position.set(0, 0, 8);
-    camera.lookAt(0, 0, 0);
+    const camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 1000);
+    camera.position.set(0, 0.5, 6);
+    camera.lookAt(0, 0.2, 0);
     cameraRef.current = camera;
 
     const renderer = new THREE.WebGLRenderer({ 
@@ -177,53 +149,84 @@ export default function USMap3D({ onStateClick }: USMap3DProps) {
     });
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     container.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
     scene.add(ambientLight);
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    directionalLight.position.set(5, 5, 5);
-    scene.add(directionalLight);
+    const mainLight = new THREE.DirectionalLight(0xffffff, 1.0);
+    mainLight.position.set(3, 5, 4);
+    mainLight.castShadow = true;
+    scene.add(mainLight);
 
-    const pointLight = new THREE.PointLight(0xe55c2b, 0.5, 20);
-    pointLight.position.set(0, 0, 5);
-    scene.add(pointLight);
+    const fillLight = new THREE.DirectionalLight(0x4a90d9, 0.3);
+    fillLight.position.set(-3, 2, -2);
+    scene.add(fillLight);
+
+    const rimLight = new THREE.PointLight(0xe55c2b, 0.5, 15);
+    rimLight.position.set(0, 3, 3);
+    scene.add(rimLight);
+
+    const sphereRadius = 8;
+    const mapCenterX = 0;
+    const mapCenterY = 0.3;
 
     Object.entries(statePositions).forEach(([abbr, pos]) => {
-      const size = stateSizes[abbr] || 0.5;
       const color = getStateColor(abbr);
+      const stateScale = pos.scale;
       
-      const geometry = new THREE.BoxGeometry(size * 0.5, size * 0.4, 0.15);
+      const shape = createStateShape(stateScale);
+      const extrudeSettings = {
+        depth: 0.08,
+        bevelEnabled: true,
+        bevelThickness: 0.02,
+        bevelSize: 0.015,
+        bevelSegments: 2,
+      };
       
-      const material = new THREE.MeshPhongMaterial({
+      const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+      geometry.center();
+      
+      const material = new THREE.MeshStandardMaterial({
         color: new THREE.Color(color),
-        shininess: 30,
-        specular: new THREE.Color(0x444444),
+        metalness: 0.1,
+        roughness: 0.6,
+        emissive: new THREE.Color(color),
+        emissiveIntensity: 0.05,
       });
 
       const mesh = new THREE.Mesh(geometry, material);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
       
-      const sphereRadius = 4;
-      const x = pos.x * 3;
-      const y = -pos.y * 2.5 + 1.2;
+      const x = (pos.x - 0.05) * 3.2 + mapCenterX;
+      const y = (pos.y - 0.4) * 2.8 + mapCenterY;
       
       const distFromCenter = Math.sqrt(x * x + y * y);
-      const curveAmount = Math.pow(distFromCenter / 4, 2) * 0.8;
-      const z = -curveAmount;
-
-      mesh.position.set(x, y, z);
+      const normalizedDist = distFromCenter / 3;
+      const curveAmount = Math.pow(normalizedDist, 2) * 1.2;
+      const baseZ = -curveAmount;
       
-      const lookAtPoint = new THREE.Vector3(x * 0.3, y * 0.3, 5);
-      mesh.lookAt(lookAtPoint);
-      mesh.rotateX(Math.PI * 0.1);
-
-      mesh.userData = { abbreviation: abbr, baseZ: z };
+      const tiltX = -y * 0.08;
+      const tiltY = x * 0.08;
       
-      statesRef.current.set(abbr, mesh);
-      targetPositionsRef.current.set(abbr, z);
-      scene.add(mesh);
+      const group = new THREE.Group();
+      group.add(mesh);
+      group.position.set(x, y, baseZ);
+      group.rotation.set(tiltX, tiltY, 0);
+      
+      group.userData = { 
+        abbreviation: abbr, 
+        baseZ: baseZ,
+        basePosition: new THREE.Vector3(x, y, baseZ),
+      };
+      
+      basePositionsRef.current.set(abbr, new THREE.Vector3(x, y, baseZ));
+      statesRef.current.set(abbr, group);
+      scene.add(group);
     });
 
     const handleMouseMove = (event: MouseEvent) => {
@@ -232,21 +235,35 @@ export default function USMap3D({ onStateClick }: USMap3DProps) {
       mouseRef.current.y = -((event.clientY - rect.top) / height) * 2 + 1;
       
       raycasterRef.current.setFromCamera(mouseRef.current, camera);
-      const intersects = raycasterRef.current.intersectObjects(Array.from(statesRef.current.values()));
+      const intersects = raycasterRef.current.intersectObjects(
+        Array.from(statesRef.current.values()).flatMap(g => g.children)
+      );
       
       if (intersects.length > 0) {
-        const abbr = intersects[0].object.userData.abbreviation;
-        if (hoveredStateRef.current !== abbr) {
-          hoveredStateRef.current = abbr;
-          const state = statesData.find(s => s.abbreviation === abbr);
-          setHoveredState(state || null);
+        const parent = intersects[0].object.parent;
+        if (parent) {
+          const abbr = parent.userData.abbreviation;
+          if (hoveredStateRef.current !== abbr) {
+            hoveredStateRef.current = abbr;
+            const state = statesData.find(s => s.abbreviation === abbr);
+            setHoveredState(state || null);
+            container.style.cursor = 'pointer';
+          }
         }
       } else {
         if (hoveredStateRef.current !== null) {
           hoveredStateRef.current = null;
           setHoveredState(null);
+          container.style.cursor = 'default';
         }
       }
+    };
+
+    const handleMouseLeave = () => {
+      mouseRef.current.set(10, 10);
+      hoveredStateRef.current = null;
+      setHoveredState(null);
+      container.style.cursor = 'default';
     };
 
     const handleClick = (event: MouseEvent) => {
@@ -257,53 +274,84 @@ export default function USMap3D({ onStateClick }: USMap3DProps) {
       );
       
       raycasterRef.current.setFromCamera(mouse, camera);
-      const intersects = raycasterRef.current.intersectObjects(Array.from(statesRef.current.values()));
+      const intersects = raycasterRef.current.intersectObjects(
+        Array.from(statesRef.current.values()).flatMap(g => g.children)
+      );
       
       if (intersects.length > 0 && onStateClick) {
-        const abbr = intersects[0].object.userData.abbreviation;
-        const state = statesData.find(s => s.abbreviation === abbr);
-        if (state) {
-          onStateClick(state);
+        const parent = intersects[0].object.parent;
+        if (parent) {
+          const abbr = parent.userData.abbreviation;
+          const state = statesData.find(s => s.abbreviation === abbr);
+          if (state) {
+            onStateClick(state);
+          }
         }
       }
     };
 
     container.addEventListener('mousemove', handleMouseMove);
+    container.addEventListener('mouseleave', handleMouseLeave);
     container.addEventListener('click', handleClick);
 
     const animate = () => {
       animationFrameRef.current = requestAnimationFrame(animate);
 
-      const mouse3D = new THREE.Vector3(mouseRef.current.x * 4, mouseRef.current.y * 3, 2);
+      const mouse3D = new THREE.Vector3(
+        mouseRef.current.x * 3.5,
+        mouseRef.current.y * 2.5 + 0.3,
+        3
+      );
 
-      statesRef.current.forEach((mesh, abbr) => {
-        const baseZ = mesh.userData.baseZ;
-        const distance = mesh.position.distanceTo(mouse3D);
+      statesRef.current.forEach((group, abbr) => {
+        const basePos = basePositionsRef.current.get(abbr);
+        if (!basePos) return;
         
-        const magnetStrength = 1.2;
-        const magnetRadius = 2.5;
+        const baseZ = group.userData.baseZ;
+        const statePos = new THREE.Vector3(group.position.x, group.position.y, 0);
+        const mousePos2D = new THREE.Vector3(mouse3D.x, mouse3D.y, 0);
+        const distance = statePos.distanceTo(mousePos2D);
+        
+        const magnetStrength = 1.8;
+        const magnetRadius = 2.0;
+        const falloffPower = 2.5;
         
         let targetZ = baseZ;
+        let targetScale = 1;
+        
         if (distance < magnetRadius) {
-          const influence = Math.pow(1 - distance / magnetRadius, 2);
+          const influence = Math.pow(1 - distance / magnetRadius, falloffPower);
           targetZ = baseZ + influence * magnetStrength;
+          targetScale = 1 + influence * 0.15;
         }
         
-        if (hoveredStateRef.current === abbr) {
-          targetZ += 0.3;
+        const isHovered = hoveredStateRef.current === abbr;
+        if (isHovered) {
+          targetZ += 0.4;
+          targetScale += 0.1;
         }
 
-        const currentZ = mesh.position.z;
-        const newZ = currentZ + (targetZ - currentZ) * 0.08;
-        mesh.position.z = newZ;
+        const lerpSpeed = 0.12;
+        const currentZ = group.position.z;
+        const newZ = currentZ + (targetZ - currentZ) * lerpSpeed;
+        group.position.z = newZ;
+        
+        const currentScale = group.scale.x;
+        const newScale = currentScale + (targetScale - currentScale) * lerpSpeed;
+        group.scale.setScalar(newScale);
 
-        const material = mesh.material as THREE.MeshPhongMaterial;
-        if (hoveredStateRef.current === abbr) {
-          material.emissive = new THREE.Color(0xe55c2b);
-          material.emissiveIntensity = 0.3;
+        const mesh = group.children[0] as THREE.Mesh;
+        const material = mesh.material as THREE.MeshStandardMaterial;
+        
+        const elevation = newZ - baseZ;
+        const glowIntensity = Math.min(elevation * 0.15, 0.3);
+        material.emissiveIntensity = 0.05 + glowIntensity;
+        
+        if (isHovered) {
+          material.emissive = new THREE.Color(0xffffff);
+          material.emissiveIntensity = 0.25;
         } else {
-          material.emissive = new THREE.Color(0x000000);
-          material.emissiveIntensity = 0;
+          material.emissive = new THREE.Color(getStateColor(abbr));
         }
       });
 
@@ -314,7 +362,7 @@ export default function USMap3D({ onStateClick }: USMap3DProps) {
 
     const handleResize = () => {
       const newWidth = container.clientWidth;
-      const newHeight = container.clientHeight || 500;
+      const newHeight = container.clientHeight || 550;
       
       camera.aspect = newWidth / newHeight;
       camera.updateProjectionMatrix();
@@ -326,33 +374,39 @@ export default function USMap3D({ onStateClick }: USMap3DProps) {
     return () => {
       window.removeEventListener('resize', handleResize);
       container.removeEventListener('mousemove', handleMouseMove);
+      container.removeEventListener('mouseleave', handleMouseLeave);
       container.removeEventListener('click', handleClick);
       cancelAnimationFrame(animationFrameRef.current);
       
-      statesRef.current.forEach((mesh) => {
-        mesh.geometry.dispose();
-        (mesh.material as THREE.Material).dispose();
+      statesRef.current.forEach((group) => {
+        group.children.forEach((child) => {
+          if (child instanceof THREE.Mesh) {
+            child.geometry.dispose();
+            (child.material as THREE.Material).dispose();
+          }
+        });
       });
       statesRef.current.clear();
+      basePositionsRef.current.clear();
       
       renderer.dispose();
       if (container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);
       }
     };
-  }, [getStateColor, onStateClick]);
+  }, [getStateColor, createStateShape, onStateClick]);
 
   return (
     <div className="relative">
       <div 
         ref={containerRef} 
-        className="w-full h-[500px] rounded-lg overflow-hidden cursor-pointer"
+        className="w-full h-[550px] rounded-xl overflow-hidden shadow-2xl"
         data-testid="map-3d-container"
       />
       
       {hoveredState && (
         <div 
-          className="absolute top-4 left-4 bg-card/95 backdrop-blur-sm border rounded-lg p-4 shadow-lg pointer-events-none z-10"
+          className="absolute top-4 left-4 bg-card/95 backdrop-blur-sm border rounded-lg p-4 shadow-xl pointer-events-none z-10"
           data-testid="state-tooltip"
         >
           <h3 className="font-bold text-lg">{hoveredState.name}</h3>
@@ -369,29 +423,34 @@ export default function USMap3D({ onStateClick }: USMap3DProps) {
           ) : (
             <p className="mt-2 text-sm text-muted-foreground">Not currently lending in this state</p>
           )}
+          <p className="mt-2 text-xs text-primary">Click to view details</p>
         </div>
       )}
       
-      <div className="absolute bottom-4 right-4 bg-card/90 backdrop-blur-sm border rounded-lg p-3 text-sm" data-testid="map-legend">
+      <div className="absolute bottom-4 right-4 bg-card/95 backdrop-blur-sm border rounded-lg p-3 text-sm shadow-lg" data-testid="map-legend">
         <p className="font-medium mb-2">Loan Volume</p>
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: stateColors.high }} />
+            <div className="w-3 h-3 rounded-sm shadow-sm" style={{ backgroundColor: stateColors.high }} />
             <span className="text-xs">$50M+</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: stateColors.medium }} />
+            <div className="w-3 h-3 rounded-sm shadow-sm" style={{ backgroundColor: stateColors.medium }} />
             <span className="text-xs">$10M - $50M</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: stateColors.low }} />
+            <div className="w-3 h-3 rounded-sm shadow-sm" style={{ backgroundColor: stateColors.low }} />
             <span className="text-xs">Under $10M</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: stateColors.ineligible }} />
+            <div className="w-3 h-3 rounded-sm shadow-sm" style={{ backgroundColor: stateColors.ineligible }} />
             <span className="text-xs">Not Available</span>
           </div>
         </div>
+      </div>
+
+      <div className="absolute bottom-4 left-4 bg-card/95 backdrop-blur-sm border rounded-lg px-3 py-2 text-xs text-muted-foreground shadow-lg">
+        Move mouse to interact
       </div>
     </div>
   );
