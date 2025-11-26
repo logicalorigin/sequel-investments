@@ -195,7 +195,7 @@ export default function FixFlipPage() {
                       </div>
                       <div className="flex justify-between py-3 border-b">
                         <span className="text-muted-foreground">Credit Score</span>
-                        <span className="font-semibold">620+ Minimum</span>
+                        <span className="font-semibold">660+</span>
                       </div>
                       <div className="flex justify-between py-3 border-b">
                         <span className="text-muted-foreground">Points</span>
