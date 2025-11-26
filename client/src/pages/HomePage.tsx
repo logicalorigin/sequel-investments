@@ -44,6 +44,7 @@ const heroSlides = [
     loanAmount: "$320,000",
     rate: "6.25%",
     closedIn: "21 Days",
+    location: "Scottsdale, AZ",
   },
   {
     id: "fixflip",
@@ -52,6 +53,7 @@ const heroSlides = [
     loanAmount: "$425,000",
     rate: "9.50%",
     closedIn: "4 Days",
+    location: "Fort Worth, TX",
   },
   {
     id: "construction",
@@ -60,6 +62,7 @@ const heroSlides = [
     loanAmount: "$580,000",
     rate: "10.25%",
     closedIn: "10 Days",
+    location: "Austin, TX",
   },
   {
     id: "rateterm",
@@ -68,6 +71,7 @@ const heroSlides = [
     loanAmount: "$900,000",
     rate: "6.875%",
     closedIn: "35 Days",
+    location: "Gatlinburg, TN",
   },
 ];
 
@@ -184,7 +188,7 @@ export default function HomePage() {
                 ))}
               </div>
               
-              <div className="absolute -bottom-6 -left-6 bg-card rounded-xl shadow-xl p-5 border max-w-[280px]">
+              <div className="absolute -bottom-6 -right-6 bg-card rounded-xl shadow-xl p-5 border max-w-[280px]">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center">
                     <CheckCircle2 className="h-5 w-5 text-green-500" />
@@ -195,6 +199,10 @@ export default function HomePage() {
                   </div>
                 </div>
                 <div className="space-y-2">
+                  <div className="flex justify-between gap-4 text-sm">
+                    <span className="text-muted-foreground">Location</span>
+                    <span className="font-semibold">{activeSlide.location}</span>
+                  </div>
                   <div className="flex justify-between gap-4 text-sm">
                     <span className="text-muted-foreground">Loan Amount</span>
                     <span className="font-semibold">{activeSlide.loanAmount}</span>
