@@ -36,6 +36,10 @@ localPort = 39679
 externalPort = 6000
 
 [[ports]]
+localPort = 40131
+externalPort = 6800
+
+[[ports]]
 localPort = 40331
 externalPort = 5173
 
@@ -82,4 +86,4 @@ PRIVATE_OBJECT_DIR = "/replit-objstore-c71ae623-418a-4376-b56d-3798fb4bbcc7/priv
 PUBLIC_OBJECT_SEARCH_PATHS = "/replit-objstore-c71ae623-418a-4376-b56d-3798fb4bbcc7/public"
 
 [objectStorage]
-defaultBucketID = "replit-objstore-c71ae623-418a-4376-b56d-3798fb4bbcc7"
+defaultBucketID = "replit-objstore-aa6f31ea-7f2a-4ba3-b20a-33b4e790e694"

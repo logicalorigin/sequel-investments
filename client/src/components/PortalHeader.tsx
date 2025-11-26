@@ -19,7 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { formatDistanceToNow } from "date-fns";
-import safLogo from "@assets/ChatGPT Image Jun 25, 2025, 12_32_43 PM_1764028581255.png";
+import logoIcon from "@assets/logo_saf_only_removed_bg (1)_1764095523171.png";
 import type { Notification } from "@shared/schema";
 
 interface PortalHeaderProps {
@@ -101,10 +101,12 @@ export function PortalHeader({ user }: PortalHeaderProps) {
     <header className="border-b bg-card sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
         <Link href="/">
-          <div className="flex items-center gap-2 cursor-pointer">
-            <img src={safLogo} alt="SAF" className="h-8 w-8 object-contain" />
-            <span className="font-bold text-lg hidden sm:inline">Secured Asset Funding</span>
-            <span className="font-bold text-lg sm:hidden">SAF</span>
+          <div className="flex items-center cursor-pointer hover-elevate active-elevate-2 px-2 py-1 rounded-md -ml-2">
+            <img 
+              src={logoIcon} 
+              alt="Secured Asset Funding" 
+              className="h-12 w-auto object-contain"
+            />
           </div>
         </Link>
         
