@@ -7,7 +7,7 @@ import { Link, useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { PortalHeader } from "@/components/PortalHeader";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,7 +22,6 @@ import {
   Home, 
   FileText, 
   Calculator, 
-  LogOut, 
   Building2,
   Clock,
   CheckCircle2,
@@ -165,12 +164,6 @@ export default function PortalPage() {
     return null;
   }
 
-  const getInitials = (firstName?: string | null, lastName?: string | null) => {
-    const first = firstName?.charAt(0) || "";
-    const last = lastName?.charAt(0) || "";
-    return (first + last).toUpperCase() || "U";
-  };
-
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
@@ -191,44 +184,7 @@ export default function PortalPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b bg-card sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
-          <Link href="/">
-            <div className="flex items-center gap-2 cursor-pointer">
-              <Building2 className="h-6 w-6 text-primary" />
-              <span className="font-bold text-lg">Secured Asset Funding</span>
-            </div>
-          </Link>
-          
-          <div className="flex items-center gap-4">
-            <Link href="/portal">
-              <Button variant="ghost" size="sm" className="bg-primary/10" data-testid="link-portfolio">
-                Portfolio
-              </Button>
-            </Link>
-            <Link href="/portal/investment-analysis">
-              <Button variant="ghost" size="sm" data-testid="link-investment-analysis">
-                Investment Analysis
-              </Button>
-            </Link>
-            <div className="flex items-center gap-2">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={user?.profileImageUrl || undefined} />
-                <AvatarFallback>{getInitials(user?.firstName, user?.lastName)}</AvatarFallback>
-              </Avatar>
-              <span className="text-sm font-medium hidden sm:inline">
-                {user?.firstName || user?.email || "User"}
-              </span>
-            </div>
-            <a href="/api/logout">
-              <Button variant="ghost" size="sm" data-testid="button-logout">
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
-              </Button>
-            </a>
-          </div>
-        </div>
-      </header>
+      <PortalHeader user={user} />
 
       <main className="max-w-7xl mx-auto px-6 py-8">
         <div className="mb-8">

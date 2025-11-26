@@ -18,6 +18,7 @@ import PortalPage from "@/pages/PortalPage";
 import ApplicationDetailPage from "@/pages/ApplicationDetailPage";
 import ApplicationDocumentsPage from "@/pages/ApplicationDocumentsPage";
 import InvestmentAnalysisPage from "@/pages/InvestmentAnalysisPage";
+import ProfilePage from "@/pages/ProfilePage";
 import STRCalculatorPage from "@/pages/STRCalculatorPage";
 import RecentFundingsPage from "@/pages/RecentFundingsPage";
 import PropertyDetailPage from "@/pages/PropertyDetailPage";
@@ -42,6 +43,7 @@ function Router() {
       <Route path="/portal/application/:id" component={ApplicationDetailPage} />
       <Route path="/portal/application/:id/documents" component={ApplicationDocumentsPage} />
       <Route path="/portal/investment-analysis" component={InvestmentAnalysisPage} />
+      <Route path="/portal/profile" component={ProfilePage} />
       <Route path="/str-calculator" component={STRCalculatorPage} />
       <Route path="/fundings" component={RecentFundingsPage} />
       <Route path="/fundings/:propertyId" component={PropertyDetailPage} />
