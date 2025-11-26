@@ -155,7 +155,7 @@ export default function FixFlipPage() {
                   </div>
                   <div className="flex items-center gap-3 p-4 bg-card rounded-lg border">
                     <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
-                    <span>BRRRR Strategy (Steps 1-2)</span>
+                    <span>BRRRR Strategy</span>
                   </div>
                   <div className="flex items-center gap-3 p-4 bg-card rounded-lg border">
                     <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
