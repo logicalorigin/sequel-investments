@@ -96,6 +96,13 @@ export function Footer() {
                   Privacy Policy
                 </span>
               </li>
+              <li>
+                <Link href="/admin" data-testid="link-footer-staff-login">
+                  <span className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
+                    Staff Login
+                  </span>
+                </Link>
+              </li>
             </ul>
           </div>
 
