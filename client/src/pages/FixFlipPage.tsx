@@ -6,6 +6,12 @@ import { LeadForm } from "@/components/LeadForm";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { FixFlipCalculator } from "@/components/FixFlipCalculator";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { 
   TrendingUp, 
   CheckCircle2, 
@@ -143,6 +149,28 @@ export default function FixFlipPage() {
               </div>
 
               <div>
+                <h2 className="text-3xl font-bold mb-6">Ideal For</h2>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="flex items-center gap-3 p-4 bg-card rounded-lg border">
+                    <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
+                    <span>Fix and Flip Projects</span>
+                  </div>
+                  <div className="flex items-center gap-3 p-4 bg-card rounded-lg border">
+                    <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
+                    <span>BRRRR Strategy (Steps 1-2)</span>
+                  </div>
+                  <div className="flex items-center gap-3 p-4 bg-card rounded-lg border">
+                    <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
+                    <span>Bridge Financing</span>
+                  </div>
+                  <div className="flex items-center gap-3 p-4 bg-card rounded-lg border">
+                    <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
+                    <span>Auction & REO Purchases</span>
+                  </div>
+                </div>
+              </div>
+
+              <div>
                 <h2 className="text-3xl font-bold mb-6">Loan Terms</h2>
                 <Card>
                   <CardContent className="pt-6">
@@ -185,42 +213,48 @@ export default function FixFlipPage() {
               </div>
 
               <div>
-                <h2 className="text-3xl font-bold mb-6">Ideal For</h2>
-                <div className="space-y-3">
-                  <div className="flex items-start gap-3">
-                    <CheckCircle2 className="h-6 w-6 text-primary mt-0.5" />
-                    <div>
-                      <h4 className="font-semibold">Fix and Flip Projects</h4>
-                      <p className="text-muted-foreground">Finance purchase and rehab costs for your flip projects</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <CheckCircle2 className="h-6 w-6 text-primary mt-0.5" />
-                    <div>
-                      <h4 className="font-semibold">BRRRR Strategy (Steps 1-2)</h4>
-                      <p className="text-muted-foreground">Buy and renovate before refinancing into a DSCR loan</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <CheckCircle2 className="h-6 w-6 text-primary mt-0.5" />
-                    <div>
-                      <h4 className="font-semibold">Bridge Financing</h4>
-                      <p className="text-muted-foreground">Short-term capital while waiting for permanent financing</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <CheckCircle2 className="h-6 w-6 text-primary mt-0.5" />
-                    <div>
-                      <h4 className="font-semibold">Auction & REO Purchases</h4>
-                      <p className="text-muted-foreground">Move fast on distressed properties requiring quick closes</p>
-                    </div>
-                  </div>
-                </div>
+                <h2 className="text-3xl font-bold mb-6">Fix & Flip Calculator</h2>
+                <FixFlipCalculator />
               </div>
 
               <div>
-                <h2 className="text-3xl font-bold mb-6">Fix & Flip Calculator</h2>
-                <FixFlipCalculator />
+                <h2 className="text-3xl font-bold mb-6">Frequently Asked Questions</h2>
+                <Accordion type="single" collapsible className="w-full">
+                  <AccordionItem value="item-1" data-testid="faq-ff-item-1">
+                    <AccordionTrigger>How quickly can I close on a fix & flip loan?</AccordionTrigger>
+                    <AccordionContent>
+                      We can close in as fast as 48 hours for qualified borrowers with complete documentation. Most deals close within 5-7 business days. Our streamlined process and in-house underwriting allow us to move quickly.
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="item-2" data-testid="faq-ff-item-2">
+                    <AccordionTrigger>What documents do I need for a fix & flip loan?</AccordionTrigger>
+                    <AccordionContent>
+                      You'll need proof of experience (prior flips or real estate ownership), bank statements showing reserves, credit authorization, and your rehab scope of work with budget. No tax returns or W2s required!
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="item-3" data-testid="faq-ff-item-3">
+                    <AccordionTrigger>How does the draw process work?</AccordionTrigger>
+                    <AccordionContent>
+                      Rehab funds are released through draws as work is completed. You submit photos and invoices, we inspect the work, and funds are released within 48 hours. Draw inspections can be done remotely in most cases.
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="item-4" data-testid="faq-ff-item-4">
+                    <AccordionTrigger>Do I need experience to qualify?</AccordionTrigger>
+                    <AccordionContent>
+                      While experience helps with pricing, we work with both new and experienced investors. First-time flippers may need a higher down payment or have a slightly higher rate, but we're happy to help you get started.
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="item-5" data-testid="faq-ff-item-5">
+                    <AccordionTrigger>What happens if my project takes longer than expected?</AccordionTrigger>
+                    <AccordionContent>
+                      We offer loan extensions if your project runs over. Extensions are typically available in 3-month increments at competitive rates. We work with you to ensure you have time to complete your project and maximize your profit.
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
               </div>
             </div>
 
