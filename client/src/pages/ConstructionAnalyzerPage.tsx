@@ -362,9 +362,6 @@ export default function ConstructionAnalyzerPage() {
             <h1 className="text-2xl font-bold" data-testid="text-page-title">
               Construction Analyzer
             </h1>
-            <p className="text-sm text-muted-foreground">
-              Calculate your ground-up construction profitability
-            </p>
           </div>
           <ScenarioManager
             analyzerType="construction"
