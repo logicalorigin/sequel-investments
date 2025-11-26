@@ -186,12 +186,12 @@ export default function FixFlipAnalyzerPage() {
   }, [fetchPropertyData]);
 
   const maxLtc = 90;
+  const baseRate = 8.9;
 
   // Calculate interest rate based on FICO
   // 3+ deals with 720 FICO = 8.9% base rate
   const calculatedRate = useMemo(() => {
-    const BASE_RATE = 8.9;
-    let rate = BASE_RATE;
+    let rate = baseRate;
     
     // Credit score adjustment
     const score = creditScore[0];
@@ -202,8 +202,23 @@ export default function FixFlipAnalyzerPage() {
     
     // Experience is captured for data intake only, no rate adjustment
     
-    return Math.max(8.9, Math.min(12.5, rate));
+    return Math.max(baseRate, Math.min(12.9, rate));
   }, [creditScore]);
+
+  // Origination points: 2.0% at base rate, sliding to 0% at 12.9% rate
+  const originationPoints = useMemo(() => {
+    const minRate = baseRate;
+    const maxRate = 12.9;
+    const maxPoints = 2.0;
+    const minPoints = 0.0;
+    
+    if (calculatedRate >= maxRate) return minPoints;
+    if (calculatedRate <= minRate) return maxPoints;
+    
+    const rateRange = maxRate - minRate;
+    const ratePosition = (calculatedRate - minRate) / rateRange;
+    return maxPoints - (ratePosition * (maxPoints - minPoints));
+  }, [calculatedRate]);
 
   const getCurrentScenarioData = useCallback(() => ({
     propertyType,
@@ -598,7 +613,7 @@ export default function FixFlipAnalyzerPage() {
                   <div className="bg-muted/50 rounded-lg p-3 space-y-1.5 text-xs">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Base Rate:</span>
-                      <span className="font-medium">8.900%</span>
+                      <span className="font-medium">{baseRate.toFixed(3)}%</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Credit ({creditScore[0]}):</span>
@@ -609,6 +624,10 @@ export default function FixFlipAnalyzerPage() {
                     <div className="border-t pt-1.5 mt-1.5 flex justify-between font-semibold text-sm">
                       <span>Estimated Rate:</span>
                       <span className="text-primary">{calculatedRate.toFixed(3)}%</span>
+                    </div>
+                    <div className="flex justify-between pt-1.5 border-t mt-1.5">
+                      <span className="text-muted-foreground">Origination Points:</span>
+                      <span className="font-semibold text-primary">{originationPoints.toFixed(2)}%</span>
                     </div>
                     <div className="text-[10px] text-amber-600 pt-2 text-center">
                       Contact your rep for an accurate estimate
