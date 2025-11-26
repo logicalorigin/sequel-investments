@@ -155,6 +155,7 @@ export default function InvestmentAnalysisPage() {
   const [rehabBudget, setRehabBudget] = useState("100000");
   const [requestedRehabFunding, setRequestedRehabFunding] = useState("100000");
   const [interestRate, setInterestRate] = useState("9.9");
+  const [requestedLoanAmount, setRequestedLoanAmount] = useState("280000");
   
   const [creditScore, setCreditScore] = useState([720]);
   const [monthlyRent, setMonthlyRent] = useState("3500");
@@ -247,21 +248,25 @@ export default function InvestmentAnalysisPage() {
   const results = useMemo(() => {
     const arvVal = parseFloat(arv) || 0;
     const purchasePriceVal = parseFloat(purchasePrice) || 0;
-    const downPaymentVal = parseFloat(downPayment) || 0;
-    const closingCostsVal = parseFloat(totalClosingCosts) || 0;
+    const downPaymentVal = dealType !== "rental" ? (parseFloat(downPayment) || 0) : 0;
+    const closingCostsVal = dealType !== "rental" ? (parseFloat(totalClosingCosts) || 0) : 0;
     const taxesVal = parseFloat(annualTaxes) || 0;
     const insuranceVal = parseFloat(annualInsurance) || 0;
     const hoaVal = parseFloat(annualHOA) || 0;
-    const loanTermInputVal = parseFloat(loanTermMonths) || (dealType === "rental" ? 30 : 12);
+    const loanTermInputVal = dealType !== "rental" ? (parseFloat(loanTermMonths) || 12) : 30;
     const monthlyRentVal = parseFloat(monthlyRent) || 0;
+    const requestedLoanVal = parseFloat(requestedLoanAmount) || 0;
     
-    const loanTermInMonths = dealType === "rental" ? loanTermInputVal * 12 : loanTermInputVal;
+    const loanTermInMonths = dealType === "rental" ? 30 * 12 : loanTermInputVal;
     
     const rehabBudgetVal = dealType !== "rental" ? (parseFloat(rehabBudget) || 0) : 0;
     const rehabFundingVal = dealType !== "rental" ? (parseFloat(requestedRehabFunding) || 0) : 0;
     const holdMonths = dealType !== "rental" ? (parseFloat(holdTimeMonths) || 9) : loanTermInMonths;
 
-    const loanAmount = purchasePriceVal - downPaymentVal + rehabFundingVal;
+    // For DSCR, use the requested loan amount directly; for others, calculate from purchase price
+    const loanAmount = dealType === "rental" 
+      ? requestedLoanVal 
+      : purchasePriceVal - downPaymentVal + rehabFundingVal;
     
     const ltv = arvVal > 0 ? (loanAmount / arvVal) * 100 : 0;
     
@@ -318,7 +323,7 @@ export default function InvestmentAnalysisPage() {
       dscrRatio: finalDSCR,
       calculatedRate: rate,
     };
-  }, [arv, purchasePrice, rehabBudget, downPayment, totalClosingCosts, annualTaxes, annualInsurance, annualHOA, holdTimeMonths, interestRate, requestedRehabFunding, dealType, loanTermMonths, monthlyRent, creditScore, propertyType]);
+  }, [arv, purchasePrice, rehabBudget, downPayment, totalClosingCosts, annualTaxes, annualInsurance, annualHOA, holdTimeMonths, interestRate, requestedRehabFunding, dealType, loanTermMonths, monthlyRent, creditScore, propertyType, requestedLoanAmount]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -481,73 +486,113 @@ export default function InvestmentAnalysisPage() {
                   </div>
 
                   <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="arv">{dealType === "rental" ? "Property Value" : "ARV"}</Label>
-                      <div className="relative mt-1">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                        <Input
-                          id="arv"
-                          type="number"
-                          value={arv}
-                          onChange={(e) => setArv(e.target.value)}
-                          className="pl-7"
-                          data-testid="input-arv"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <Label htmlFor="purchasePrice">Purchase Price</Label>
-                      <div className="relative mt-1">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                        <Input
-                          id="purchasePrice"
-                          type="number"
-                          value={purchasePrice}
-                          onChange={(e) => setPurchasePrice(e.target.value)}
-                          className="pl-7"
-                          data-testid="input-purchase-price"
-                        />
-                      </div>
-                    </div>
+                    {dealType === "rental" ? (
+                      <>
+                        <div>
+                          <Label htmlFor="purchasePrice">
+                            {transactionType === "purchase" ? "Purchase Price" : "Property Value"}
+                          </Label>
+                          <div className="relative mt-1">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                            <Input
+                              id="purchasePrice"
+                              type="number"
+                              value={purchasePrice}
+                              onChange={(e) => {
+                                setPurchasePrice(e.target.value);
+                                setArv(e.target.value);
+                              }}
+                              className="pl-7"
+                              data-testid="input-purchase-price"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <Label htmlFor="requestedLoanAmount">Requested Loan Amount</Label>
+                          <div className="relative mt-1">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                            <Input
+                              id="requestedLoanAmount"
+                              type="number"
+                              value={requestedLoanAmount}
+                              onChange={(e) => setRequestedLoanAmount(e.target.value)}
+                              className="pl-7"
+                              data-testid="input-requested-loan-amount"
+                            />
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div>
+                          <Label htmlFor="arv">ARV</Label>
+                          <div className="relative mt-1">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                            <Input
+                              id="arv"
+                              type="number"
+                              value={arv}
+                              onChange={(e) => setArv(e.target.value)}
+                              className="pl-7"
+                              data-testid="input-arv"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <Label htmlFor="purchasePrice">Purchase Price</Label>
+                          <div className="relative mt-1">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                            <Input
+                              id="purchasePrice"
+                              type="number"
+                              value={purchasePrice}
+                              onChange={(e) => setPurchasePrice(e.target.value)}
+                              className="pl-7"
+                              data-testid="input-purchase-price"
+                            />
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
 
-                {/* Financing Section */}
-                <div className="space-y-4">
-                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide border-b pb-2">Financing</h3>
-                  
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="downPayment">Down Payment</Label>
-                      <div className="relative mt-1">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                        <Input
-                          id="downPayment"
-                          type="number"
-                          value={downPayment}
-                          onChange={(e) => setDownPayment(e.target.value)}
-                          className="pl-7"
-                          data-testid="input-down-payment"
-                        />
+                {/* Financing Section - Only for non-DSCR deals */}
+                {dealType !== "rental" && (
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide border-b pb-2">Financing</h3>
+                    
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="downPayment">Down Payment</Label>
+                        <div className="relative mt-1">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                          <Input
+                            id="downPayment"
+                            type="number"
+                            value={downPayment}
+                            onChange={(e) => setDownPayment(e.target.value)}
+                            className="pl-7"
+                            data-testid="input-down-payment"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="closingCosts">Total Closing Costs</Label>
+                        <div className="relative mt-1">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                          <Input
+                            id="closingCosts"
+                            type="number"
+                            value={totalClosingCosts}
+                            onChange={(e) => setTotalClosingCosts(e.target.value)}
+                            className="pl-7"
+                            data-testid="input-closing-costs"
+                          />
+                        </div>
                       </div>
                     </div>
-                    <div>
-                      <Label htmlFor="closingCosts">Total Closing Costs</Label>
-                      <div className="relative mt-1">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                        <Input
-                          id="closingCosts"
-                          type="number"
-                          value={totalClosingCosts}
-                          onChange={(e) => setTotalClosingCosts(e.target.value)}
-                          className="pl-7"
-                          data-testid="input-closing-costs"
-                        />
-                      </div>
-                    </div>
-                  </div>
 
-                  {dealType !== "rental" && (
                     <div className="grid md:grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="rehabBudget">
@@ -582,23 +627,19 @@ export default function InvestmentAnalysisPage() {
                         </div>
                       </div>
                     </div>
-                  )}
 
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="loanTerm">
-                        {dealType === "rental" ? "Loan Term (years)" : "Loan Term (months)"}
-                      </Label>
-                      <Input
-                        id="loanTerm"
-                        type="number"
-                        value={loanTermMonths}
-                        onChange={(e) => setLoanTermMonths(e.target.value)}
-                        className="mt-1"
-                        data-testid="input-loan-term"
-                      />
-                    </div>
-                    {dealType !== "rental" && (
+                    <div className="grid md:grid-cols-3 gap-4">
+                      <div>
+                        <Label htmlFor="loanTerm">Loan Term (months)</Label>
+                        <Input
+                          id="loanTerm"
+                          type="number"
+                          value={loanTermMonths}
+                          onChange={(e) => setLoanTermMonths(e.target.value)}
+                          className="mt-1"
+                          data-testid="input-loan-term"
+                        />
+                      </div>
                       <div>
                         <Label htmlFor="holdTime">
                           {dealType === "new_construction" ? "Build Duration (months)" : "Hold Time (months)"}
@@ -612,8 +653,6 @@ export default function InvestmentAnalysisPage() {
                           data-testid="input-hold-time"
                         />
                       </div>
-                    )}
-                    {dealType !== "rental" && (
                       <div>
                         <Label htmlFor="interestRate">Interest Rate (%)</Label>
                         <Input
@@ -626,9 +665,9 @@ export default function InvestmentAnalysisPage() {
                           data-testid="input-interest-rate"
                         />
                       </div>
-                    )}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* DSCR Rate Factors Section - Only for DSCR */}
                 {dealType === "rental" && (
