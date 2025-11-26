@@ -2,7 +2,7 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Facebook, Twitter, Linkedin, Mail } from "lucide-react";
-import logoIcon from "@assets/ChatGPT Image Jun 25, 2025, 12_32_43 PM_1764028581255.png";
+import { SAFLogo } from "./Navigation";
 
 export function Footer() {
   return (
@@ -10,16 +10,8 @@ export function Footer() {
       <div className="max-w-7xl mx-auto px-6 py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
           <div>
-            <div className="flex items-center gap-3 mb-6">
-              <img 
-                src={logoIcon} 
-                alt="SAF" 
-                className="h-10 w-10 object-contain"
-              />
-              <div className="flex flex-col">
-                <span className="font-bold text-lg leading-tight">Secured Asset</span>
-                <span className="font-bold text-lg leading-tight">Funding</span>
-              </div>
+            <div className="mb-6">
+              <SAFLogo size="small" />
             </div>
             <p className="text-muted-foreground mb-4">
               Investor-focused financing solutions for DSCR, Fix & Flip, and New Construction loans nationwide.

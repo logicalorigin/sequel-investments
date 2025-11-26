@@ -9,7 +9,36 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import safLogo from "@assets/ChatGPT Image Jun 25, 2025, 12_32_43 PM_1764028581255.png";
+
+function PortalLogo() {
+  return (
+    <div className="flex items-center gap-2">
+      {/* SAF Badge - smaller for portal */}
+      <div 
+        className="relative flex items-center justify-center bg-foreground text-background w-8 h-9"
+        style={{
+          clipPath: 'polygon(0 0, 100% 0, 100% 75%, 50% 100%, 0 75%)',
+        }}
+      >
+        <span 
+          className="text-sm font-display tracking-tight"
+          style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+        >
+          SAF
+        </span>
+      </div>
+      {/* Text */}
+      <div 
+        className="hidden sm:flex flex-col leading-none"
+        style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+      >
+        <span className="text-sm tracking-wide">SECURED</span>
+        <span className="text-sm tracking-wide">ASSET</span>
+        <span className="text-sm tracking-wide">FUNDING</span>
+      </div>
+    </div>
+  );
+}
 
 interface PortalHeaderProps {
   user: {
@@ -40,10 +69,8 @@ export function PortalHeader({ user }: PortalHeaderProps) {
     <header className="border-b bg-card sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
         <Link href="/">
-          <div className="flex items-center gap-2 cursor-pointer">
-            <img src={safLogo} alt="SAF" className="h-8 w-8 object-contain" />
-            <span className="font-bold text-lg hidden sm:inline">Secured Asset Funding</span>
-            <span className="font-bold text-lg sm:hidden">SAF</span>
+          <div className="flex items-center cursor-pointer">
+            <PortalLogo />
           </div>
         </Link>
         

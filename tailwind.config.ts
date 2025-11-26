@@ -84,6 +84,7 @@ export default {
       },
       fontFamily: {
         sans: ["Inter", "var(--font-sans)"],
+        display: ["'Bebas Neue'", "var(--font-display)"],
         serif: ["var(--font-serif)"],
         mono: ["var(--font-mono)"],
       },
