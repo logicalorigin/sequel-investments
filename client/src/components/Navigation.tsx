@@ -107,20 +107,6 @@ export function Navigation() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Link href="/fundings" data-testid="link-nav-recent-fundings">
-              <span
-                className={`text-sm font-medium transition-colors cursor-pointer ${
-                  location === "/fundings"
-                    ? "text-primary"
-                    : isScrolled 
-                      ? "text-foreground/80 hover:text-foreground"
-                      : "text-white/90 hover:text-white"
-                }`}
-              >
-                Recent Fundings
-              </span>
-            </Link>
-
             <Link href="/where-we-lend" data-testid="link-nav-where-we-lend">
               <span
                 className={`text-sm font-medium transition-colors cursor-pointer ${
@@ -205,17 +191,6 @@ export function Navigation() {
                 </div>
               )}
             </div>
-
-            <Link href="/fundings" data-testid="link-mobile-recent-fundings">
-              <div
-                className={`block py-2 text-base font-medium ${
-                  location === "/fundings" ? "text-primary" : "text-foreground"
-                }`}
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Recent Fundings
-              </div>
-            </Link>
 
             <Link href="/where-we-lend" data-testid="link-mobile-where-we-lend">
               <div
