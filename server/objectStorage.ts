@@ -133,10 +133,10 @@ export class ObjectStorageService {
   }
 
   // Get upload URL for application-specific document storage
-  // Organizes files into: /applications/{applicationId}/documents/{documentId}/{filename}
+  // Organizes files into: /{dealName}/{filename}
+  // dealName format: "123 Main Street, Los Angeles, CA"
   async getApplicationDocumentUploadURL(
-    applicationId: string,
-    documentId: string,
+    dealName: string,
     fileName: string
   ): Promise<string> {
     const privateObjectDir = this.getPrivateObjectDir();
@@ -147,13 +147,18 @@ export class ObjectStorageService {
       );
     }
 
+    // Sanitize deal name for folder - keep spaces, letters, numbers, commas
+    const sanitizedDealName = dealName
+      .replace(/[^a-zA-Z0-9\s,.-]/g, '')
+      .trim();
+    
     // Sanitize filename to remove special characters
     const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
     const uniqueId = randomUUID().slice(0, 8);
     const finalFileName = `${uniqueId}_${sanitizedFileName}`;
     
-    // Organize by application and document
-    const fullPath = `${privateObjectDir}/applications/${applicationId}/documents/${documentId}/${finalFileName}`;
+    // Organize by deal name folder
+    const fullPath = `${privateObjectDir}/${sanitizedDealName}/${finalFileName}`;
     const { bucketName, objectName } = parseObjectPath(fullPath);
 
     return signObjectURL({

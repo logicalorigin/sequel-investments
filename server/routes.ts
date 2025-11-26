@@ -352,7 +352,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Application-specific document upload URL
-  // Creates organized folder structure: /applications/{appId}/documents/{docId}/{filename}
+  // Creates organized folder structure: /{dealName}/{filename}
+  // dealName format: "123 Main Street, City, ST"
   app.post("/api/documents/:id/upload-url", isAuthenticated, async (req: any, res) => {
     const userId = req.user?.claims?.sub;
     const { fileName } = req.body;
@@ -372,10 +373,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Access denied" });
       }
 
+      // Build deal name from property address (short format)
+      // If city/state are separate, use them; otherwise use the full address
+      let dealName: string;
+      if (application.propertyCity && application.propertyState) {
+        // Use structured address format
+        dealName = [
+          application.propertyAddress,
+          application.propertyCity,
+          application.propertyState
+        ].filter(Boolean).join(", ");
+      } else if (application.propertyAddress) {
+        // Full address is in propertyAddress - use it directly
+        dealName = application.propertyAddress;
+      } else {
+        dealName = `Application ${application.id.slice(0, 8)}`;
+      }
+
       const objectStorageService = new ObjectStorageService();
       const uploadURL = await objectStorageService.getApplicationDocumentUploadURL(
-        doc.loanApplicationId,
-        doc.id,
+        dealName,
         fileName
       );
       
