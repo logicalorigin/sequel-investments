@@ -6,6 +6,7 @@ import { LeadForm } from "@/components/LeadForm";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { TeaserFixFlipCalculator } from "@/components/TeaserFixFlipCalculator";
+import { RecentlyFundedCarousel } from "@/components/RecentlyFundedCarousel";
 import {
   Accordion,
   AccordionContent,
@@ -276,6 +277,14 @@ export default function FixFlipPage() {
           </div>
         </div>
       </section>
+      
+      {/* Recently Funded Carousel */}
+      <RecentlyFundedCarousel 
+        loanType="Fix & Flip" 
+        title="Recently Funded Fix & Flip Projects"
+        subtitle="See real rehab deals we've closed for investors"
+      />
+
       <section className="py-16 bg-primary">
         <div className="max-w-7xl mx-auto px-6 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-primary-foreground mb-4">

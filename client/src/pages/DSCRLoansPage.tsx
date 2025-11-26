@@ -6,6 +6,7 @@ import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { LeadForm } from "@/components/LeadForm";
 import { TeaserDSCRCalculator } from "@/components/TeaserDSCRCalculator";
+import { RecentlyFundedCarousel } from "@/components/RecentlyFundedCarousel";
 import {
   Accordion,
   AccordionContent,
@@ -319,6 +320,14 @@ export default function DSCRLoansPage() {
           </div>
         </div>
       </section>
+      
+      {/* Recently Funded Carousel */}
+      <RecentlyFundedCarousel 
+        loanType="DSCR" 
+        title="Recently Funded DSCR Loans"
+        subtitle="See real rental property deals we've closed for investors"
+      />
+
       <section className="py-16 bg-primary">
         <div className="max-w-7xl mx-auto px-6 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-primary-foreground mb-4">

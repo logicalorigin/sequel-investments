@@ -6,6 +6,7 @@ import { LeadForm } from "@/components/LeadForm";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { TeaserConstructionCalculator } from "@/components/TeaserConstructionCalculator";
+import { RecentlyFundedCarousel } from "@/components/RecentlyFundedCarousel";
 import {
   Accordion,
   AccordionContent,
@@ -299,6 +300,13 @@ export default function NewConstructionPage() {
           </div>
         </div>
       </section>
+      
+      {/* Recently Funded Carousel */}
+      <RecentlyFundedCarousel 
+        loanType="New Construction" 
+        title="Recently Funded Construction Projects"
+        subtitle="See real ground-up builds we've financed"
+      />
 
       <section className="py-16 bg-primary">
         <div className="max-w-7xl mx-auto px-6 text-center">
