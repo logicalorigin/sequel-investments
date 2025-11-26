@@ -1,8 +1,8 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { useLocation } from "wouter";
-import { useMutation } from "@tanstack/react-query";
+import { useLocation, useSearch } from "wouter";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { LoanApplication } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -107,7 +107,18 @@ function PropertyTypeIcon({ type, className = "" }: { type: string; className?: 
 export default function ConstructionAnalyzerPage() {
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
   const [, navigate] = useLocation();
+  const searchString = useSearch();
   const { toast } = useToast();
+
+  const applicationId = useMemo(() => {
+    const params = new URLSearchParams(searchString);
+    return params.get("applicationId");
+  }, [searchString]);
+
+  const { data: linkedApplication } = useQuery<LoanApplication>({
+    queryKey: ["/api/applications", applicationId],
+    enabled: !!applicationId && isAuthenticated,
+  });
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -130,6 +141,7 @@ export default function ConstructionAnalyzerPage() {
   const [experience, setExperience] = useState("1");
   const [ltcSlider, setLtcSlider] = useState([90]);
   const [landOwned, setLandOwned] = useState(false);
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   const maxLtc = 90;
 
@@ -189,6 +201,20 @@ export default function ConstructionAnalyzerPage() {
   }, []);
 
   useEffect(() => {
+    if (linkedApplication?.analyzerData && !dataLoaded) {
+      const data = linkedApplication.analyzerData as { inputs?: Record<string, any> };
+      if (data.inputs) {
+        handleLoadScenario(data.inputs);
+        setDataLoaded(true);
+        toast({
+          title: "Analysis Loaded",
+          description: "Your saved analysis data has been loaded.",
+        });
+      }
+    }
+  }, [linkedApplication, dataLoaded, handleLoadScenario, toast]);
+
+  useEffect(() => {
     const land = parseFloat(landCost) || 0;
     const construction = parseFloat(constructionBudget) || 0;
     const totalCost = land + construction;
@@ -206,11 +232,24 @@ export default function ConstructionAnalyzerPage() {
 
   const createApplicationMutation = useMutation({
     mutationFn: async () => {
+      const analyzerData = {
+        inputs: getCurrentScenarioData(),
+        results: results,
+      };
       const response = await apiRequest("POST", "/api/applications", {
         loanType: "New Construction",
         propertyAddress: propertyAddress || "TBD",
-        propertyValue: parseFloat(arv) || 0,
+        arv: parseFloat(arv) || 0,
+        purchasePrice: parseFloat(landCost) || 0, // Land cost as purchase price
+        rehabBudget: parseFloat(constructionBudget) || 0, // Construction budget as rehab
         loanAmount: results.loanAmount,
+        interestRate: calculatedRate.toFixed(3),
+        ltc: results.ltcPercent.toFixed(1),
+        annualTaxes: parseFloat(annualTaxes) || 0,
+        annualInsurance: parseFloat(annualInsurance) || 0,
+        holdTimeMonths: parseFloat(buildDuration) || 9,
+        analyzerType: "construction",
+        analyzerData: analyzerData,
       });
       return response.json();
     },

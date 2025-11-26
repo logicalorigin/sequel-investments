@@ -31,6 +31,7 @@ import {
   UserPlus,
   X,
   Loader2,
+  Calculator,
 } from "lucide-react";
 import {
   Dialog,
@@ -317,12 +318,26 @@ export default function ApplicationDetailPage() {
               </div>
             </div>
           </div>
-          <Link href={`/portal/application/${applicationId}/documents`}>
-            <Button data-testid="button-view-documents">
-              <FileText className="h-4 w-4 mr-2" />
-              View Documents
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            {application.analyzerType && application.analyzerData && (
+              <Link href={`/portal/${
+                application.analyzerType === "dscr" ? "dscr-analyzer" : 
+                application.analyzerType === "fixflip" ? "fixflip-analyzer" : 
+                "construction-analyzer"
+              }?applicationId=${application.id}`}>
+                <Button variant="outline" data-testid="button-view-analyzer">
+                  <Calculator className="h-4 w-4 mr-2" />
+                  View Analysis
+                </Button>
+              </Link>
+            )}
+            <Link href={`/portal/application/${applicationId}/documents`}>
+              <Button data-testid="button-view-documents">
+                <FileText className="h-4 w-4 mr-2" />
+                View Documents
+              </Button>
+            </Link>
+          </div>
         </div>
 
         <Card className="mb-8 bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">

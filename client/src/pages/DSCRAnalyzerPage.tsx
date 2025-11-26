@@ -1,8 +1,8 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { useLocation } from "wouter";
-import { useMutation } from "@tanstack/react-query";
+import { useLocation, useSearch } from "wouter";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { LoanApplication } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -114,7 +114,18 @@ function PropertyTypeIcon({ type, className = "" }: { type: string; className?: 
 export default function DSCRAnalyzerPage() {
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
   const [, navigate] = useLocation();
+  const searchString = useSearch();
   const { toast } = useToast();
+
+  const applicationId = useMemo(() => {
+    const params = new URLSearchParams(searchString);
+    return params.get("applicationId");
+  }, [searchString]);
+
+  const { data: linkedApplication } = useQuery<LoanApplication>({
+    queryKey: ["/api/applications", applicationId],
+    enabled: !!applicationId && isAuthenticated,
+  });
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -134,6 +145,7 @@ export default function DSCRAnalyzerPage() {
   const [annualHOA, setAnnualHOA] = useState("0");
   const [creditScore, setCreditScore] = useState([740]);
   const [ltvSlider, setLtvSlider] = useState([80]);
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   const maxLtv = transactionType === "cash_out" ? 75 : 80;
   const baseRate = transactionTypes.find(t => t.id === transactionType)?.baseRate || 6.25;
@@ -174,6 +186,20 @@ export default function DSCRAnalyzerPage() {
   }, []);
 
   useEffect(() => {
+    if (linkedApplication?.analyzerData && !dataLoaded) {
+      const data = linkedApplication.analyzerData as { inputs?: Record<string, any> };
+      if (data.inputs) {
+        handleLoadScenario(data.inputs);
+        setDataLoaded(true);
+        toast({
+          title: "Analysis Loaded",
+          description: "Your saved analysis data has been loaded.",
+        });
+      }
+    }
+  }, [linkedApplication, dataLoaded, handleLoadScenario, toast]);
+
+  useEffect(() => {
     const value = parseFloat(propertyValue) || 0;
     const newLoanAmount = Math.round(value * (ltvSlider[0] / 100));
     setRequestedLoanAmount(newLoanAmount.toString());
@@ -192,11 +218,22 @@ export default function DSCRAnalyzerPage() {
 
   const createApplicationMutation = useMutation({
     mutationFn: async () => {
+      const analyzerData = {
+        inputs: getCurrentScenarioData(),
+        results: results,
+      };
       const response = await apiRequest("POST", "/api/applications", {
         loanType: "DSCR",
         propertyAddress: propertyAddress || "TBD",
-        propertyValue: parseFloat(propertyValue) || 0,
+        purchasePrice: parseFloat(propertyValue) || 0,
         loanAmount: parseFloat(requestedLoanAmount) || 0,
+        interestRate: results.calculatedRate.toFixed(3),
+        ltv: results.ltv.toFixed(1),
+        annualTaxes: parseFloat(annualTaxes) || 0,
+        annualInsurance: parseFloat(annualInsurance) || 0,
+        annualHOA: parseFloat(annualHOA) || 0,
+        analyzerType: "dscr",
+        analyzerData: analyzerData,
       });
       return response.json();
     },
@@ -275,8 +312,7 @@ export default function DSCRAnalyzerPage() {
     const isMultiUnit = propertyType !== "sfr" && propertyType !== "townhome";
     if (isMultiUnit) rate += 0.25;
     
-    // Rental type adjustment - STR gets 0.5% premium
-    if (rentalType === "short_term") rate += 0.5;
+    // Rental type: no rate adjustment, data intake only
     
     // Clamp rate
     rate = Math.max(5.75, Math.min(9.5, rate));
@@ -351,12 +387,12 @@ export default function DSCRAnalyzerPage() {
     let propAdj = isMultiUnit ? 0.25 : 0;
     let propLabel = isMultiUnit ? "Multi-Unit" : "1-Unit";
     
-    let rentalAdj = rentalType === "short_term" ? 0.5 : 0;
+    // Rental type captured for data only, no rate adjustment
     let rentalLabel = rentalType === "short_term" ? "STR" : "LTR";
 
     const txLabel = transactionTypes.find(t => t.id === transactionType)?.label || "Purchase";
 
-    return { baseRate, txLabel, creditAdj, creditLabel, ltvAdj, ltvLabel, dscrAdj, dscrLabel, propAdj, propLabel, rentalAdj, rentalLabel };
+    return { baseRate, txLabel, creditAdj, creditLabel, ltvAdj, ltvLabel, dscrAdj, dscrLabel, propAdj, propLabel, rentalLabel };
   }, [creditScore, results.ltv, results.dscrRatio, propertyType, baseRate, rentalType, transactionType]);
 
   const formatCurrency = (value: number) => {
@@ -390,14 +426,13 @@ export default function DSCRAnalyzerPage() {
             <h1 className="text-2xl font-bold" data-testid="text-page-title">
               DSCR Loan Analyzer
             </h1>
-            <p className="text-sm text-muted-foreground">
-              Analyze rental property cash flow and loan qualification
-            </p>
           </div>
           <ScenarioManager
             analyzerType="dscr"
             currentData={getCurrentScenarioData()}
             onLoadScenario={handleLoadScenario}
+            resultsData={results}
+            userName={user?.firstName || user?.email || undefined}
           />
         </div>
 
@@ -477,7 +512,7 @@ export default function DSCRAnalyzerPage() {
               </CardContent>
             </Card>
 
-            {/* Property Details */}
+            {/* Property & Financials */}
             <Card>
               <CardContent className="pt-4 space-y-3">
                 <div>
@@ -518,6 +553,50 @@ export default function DSCRAnalyzerPage() {
                         onChange={(e) => setMonthlyRent(e.target.value)}
                         className="pl-7 h-9"
                         data-testid="input-monthly-rent"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <Label htmlFor="annualTaxes" className="text-sm">Annual Taxes</Label>
+                    <div className="relative mt-1">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                      <Input
+                        id="annualTaxes"
+                        type="number"
+                        value={annualTaxes}
+                        onChange={(e) => setAnnualTaxes(e.target.value)}
+                        className="pl-7 h-9"
+                        data-testid="input-annual-taxes"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="annualInsurance" className="text-sm">Annual Insurance</Label>
+                    <div className="relative mt-1">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                      <Input
+                        id="annualInsurance"
+                        type="number"
+                        value={annualInsurance}
+                        onChange={(e) => setAnnualInsurance(e.target.value)}
+                        className="pl-7 h-9"
+                        data-testid="input-annual-insurance"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="annualHOA" className="text-sm">Annual HOA</Label>
+                    <div className="relative mt-1">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                      <Input
+                        id="annualHOA"
+                        type="number"
+                        value={annualHOA}
+                        onChange={(e) => setAnnualHOA(e.target.value)}
+                        className="pl-7 h-9"
+                        data-testid="input-annual-hoa"
                       />
                     </div>
                   </div>
@@ -610,32 +689,26 @@ export default function DSCRAnalyzerPage() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Credit ({rateBreakdown.creditLabel}):</span>
-                      <span className={`font-medium ${rateBreakdown.creditAdj > 0 ? "text-red-600" : ""}`}>
+                      <span className="font-medium">
                         {rateBreakdown.creditAdj > 0 ? "+" : ""}{rateBreakdown.creditAdj.toFixed(3)}%
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">LTV ({rateBreakdown.ltvLabel}):</span>
-                      <span className={`font-medium ${rateBreakdown.ltvAdj > 0 ? "text-red-600" : ""}`}>
+                      <span className="font-medium">
                         {rateBreakdown.ltvAdj > 0 ? "+" : ""}{rateBreakdown.ltvAdj.toFixed(3)}%
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">DSCR ({rateBreakdown.dscrLabel}):</span>
-                      <span className={`font-medium ${rateBreakdown.dscrAdj > 0 ? "text-red-600" : ""}`}>
+                      <span className="font-medium">
                         {rateBreakdown.dscrAdj > 0 ? "+" : ""}{rateBreakdown.dscrAdj.toFixed(3)}%
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Property ({rateBreakdown.propLabel}):</span>
-                      <span className={`font-medium ${rateBreakdown.propAdj > 0 ? "text-red-600" : ""}`}>
+                      <span className="font-medium">
                         {rateBreakdown.propAdj > 0 ? "+" : ""}{rateBreakdown.propAdj.toFixed(3)}%
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Rental ({rateBreakdown.rentalLabel}):</span>
-                      <span className={`font-medium ${rateBreakdown.rentalAdj > 0 ? "text-red-600" : ""}`}>
-                        {rateBreakdown.rentalAdj > 0 ? "+" : ""}{rateBreakdown.rentalAdj.toFixed(3)}%
                       </span>
                     </div>
                     <div className="border-t pt-1.5 mt-1.5 flex justify-between font-semibold text-sm">
@@ -646,68 +719,12 @@ export default function DSCRAnalyzerPage() {
                 </CardContent>
               </Card>
             </div>
-
-            {/* Operating Expenses - Condensed */}
-            <Card>
-              <CardContent className="pt-4">
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <Label htmlFor="annualTaxes" className="text-sm">Annual Taxes</Label>
-                    <div className="relative mt-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                      <Input
-                        id="annualTaxes"
-                        type="number"
-                        value={annualTaxes}
-                        onChange={(e) => setAnnualTaxes(e.target.value)}
-                        className="pl-7 h-9"
-                        data-testid="input-annual-taxes"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="annualInsurance" className="text-sm">Annual Insurance</Label>
-                    <div className="relative mt-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                      <Input
-                        id="annualInsurance"
-                        type="number"
-                        value={annualInsurance}
-                        onChange={(e) => setAnnualInsurance(e.target.value)}
-                        className="pl-7 h-9"
-                        data-testid="input-annual-insurance"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="annualHOA" className="text-sm">Annual HOA</Label>
-                    <div className="relative mt-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                      <Input
-                        id="annualHOA"
-                        type="number"
-                        value={annualHOA}
-                        onChange={(e) => setAnnualHOA(e.target.value)}
-                        className="pl-7 h-9"
-                        data-testid="input-annual-hoa"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           </div>
 
           {/* Results Panel - Right Column */}
           <div>
             <Card 
-              className={`sticky top-4 border transition-colors ${
-                results.dscrRatio >= 1.0 
-                  ? "bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20"
-                  : results.dscrRatio >= 0.75
-                  ? "bg-gradient-to-br from-yellow-500/10 to-yellow-500/5 border-yellow-500/20"
-                  : "bg-gradient-to-br from-red-500/10 to-red-500/5 border-red-500/20"
-              }`}
+              className="sticky top-4 border transition-colors bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20"
               data-testid="card-results"
             >
               <CardHeader className="pb-2 pt-4">
@@ -721,13 +738,13 @@ export default function DSCRAnalyzerPage() {
                 <div className="grid grid-cols-2 gap-2">
                   <div className="bg-background rounded-lg p-2.5">
                     <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">Interest Rate</p>
-                    <p className="text-lg font-bold text-primary" data-testid="result-interest-rate">
+                    <p className="text-lg font-bold text-green-600" data-testid="result-interest-rate">
                       {results.calculatedRate.toFixed(3)}%
                     </p>
                   </div>
                   <div className="bg-background rounded-lg p-2.5">
                     <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">DSCR</p>
-                    <p className={`text-lg font-bold ${results.dscrRatio >= 1.0 ? "text-green-600" : results.dscrRatio >= 0.75 ? "text-yellow-600" : "text-red-600"}`} data-testid="result-dscr">
+                    <p className="text-lg font-bold text-green-600" data-testid="result-dscr">
                       {results.dscrRatio.toFixed(2)}
                     </p>
                   </div>
@@ -737,15 +754,13 @@ export default function DSCRAnalyzerPage() {
                 <div className="grid grid-cols-2 gap-2">
                   <div className="bg-background rounded-lg p-2.5">
                     <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">Loan Amount</p>
-                    <p className="text-sm font-semibold" data-testid="result-loan-amount">
+                    <p className="text-sm font-semibold text-green-600" data-testid="result-loan-amount">
                       {formatCurrency(results.loanAmount)}
                     </p>
                   </div>
                   <div className="bg-background rounded-lg p-2.5">
                     <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">LTV</p>
-                    <p className={`text-sm font-bold ${
-                      results.ltv > maxLtv ? "text-red-600" : results.ltv > 70 ? "text-yellow-600" : "text-green-600"
-                    }`} data-testid="result-ltv">
+                    <p className="text-sm font-bold text-green-600" data-testid="result-ltv">
                       {results.ltv.toFixed(1)}%
                     </p>
                   </div>
@@ -756,7 +771,7 @@ export default function DSCRAnalyzerPage() {
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">
                     {transactionType === "purchase" ? "Estimated Cash to Close" : "Estimated Cash to Borrower"}
                   </p>
-                  <p className="text-lg font-bold text-primary" data-testid="result-cash">
+                  <p className="text-lg font-bold text-green-600" data-testid="result-cash">
                     {formatCurrency(transactionType === "purchase" ? results.cashToClose : results.cashToBorrower)}
                   </p>
                 </div>
@@ -773,49 +788,41 @@ export default function DSCRAnalyzerPage() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">P&I:</span>
-                      <span className="font-medium" data-testid="result-monthly-pi">
+                      <span className="font-medium text-green-600" data-testid="result-monthly-pi">
                         {formatCurrency(results.monthlyPI)}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Taxes/Ins/HOA:</span>
-                      <span className="font-medium" data-testid="result-monthly-tia">
+                      <span className="font-medium text-green-600" data-testid="result-monthly-tia">
                         {formatCurrency(results.monthlyTIA)}
                       </span>
                     </div>
                     <div className="flex justify-between pt-1 border-t">
                       <span className="font-medium">Total PITIA:</span>
-                      <span className="font-bold" data-testid="result-monthly-pitia">
+                      <span className="font-bold text-green-600" data-testid="result-monthly-pitia">
                         {formatCurrency(results.monthlyPITIA)}
                       </span>
                     </div>
                     <div className="flex justify-between pt-1 border-t">
                       <span className="font-medium">Cash Flow:</span>
-                      <span className={`font-bold ${results.monthlyCashFlow >= 0 ? "text-green-600" : "text-red-600"}`} data-testid="result-monthly-cashflow">
+                      <span className="font-bold text-green-600" data-testid="result-monthly-cashflow">
                         {formatCurrency(results.monthlyCashFlow)}
                       </span>
                     </div>
                   </div>
                 </div>
 
-                {/* Qualification Status - No emoji */}
-                <div className={`p-2.5 rounded-lg border text-xs ${
-                  results.dscrRatio >= 1.0 
-                    ? "bg-green-500/10 border-green-500/20" 
-                    : results.dscrRatio >= 0.75 
-                    ? "bg-yellow-500/10 border-yellow-500/20"
-                    : "bg-red-500/10 border-red-500/20"
-                }`}>
-                  <span className={`font-semibold ${
-                    results.dscrRatio >= 1.0 ? "text-green-600" : results.dscrRatio >= 0.75 ? "text-yellow-600" : "text-red-600"
-                  }`}>
+                {/* Qualification Status */}
+                <div className="p-2.5 rounded-lg border text-xs bg-green-500/10 border-green-500/20">
+                  <span className="font-semibold text-green-600">
                     {results.dscrRatio >= 1.15 
                       ? "Excellent! Strong cash flow coverage." 
                       : results.dscrRatio >= 1.0 
                       ? "Good! DSCR qualifies for best rates."
                       : results.dscrRatio >= 0.75 
-                      ? "Marginal - We may have options."
-                      : "Contact us for alternatives."}
+                      ? "We have options for this scenario."
+                      : "Contact us to discuss alternatives."}
                   </span>
                 </div>
 
