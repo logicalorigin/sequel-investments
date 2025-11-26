@@ -577,10 +577,11 @@ export default function ApplicationDetailPage() {
                     );
                   } else if (isFlip) {
                     const experience = inputs.experience as string;
-                    const experienceLabel = experience === "10+" ? "10+ Deals" : experience === "6-10" ? "6-10 Deals" : experience === "3-5" ? "3-5 Deals" : "1-2 Deals";
+                    const experienceLabel = experience === "10+" ? "10+ Deals" : experience === "6-10" ? "6-10 Deals" : experience === "3-5" ? "3-5 Deals" : experience === "0" ? "0 Deals" : "1-2 Deals";
                     const roi = getResultValue("roi") as number | null;
                     const profitMargin = getResultValue("profitMargin") as number | null;
                     const loanAmount = getResultValue("loanAmount") as number | null || application.loanAmount;
+                    const loanTermMonths = (inputs.loanTermMonths as number) || application.holdTimeMonths;
 
                     return (
                       <div className="grid md:grid-cols-3 gap-6">
@@ -617,8 +618,8 @@ export default function ApplicationDetailPage() {
                             <p className="font-medium">{roi ? `${Number(roi).toFixed(1)}%` : "N/A"}</p>
                           </div>
                           <div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Holding Period</p>
-                            <p className="font-medium">{application.holdTimeMonths ? `${application.holdTimeMonths} Months` : "N/A"}</p>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Loan Term</p>
+                            <p className="font-medium">{loanTermMonths ? `${loanTermMonths} Months` : "N/A"}</p>
                           </div>
                         </div>
                         
@@ -635,16 +636,12 @@ export default function ApplicationDetailPage() {
                             <p className="text-xs text-muted-foreground uppercase tracking-wide">Profit Margin</p>
                             <p className="font-medium">{profitMargin ? `${Number(profitMargin).toFixed(1)}%` : "N/A"}</p>
                           </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Property Type</p>
-                            <p className="font-medium capitalize">{(inputs.propertyType as string)?.replace(/_/g, " ") || "SFR"}</p>
-                          </div>
                         </div>
                       </div>
                     );
                   } else if (isConstruction) {
                     const experience = inputs.experience as string;
-                    const experienceLabel = experience === "10+" ? "10+ Builds" : experience === "6-10" ? "6-10 Builds" : experience === "3-5" ? "3-5 Builds" : "1-2 Builds";
+                    const experienceLabel = experience === "10+" ? "10+ Builds" : experience === "6-10" ? "6-10 Builds" : experience === "3-5" ? "3-5 Builds" : experience === "0" ? "0 Builds" : "1-2 Builds";
                     const roi = getResultValue("roi") as number | null;
                     const loanAmount = getResultValue("loanAmount") as number | null || application.loanAmount;
                     const landOwned = inputs.landOwned as boolean;
