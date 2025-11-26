@@ -113,6 +113,14 @@ The borrower portal is modeled after Easy Street Capital's portal design with th
 - Fees breakdown: Daily Interest Charges, Origination Fee, Document Preparation Fee, Escrow Fee
 - Funds to Close section: Down Payment, Rehab Equity, Debt Servicing, Fees
 - Document status tabs (Needs/Documents) with Completed/Outstanding badges
+- "View Analysis" button (data-testid="button-view-analyzer") for applications created from analyzers - links back to the analyzer with saved scenario data
+
+**Analyzer-to-Application Data Persistence**:
+- When creating a Draft application from any analyzer (DSCR, Fix & Flip, Construction), the complete scenario data is saved
+- Schema fields: `analyzerType` (text: "dscr", "fixflip", "construction") and `analyzerData` (JSONB with inputs and results)
+- The "View Analysis" button navigates to the appropriate analyzer with `?applicationId={id}` query parameter
+- Analyzers detect the applicationId, fetch the application data, and restore all form inputs automatically
+- This enables complete round-trip editing: Analyzer → Application → Analyzer with data persistence
 
 **Investment Analysis Page** (`/portal/investment-analysis`):
 - Property type icon selector (SFR, Duplex, Triplex, Fourplex, Townhome/Condo) with visual SVG icons
