@@ -120,7 +120,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Create initial timeline event
       await storage.createTimelineEvent({
-        applicationId: application.id,
+        loanApplicationId: application.id,
         eventType: "application_created",
         title: "Application Created",
         description: `${application.loanType} loan application submitted`,
@@ -129,10 +129,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create welcome notification
       await storage.createNotification({
         userId,
-        type: "system",
+        type: "general",
         title: "Application Submitted",
         message: `Your ${application.loanType} loan application has been successfully submitted. We'll be in touch soon!`,
-        metadata: { applicationId: application.id },
+        relatedApplicationId: application.id,
       });
       
       return res.status(201).json(application);
@@ -197,13 +197,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           type: "status_change",
           title: `Application Status Updated`,
           message: `Your loan application status has changed to ${statusLabels[req.body.status] || req.body.status}.`,
-          metadata: { applicationId: req.params.id, newStatus: req.body.status },
+          relatedApplicationId: req.params.id,
         });
         
         // Create timeline event
         await storage.createTimelineEvent({
-          applicationId: req.params.id,
-          eventType: "status_change",
+          loanApplicationId: req.params.id,
+          eventType: "status_changed",
           title: `Status changed to ${statusLabels[req.body.status] || req.body.status}`,
           description: `Application status updated from ${statusLabels[oldStatus] || oldStatus}`,
         });
@@ -222,14 +222,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         await storage.createNotification({
           userId,
-          type: "system",
+          type: "general",
           title: `Application Stage Advanced`,
           message: `Your application has moved to: ${stageLabels[req.body.processingStage] || req.body.processingStage}`,
-          metadata: { applicationId: req.params.id },
+          relatedApplicationId: req.params.id,
         });
         
         await storage.createTimelineEvent({
-          applicationId: req.params.id,
+          loanApplicationId: req.params.id,
           eventType: "stage_advanced",
           title: `Advanced to ${stageLabels[req.body.processingStage] || req.body.processingStage}`,
         });
@@ -406,7 +406,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Create timeline event for document upload
       await storage.createTimelineEvent({
-        applicationId: doc.loanApplicationId,
+        loanApplicationId: doc.loanApplicationId,
         eventType: "document_uploaded",
         title: `${docType?.name || "Document"} Uploaded`,
         description: req.body.fileName || "Document uploaded successfully",
