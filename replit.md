@@ -57,7 +57,8 @@ The design is inspired by leading fintech lenders like Kiavi and Easy Street Cap
 - `/portal` - Customer portal with loan applications list
 - `/portal/application/:id` - Application detail page with progress stepper, loan info, fees, funds to close
 - `/portal/application/:id/documents` - Document upload and checklist page
-- `/portal/investment-analysis` - Investment Analysis deal calculator with ROI/profit analysis
+- `/portal/investment-analysis` - Investment Analysis deal calculator with DSCR/ROI analysis
+- `/portal/profile` - User profile settings with password management
 
 **UI Component System**: shadcn/ui component library in "New York" style, built on Radix UI primitives.
 
@@ -103,11 +104,37 @@ The borrower portal is modeled after Easy Street Capital's portal design with th
 
 **Investment Analysis Page** (`/portal/investment-analysis`):
 - Property type icon selector (SFR, Duplex, Triplex, Fourplex, Townhome/Condo) with visual SVG icons
-- Deal type selector (Rehab, New Construction, Rental)
-- Property inputs: Address, ARV, Purchase Price, Down Payment
+- Deal type selector (Rehab, New Construction, Rental/DSCR)
+- Property inputs: Address, ARV/Property Value, Purchase Price, Down Payment
 - Cost inputs: Rehab Budget, Requested Rehab Funding, Annual Taxes/Insurance/HOA, Closing Costs
 - Loan inputs: Loan Term, Hold Time, Interest Rate
 - Results panel: Total Project Cost, Cash Invested, Total Profit, ROI (%), Profit Margin (%), LTC (%), LTV (%)
+
+**DSCR Calculator Features** (when Rental deal type selected):
+- Transaction Type selector: Purchase, Rate & Term Refi, Cash-Out
+- Dynamic label: "Purchase Price" for purchases, "Property Value" for refinances
+- Requested Loan Amount with real-time LTV display and max thresholds (80% purchase/rate&term, 75% cash-out)
+- Loan Factors section: Credit Score slider (660-800) and Expected Monthly Rent
+- Operating Expenses: Annual Taxes, Insurance, HOA
+- Interest rate calculated dynamically based on: credit score, LTV, DSCR ratio, and property type
+- Base rate: 6.25% with adjustments ranging from 5.75% to 9.0%
+- DSCR Results panel displays:
+  - Interest Rate and DSCR ratio (color-coded: green ≥1.0, yellow ≥0.75, red <0.75)
+  - Estimated Value and Equity %
+  - Loan Amount and LTV (with max threshold warnings)
+  - Monthly Breakdown: Rent Income, Principal & Interest, Taxes/Ins/HOA, Total PITIA, Monthly Cash Flow
+
+**Profile Page** (`/portal/profile`):
+- User profile information display (name, email from Replit Auth)
+- Password management section with change password form
+- Investment profile with account status and member since date
+- Quick action buttons for Portfolio and Analysis
+- Danger zone with account deletion dialog
+
+**Shared Portal Header** (`PortalHeader` component):
+- SAF logo image (not icon) with company name
+- Navigation tabs: Portfolio, Investment Analysis (with active state highlighting)
+- User avatar with dropdown menu for Profile Settings and Logout
 
 **Construction Calculator Features**:
 - "Land is Owned" checkbox that applies land value as equity
@@ -142,7 +169,11 @@ The workflow `Start application` runs `npm run dev` which starts both Express ba
 - `client/src/components/Navigation.tsx` - Header with SAF branding
 - `client/src/components/Footer.tsx` - Footer with company info
 - `client/src/components/LeadForm.tsx` - Reusable lead capture form
+- `client/src/components/PortalHeader.tsx` - Shared portal header with SAF logo and user menu
 - `client/src/pages/GetQuotePage.tsx` - Multi-step quote application
+- `client/src/pages/PortalPage.tsx` - Customer portal with loan applications
+- `client/src/pages/InvestmentAnalysisPage.tsx` - Investment analyzer with DSCR calculator
+- `client/src/pages/ProfilePage.tsx` - User profile settings
 - `shared/schema.ts` - Zod schemas and types for lead data
 - `server/routes.ts` - API endpoints with validation
 - `server/storage.ts` - In-memory storage interface
