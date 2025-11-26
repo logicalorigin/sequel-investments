@@ -529,15 +529,11 @@ export default function ApplicationDetailPage() {
                     const rentalType = (inputs.rentalType as string) || "long_term";
 
                     return (
-                      <div className="grid md:grid-cols-4 gap-6">
+                      <div className="grid md:grid-cols-3 gap-6">
                         <div className="space-y-4">
                           <div>
                             <p className="text-xs text-muted-foreground uppercase tracking-wide">Property Value</p>
                             <p className="font-medium">{formatCurrency(application.purchasePrice)}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Loan Amount</p>
-                            <p className="font-medium">{formatCurrency(loanAmount)}</p>
                           </div>
                           <div>
                             <p className="text-xs text-muted-foreground uppercase tracking-wide">Monthly Rent</p>
@@ -546,6 +542,10 @@ export default function ApplicationDetailPage() {
                           <div>
                             <p className="text-xs text-muted-foreground uppercase tracking-wide">Property Type</p>
                             <p className="font-medium">{propertyTypeLabel}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Credit Score</p>
+                            <p className="font-medium">{(inputs.creditScore as number[])?.[0] || "N/A"}</p>
                           </div>
                         </div>
                         
@@ -563,31 +563,16 @@ export default function ApplicationDetailPage() {
                             <p className="font-medium">{application.ltv ? `${application.ltv}%` : "N/A"}</p>
                           </div>
                           <div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Est. Monthly Payment</p>
-                            <p className="font-medium">{monthlyPITIA ? formatCurrency(monthlyPITIA) : "N/A"}</p>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Prepayment Penalty</p>
+                            <p className="font-medium">{prepaymentPenalty === "0" ? "None" : prepaymentPenalty}</p>
                           </div>
                         </div>
                         
                         <div className="space-y-4">
                           <div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Loan Term</p>
-                            <p className="font-medium">30-Year Fixed</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Prepayment Penalty</p>
-                            <p className="font-medium">{prepaymentPenalty === "0" ? "None" : prepaymentPenalty}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Credit Score</p>
-                            <p className="font-medium">{(inputs.creditScore as number[])?.[0] || "N/A"}</p>
-                          </div>
-                          <div>
                             <p className="text-xs text-muted-foreground uppercase tracking-wide">Transaction Type</p>
                             <p className="font-medium capitalize">{transactionType.replace(/_/g, " ")}</p>
                           </div>
-                        </div>
-
-                        <div className="space-y-4">
                           <div>
                             <p className="text-xs text-muted-foreground uppercase tracking-wide">Rental Type</p>
                             <p className="font-medium capitalize">{rentalType.replace(/_/g, " ")}</p>
@@ -770,41 +755,85 @@ export default function ApplicationDetailPage() {
 
                 <Separator className="my-6" />
 
-                <div className="grid md:grid-cols-3 gap-6">
-                  <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Loan Amount</p>
-                    <p className="font-bold text-xl text-primary" data-testid="text-loan-amount">{formatCurrency(application.loanAmount)}</p>
-                  </div>
-                  <div className="p-4 bg-muted/50 rounded-lg">
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Loan Term</p>
-                    <p className="font-semibold text-lg">{application.loanTermMonths ? `${application.loanTermMonths} Months` : "N/A"}</p>
-                  </div>
-                  {(application.loanType?.toLowerCase().includes("flip") || application.loanType?.toLowerCase().includes("construction")) && (
-                    <div className="p-4 bg-muted/50 rounded-lg">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Rehab/Construction Funding</p>
-                      <p className="font-semibold text-lg">{formatCurrency(application.requestedRehabFunding)}</p>
-                    </div>
-                  )}
-                  {application.loanType?.toLowerCase().includes("dscr") && (
-                    <div className="p-4 bg-muted/50 rounded-lg">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Estimated Monthly Payment</p>
-                      <p className="font-semibold text-lg">
-                        {(() => {
-                          const rate = parseFloat(application.interestRate || "0");
-                          const term = application.loanTermMonths || 0;
-                          const principal = application.loanAmount || 0;
-                          if (rate && term && principal) {
-                            const monthlyRate = rate / 100 / 12;
-                            const payment = (principal * monthlyRate * Math.pow(1 + monthlyRate, term)) /
-                                          (Math.pow(1 + monthlyRate, term) - 1);
-                            return formatCurrency(payment);
-                          }
-                          return "N/A";
-                        })()}
-                      </p>
-                    </div>
-                  )}
-                </div>
+                {(() => {
+                  const isDSCRLoan = application.analyzerType === "dscr" || application.loanType?.toLowerCase().includes("dscr");
+                  const isFlipLoan = application.analyzerType === "fixflip" || application.loanType?.toLowerCase().includes("flip");
+                  const isConstructionLoan = application.analyzerType === "construction" || application.loanType?.toLowerCase().includes("construction");
+                  const rawAnalyzer = application.analyzerData as { inputs?: Record<string, unknown>; results?: Record<string, unknown> } | null;
+                  const analyzerResults = rawAnalyzer?.results || {};
+                  
+                  if (isDSCRLoan) {
+                    const monthlyPITIA = analyzerResults.monthlyPITIA as number | null;
+                    return (
+                      <div className="grid md:grid-cols-3 gap-6">
+                        <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide">Loan Amount</p>
+                          <p className="font-bold text-xl text-primary" data-testid="text-loan-amount">{formatCurrency(application.loanAmount)}</p>
+                        </div>
+                        <div className="p-4 bg-muted/50 rounded-lg">
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide">Loan Term</p>
+                          <p className="font-semibold text-lg">30-Year Fixed</p>
+                        </div>
+                        <div className="p-4 bg-muted/50 rounded-lg">
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide">Estimated Monthly Payment</p>
+                          <p className="font-semibold text-lg">
+                            {monthlyPITIA ? formatCurrency(monthlyPITIA) : (() => {
+                              const rate = parseFloat(application.interestRate || "0");
+                              const term = 360; // 30 years
+                              const principal = application.loanAmount || 0;
+                              if (rate && principal) {
+                                const monthlyRate = rate / 100 / 12;
+                                const payment = (principal * monthlyRate * Math.pow(1 + monthlyRate, term)) /
+                                              (Math.pow(1 + monthlyRate, term) - 1);
+                                return formatCurrency(payment);
+                              }
+                              return "N/A";
+                            })()}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  } else if (isFlipLoan || isConstructionLoan) {
+                    // Calculate daily interest for F&F and Construction
+                    const rate = parseFloat(application.interestRate || "0");
+                    const principal = application.loanAmount || 0;
+                    const dailyInterest = rate && principal ? (principal * (rate / 100)) / 365 : null;
+                    
+                    return (
+                      <div className="grid md:grid-cols-4 gap-6">
+                        <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide">Loan Amount</p>
+                          <p className="font-bold text-xl text-primary" data-testid="text-loan-amount">{formatCurrency(application.loanAmount)}</p>
+                        </div>
+                        <div className="p-4 bg-muted/50 rounded-lg">
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide">Loan Term</p>
+                          <p className="font-semibold text-lg">{application.loanTermMonths ? `${application.loanTermMonths} Months` : application.holdTimeMonths ? `${application.holdTimeMonths} Months` : "N/A"}</p>
+                        </div>
+                        <div className="p-4 bg-muted/50 rounded-lg">
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide">{isConstructionLoan ? "Construction Funding" : "Rehab Funding"}</p>
+                          <p className="font-semibold text-lg">{formatCurrency(application.requestedRehabFunding)}</p>
+                        </div>
+                        <div className="p-4 bg-muted/50 rounded-lg">
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide">Daily Interest</p>
+                          <p className="font-semibold text-lg">{dailyInterest ? formatCurrency(dailyInterest) : "N/A"}</p>
+                        </div>
+                      </div>
+                    );
+                  } else {
+                    return (
+                      <div className="grid md:grid-cols-2 gap-6">
+                        <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide">Loan Amount</p>
+                          <p className="font-bold text-xl text-primary" data-testid="text-loan-amount">{formatCurrency(application.loanAmount)}</p>
+                        </div>
+                        <div className="p-4 bg-muted/50 rounded-lg">
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide">Loan Term</p>
+                          <p className="font-semibold text-lg">{application.loanTermMonths ? `${application.loanTermMonths} Months` : "N/A"}</p>
+                        </div>
+                      </div>
+                    );
+                  }
+                })()}
               </CardContent>
             </Card>
 
