@@ -12,6 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AmortizationChart } from "@/components/AmortizationChart";
 import { PropertyValueChart } from "@/components/PropertyValueChart";
+import { DocumentCommentsDialog } from "@/components/DocumentCommentsDialog";
 import { 
   ArrowLeft,
   Building2,
@@ -773,14 +774,10 @@ export default function ApplicationDetailPage() {
                                   </div>
                                 </td>
                                 <td className="px-4 py-3 text-center">
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                                    data-testid={`button-comment-${doc.id}`}
-                                  >
-                                    <MessageSquare className="h-4 w-4" />
-                                  </Button>
+                                  <DocumentCommentsDialog
+                                    documentId={doc.id}
+                                    documentName={doc.documentType?.name || "Document"}
+                                  />
                                 </td>
                               </tr>
                             );

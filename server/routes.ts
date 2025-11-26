@@ -787,6 +787,162 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ============================================
+  // DOCUMENT COMMENTS ROUTES
+  // ============================================
+  app.get("/api/documents/:id/comments", isAuthenticated, async (req: any, res) => {
+    try {
+      const comments = await storage.getDocumentComments(req.params.id);
+      return res.json(comments);
+    } catch (error) {
+      console.error("Error fetching comments:", error);
+      return res.status(500).json({ error: "Failed to fetch comments" });
+    }
+  });
+
+  app.post("/api/documents/:id/comments", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const document = await storage.getDocument(req.params.id);
+      
+      if (!document) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+      
+      const comment = await storage.createDocumentComment({
+        documentId: req.params.id,
+        userId,
+        content: req.body.content,
+        isInternal: req.body.isInternal || false,
+      });
+      
+      // Get document type info for the notification
+      const docTypes = await storage.getDocumentTypes();
+      const docType = docTypes.find(dt => dt.id === document.documentTypeId);
+      
+      // Get the loan application for context
+      const application = await storage.getLoanApplication(document.loanApplicationId);
+      
+      if (application) {
+        // Get the application owner for notification
+        const appOwner = await storage.getUser(application.userId);
+        
+        // Create in-app notification for the application owner (if commenter is not the owner)
+        if (application.userId !== userId) {
+          await storage.createNotification({
+            userId: application.userId,
+            type: "general",
+            title: "New Document Comment",
+            message: `A new comment was added to "${docType?.name || 'a document'}" by ${user?.firstName || 'Someone'}`,
+            linkUrl: `/portal/applications/${application.id}`,
+            relatedApplicationId: application.id,
+          });
+        }
+        
+        // Send webhook notification to CRM
+        const webhookUrl = process.env.CRM_WEBHOOK_URL;
+        if (webhookUrl) {
+          const payload = {
+            event: "document_comment_added",
+            timestamp: new Date().toISOString(),
+            data: {
+              commentId: comment.id,
+              documentId: document.id,
+              documentName: docType?.name || "Unknown Document",
+              applicationId: application.id,
+              propertyAddress: application.propertyAddress,
+              loanType: application.loanType,
+              commenterName: [user?.firstName, user?.lastName].filter(Boolean).join(" ") || "Unknown",
+              commenterEmail: user?.email || null,
+              recipientEmail: appOwner?.email || null,
+              recipientName: [appOwner?.firstName, appOwner?.lastName].filter(Boolean).join(" ") || null,
+              comment: comment.content,
+              isInternal: comment.isInternal,
+            },
+          };
+          
+          fetch(webhookUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-Webhook-Source": "secured-asset-funding",
+              "X-Webhook-Event": "document_comment_added",
+              ...(process.env.CRM_WEBHOOK_SECRET && {
+                "X-Webhook-Secret": process.env.CRM_WEBHOOK_SECRET
+              })
+            },
+            body: JSON.stringify(payload),
+          }).catch(err => console.error("[Webhook] Error sending notification:", err));
+        }
+        
+        // Create timeline event
+        await storage.createTimelineEvent({
+          loanApplicationId: application.id,
+          eventType: "note_added",
+          title: "Comment Added",
+          description: `Comment added to ${docType?.name || 'document'}: "${comment.content.substring(0, 50)}${comment.content.length > 50 ? '...' : ''}"`,
+          createdByUserId: userId,
+        });
+      }
+      
+      // Return comment with user info
+      const commentWithUser = {
+        ...comment,
+        user: user || null,
+      };
+      
+      return res.status(201).json(commentWithUser);
+    } catch (error) {
+      console.error("Error creating comment:", error);
+      return res.status(500).json({ error: "Failed to create comment" });
+    }
+  });
+
+  app.patch("/api/comments/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const comment = await storage.getDocumentComment(req.params.id);
+      
+      if (!comment) {
+        return res.status(404).json({ error: "Comment not found" });
+      }
+      
+      if (comment.userId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const updated = await storage.updateDocumentComment(req.params.id, {
+        content: req.body.content,
+      });
+      return res.json(updated);
+    } catch (error) {
+      console.error("Error updating comment:", error);
+      return res.status(500).json({ error: "Failed to update comment" });
+    }
+  });
+
+  app.delete("/api/comments/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const comment = await storage.getDocumentComment(req.params.id);
+      
+      if (!comment) {
+        return res.status(404).json({ error: "Comment not found" });
+      }
+      
+      if (comment.userId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      await storage.deleteDocumentComment(req.params.id);
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting comment:", error);
+      return res.status(500).json({ error: "Failed to delete comment" });
+    }
+  });
+
+  // ============================================
   // CO-BORROWER ROUTES
   // ============================================
   app.get("/api/applications/:id/co-borrowers", isAuthenticated, async (req: any, res) => {

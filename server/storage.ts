@@ -13,6 +13,7 @@ import {
   coBorrowers,
   applicationTimeline,
   marketDataSnapshots,
+  documentComments,
   type User, 
   type UpsertUser,
   type Lead, 
@@ -41,6 +42,8 @@ import {
   type InsertApplicationTimelineEvent,
   type MarketDataSnapshot,
   type InsertMarketDataSnapshot,
+  type DocumentComment,
+  type InsertDocumentComment,
   DEFAULT_DOCUMENT_TYPES,
 } from "@shared/schema";
 import { db } from "./db";
@@ -128,6 +131,13 @@ export interface IStorage {
   getLatestMarketData(stateSlug: string): Promise<MarketDataSnapshot | undefined>;
   createMarketDataSnapshot(snapshot: InsertMarketDataSnapshot): Promise<MarketDataSnapshot>;
   getAllMarketDataSnapshots(): Promise<MarketDataSnapshot[]>;
+  
+  // Document comment operations
+  getDocumentComments(documentId: string): Promise<(DocumentComment & { user: User | null })[]>;
+  getDocumentComment(id: string): Promise<DocumentComment | undefined>;
+  createDocumentComment(comment: InsertDocumentComment): Promise<DocumentComment>;
+  updateDocumentComment(id: string, data: Partial<InsertDocumentComment>): Promise<DocumentComment | undefined>;
+  deleteDocumentComment(id: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -555,6 +565,51 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(marketDataSnapshots)
       .orderBy(desc(marketDataSnapshots.fetchedAt));
+  }
+
+  // Document comment operations
+  async getDocumentComments(documentId: string): Promise<(DocumentComment & { user: User | null })[]> {
+    const comments = await db
+      .select()
+      .from(documentComments)
+      .where(eq(documentComments.documentId, documentId))
+      .orderBy(desc(documentComments.createdAt));
+    
+    const commentsWithUsers = await Promise.all(
+      comments.map(async (comment) => {
+        const [user] = await db.select().from(users).where(eq(users.id, comment.userId));
+        return { ...comment, user: user || null };
+      })
+    );
+    
+    return commentsWithUsers;
+  }
+
+  async getDocumentComment(id: string): Promise<DocumentComment | undefined> {
+    const [comment] = await db.select().from(documentComments).where(eq(documentComments.id, id));
+    return comment;
+  }
+
+  async createDocumentComment(comment: InsertDocumentComment): Promise<DocumentComment> {
+    const [created] = await db
+      .insert(documentComments)
+      .values(comment)
+      .returning();
+    return created;
+  }
+
+  async updateDocumentComment(id: string, data: Partial<InsertDocumentComment>): Promise<DocumentComment | undefined> {
+    const [updated] = await db
+      .update(documentComments)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(documentComments.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteDocumentComment(id: string): Promise<boolean> {
+    await db.delete(documentComments).where(eq(documentComments.id, id));
+    return true;
   }
 }
 
