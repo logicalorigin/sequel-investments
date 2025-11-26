@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import AddressAutocomplete from "@/components/AddressAutocomplete";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -498,10 +499,43 @@ export default function GetQuotePage() {
 
                 <div className="space-y-3">
                   <Label className="text-white">Property Address</Label>
-                  <Input
-                    placeholder="123 Main Street"
+                  <AddressAutocomplete
                     value={formData.propertyAddress}
-                    onChange={(e) => setFormData({ ...formData, propertyAddress: e.target.value })}
+                    onChange={(value) => setFormData({ ...formData, propertyAddress: value })}
+                    onPlaceSelect={(place) => {
+                      if (place.address_components) {
+                        let city = "";
+                        let state = "";
+                        let zip = "";
+                        let streetNumber = "";
+                        let route = "";
+                        
+                        for (const component of place.address_components) {
+                          const types = component.types;
+                          if (types.includes("locality")) {
+                            city = component.long_name;
+                          } else if (types.includes("administrative_area_level_1")) {
+                            state = component.short_name;
+                          } else if (types.includes("postal_code")) {
+                            zip = component.long_name;
+                          } else if (types.includes("street_number")) {
+                            streetNumber = component.long_name;
+                          } else if (types.includes("route")) {
+                            route = component.long_name;
+                          }
+                        }
+                        
+                        const streetAddress = `${streetNumber} ${route}`.trim();
+                        setFormData({
+                          ...formData,
+                          propertyAddress: streetAddress || place.formatted_address || "",
+                          propertyCity: city,
+                          propertyState: state,
+                          propertyZip: zip,
+                        });
+                      }
+                    }}
+                    placeholder="Start typing property address..."
                     className="bg-white/5 border-white/10 text-white placeholder:text-white/40"
                     data-testid="input-address"
                   />
