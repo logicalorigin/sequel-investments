@@ -132,6 +132,38 @@ export class ObjectStorageService {
     });
   }
 
+  // Get upload URL for application-specific document storage
+  // Organizes files into: /applications/{applicationId}/documents/{documentId}/{filename}
+  async getApplicationDocumentUploadURL(
+    applicationId: string,
+    documentId: string,
+    fileName: string
+  ): Promise<string> {
+    const privateObjectDir = this.getPrivateObjectDir();
+    if (!privateObjectDir) {
+      throw new Error(
+        "PRIVATE_OBJECT_DIR not set. Create a bucket in 'Object Storage' " +
+          "tool and set PRIVATE_OBJECT_DIR env var."
+      );
+    }
+
+    // Sanitize filename to remove special characters
+    const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const uniqueId = randomUUID().slice(0, 8);
+    const finalFileName = `${uniqueId}_${sanitizedFileName}`;
+    
+    // Organize by application and document
+    const fullPath = `${privateObjectDir}/applications/${applicationId}/documents/${documentId}/${finalFileName}`;
+    const { bucketName, objectName } = parseObjectPath(fullPath);
+
+    return signObjectURL({
+      bucketName,
+      objectName,
+      method: "PUT",
+      ttlSec: 900,
+    });
+  }
+
   async getObjectEntityFile(objectPath: string): Promise<File> {
     if (!objectPath.startsWith("/objects/")) {
       throw new ObjectNotFoundError();

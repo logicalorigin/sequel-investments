@@ -76,3 +76,6 @@ integrations = ["javascript_mem_db:1.0.0", "javascript_database:1.0.0", "javascr
 VITE_GOOGLE_MAPS_API_KEY = "AIzaSyAkUNFuXSm5BekoHKGGp06g9AMkBSwbQvg"
 PRIVATE_OBJECT_DIR = "/replit-objstore-adef886b-287c-4835-a264-e35141d96902/private"
 PUBLIC_OBJECT_SEARCH_PATHS = "/replit-objstore-adef886b-287c-4835-a264-e35141d96902/public"
+
+[objectStorage]
+defaultBucketID = "replit-objstore-aa6f31ea-7f2a-4ba3-b20a-33b4e790e694"
