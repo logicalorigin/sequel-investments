@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, ChevronRight, MapPin, DollarSign, Percent, Clock } from "lucide-react";
+import { MapPin, DollarSign, Percent, Clock } from "lucide-react";
 import { Link } from "wouter";
 
 import luxuryHome from "@assets/stock_images/luxury_modern_single_2639d1bd.jpg";
@@ -149,7 +149,6 @@ export function RecentlyFundedCarousel({
   subtitle = "See what we've funded for investors like you"
 }: RecentlyFundedCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
 
   const deals = loanType === "all" 
     ? allDeals 
@@ -159,24 +158,12 @@ export function RecentlyFundedCarousel({
     deals.length > 0 ? Array.from({ length: 3 }, (_, i) => deals[i % deals.length]) : allDeals.slice(0, 3);
 
   useEffect(() => {
-    if (!isAutoPlaying) return;
-    
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % extendedDeals.length);
     }, 5000);
     
     return () => clearInterval(interval);
-  }, [isAutoPlaying, extendedDeals.length]);
-
-  const nextSlide = () => {
-    setIsAutoPlaying(false);
-    setCurrentIndex((prev) => (prev + 1) % extendedDeals.length);
-  };
-
-  const prevSlide = () => {
-    setIsAutoPlaying(false);
-    setCurrentIndex((prev) => (prev - 1 + extendedDeals.length) % extendedDeals.length);
-  };
+  }, [extendedDeals.length]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -218,26 +205,6 @@ export function RecentlyFundedCarousel({
         </div>
 
         <div className="relative">
-          {/* Navigation Buttons */}
-          <Button
-            variant="outline"
-            size="icon"
-            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 bg-background shadow-md hidden md:flex"
-            onClick={prevSlide}
-            data-testid="button-carousel-prev"
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 bg-background shadow-md hidden md:flex"
-            onClick={nextSlide}
-            data-testid="button-carousel-next"
-          >
-            <ChevronRight className="h-5 w-5" />
-          </Button>
-
           {/* Cards Container */}
           <div className="grid md:grid-cols-3 gap-6">
             {getVisibleDeals().map((deal, index) => (
@@ -317,22 +284,6 @@ export function RecentlyFundedCarousel({
             ))}
           </div>
 
-          {/* Dots Indicator */}
-          <div className="flex justify-center gap-2 mt-6">
-            {extendedDeals.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => {
-                  setIsAutoPlaying(false);
-                  setCurrentIndex(index);
-                }}
-                className={`w-2 h-2 rounded-full transition-all ${
-                  index === currentIndex ? "bg-primary w-6" : "bg-muted-foreground/30"
-                }`}
-                data-testid={`button-carousel-dot-${index}`}
-              />
-            ))}
-          </div>
         </div>
 
         <div className="text-center mt-8">
