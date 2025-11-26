@@ -22,13 +22,105 @@ import {
   DollarSign,
   Percent,
   ArrowRight,
+  Home,
+  Building,
 } from "lucide-react";
+
+const propertyTypes = [
+  { id: "sfr", label: "Single Family", icon: "sfr" },
+  { id: "duplex", label: "Duplex", icon: "duplex" },
+  { id: "triplex", label: "Triplex", icon: "triplex" },
+  { id: "fourplex", label: "Fourplex", icon: "fourplex" },
+  { id: "townhome", label: "Townhome/Condo", icon: "townhome" },
+];
+
+function PropertyTypeIcon({ type, className = "" }: { type: string; className?: string }) {
+  const baseClass = `${className}`;
+  
+  if (type === "sfr") {
+    return (
+      <svg className={baseClass} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M8 28L32 8L56 28V56H8V28Z" stroke="currentColor" strokeWidth="2" fill="none"/>
+        <rect x="26" y="38" width="12" height="18" stroke="currentColor" strokeWidth="2" fill="none"/>
+        <rect x="16" y="34" width="8" height="8" stroke="currentColor" strokeWidth="2" fill="none"/>
+        <rect x="40" y="34" width="8" height="8" stroke="currentColor" strokeWidth="2" fill="none"/>
+        <path d="M32 8L32 2" stroke="currentColor" strokeWidth="2"/>
+      </svg>
+    );
+  }
+  
+  if (type === "duplex") {
+    return (
+      <svg className={baseClass} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="6" y="20" width="24" height="36" stroke="currentColor" strokeWidth="2" fill="none"/>
+        <rect x="34" y="20" width="24" height="36" stroke="currentColor" strokeWidth="2" fill="none"/>
+        <rect x="12" y="42" width="8" height="14" stroke="currentColor" strokeWidth="2" fill="none"/>
+        <rect x="44" y="42" width="8" height="14" stroke="currentColor" strokeWidth="2" fill="none"/>
+        <rect x="12" y="28" width="6" height="6" stroke="currentColor" strokeWidth="2" fill="none"/>
+        <rect x="46" y="28" width="6" height="6" stroke="currentColor" strokeWidth="2" fill="none"/>
+        <path d="M6 20L18 10L30 20" stroke="currentColor" strokeWidth="2" fill="none"/>
+        <path d="M34 20L46 10L58 20" stroke="currentColor" strokeWidth="2" fill="none"/>
+      </svg>
+    );
+  }
+  
+  if (type === "triplex") {
+    return (
+      <svg className={baseClass} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="4" y="22" width="18" height="34" stroke="currentColor" strokeWidth="2" fill="none"/>
+        <rect x="23" y="22" width="18" height="34" stroke="currentColor" strokeWidth="2" fill="none"/>
+        <rect x="42" y="22" width="18" height="34" stroke="currentColor" strokeWidth="2" fill="none"/>
+        <rect x="8" y="44" width="6" height="12" stroke="currentColor" strokeWidth="2" fill="none"/>
+        <rect x="29" y="44" width="6" height="12" stroke="currentColor" strokeWidth="2" fill="none"/>
+        <rect x="48" y="44" width="6" height="12" stroke="currentColor" strokeWidth="2" fill="none"/>
+        <path d="M4 22L13 14L22 22" stroke="currentColor" strokeWidth="2" fill="none"/>
+        <path d="M23 22L32 14L41 22" stroke="currentColor" strokeWidth="2" fill="none"/>
+        <path d="M42 22L51 14L60 22" stroke="currentColor" strokeWidth="2" fill="none"/>
+      </svg>
+    );
+  }
+  
+  if (type === "fourplex") {
+    return (
+      <svg className={baseClass} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="6" y="18" width="52" height="38" stroke="currentColor" strokeWidth="2" fill="none"/>
+        <line x1="32" y1="18" x2="32" y2="56" stroke="currentColor" strokeWidth="2"/>
+        <line x1="6" y1="37" x2="58" y2="37" stroke="currentColor" strokeWidth="2"/>
+        <rect x="12" y="24" width="6" height="6" stroke="currentColor" strokeWidth="2" fill="none"/>
+        <rect x="38" y="24" width="6" height="6" stroke="currentColor" strokeWidth="2" fill="none"/>
+        <rect x="12" y="44" width="6" height="6" stroke="currentColor" strokeWidth="2" fill="none"/>
+        <rect x="38" y="44" width="6" height="6" stroke="currentColor" strokeWidth="2" fill="none"/>
+        <path d="M6 18L32 6L58 18" stroke="currentColor" strokeWidth="2" fill="none"/>
+      </svg>
+    );
+  }
+  
+  if (type === "townhome") {
+    return (
+      <svg className={baseClass} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="8" y="24" width="20" height="32" stroke="currentColor" strokeWidth="2" fill="none"/>
+        <rect x="36" y="24" width="20" height="32" stroke="currentColor" strokeWidth="2" fill="none"/>
+        <rect x="14" y="42" width="8" height="14" stroke="currentColor" strokeWidth="2" fill="none"/>
+        <rect x="42" y="42" width="8" height="14" stroke="currentColor" strokeWidth="2" fill="none"/>
+        <rect x="14" y="30" width="4" height="4" stroke="currentColor" strokeWidth="2" fill="none"/>
+        <rect x="44" y="30" width="4" height="4" stroke="currentColor" strokeWidth="2" fill="none"/>
+        <path d="M8 24L18 14L28 24" stroke="currentColor" strokeWidth="2" fill="none"/>
+        <path d="M36 24L46 14L56 24" stroke="currentColor" strokeWidth="2" fill="none"/>
+        <line x1="28" y1="14" x2="36" y2="14" stroke="currentColor" strokeWidth="2"/>
+        <line x1="28" y1="24" x2="36" y2="24" stroke="currentColor" strokeWidth="2"/>
+      </svg>
+    );
+  }
+  
+  return <Home className={baseClass} />;
+}
 
 export default function InvestmentAnalysisPage() {
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
   const { toast } = useToast();
 
   const [address, setAddress] = useState("");
+  const [propertyType, setPropertyType] = useState("sfr");
   const [dealType, setDealType] = useState("rehab");
   const [arv, setArv] = useState("500000");
   const [loanTermMonths, setLoanTermMonths] = useState("9");
@@ -198,6 +290,28 @@ export default function InvestmentAnalysisPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
+                <div className="mb-6">
+                  <Label className="mb-3 block">Property Type</Label>
+                  <div className="grid grid-cols-5 gap-3">
+                    {propertyTypes.map((pt) => (
+                      <button
+                        key={pt.id}
+                        type="button"
+                        onClick={() => setPropertyType(pt.id)}
+                        className={`flex flex-col items-center p-3 rounded-lg border-2 transition-all ${
+                          propertyType === pt.id
+                            ? "border-primary bg-primary/5"
+                            : "border-border hover:border-primary/50 hover:bg-muted/50"
+                        }`}
+                        data-testid={`button-property-type-${pt.id}`}
+                      >
+                        <PropertyTypeIcon type={pt.icon} className="w-10 h-10 mb-2 text-muted-foreground" />
+                        <span className="text-xs text-center font-medium">{pt.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="mb-6">
                   <Label htmlFor="address">Address</Label>
                   <Input

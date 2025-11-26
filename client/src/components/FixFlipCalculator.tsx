@@ -103,7 +103,7 @@ export function FixFlipCalculator() {
             </div>
 
             <div>
-              <Label htmlFor="rehabCosts">Rehab / Renovation Costs ($)</Label>
+              <Label htmlFor="rehabCosts">Rehab Budget ($)</Label>
               <Input
                 id="rehabCosts"
                 type="number"
@@ -111,6 +111,18 @@ export function FixFlipCalculator() {
                 onChange={(e) => setRehabCosts(e.target.value)}
                 placeholder="50000"
                 data-testid="input-flip-rehab"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="holdingPeriod">Hold Time (months)</Label>
+              <Input
+                id="holdingPeriod"
+                type="number"
+                value={holdingPeriod}
+                onChange={(e) => setHoldingPeriod(e.target.value)}
+                placeholder="6"
+                data-testid="input-flip-holding"
               />
             </div>
           </div>
@@ -129,18 +141,6 @@ export function FixFlipCalculator() {
               <p className="text-sm text-muted-foreground mt-1">
                 Estimated value after renovations
               </p>
-            </div>
-
-            <div>
-              <Label htmlFor="holdingPeriod">Holding Period (months)</Label>
-              <Input
-                id="holdingPeriod"
-                type="number"
-                value={holdingPeriod}
-                onChange={(e) => setHoldingPeriod(e.target.value)}
-                placeholder="6"
-                data-testid="input-flip-holding"
-              />
             </div>
           </div>
         </div>

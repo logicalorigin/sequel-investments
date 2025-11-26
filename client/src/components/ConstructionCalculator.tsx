@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Link } from "wouter";
 import { CheckCircle2, AlertCircle, ArrowRight, HardHat, Info } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -12,8 +13,9 @@ export function ConstructionCalculator() {
   const [landCost, setLandCost] = useState("150000");
   const [constructionCost, setConstructionCost] = useState("350000");
   const [completedValue, setCompletedValue] = useState("650000");
-  const [buildDuration, setBuildDuration] = useState("12");
+  const [buildDuration, setBuildDuration] = useState("9");
   const [projectType, setProjectType] = useState<"spec" | "presold">("spec");
+  const [landIsOwned, setLandIsOwned] = useState(false);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -28,15 +30,35 @@ export function ConstructionCalculator() {
     const land = parseFloat(landCost) || 0;
     const construction = parseFloat(constructionCost) || 0;
     const completed = parseFloat(completedValue) || 0;
-    const months = parseInt(buildDuration) || 12;
+    const months = parseInt(buildDuration) || 9;
     
     const totalProjectCost = land + construction;
     const ltc = completed > 0 ? (totalProjectCost / completed) * 100 : 0;
-    const ltv = completed > 0 ? (totalProjectCost / completed) * 100 : 0;
     
-    const maxLTC = projectType === "presold" ? 0.85 : 0.825;
-    const loanAmountLand = Math.min(land * 0.75, completed * 0.65);
-    const loanAmountConstruction = Math.min(construction, (completed * maxLTC) - loanAmountLand);
+    const maxLTC = 0.90;
+    const maxLoanByARV = completed * maxLTC;
+    const maxLoanByLTC = totalProjectCost * maxLTC;
+    const maxLoanAmount = Math.min(maxLoanByARV, maxLoanByLTC);
+    
+    let loanAmountLand = 0;
+    let loanAmountConstruction = 0;
+    let downPaymentRequired = 0;
+    let landEquityApplied = 0;
+    let constructionCashRequired = 0;
+    
+    if (landIsOwned) {
+      landEquityApplied = land;
+      loanAmountConstruction = Math.min(construction, maxLoanAmount);
+      constructionCashRequired = Math.max(0, construction - loanAmountConstruction);
+      downPaymentRequired = 0;
+    } else {
+      loanAmountLand = Math.min(land * 0.75, completed * 0.65);
+      const remainingLoanCapacity = maxLoanAmount - loanAmountLand;
+      loanAmountConstruction = Math.min(construction, Math.max(0, remainingLoanCapacity));
+      downPaymentRequired = land - loanAmountLand;
+      constructionCashRequired = Math.max(0, construction - loanAmountConstruction);
+    }
+    
     const totalLoanAmount = loanAmountLand + Math.max(0, loanAmountConstruction);
     
     const effectiveLTC = totalProjectCost > 0 ? (totalLoanAmount / totalProjectCost) * 100 : 0;
@@ -45,16 +67,19 @@ export function ConstructionCalculator() {
     const avgDrawnAmount = totalLoanAmount * 0.5;
     const interestPayments = avgDrawnAmount * rate * months;
     
-    const downPaymentRequired = land - loanAmountLand;
-    const constructionCashRequired = Math.max(0, construction - loanAmountConstruction);
     const closingCosts = totalProjectCost * 0.025;
     const sellingCosts = completed * 0.06;
     const cashToClose = downPaymentRequired + closingCosts;
     const totalCashRequired = cashToClose + constructionCashRequired;
     
-    const totalCosts = land + construction + interestPayments + closingCosts + sellingCosts;
-    const profit = completed - totalCosts;
-    const roi = totalCashRequired > 0 ? (profit / totalCashRequired) * 100 : 0;
+    const totalProjectExpenses = land + construction + interestPayments + closingCosts + sellingCosts;
+    const profit = completed - totalProjectExpenses;
+    
+    const actualCashInvested = landIsOwned 
+      ? constructionCashRequired + closingCosts
+      : downPaymentRequired + constructionCashRequired + closingCosts;
+    
+    const roi = actualCashInvested > 0 ? (profit / actualCashInvested) * 100 : 0;
     const annualizedROI = months > 0 ? (roi / months) * 12 : 0;
     
     let qualificationStatus: "excellent" | "good" | "marginal" | "needs-review" = "needs-review";
@@ -80,6 +105,7 @@ export function ConstructionCalculator() {
       roi: roi.toFixed(1),
       annualizedROI: annualizedROI.toFixed(1),
       qualificationStatus,
+      landEquityApplied,
     };
   };
 
@@ -101,13 +127,17 @@ export function ConstructionCalculator() {
           <div className="space-y-4">
             <div>
               <Label htmlFor="landCost" className="flex items-center gap-1">
-                Land / Lot Cost ($)
+                {landIsOwned ? "Land Value (Equity) ($)" : "Land / Lot Cost ($)"}
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Info className="h-3 w-3 text-muted-foreground cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p className="max-w-xs text-xs">Purchase price of the land or lot</p>
+                    <p className="max-w-xs text-xs">
+                      {landIsOwned 
+                        ? "Current value of owned land - applied as equity" 
+                        : "Purchase price of the land or lot"}
+                    </p>
                   </TooltipContent>
                 </Tooltip>
               </Label>
@@ -119,6 +149,17 @@ export function ConstructionCalculator() {
                 placeholder="150000"
                 data-testid="input-construction-land"
               />
+              <div className="flex items-center gap-2 mt-2">
+                <Checkbox
+                  id="landIsOwned"
+                  checked={landIsOwned}
+                  onCheckedChange={(checked) => setLandIsOwned(checked === true)}
+                  data-testid="checkbox-land-owned"
+                />
+                <Label htmlFor="landIsOwned" className="text-sm font-normal cursor-pointer">
+                  Land is owned (apply as equity)
+                </Label>
+              </div>
             </div>
 
             <div>
@@ -253,10 +294,17 @@ export function ConstructionCalculator() {
               <span className="text-muted-foreground">Total Loan Amount:</span>
               <span className="font-medium">{formatCurrency(results.totalLoanAmount)}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Land Financing:</span>
-              <span className="font-medium">{formatCurrency(results.loanAmountLand)}</span>
-            </div>
+            {landIsOwned ? (
+              <div className="flex justify-between" data-testid="text-land-equity">
+                <span className="text-muted-foreground">Land Equity Applied:</span>
+                <span className="font-medium text-green-600 dark:text-green-500">{formatCurrency(results.landEquityApplied)}</span>
+              </div>
+            ) : (
+              <div className="flex justify-between" data-testid="text-land-financing">
+                <span className="text-muted-foreground">Land Financing:</span>
+                <span className="font-medium">{formatCurrency(results.loanAmountLand)}</span>
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-muted-foreground">Construction Financing:</span>
               <span className="font-medium">{formatCurrency(results.loanAmountConstruction)}</span>
@@ -307,12 +355,12 @@ export function ConstructionCalculator() {
               <span className="font-medium">9.90%+</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Term:</span>
-              <span className="font-medium">12-18 months</span>
+              <span className="text-muted-foreground">Base Term:</span>
+              <span className="font-medium">9 months</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Max LTC:</span>
-              <span className="font-medium">{projectType === "presold" ? "85%" : "82.5%"}</span>
+              <span className="font-medium">90%</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Draw Turnaround:</span>
