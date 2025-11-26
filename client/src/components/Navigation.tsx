@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Menu, X, ChevronDown } from "lucide-react";
@@ -12,17 +12,8 @@ import logoIcon from "@assets/logo_saf_only_removed_bg (1)_1764095523171.png";
 
 export function Navigation() {
   const [location] = useLocation();
-  const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileLoanProductsOpen, setIsMobileLoanProductsOpen] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
 
   const loanProducts = [
     { href: "/dscr-loans", label: "DSCR Loans" },
@@ -40,25 +31,21 @@ export function Navigation() {
 
   return (
     <nav
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled ? "bg-background/95 backdrop-blur-md border-b" : "bg-black/30 backdrop-blur-sm"
-      }`}
+      className="fixed top-0 left-0 right-0 z-50 bg-background border-b"
     >
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex items-center justify-between h-20">
           <Link href="/" data-testid="link-home">
-            <div className="flex items-center gap-2 cursor-pointer hover-elevate active-elevate-2 px-2 py-1 rounded-md -ml-2">
+            <div className="flex items-center gap-3 cursor-pointer hover-elevate active-elevate-2 px-2 py-1 rounded-md -ml-2">
               <img 
                 src={logoIcon} 
                 alt="SAF" 
-                className={`h-12 w-12 object-contain transition-all duration-300 ${
-                  isScrolled ? "" : "brightness-0 invert"
-                }`}
+                className="h-14 w-14 object-contain"
               />
-              <span className={`font-bold text-xl hidden sm:inline ${isScrolled ? "text-foreground" : "text-white"}`}>
+              <span className="font-bold text-2xl hidden sm:inline text-foreground">
                 Secured Asset Funding
               </span>
-              <span className={`font-bold text-xl sm:hidden ${isScrolled ? "text-foreground" : "text-white"}`}>SAF</span>
+              <span className="font-bold text-xl sm:hidden text-foreground">SAF</span>
             </div>
           </Link>
 
@@ -66,11 +53,7 @@ export function Navigation() {
             <Link href="/" data-testid="link-nav-home">
               <span
                 className={`text-sm font-medium transition-colors cursor-pointer ${
-                  location === "/"
-                    ? "text-primary"
-                    : isScrolled 
-                      ? "text-foreground/80 hover:text-foreground"
-                      : "text-white/90 hover:text-white"
+                  location === "/" ? "text-primary" : "text-foreground/80 hover:text-foreground"
                 }`}
               >
                 Home
@@ -81,11 +64,7 @@ export function Navigation() {
               <DropdownMenuTrigger asChild>
                 <button
                   className={`flex items-center gap-1 text-sm font-medium transition-colors cursor-pointer ${
-                    isLoanProductActive
-                      ? "text-primary"
-                      : isScrolled 
-                        ? "text-foreground/80 hover:text-foreground"
-                        : "text-white/90 hover:text-white"
+                    isLoanProductActive ? "text-primary" : "text-foreground/80 hover:text-foreground"
                   }`}
                   data-testid="dropdown-loan-products"
                 >
@@ -110,11 +89,7 @@ export function Navigation() {
             <Link href="/where-we-lend" data-testid="link-nav-where-we-lend">
               <span
                 className={`text-sm font-medium transition-colors cursor-pointer ${
-                  location === "/where-we-lend"
-                    ? "text-primary"
-                    : isScrolled 
-                      ? "text-foreground/80 hover:text-foreground"
-                      : "text-white/90 hover:text-white"
+                  location === "/where-we-lend" ? "text-primary" : "text-foreground/80 hover:text-foreground"
                 }`}
               >
                 Where We Lend
@@ -125,20 +100,19 @@ export function Navigation() {
           <div className="hidden lg:flex items-center gap-3">
             <Link href="/portal" data-testid="link-nav-portal">
               <Button 
-                variant="outline" 
                 size="default"
-                className={isScrolled ? "" : "border-white/40 text-white hover:bg-white/10 hover:text-white"}
+                className="bg-primary text-white hover:bg-primary/90"
               >
                 Client Portal
               </Button>
             </Link>
             <Link href="/get-quote" data-testid="button-nav-getrate">
-              <Button size="default">Get Funded</Button>
+              <Button size="default" variant="outline">Get Funded</Button>
             </Link>
           </div>
 
           <button
-            className={`lg:hidden ${isScrolled ? "text-foreground" : "text-white"}`}
+            className="lg:hidden text-foreground"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             data-testid="button-mobile-menu"
           >
@@ -205,12 +179,12 @@ export function Navigation() {
 
             <div className="flex flex-col gap-3 pt-2">
               <Link href="/portal" data-testid="link-mobile-portal">
-                <Button variant="outline" className="w-full" onClick={() => setIsMobileMenuOpen(false)}>
+                <Button className="w-full bg-primary text-white hover:bg-primary/90" onClick={() => setIsMobileMenuOpen(false)}>
                   Client Portal
                 </Button>
               </Link>
               <Link href="/get-quote" data-testid="button-mobile-getrate">
-                <Button className="w-full" onClick={() => setIsMobileMenuOpen(false)}>
+                <Button variant="outline" className="w-full" onClick={() => setIsMobileMenuOpen(false)}>
                   Get Funded
                 </Button>
               </Link>
