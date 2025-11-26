@@ -405,6 +405,64 @@ export default function StateInvestmentPage() {
         </div>
       </section>
 
+      <section className="py-12 bg-background">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold">{state.name} Real Estate Market Data</h2>
+            <div className="flex items-center gap-2">
+              {isLoadingMarket && (
+                <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />
+              )}
+              <Badge 
+                variant={displayMarketData.source === "rentcast" ? "default" : displayMarketData.source === "zillow" ? "secondary" : "outline"}
+                className="text-xs"
+              >
+                {displayMarketData.source === "rentcast" ? "RentCast" : 
+                 displayMarketData.source === "zillow" ? "Zillow" : 
+                 displayMarketData.isCached ? "Cached" : "Estimated"}
+              </Badge>
+            </div>
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <Card>
+              <CardContent className="pt-4 text-center">
+                <DollarSign className="h-6 w-6 text-primary mx-auto mb-2" />
+                <p className="text-2xl font-bold">{formatCurrency(displayMarketData.medianHomePrice)}</p>
+                <p className="text-xs text-muted-foreground">Median Home Price</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4 text-center">
+                <Percent className="h-6 w-6 text-primary mx-auto mb-2" />
+                <p className="text-2xl font-bold">{displayMarketData.avgCapRate.toFixed(1)}%</p>
+                <p className="text-xs text-muted-foreground">Avg. Cap Rate</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4 text-center">
+                <Calendar className="h-6 w-6 text-primary mx-auto mb-2" />
+                <p className="text-2xl font-bold">{displayMarketData.avgDaysOnMarket}</p>
+                <p className="text-xs text-muted-foreground">Avg. Days on Market</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4 text-center">
+                <TrendingUp className="h-6 w-6 text-green-500 mx-auto mb-2" />
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400">+{displayMarketData.priceGrowthYoY.toFixed(1)}%</p>
+                <p className="text-xs text-muted-foreground">Price Growth YoY</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4 text-center">
+                <TrendingUp className="h-6 w-6 text-green-500 mx-auto mb-2" />
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400">+{displayMarketData.rentGrowthYoY.toFixed(1)}%</p>
+                <p className="text-xs text-muted-foreground">Rent Growth YoY</p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
       <section className="py-12 bg-card">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex items-center justify-between mb-6">
@@ -466,65 +524,7 @@ export default function StateInvestmentPage() {
         </div>
       </section>
 
-      <section className="py-12 bg-background">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold">{state.name} Real Estate Market Data</h2>
-            <div className="flex items-center gap-2">
-              {isLoadingMarket && (
-                <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />
-              )}
-              <Badge 
-                variant={displayMarketData.source === "rentcast" ? "default" : displayMarketData.source === "zillow" ? "secondary" : "outline"}
-                className="text-xs"
-              >
-                {displayMarketData.source === "rentcast" ? "RentCast" : 
-                 displayMarketData.source === "zillow" ? "Zillow" : 
-                 displayMarketData.isCached ? "Cached" : "Estimated"}
-              </Badge>
-            </div>
-          </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4">
-            <Card>
-              <CardContent className="pt-4 text-center">
-                <DollarSign className="h-6 w-6 text-primary mx-auto mb-2" />
-                <p className="text-2xl font-bold">{formatCurrency(displayMarketData.medianHomePrice)}</p>
-                <p className="text-xs text-muted-foreground">Median Home Price</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-4 text-center">
-                <Percent className="h-6 w-6 text-primary mx-auto mb-2" />
-                <p className="text-2xl font-bold">{displayMarketData.avgCapRate.toFixed(1)}%</p>
-                <p className="text-xs text-muted-foreground">Avg. Cap Rate</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-4 text-center">
-                <Calendar className="h-6 w-6 text-primary mx-auto mb-2" />
-                <p className="text-2xl font-bold">{displayMarketData.avgDaysOnMarket}</p>
-                <p className="text-xs text-muted-foreground">Avg. Days on Market</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-4 text-center">
-                <TrendingUp className="h-6 w-6 text-green-500 mx-auto mb-2" />
-                <p className="text-2xl font-bold text-green-600 dark:text-green-400">+{displayMarketData.priceGrowthYoY.toFixed(1)}%</p>
-                <p className="text-xs text-muted-foreground">Price Growth YoY</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-4 text-center">
-                <TrendingUp className="h-6 w-6 text-green-500 mx-auto mb-2" />
-                <p className="text-2xl font-bold text-green-600 dark:text-green-400">+{displayMarketData.rentGrowthYoY.toFixed(1)}%</p>
-                <p className="text-xs text-muted-foreground">Rent Growth YoY</p>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      <section className="py-16 bg-card">
+      <section className="py-16 bg-background">
         <div className="max-w-7xl mx-auto px-6">
           <h2 className="text-2xl md:text-3xl font-bold mb-8 text-center">
             Loan Programs Available in {state.name}
