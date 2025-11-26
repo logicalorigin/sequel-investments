@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { AmortizationChart } from "@/components/AmortizationChart";
+import { PropertyValueChart } from "@/components/PropertyValueChart";
 import { 
   ArrowLeft,
   Building2,
@@ -32,6 +34,7 @@ import {
   X,
   Loader2,
   Calculator,
+  TrendingUp,
 } from "lucide-react";
 import {
   Dialog,
@@ -596,6 +599,25 @@ export default function ApplicationDetailPage() {
                 </div>
               </CardContent>
             </Card>
+
+            {application.status === "funded" && application.loanType?.toLowerCase().includes("dscr") && (
+              <>
+                <PropertyValueChart
+                  propertyAddress={application.propertyAddress || ""}
+                  propertyCity={application.propertyCity || undefined}
+                  propertyState={application.propertyState || undefined}
+                  propertyZip={application.propertyZip || undefined}
+                  purchasePrice={application.purchasePrice || undefined}
+                />
+                <AmortizationChart
+                  loanAmount={application.loanAmount || 0}
+                  interestRate={application.interestRate || 7.5}
+                  termMonths={application.loanTermMonths || 360}
+                  interestType={application.interestType || "fixed"}
+                  interestOnlyMonths={application.interestOnlyMonths || 0}
+                />
+              </>
+            )}
           </div>
 
           <div className="space-y-6">
