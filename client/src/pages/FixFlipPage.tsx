@@ -199,7 +199,7 @@ export default function FixFlipPage() {
                       </div>
                       <div className="flex justify-between py-3 border-b">
                         <span className="text-muted-foreground">Points</span>
-                        <span className="font-semibold">1.5% - 4%</span>
+                        <span className="font-semibold">0% - 3%</span>
                       </div>
                       <div className="flex justify-between py-3 border-b">
                         <span className="text-muted-foreground">Prepayment Penalty</span>
