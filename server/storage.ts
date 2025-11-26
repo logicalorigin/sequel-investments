@@ -4,6 +4,7 @@ import {
   loanApplications, 
   documents, 
   documentTypes,
+  servicedLoans,
   type User, 
   type UpsertUser,
   type Lead, 
@@ -14,6 +15,8 @@ import {
   type InsertDocument,
   type DocumentType,
   type InsertDocumentType,
+  type ServicedLoan,
+  type InsertServicedLoan,
   DEFAULT_DOCUMENT_TYPES,
 } from "@shared/schema";
 import { db } from "./db";
@@ -45,6 +48,12 @@ export interface IStorage {
   getDocument(id: string): Promise<Document | undefined>;
   createDocument(doc: InsertDocument): Promise<Document>;
   updateDocument(id: string, data: Partial<InsertDocument>): Promise<Document | undefined>;
+  
+  // Serviced loans operations
+  getServicedLoans(userId: string): Promise<ServicedLoan[]>;
+  getServicedLoan(id: string): Promise<ServicedLoan | undefined>;
+  createServicedLoan(loan: InsertServicedLoan): Promise<ServicedLoan>;
+  updateServicedLoan(id: string, data: Partial<InsertServicedLoan>): Promise<ServicedLoan | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -161,6 +170,37 @@ export class DatabaseStorage implements IStorage {
       .update(documents)
       .set({ ...data, updatedAt: new Date() })
       .where(eq(documents.id, id))
+      .returning();
+    return updated;
+  }
+
+  // Serviced loans operations
+  async getServicedLoans(userId: string): Promise<ServicedLoan[]> {
+    return await db
+      .select()
+      .from(servicedLoans)
+      .where(eq(servicedLoans.userId, userId))
+      .orderBy(desc(servicedLoans.closingDate));
+  }
+
+  async getServicedLoan(id: string): Promise<ServicedLoan | undefined> {
+    const [loan] = await db.select().from(servicedLoans).where(eq(servicedLoans.id, id));
+    return loan;
+  }
+
+  async createServicedLoan(loan: InsertServicedLoan): Promise<ServicedLoan> {
+    const [created] = await db
+      .insert(servicedLoans)
+      .values(loan)
+      .returning();
+    return created;
+  }
+
+  async updateServicedLoan(id: string, data: Partial<InsertServicedLoan>): Promise<ServicedLoan | undefined> {
+    const [updated] = await db
+      .update(servicedLoans)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(servicedLoans.id, id))
       .returning();
     return updated;
   }

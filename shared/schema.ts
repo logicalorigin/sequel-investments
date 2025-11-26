@@ -225,6 +225,60 @@ export const DEFAULT_DOCUMENT_TYPES = [
   { name: "Experience Resume", description: "Track record of completed real estate transactions", category: "Borrower Documentation", loanTypes: ["Fix & Flip", "New Construction"], isRequired: "if_applicable", sortOrder: 13 },
 ];
 
+// Closed/Serviced Loans table
+export const servicedLoans = pgTable("serviced_loans", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  loanNumber: varchar("loan_number").notNull(),
+  loanType: text("loan_type").notNull(),
+  propertyAddress: text("property_address").notNull(),
+  propertyCity: text("property_city"),
+  propertyState: text("property_state"),
+  propertyZip: text("property_zip"),
+  
+  // Loan Terms
+  originalLoanAmount: integer("original_loan_amount").notNull(),
+  currentBalance: integer("current_balance").notNull(),
+  interestRate: text("interest_rate").notNull(),
+  monthlyPayment: integer("monthly_payment").notNull(),
+  loanTermMonths: integer("loan_term_months"),
+  
+  // Payment Info
+  nextPaymentDate: timestamp("next_payment_date"),
+  lastPaymentDate: timestamp("last_payment_date"),
+  lastPaymentAmount: integer("last_payment_amount"),
+  paymentsDue: integer("payments_due").default(0),
+  
+  // Status
+  loanStatus: text("loan_status").default("current").notNull(), // current, late, paid_off
+  closingDate: timestamp("closing_date"),
+  maturityDate: timestamp("maturity_date"),
+  
+  // Servicer Info
+  servicerName: text("servicer_name"),
+  servicerPhone: text("servicer_phone"),
+  servicerEmail: text("servicer_email"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const servicedLoansRelations = relations(servicedLoans, ({ one }) => ({
+  user: one(users, {
+    fields: [servicedLoans.userId],
+    references: [users.id],
+  }),
+}));
+
+export type ServicedLoan = typeof servicedLoans.$inferSelect;
+export type InsertServicedLoan = typeof servicedLoans.$inferInsert;
+
+export const insertServicedLoanSchema = createInsertSchema(servicedLoans).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // State data for "Where We Lend" section and state-specific SEO pages
 export interface StateData {
   abbreviation: string;
