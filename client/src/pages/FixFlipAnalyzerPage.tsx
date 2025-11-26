@@ -33,6 +33,7 @@ const propertyTypes = [
 ];
 
 const experienceLevels = [
+  { id: "0", label: "0 Deals", rateAdj: 1.5, downPaymentAdj: 10 },
   { id: "1", label: "1-2 Deals", rateAdj: 1.0, downPaymentAdj: 5 },
   { id: "3-5", label: "3-5 Deals", rateAdj: 0.5, downPaymentAdj: 2.5 },
   { id: "6-10", label: "6-10 Deals", rateAdj: 0.25, downPaymentAdj: 0 },
@@ -498,6 +499,61 @@ export default function FixFlipAnalyzerPage() {
                     </div>
                   </div>
                 </div>
+                <div className="grid grid-cols-4 gap-3">
+                  <div>
+                    <Label htmlFor="holdTime" className="text-sm">Hold (Months)</Label>
+                    <Input
+                      id="holdTime"
+                      type="number"
+                      value={holdTimeMonths}
+                      onChange={(e) => setHoldTimeMonths(e.target.value)}
+                      className="mt-1 h-9"
+                      data-testid="input-hold-time"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="annualTaxes" className="text-sm">Annual Taxes</Label>
+                    <div className="relative mt-1">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                      <Input
+                        id="annualTaxes"
+                        type="number"
+                        value={annualTaxes}
+                        onChange={(e) => setAnnualTaxes(e.target.value)}
+                        className="pl-7 h-9"
+                        data-testid="input-annual-taxes"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="annualInsurance" className="text-sm">Annual Insurance</Label>
+                    <div className="relative mt-1">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                      <Input
+                        id="annualInsurance"
+                        type="number"
+                        value={annualInsurance}
+                        onChange={(e) => setAnnualInsurance(e.target.value)}
+                        className="pl-7 h-9"
+                        data-testid="input-annual-insurance"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="annualHOA" className="text-sm">Annual HOA</Label>
+                    <div className="relative mt-1">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                      <Input
+                        id="annualHOA"
+                        type="number"
+                        value={annualHOA}
+                        onChange={(e) => setAnnualHOA(e.target.value)}
+                        className="pl-7 h-9"
+                        data-testid="input-annual-hoa"
+                      />
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
@@ -661,66 +717,6 @@ export default function FixFlipAnalyzerPage() {
               </CardContent>
             </Card>
 
-            {/* Holding Costs - Condensed */}
-            <Card>
-              <CardContent className="pt-4">
-                <div className="grid grid-cols-4 gap-3">
-                  <div>
-                    <Label htmlFor="holdTime" className="text-sm">Hold (Months)</Label>
-                    <Input
-                      id="holdTime"
-                      type="number"
-                      value={holdTimeMonths}
-                      onChange={(e) => setHoldTimeMonths(e.target.value)}
-                      className="mt-1 h-9"
-                      data-testid="input-hold-time"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="annualTaxes" className="text-sm">Annual Taxes</Label>
-                    <div className="relative mt-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                      <Input
-                        id="annualTaxes"
-                        type="number"
-                        value={annualTaxes}
-                        onChange={(e) => setAnnualTaxes(e.target.value)}
-                        className="pl-7 h-9"
-                        data-testid="input-annual-taxes"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="annualInsurance" className="text-sm">Annual Insurance</Label>
-                    <div className="relative mt-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                      <Input
-                        id="annualInsurance"
-                        type="number"
-                        value={annualInsurance}
-                        onChange={(e) => setAnnualInsurance(e.target.value)}
-                        className="pl-7 h-9"
-                        data-testid="input-annual-insurance"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="annualHOA" className="text-sm">Annual HOA</Label>
-                    <div className="relative mt-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                      <Input
-                        id="annualHOA"
-                        type="number"
-                        value={annualHOA}
-                        onChange={(e) => setAnnualHOA(e.target.value)}
-                        className="pl-7 h-9"
-                        data-testid="input-annual-hoa"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           </div>
 
           {/* Results Panel */}
