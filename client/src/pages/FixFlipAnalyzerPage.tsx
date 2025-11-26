@@ -351,9 +351,6 @@ export default function FixFlipAnalyzerPage() {
             <h1 className="text-2xl font-bold" data-testid="text-page-title">
               Fix & Flip Analyzer
             </h1>
-            <p className="text-sm text-muted-foreground">
-              Calculate your deal profitability and ROI
-            </p>
           </div>
           <ScenarioManager
             analyzerType="fix_flip"
