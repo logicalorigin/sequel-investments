@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LogOut, User } from "lucide-react";
+import { LogOut, User, Calculator, ChevronDown, Home, Hammer, HardHat } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,7 +30,10 @@ export function PortalHeader({ user }: PortalHeaderProps) {
   };
 
   const isPortfolio = location === "/portal";
-  const isAnalysis = location === "/portal/investment-analysis";
+  const isAnalysis = location === "/portal/investment-analysis" || 
+    location === "/portal/dscr-analyzer" || 
+    location === "/portal/fixflip-analyzer" || 
+    location === "/portal/construction-analyzer";
   const isProfile = location === "/portal/profile";
 
   return (
@@ -55,17 +58,56 @@ export function PortalHeader({ user }: PortalHeaderProps) {
               Portfolio
             </Button>
           </Link>
-          <Link href="/portal/investment-analysis">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className={isAnalysis ? "bg-primary/10" : ""} 
-              data-testid="link-investment-analysis"
-            >
-              <span className="hidden sm:inline">Investment Analysis</span>
-              <span className="sm:hidden">Analysis</span>
-            </Button>
-          </Link>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className={`flex items-center gap-1 ${isAnalysis ? "bg-primary/10" : ""}`}
+                data-testid="link-investment-analysis"
+              >
+                <Calculator className="h-4 w-4" />
+                <span className="hidden sm:inline">Analyzers</span>
+                <ChevronDown className="h-3 w-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuItem asChild>
+                <Link href="/portal/dscr-analyzer" className="flex items-center gap-2 cursor-pointer" data-testid="link-dscr-analyzer">
+                  <Home className="h-4 w-4 text-blue-600" />
+                  <div>
+                    <p className="font-medium">DSCR Analyzer</p>
+                    <p className="text-xs text-muted-foreground">Rental property cash flow</p>
+                  </div>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/portal/fixflip-analyzer" className="flex items-center gap-2 cursor-pointer" data-testid="link-fixflip-analyzer">
+                  <Hammer className="h-4 w-4 text-orange-600" />
+                  <div>
+                    <p className="font-medium">Fix & Flip Analyzer</p>
+                    <p className="text-xs text-muted-foreground">Rehab deal profitability</p>
+                  </div>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/portal/construction-analyzer" className="flex items-center gap-2 cursor-pointer" data-testid="link-construction-analyzer">
+                  <HardHat className="h-4 w-4 text-green-600" />
+                  <div>
+                    <p className="font-medium">Construction Analyzer</p>
+                    <p className="text-xs text-muted-foreground">Ground-up build analysis</p>
+                  </div>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href="/portal/investment-analysis" className="flex items-center gap-2 cursor-pointer text-muted-foreground" data-testid="link-all-in-one-analyzer">
+                  <Calculator className="h-4 w-4" />
+                  All-in-One Analyzer
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

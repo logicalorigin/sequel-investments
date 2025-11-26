@@ -1,15 +1,17 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
 import { Link } from "wouter";
-import { TrendingUp, Lock, ArrowRight, Sparkles } from "lucide-react";
+import { TrendingUp, ArrowRight, ArrowUpRight, Minus, ArrowDown, Hammer } from "lucide-react";
 
 export function TeaserFixFlipCalculator() {
-  const [purchasePrice, setPurchasePrice] = useState("400000");
-  const [rehabCosts, setRehabCosts] = useState("50000");
-  const [arv, setArv] = useState("550000");
+  const [arv, setArv] = useState("400000");
+  const [purchasePrice, setPurchasePrice] = useState("280000");
+  const [rehabBudget, setRehabBudget] = useState("60000");
+  const [holdTimeMonths, setHoldTimeMonths] = useState([6]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -20,178 +22,213 @@ export function TeaserFixFlipCalculator() {
     }).format(value);
   };
 
-  const calculateTeaser = () => {
-    const price = parseFloat(purchasePrice) || 0;
-    const rehab = parseFloat(rehabCosts) || 0;
-    const afterRepairValue = parseFloat(arv) || 0;
-
-    const totalProjectCost = price + rehab;
-    const ltc = afterRepairValue > 0 ? (totalProjectCost / afterRepairValue) * 100 : 0;
-
-    const loanAmountPurchase = Math.min(price * 0.9, afterRepairValue * 0.7);
-    const loanAmountRehab = Math.min(rehab, afterRepairValue * 0.7 - loanAmountPurchase);
-    const totalLoanAmount = loanAmountPurchase + Math.max(0, loanAmountRehab);
-
-    const rate = 9.9 / 100 / 12;
-    const months = 6;
-    const interestPayments = totalLoanAmount * rate * months;
-
-    const downPaymentRequired = price - loanAmountPurchase;
-    const cashOutOfPocket = Math.max(0, rehab - loanAmountRehab);
-    const closingCosts = price * 0.025;
-    const sellingCosts = afterRepairValue * 0.06;
-    const cashToClose = downPaymentRequired + closingCosts + cashOutOfPocket;
-
-    const totalCosts = price + rehab + interestPayments + closingCosts + sellingCosts;
-    const profit = afterRepairValue - totalCosts;
+  const results = useMemo(() => {
+    const arvVal = parseFloat(arv) || 0;
+    const purchase = parseFloat(purchasePrice) || 0;
+    const rehab = parseFloat(rehabBudget) || 0;
+    const holdMonths = holdTimeMonths[0];
+    
+    const totalCost = purchase + rehab;
+    const downPayment = purchase * 0.1;
+    const rehabFunding = rehab * 0.9;
+    const loanAmount = purchase - downPayment + rehabFunding;
+    
+    const rate = 10.5;
+    const closingCosts = purchase * 0.03;
+    const holdingCosts = 600 * holdMonths;
+    const interestCost = (loanAmount * (rate / 100)) * (holdMonths / 12);
+    
+    const totalProjectCost = purchase + rehab + closingCosts + holdingCosts + interestCost;
+    const cashInvested = downPayment + closingCosts + (rehab - rehabFunding);
+    const totalProfit = arvVal - totalProjectCost;
+    const roi = cashInvested > 0 ? (totalProfit / cashInvested) * 100 : 0;
+    const annualizedRoi = roi * (12 / holdMonths);
+    const ltv = arvVal > 0 ? (loanAmount / arvVal) * 100 : 0;
+    const ltc = totalCost > 0 ? (loanAmount / totalCost) * 100 : 0;
 
     return {
+      loanAmount,
+      totalProfit,
+      roi,
+      annualizedRoi,
+      ltv,
+      ltc,
+      cashInvested,
       totalProjectCost,
-      ltc: ltc.toFixed(1),
-      profit,
-      totalLoanAmount,
+      interestCost,
     };
-  };
-
-  const results = calculateTeaser();
+  }, [arv, purchasePrice, rehabBudget, holdTimeMonths]);
 
   return (
     <Card className="w-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <TrendingUp className="h-6 w-6 text-primary" />
+          <Hammer className="h-6 w-6 text-primary" />
           Fix & Flip Calculator
         </CardTitle>
         <CardDescription>
-          Quickly analyze your flip deal potential
+          Estimate your fix and flip deal profitability
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 mb-4">
-          <h3 className="font-semibold text-sm mb-2 flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-primary" />
-            Estimated Profit
-          </h3>
-          <div className="flex items-baseline gap-2">
-            <span className={`text-4xl font-bold ${results.profit >= 0 ? "text-green-600" : "text-red-600"}`} data-testid="text-teaser-flip-profit">
-              {formatCurrency(results.profit)}
-            </span>
+        <div className="space-y-5">
+          <div>
+            <Label htmlFor="teaserArv">After Repair Value (ARV)</Label>
+            <div className="relative mt-1">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+              <Input
+                id="teaserArv"
+                type="number"
+                value={arv}
+                onChange={(e) => setArv(e.target.value)}
+                className="pl-7"
+                data-testid="input-teaser-arv"
+              />
+            </div>
           </div>
-          <p className="text-sm text-muted-foreground mt-1">
-            LTC: {results.ltc}%
-          </p>
+
+          <div>
+            <Label htmlFor="teaserPurchasePrice">Purchase Price</Label>
+            <div className="relative mt-1">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+              <Input
+                id="teaserPurchasePrice"
+                type="number"
+                value={purchasePrice}
+                onChange={(e) => setPurchasePrice(e.target.value)}
+                className="pl-7"
+                data-testid="input-teaser-purchase-price"
+              />
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="teaserRehabBudget">Rehab Budget</Label>
+            <div className="relative mt-1">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+              <Input
+                id="teaserRehabBudget"
+                type="number"
+                value={rehabBudget}
+                onChange={(e) => setRehabBudget(e.target.value)}
+                className="pl-7"
+                data-testid="input-teaser-rehab-budget"
+              />
+            </div>
+          </div>
+
+          <div>
+            <div className="flex justify-between mb-2">
+              <Label>Hold Time</Label>
+              <span className="text-sm font-medium">{holdTimeMonths[0]} months</span>
+            </div>
+            <Slider
+              value={holdTimeMonths}
+              onValueChange={setHoldTimeMonths}
+              min={3}
+              max={12}
+              step={1}
+              className="py-2"
+              data-testid="slider-teaser-hold-time"
+            />
+            <div className="flex justify-between text-xs text-muted-foreground mt-1">
+              <span>3 months</span>
+              <span>12 months</span>
+            </div>
+          </div>
         </div>
 
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="teaserFlipPurchase">Purchase Price ($)</Label>
-            <Input
-              id="teaserFlipPurchase"
-              type="number"
-              value={purchasePrice}
-              onChange={(e) => setPurchasePrice(e.target.value)}
-              placeholder="400000"
-              data-testid="input-teaser-flip-purchase"
-            />
+        {/* Results Section */}
+        <div className={`bg-gradient-to-br rounded-lg p-4 border ${
+          results.roi >= 10 
+            ? "from-green-500/20 to-green-500/10 border-green-500/30"
+            : results.roi >= 5
+            ? "from-yellow-500/20 to-yellow-500/10 border-yellow-500/30"
+            : "from-red-500/20 to-red-500/10 border-red-500/30"
+        }`}>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold text-sm flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-primary" />
+              Deal Analysis
+            </h3>
+            {results.roi >= 10 ? (
+              <ArrowUpRight className="h-5 w-5 text-green-600" />
+            ) : results.roi >= 5 ? (
+              <Minus className="h-5 w-5 text-yellow-600" />
+            ) : (
+              <ArrowDown className="h-5 w-5 text-red-600" />
+            )}
           </div>
-
-          <div>
-            <Label htmlFor="teaserFlipRehab">Rehab Budget ($)</Label>
-            <Input
-              id="teaserFlipRehab"
-              type="number"
-              value={rehabCosts}
-              onChange={(e) => setRehabCosts(e.target.value)}
-              placeholder="50000"
-              data-testid="input-teaser-flip-rehab"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="teaserFlipARV">After Repair Value ($)</Label>
-            <Input
-              id="teaserFlipARV"
-              type="number"
-              value={arv}
-              onChange={(e) => setArv(e.target.value)}
-              placeholder="550000"
-              data-testid="input-teaser-flip-arv"
-            />
-            <p className="text-sm text-muted-foreground mt-1">
-              Estimated value after renovations
-            </p>
-          </div>
-        </div>
-
-        <div className="relative">
-          <div className="bg-card border rounded-lg p-6 space-y-4 blur-sm select-none pointer-events-none">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Return on Investment</p>
-                <p className="text-3xl font-bold text-green-600">42.5%</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Annualized ROI</p>
-                <p className="text-3xl font-bold">85.0%</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-4 pt-4 border-t">
-              <div>
-                <p className="text-xs text-muted-foreground">Cash to Close</p>
-                <p className="text-lg font-semibold">$67,000</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Total Loan</p>
-                <p className="text-lg font-semibold">$385,000</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Interest Cost</p>
-                <p className="text-lg font-semibold">$19,058</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4 pt-4 border-t text-sm">
-              <div className="flex justify-between">
-                <span>Purchase Financing:</span>
-                <span>$360,000</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Rehab Financing:</span>
-                <span>$25,000</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/60 backdrop-blur-[2px] rounded-lg">
-            <div className="bg-card border shadow-lg rounded-lg p-6 text-center max-w-sm">
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                <Lock className="h-6 w-6 text-primary" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">Unlock Full Analysis</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Create a free account to see ROI calculations, financing breakdown, and complete deal metrics.
+          
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <p className="text-xs text-muted-foreground">Est. Profit</p>
+              <p className={`text-2xl font-bold ${results.totalProfit >= 0 ? "text-green-600" : "text-red-600"}`} data-testid="text-teaser-profit">
+                {formatCurrency(results.totalProfit)}
               </p>
-              <Link href="/api/login">
-                <Button className="w-full" data-testid="button-teaser-flip-unlock">
-                  Sign In to Unlock
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-              <p className="text-xs text-muted-foreground mt-3">
-                Already have an account?{" "}
-                <Link href="/api/login" className="text-primary hover:underline">
-                  Log in
-                </Link>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">ROI</p>
+              <p className={`text-2xl font-bold ${
+                results.roi >= 10 ? "text-green-600" : results.roi >= 5 ? "text-yellow-600" : "text-red-600"
+              }`} data-testid="text-teaser-roi">
+                {results.roi.toFixed(1)}%
               </p>
             </div>
           </div>
+
+          <div className="grid grid-cols-2 gap-4 pt-3 border-t border-border/50">
+            <div>
+              <p className="text-xs text-muted-foreground">LTV</p>
+              <p className="text-lg font-semibold">
+                {results.ltv.toFixed(1)}%
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">LTC</p>
+              <p className="text-lg font-semibold">
+                {results.ltc.toFixed(1)}%
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 pt-3 border-t border-border/50">
+            <div>
+              <p className="text-xs text-muted-foreground">Cash Required</p>
+              <p className="text-lg font-semibold">
+                {formatCurrency(results.cashInvested)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Loan Amount</p>
+              <p className="text-lg font-semibold">
+                {formatCurrency(results.loanAmount)}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 pt-3 border-t border-border/50">
+            <div>
+              <p className="text-xs text-muted-foreground">Interest Cost</p>
+              <p className="text-lg font-semibold">
+                {formatCurrency(results.interestCost)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Annualized ROI</p>
+              <p className="text-lg font-semibold text-primary">
+                {results.annualizedRoi.toFixed(1)}%
+              </p>
+            </div>
+          </div>
         </div>
 
-        <div className="bg-muted/50 border border-muted rounded-lg p-4">
-          <p className="text-sm text-muted-foreground text-center">
-            Our Investment Analysis tool provides detailed ROI calculations, 
-            financing scenarios, and complete deal analysis for your fix & flip projects.
-          </p>
-        </div>
+        <Link href="/get-quote">
+          <Button className="w-full" data-testid="button-teaser-fixflip-apply">
+            Get Your Rate
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        </Link>
       </CardContent>
     </Card>
   );

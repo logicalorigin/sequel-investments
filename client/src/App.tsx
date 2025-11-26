@@ -18,6 +18,9 @@ import PortalPage from "@/pages/PortalPage";
 import ApplicationDetailPage from "@/pages/ApplicationDetailPage";
 import ApplicationDocumentsPage from "@/pages/ApplicationDocumentsPage";
 import InvestmentAnalysisPage from "@/pages/InvestmentAnalysisPage";
+import DSCRAnalyzerPage from "@/pages/DSCRAnalyzerPage";
+import FixFlipAnalyzerPage from "@/pages/FixFlipAnalyzerPage";
+import ConstructionAnalyzerPage from "@/pages/ConstructionAnalyzerPage";
 import ProfilePage from "@/pages/ProfilePage";
 import STRCalculatorPage from "@/pages/STRCalculatorPage";
 import RecentFundingsPage from "@/pages/RecentFundingsPage";
@@ -43,6 +46,9 @@ function Router() {
       <Route path="/portal/application/:id" component={ApplicationDetailPage} />
       <Route path="/portal/application/:id/documents" component={ApplicationDocumentsPage} />
       <Route path="/portal/investment-analysis" component={InvestmentAnalysisPage} />
+      <Route path="/portal/dscr-analyzer" component={DSCRAnalyzerPage} />
+      <Route path="/portal/fixflip-analyzer" component={FixFlipAnalyzerPage} />
+      <Route path="/portal/construction-analyzer" component={ConstructionAnalyzerPage} />
       <Route path="/portal/profile" component={ProfilePage} />
       <Route path="/str-calculator" component={STRCalculatorPage} />
       <Route path="/fundings" component={RecentFundingsPage} />

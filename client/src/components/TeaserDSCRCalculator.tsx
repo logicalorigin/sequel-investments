@@ -1,19 +1,19 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Link } from "wouter";
-import { Calculator, Lock, ArrowRight, Sparkles } from "lucide-react";
-
-type PropertyType = "sfr" | "2-4unit";
+import { Calculator, ArrowRight, TrendingUp, ArrowUpRight, Minus, ArrowDown } from "lucide-react";
 
 export function TeaserDSCRCalculator() {
   const [purchasePrice, setPurchasePrice] = useState("400000");
   const [downPaymentPercent, setDownPaymentPercent] = useState([25]);
   const [creditScore, setCreditScore] = useState([740]);
   const [monthlyRent, setMonthlyRent] = useState("3200");
+  const [annualTaxes, setAnnualTaxes] = useState("4800");
+  const [annualInsurance, setAnnualInsurance] = useState("1800");
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -24,12 +24,14 @@ export function TeaserDSCRCalculator() {
     }).format(value);
   };
 
-  const calculateTeaser = () => {
+  const results = useMemo(() => {
     const price = parseFloat(purchasePrice) || 0;
     const downPayment = price * (downPaymentPercent[0] / 100);
     const loanAmount = price - downPayment;
     const ltv = price > 0 ? (loanAmount / price) * 100 : 0;
     const rent = parseFloat(monthlyRent) || 0;
+    const taxes = parseFloat(annualTaxes) || 0;
+    const insurance = parseFloat(annualInsurance) || 0;
 
     const BASE_RATE = 6.25;
     let creditAdjustment = 0;
@@ -51,15 +53,32 @@ export function TeaserDSCRCalculator() {
     else ltvAdjustment = 0.5;
 
     const estimatedRate = Math.max(5.75, Math.min(9.0, BASE_RATE + creditAdjustment + ltvAdjustment));
+    
+    const monthlyRate = estimatedRate / 100 / 12;
+    const loanTermMonths = 30 * 12;
+    const monthlyPI = loanAmount > 0
+      ? (loanAmount * monthlyRate * Math.pow(1 + monthlyRate, loanTermMonths)) / 
+        (Math.pow(1 + monthlyRate, loanTermMonths) - 1)
+      : 0;
+    
+    const monthlyTaxes = taxes / 12;
+    const monthlyInsurance = insurance / 12;
+    const monthlyPITIA = monthlyPI + monthlyTaxes + monthlyInsurance;
+    const dscr = monthlyPITIA > 0 ? rent / monthlyPITIA : 0;
+    const monthlyCashFlow = rent - monthlyPITIA;
+    const cashToClose = downPayment + (price * 0.03);
 
     return {
       estimatedRate,
       loanAmount,
       ltv,
+      dscr,
+      monthlyPI,
+      monthlyPITIA,
+      monthlyCashFlow,
+      cashToClose,
     };
-  };
-
-  const results = calculateTeaser();
+  }, [purchasePrice, downPaymentPercent, creditScore, monthlyRent, annualTaxes, annualInsurance]);
 
   return (
     <Card className="w-full">
@@ -69,23 +88,10 @@ export function TeaserDSCRCalculator() {
           DSCR Calculator
         </CardTitle>
         <CardDescription>
-          Get a quick estimate of your DSCR loan rate
+          Calculate your DSCR loan rate and cash flow
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 mb-4">
-          <h3 className="font-semibold text-sm mb-2 flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-primary" />
-            Your Estimated Rate
-          </h3>
-          <div className="flex items-baseline gap-2">
-            <span className="text-4xl font-bold text-primary" data-testid="text-teaser-dscr-rate">
-              {results.estimatedRate.toFixed(2)}%
-            </span>
-            <span className="text-muted-foreground text-sm">30-Year Fixed</span>
-          </div>
-        </div>
-
         <div className="space-y-5">
           <div>
             <div className="flex justify-between mb-2">
@@ -108,15 +114,18 @@ export function TeaserDSCRCalculator() {
           </div>
 
           <div>
-            <Label htmlFor="teaserPurchasePrice">Purchase Price ($)</Label>
-            <Input
-              id="teaserPurchasePrice"
-              type="number"
-              value={purchasePrice}
-              onChange={(e) => setPurchasePrice(e.target.value)}
-              placeholder="400000"
-              data-testid="input-teaser-purchase-price"
-            />
+            <Label htmlFor="teaserPurchasePrice">Purchase Price</Label>
+            <div className="relative mt-1">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+              <Input
+                id="teaserPurchasePrice"
+                type="number"
+                value={purchasePrice}
+                onChange={(e) => setPurchasePrice(e.target.value)}
+                className="pl-7"
+                data-testid="input-teaser-purchase-price"
+              />
+            </div>
           </div>
 
           <div>
@@ -139,77 +148,128 @@ export function TeaserDSCRCalculator() {
           </div>
 
           <div>
-            <Label htmlFor="teaserMonthlyRent">Expected Monthly Rent ($)</Label>
-            <Input
-              id="teaserMonthlyRent"
-              type="number"
-              value={monthlyRent}
-              onChange={(e) => setMonthlyRent(e.target.value)}
-              placeholder="3200"
-              data-testid="input-teaser-monthly-rent"
-            />
+            <Label htmlFor="teaserMonthlyRent">Expected Monthly Rent</Label>
+            <div className="relative mt-1">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+              <Input
+                id="teaserMonthlyRent"
+                type="number"
+                value={monthlyRent}
+                onChange={(e) => setMonthlyRent(e.target.value)}
+                className="pl-7"
+                data-testid="input-teaser-monthly-rent"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="teaserAnnualTaxes">Annual Taxes</Label>
+              <div className="relative mt-1">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                <Input
+                  id="teaserAnnualTaxes"
+                  type="number"
+                  value={annualTaxes}
+                  onChange={(e) => setAnnualTaxes(e.target.value)}
+                  className="pl-7"
+                  data-testid="input-teaser-annual-taxes"
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="teaserAnnualInsurance">Annual Insurance</Label>
+              <div className="relative mt-1">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                <Input
+                  id="teaserAnnualInsurance"
+                  type="number"
+                  value={annualInsurance}
+                  onChange={(e) => setAnnualInsurance(e.target.value)}
+                  className="pl-7"
+                  data-testid="input-teaser-annual-insurance"
+                />
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="relative">
-          <div className="bg-card border rounded-lg p-6 space-y-4 blur-sm select-none pointer-events-none">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-muted-foreground">DSCR Ratio</p>
-                <p className="text-3xl font-bold">1.25</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Monthly Cash Flow</p>
-                <p className="text-3xl font-bold text-green-600">$847</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-4 pt-4 border-t">
-              <div>
-                <p className="text-xs text-muted-foreground">Cash to Close</p>
-                <p className="text-lg font-semibold">$112,000</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Monthly Payment</p>
-                <p className="text-lg font-semibold">$1,753</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Cash-on-Cash</p>
-                <p className="text-lg font-semibold">9.1%</p>
-              </div>
-            </div>
+        {/* Results Section */}
+        <div className={`bg-gradient-to-br rounded-lg p-4 border ${
+          results.dscr >= 1.0 
+            ? "from-green-500/20 to-green-500/10 border-green-500/30"
+            : results.dscr >= 0.75
+            ? "from-yellow-500/20 to-yellow-500/10 border-yellow-500/30"
+            : "from-red-500/20 to-red-500/10 border-red-500/30"
+        }`}>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold text-sm flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-primary" />
+              Your Results
+            </h3>
+            {results.dscr >= 1.0 ? (
+              <ArrowUpRight className="h-5 w-5 text-green-600" />
+            ) : results.dscr >= 0.75 ? (
+              <Minus className="h-5 w-5 text-yellow-600" />
+            ) : (
+              <ArrowDown className="h-5 w-5 text-red-600" />
+            )}
           </div>
-
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/60 backdrop-blur-[2px] rounded-lg">
-            <div className="bg-card border shadow-lg rounded-lg p-6 text-center max-w-sm">
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                <Lock className="h-6 w-6 text-primary" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">Unlock Full Analysis</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Create a free account to see DSCR ratio, monthly cash flow, rate breakdown, and more.
+          
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <p className="text-xs text-muted-foreground">Interest Rate</p>
+              <p className="text-2xl font-bold text-green-600" data-testid="text-teaser-dscr-rate">
+                {results.estimatedRate.toFixed(3)}%
               </p>
-              <Link href="/api/login">
-                <Button className="w-full" data-testid="button-teaser-dscr-unlock">
-                  Sign In to Unlock
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-              <p className="text-xs text-muted-foreground mt-3">
-                Already have an account?{" "}
-                <Link href="/api/login" className="text-primary hover:underline">
-                  Log in
-                </Link>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">DSCR Ratio</p>
+              <p className={`text-2xl font-bold ${
+                results.dscr >= 1.0 ? "text-green-600" : results.dscr >= 0.75 ? "text-yellow-600" : "text-red-600"
+              }`} data-testid="text-teaser-dscr-ratio">
+                {results.dscr.toFixed(2)}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 pt-3 border-t border-border/50">
+            <div>
+              <p className="text-xs text-muted-foreground">Monthly Cash Flow</p>
+              <p className={`text-lg font-semibold ${results.monthlyCashFlow >= 0 ? "text-green-600" : "text-red-600"}`}>
+                {formatCurrency(results.monthlyCashFlow)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Est. Cash to Close</p>
+              <p className="text-lg font-semibold">
+                {formatCurrency(results.cashToClose)}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 pt-3 border-t border-border/50">
+            <div>
+              <p className="text-xs text-muted-foreground">Monthly PITIA</p>
+              <p className="text-lg font-semibold">
+                {formatCurrency(results.monthlyPITIA)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Loan Amount</p>
+              <p className="text-lg font-semibold">
+                {formatCurrency(results.loanAmount)}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="bg-muted/50 border border-muted rounded-lg p-4">
-          <p className="text-sm text-muted-foreground text-center">
-            Our Investment Analysis tool provides complete DSCR calculations, rate breakdowns, 
-            and financing scenarios for your rental property investments.
-          </p>
-        </div>
+        <Link href="/get-quote">
+          <Button className="w-full" data-testid="button-teaser-dscr-apply">
+            Get Your Rate
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        </Link>
       </CardContent>
     </Card>
   );

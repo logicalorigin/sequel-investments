@@ -46,9 +46,9 @@ The design is inspired by leading fintech lenders like Kiavi and Easy Street Cap
 
 **Routing**: Client-side routing implemented with Wouter. Routes include:
 - `/` - Homepage with hero, stats, product cards, why choose us, testimonials
-- `/dscr-loans` - DSCR Loans product page with detailed terms, sidebar form, and DSCR calculator
-- `/fix-flip` - Fix & Flip product page with Fix & Flip calculator
-- `/new-construction` - New Construction product page with Construction calculator
+- `/dscr-loans` - DSCR Loans product page with detailed terms, sidebar form, DSCR calculator, and Recently Funded Carousel
+- `/fix-flip` - Fix & Flip product page with Fix & Flip calculator and Recently Funded Carousel
+- `/new-construction` - New Construction product page with Construction calculator and Recently Funded Carousel
 - `/calculator` - Interactive DSCR calculator page
 - `/str-calculator` - STR (Short-Term Rental) income estimator with market data
 - `/about` - About us page with company info and track record
@@ -57,7 +57,10 @@ The design is inspired by leading fintech lenders like Kiavi and Easy Street Cap
 - `/portal` - Customer portal with loan applications list
 - `/portal/application/:id` - Application detail page with progress stepper, loan info, fees, funds to close
 - `/portal/application/:id/documents` - Document upload and checklist page
-- `/portal/investment-analysis` - Investment Analysis deal calculator with DSCR/ROI analysis
+- `/portal/investment-analysis` - All-in-One Investment Analysis deal calculator with DSCR/ROI analysis
+- `/portal/dscr-analyzer` - Dedicated DSCR Analyzer for rental property cash flow analysis
+- `/portal/fixflip-analyzer` - Dedicated Fix & Flip Analyzer for rehab deal profitability
+- `/portal/construction-analyzer` - Dedicated Construction Analyzer for ground-up build analysis
 - `/portal/profile` - User profile settings with password management
 
 **UI Component System**: shadcn/ui component library in "New York" style, built on Radix UI primitives.
@@ -85,6 +88,8 @@ The design is inspired by leading fintech lenders like Kiavi and Easy Street Cap
 - `STRCalculatorPage` - Short-term rental income estimator with state-based market data, bedroom/property type multipliers, operating expense calculation, and DSCR analysis for loan qualification
 - `GetQuotePage` - Multi-step quote flow: loan type → property details → contact info
 - `USMap` - Interactive SVG map of US states using SimpleMaps coordinates (viewBox: 0 0 1000 589). States are color-coded by loan volume and clickable for navigation to state detail pages
+- `RecentlyFundedCarousel` - Auto-scrolling carousel showcasing recently funded deals with property images, locations, loan amounts, rates (3 decimal precision), and LTV/LTC percentages. Filters by loan type when used on product pages
+- `TeaserDSCRCalculator`, `TeaserFixFlipCalculator`, `TeaserConstructionCalculator` - Full-featured teaser calculators on public product pages (no sign-in required)
 
 ### Borrower Portal (ESC-Inspired)
 
@@ -92,7 +97,11 @@ The borrower portal is modeled after Easy Street Capital's portal design with th
 
 **Portal Navigation**:
 - Portfolio tab - Lists all loan applications
-- Investment Analysis tab - Deal analyzer calculator
+- Analyzers dropdown - Contains links to:
+  - DSCR Analyzer (data-testid="link-dscr-analyzer") - Rental property cash flow analysis
+  - Fix & Flip Analyzer (data-testid="link-fixflip-analyzer") - Rehab deal profitability
+  - Construction Analyzer (data-testid="link-construction-analyzer") - Ground-up build analysis
+  - All-in-One Analyzer (data-testid="link-all-in-one-analyzer") - Combined deal calculator
 
 **Application Detail Page** (`/portal/application/:id`):
 - Progress stepper with 6 stages: Account Executive Review → Underwriting → Term Sheet Issued → Processing → Docs Out → Closed
