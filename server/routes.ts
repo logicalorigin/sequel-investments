@@ -18,7 +18,7 @@ import { setupAuth, isAuthenticated } from "./replitAuth";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { ObjectPermission } from "./objectAcl";
 import crypto from "crypto";
-import { getMarketData, refreshAllMarketData, getMarketDataStatus } from "./services/marketDataService";
+import { getMarketData, refreshAllMarketData, getMarketDataStatus, getPropertyValue } from "./services/marketDataService";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication
@@ -996,6 +996,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error refreshing market data:", error);
       return res.status(500).json({ error: "Failed to refresh market data" });
+    }
+  });
+
+  // ============================================
+  // PROPERTY VALUE ROUTES
+  // ============================================
+  app.get("/api/property-value/:address", async (req, res) => {
+    try {
+      const { address } = req.params;
+      const purchasePrice = req.query.purchasePrice ? parseFloat(req.query.purchasePrice as string) : undefined;
+      
+      const decodedAddress = decodeURIComponent(address);
+      const propertyValue = await getPropertyValue(decodedAddress, purchasePrice);
+      
+      return res.json(propertyValue);
+    } catch (error) {
+      console.error("Error fetching property value:", error);
+      return res.status(500).json({ error: "Failed to fetch property value" });
     }
   });
 
