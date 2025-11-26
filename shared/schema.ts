@@ -100,6 +100,10 @@ export const loanApplications = pgTable("loan_applications", {
   processorEmail: text("processor_email"),
   processorPhone: text("processor_phone"),
   
+  // Analyzer Data (for linking back to the analysis)
+  analyzerType: text("analyzer_type"), // "dscr", "fixflip", "construction"
+  analyzerData: jsonb("analyzer_data"), // Full scenario inputs + results
+  
   // Dates
   requestedClosingDate: timestamp("requested_closing_date"),
   closingDate: timestamp("closing_date"),

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -32,25 +32,33 @@ import {
   FileText,
   Loader2,
   FileDown,
+  Printer,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import type { SavedScenario } from "@shared/schema";
+import { DSCREstimatePDF } from "./DSCREstimatePDF";
 
 interface ScenarioManagerProps {
   analyzerType: "dscr" | "fix_flip" | "construction";
   currentData: Record<string, any>;
   onLoadScenario: (data: Record<string, any>) => void;
+  resultsData?: Record<string, any>;
+  userName?: string;
 }
 
 export function ScenarioManager({
   analyzerType,
   currentData,
   onLoadScenario,
+  resultsData,
+  userName,
 }: ScenarioManagerProps) {
   const { toast } = useToast();
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [scenarioName, setScenarioName] = useState("");
   const [loadDialogOpen, setLoadDialogOpen] = useState(false);
+  const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
+  const pdfRef = useRef<HTMLDivElement>(null);
 
   // Map fix_flip to fixflip to match schema enum
   const schemaType = analyzerType === 'fix_flip' ? 'fixflip' : analyzerType;
@@ -147,12 +155,74 @@ export function ScenarioManager({
   const filteredScenarios = scenarios.filter(s => s.type === schemaType);
 
   const handleExportPDF = () => {
-    window.print();
-    toast({
-      title: "PDF Export",
-      description: "Use your browser's print dialog to save as PDF.",
-    });
+    if (analyzerType === "dscr" && resultsData) {
+      setPdfDialogOpen(true);
+    } else {
+      window.print();
+      toast({
+        title: "PDF Export",
+        description: "Use your browser's print dialog to save as PDF.",
+      });
+    }
   };
+
+  const handlePrintPDF = () => {
+    if (pdfRef.current) {
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>DSCR Estimate - Secured Asset Funding</title>
+              <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+              <style>
+                * { margin: 0; padding: 0; box-sizing: border-box; }
+                body { font-family: 'Inter', system-ui, sans-serif; }
+                @page { size: letter; margin: 0.5in; }
+                @media print {
+                  body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                }
+              </style>
+            </head>
+            <body>
+              ${pdfRef.current.innerHTML}
+            </body>
+          </html>
+        `);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => {
+          printWindow.print();
+          printWindow.close();
+        }, 250);
+      }
+    }
+  };
+
+  // Prepare DSCR PDF data
+  const dscrPdfData = analyzerType === "dscr" && resultsData ? {
+    propertyAddress: currentData.propertyAddress || "",
+    propertyType: currentData.propertyType || "sfr",
+    transactionType: currentData.transactionType || "purchase",
+    rentalType: currentData.rentalType || "long_term",
+    propertyValue: parseFloat(currentData.propertyValue) || 0,
+    loanAmount: resultsData.loanAmount || 0,
+    ltv: resultsData.ltv || 0,
+    monthlyRent: parseFloat(currentData.monthlyRent) || 0,
+    annualTaxes: parseFloat(currentData.annualTaxes) || 0,
+    annualInsurance: parseFloat(currentData.annualInsurance) || 0,
+    annualHOA: parseFloat(currentData.annualHOA) || 0,
+    creditScore: currentData.creditScore?.[0] || 740,
+    calculatedRate: resultsData.calculatedRate || 0,
+    dscrRatio: resultsData.dscrRatio || 0,
+    monthlyPI: resultsData.monthlyPI || 0,
+    monthlyTIA: resultsData.monthlyTIA || 0,
+    monthlyPITIA: resultsData.monthlyPITIA || 0,
+    monthlyCashFlow: resultsData.monthlyCashFlow || 0,
+    cashToClose: resultsData.cashToClose || 0,
+    cashToBorrower: resultsData.cashToBorrower || 0,
+  } : null;
 
   return (
     <div className="flex items-center gap-2 print:hidden">
@@ -284,6 +354,34 @@ export function ScenarioManager({
         <FileDown className="h-4 w-4 mr-2" />
         Export PDF
       </Button>
+
+      {/* PDF Preview Dialog for DSCR */}
+      {analyzerType === "dscr" && dscrPdfData && (
+        <Dialog open={pdfDialogOpen} onOpenChange={setPdfDialogOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
+            <DialogHeader>
+              <DialogTitle>DSCR Estimate Preview</DialogTitle>
+              <DialogDescription>
+                Preview your estimate before printing or saving as PDF.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="border rounded-lg overflow-hidden bg-white">
+              <div className="transform scale-[0.7] origin-top-left w-[142%]">
+                <DSCREstimatePDF ref={pdfRef} data={dscrPdfData} userName={userName} />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setPdfDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handlePrintPDF} data-testid="button-print-pdf">
+                <Printer className="h-4 w-4 mr-2" />
+                Print / Save as PDF
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
