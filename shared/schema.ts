@@ -17,10 +17,12 @@ export const sessions = pgTable(
 // User role enum
 export const userRoleEnum = pgEnum("user_role", ["borrower", "staff", "admin"]);
 
-// User storage table for Replit Auth
+// User storage table for Replit Auth + local auth
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   email: varchar("email").unique(),
+  username: varchar("username").unique(),
+  password: varchar("password"),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
