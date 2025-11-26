@@ -191,7 +191,7 @@ export default function FixFlipPage() {
                       </div>
                       <div className="flex justify-between py-3 border-b">
                         <span className="text-muted-foreground">Term Length</span>
-                        <span className="font-semibold">6-12 Months</span>
+                        <span className="font-semibold">6-24 Months</span>
                       </div>
                       <div className="flex justify-between py-3 border-b">
                         <span className="text-muted-foreground">Credit Score</span>
