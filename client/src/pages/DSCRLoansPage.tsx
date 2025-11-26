@@ -256,6 +256,11 @@ export default function DSCRLoansPage() {
               </div>
 
               <div>
+                <h2 className="text-3xl font-bold mb-6">DSCR Calculator</h2>
+                <DSCROnlyCalculator />
+              </div>
+
+              <div>
                 <h2 className="text-3xl font-bold mb-6">Frequently Asked Questions</h2>
                 <Accordion type="single" collapsible className="w-full">
                   <AccordionItem value="item-1" data-testid="faq-item-1">
@@ -293,11 +298,6 @@ export default function DSCRLoansPage() {
                     </AccordionContent>
                   </AccordionItem>
                 </Accordion>
-              </div>
-
-              <div>
-                <h2 className="text-3xl font-bold mb-6">DSCR Calculator</h2>
-                <DSCROnlyCalculator />
               </div>
             </div>
 
