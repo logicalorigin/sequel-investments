@@ -368,6 +368,15 @@ export default function DSCRAnalyzerPage() {
     const isMultiUnit = propertyType !== "sfr" && propertyType !== "townhome";
     if (isMultiUnit) rate += 0.25;
     
+    // Prepayment penalty adjustment
+    // Longest PPP (5-4-3-2-1): -0.25%, None (0): +0.5%, others scale between
+    if (prepaymentPenalty === "5-4-3-2-1") rate -= 0.25;
+    else if (prepaymentPenalty === "4-3-2-1-0") rate += 0;
+    else if (prepaymentPenalty === "3-2-1-0") rate += 0.125;
+    else if (prepaymentPenalty === "2-1-0") rate += 0.25;
+    else if (prepaymentPenalty === "1-0") rate += 0.25;
+    else if (prepaymentPenalty === "0") rate += 0.5;
+    
     // Rental type: no rate adjustment, data intake only
     
     // Clamp rate
@@ -407,8 +416,9 @@ export default function DSCRAnalyzerPage() {
       cashToClose,
       cashToBorrower,
       downPayment,
+      pointsMayBeAdded: prepaymentPenalty === "0",
     };
-  }, [propertyValue, requestedLoanAmount, annualTaxes, annualInsurance, annualHOA, monthlyRent, creditScore, propertyType, baseRate, rentalType, transactionType]);
+  }, [propertyValue, requestedLoanAmount, annualTaxes, annualInsurance, annualHOA, monthlyRent, creditScore, propertyType, baseRate, rentalType, transactionType, prepaymentPenalty]);
 
   const rateBreakdown = useMemo(() => {
     const score = creditScore[0];
@@ -443,13 +453,23 @@ export default function DSCRAnalyzerPage() {
     let propAdj = isMultiUnit ? 0.25 : 0;
     let propLabel = isMultiUnit ? "Multi-Unit" : "1-Unit";
     
+    // Prepayment penalty adjustment
+    let pppAdj = 0;
+    let pppLabel = "";
+    if (prepaymentPenalty === "5-4-3-2-1") { pppAdj = -0.25; pppLabel = "5-4-3-2-1"; }
+    else if (prepaymentPenalty === "4-3-2-1-0") { pppAdj = 0; pppLabel = "4-3-2-1-0"; }
+    else if (prepaymentPenalty === "3-2-1-0") { pppAdj = 0.125; pppLabel = "3-2-1-0"; }
+    else if (prepaymentPenalty === "2-1-0") { pppAdj = 0.25; pppLabel = "2-1-0"; }
+    else if (prepaymentPenalty === "1-0") { pppAdj = 0.25; pppLabel = "1-0"; }
+    else if (prepaymentPenalty === "0") { pppAdj = 0.5; pppLabel = "None"; }
+    
     // Rental type captured for data only, no rate adjustment
     let rentalLabel = rentalType === "short_term" ? "STR" : "LTR";
 
     const txLabel = transactionTypes.find(t => t.id === transactionType)?.label || "Purchase";
 
-    return { baseRate, txLabel, creditAdj, creditLabel, ltvAdj, ltvLabel, dscrAdj, dscrLabel, propAdj, propLabel, rentalLabel };
-  }, [creditScore, results.ltv, results.dscrRatio, propertyType, baseRate, rentalType, transactionType]);
+    return { baseRate, txLabel, creditAdj, creditLabel, ltvAdj, ltvLabel, dscrAdj, dscrLabel, propAdj, propLabel, pppAdj, pppLabel, rentalLabel };
+  }, [creditScore, results.ltv, results.dscrRatio, propertyType, baseRate, rentalType, transactionType, prepaymentPenalty]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -799,10 +819,24 @@ export default function DSCRAnalyzerPage() {
                         {rateBreakdown.propAdj > 0 ? "+" : ""}{rateBreakdown.propAdj.toFixed(3)}%
                       </span>
                     </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">PPP ({rateBreakdown.pppLabel}):</span>
+                      <span className="font-medium">
+                        {rateBreakdown.pppAdj > 0 ? "+" : ""}{rateBreakdown.pppAdj.toFixed(3)}%
+                      </span>
+                    </div>
                     <div className="border-t pt-1.5 mt-1.5 flex justify-between font-semibold text-sm">
                       <span>Your Rate:</span>
-                      <span className="text-primary">{results.calculatedRate.toFixed(3)}%</span>
+                      <span className="text-primary">
+                        {results.calculatedRate.toFixed(3)}%
+                        {results.pointsMayBeAdded && <span className="text-xs text-amber-600 ml-1">*</span>}
+                      </span>
                     </div>
+                    {results.pointsMayBeAdded && (
+                      <div className="text-[10px] text-amber-600 text-right">
+                        * Points may be added
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
