@@ -19,24 +19,28 @@ import {
   Percent,
   Home,
   FileText,
-  ArrowDown,
-  ArrowUpRight,
-  Minus,
+  Building2,
+  Sun,
 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 
 const propertyTypes = [
-  { id: "sfr", label: "Single Family", icon: "sfr" },
-  { id: "duplex", label: "Duplex", icon: "duplex" },
-  { id: "triplex", label: "Triplex", icon: "triplex" },
-  { id: "fourplex", label: "Fourplex", icon: "fourplex" },
-  { id: "townhome", label: "Townhome/Condo", icon: "townhome" },
+  { id: "sfr", label: "SFR", icon: "sfr" },
+  { id: "duplex", label: "2-Unit", icon: "duplex" },
+  { id: "triplex", label: "3-Unit", icon: "triplex" },
+  { id: "fourplex", label: "4-Unit", icon: "fourplex" },
+  { id: "townhome", label: "Condo", icon: "townhome" },
 ];
 
 const transactionTypes = [
-  { id: "purchase", label: "Purchase" },
-  { id: "cash_out", label: "Cash-Out Refinance" },
-  { id: "rate_term", label: "Rate & Term Refinance" },
+  { id: "purchase", label: "Purchase", baseRate: 6.25 },
+  { id: "rate_term", label: "Rate & Term", baseRate: 6.50 },
+  { id: "cash_out", label: "Cash-Out", baseRate: 6.625 },
+];
+
+const rentalTypes = [
+  { id: "long_term", label: "Long-Term Rental", icon: Building2 },
+  { id: "short_term", label: "Short-Term (STR)", icon: Sun },
 ];
 
 function PropertyTypeIcon({ type, className = "" }: { type: string; className?: string }) {
@@ -49,7 +53,6 @@ function PropertyTypeIcon({ type, className = "" }: { type: string; className?: 
         <rect x="26" y="38" width="12" height="18" stroke="currentColor" strokeWidth="2" fill="none"/>
         <rect x="16" y="34" width="8" height="8" stroke="currentColor" strokeWidth="2" fill="none"/>
         <rect x="40" y="34" width="8" height="8" stroke="currentColor" strokeWidth="2" fill="none"/>
-        <path d="M32 8L32 2" stroke="currentColor" strokeWidth="2"/>
       </svg>
     );
   }
@@ -61,8 +64,6 @@ function PropertyTypeIcon({ type, className = "" }: { type: string; className?: 
         <rect x="34" y="20" width="24" height="36" stroke="currentColor" strokeWidth="2" fill="none"/>
         <rect x="12" y="42" width="8" height="14" stroke="currentColor" strokeWidth="2" fill="none"/>
         <rect x="44" y="42" width="8" height="14" stroke="currentColor" strokeWidth="2" fill="none"/>
-        <rect x="12" y="28" width="6" height="6" stroke="currentColor" strokeWidth="2" fill="none"/>
-        <rect x="46" y="28" width="6" height="6" stroke="currentColor" strokeWidth="2" fill="none"/>
         <path d="M6 20L18 10L30 20" stroke="currentColor" strokeWidth="2" fill="none"/>
         <path d="M34 20L46 10L58 20" stroke="currentColor" strokeWidth="2" fill="none"/>
       </svg>
@@ -75,9 +76,6 @@ function PropertyTypeIcon({ type, className = "" }: { type: string; className?: 
         <rect x="4" y="22" width="18" height="34" stroke="currentColor" strokeWidth="2" fill="none"/>
         <rect x="23" y="22" width="18" height="34" stroke="currentColor" strokeWidth="2" fill="none"/>
         <rect x="42" y="22" width="18" height="34" stroke="currentColor" strokeWidth="2" fill="none"/>
-        <rect x="8" y="44" width="6" height="12" stroke="currentColor" strokeWidth="2" fill="none"/>
-        <rect x="29" y="44" width="6" height="12" stroke="currentColor" strokeWidth="2" fill="none"/>
-        <rect x="48" y="44" width="6" height="12" stroke="currentColor" strokeWidth="2" fill="none"/>
         <path d="M4 22L13 14L22 22" stroke="currentColor" strokeWidth="2" fill="none"/>
         <path d="M23 22L32 14L41 22" stroke="currentColor" strokeWidth="2" fill="none"/>
         <path d="M42 22L51 14L60 22" stroke="currentColor" strokeWidth="2" fill="none"/>
@@ -91,10 +89,6 @@ function PropertyTypeIcon({ type, className = "" }: { type: string; className?: 
         <rect x="6" y="18" width="52" height="38" stroke="currentColor" strokeWidth="2" fill="none"/>
         <line x1="32" y1="18" x2="32" y2="56" stroke="currentColor" strokeWidth="2"/>
         <line x1="6" y1="37" x2="58" y2="37" stroke="currentColor" strokeWidth="2"/>
-        <rect x="12" y="24" width="6" height="6" stroke="currentColor" strokeWidth="2" fill="none"/>
-        <rect x="38" y="24" width="6" height="6" stroke="currentColor" strokeWidth="2" fill="none"/>
-        <rect x="12" y="44" width="6" height="6" stroke="currentColor" strokeWidth="2" fill="none"/>
-        <rect x="38" y="44" width="6" height="6" stroke="currentColor" strokeWidth="2" fill="none"/>
         <path d="M6 18L32 6L58 18" stroke="currentColor" strokeWidth="2" fill="none"/>
       </svg>
     );
@@ -107,38 +101,14 @@ function PropertyTypeIcon({ type, className = "" }: { type: string; className?: 
         <rect x="36" y="24" width="20" height="32" stroke="currentColor" strokeWidth="2" fill="none"/>
         <rect x="14" y="42" width="8" height="14" stroke="currentColor" strokeWidth="2" fill="none"/>
         <rect x="42" y="42" width="8" height="14" stroke="currentColor" strokeWidth="2" fill="none"/>
-        <rect x="14" y="30" width="4" height="4" stroke="currentColor" strokeWidth="2" fill="none"/>
-        <rect x="44" y="30" width="4" height="4" stroke="currentColor" strokeWidth="2" fill="none"/>
         <path d="M8 24L18 14L28 24" stroke="currentColor" strokeWidth="2" fill="none"/>
         <path d="M36 24L46 14L56 24" stroke="currentColor" strokeWidth="2" fill="none"/>
         <line x1="28" y1="14" x2="36" y2="14" stroke="currentColor" strokeWidth="2"/>
-        <line x1="28" y1="24" x2="36" y2="24" stroke="currentColor" strokeWidth="2"/>
       </svg>
     );
   }
   
   return <Home className={baseClass} />;
-}
-
-function calculateDSCRInterestRate(ltv: number, dscr: number): number {
-  const BASE_RATE = 6.25;
-  let adjustment = 0;
-  
-  if (ltv <= 50) adjustment -= 0.5;
-  else if (ltv <= 55) adjustment -= 0.25;
-  else if (ltv <= 60) adjustment += 0;
-  else if (ltv <= 65) adjustment += 0.125;
-  else if (ltv <= 70) adjustment += 0.25;
-  else if (ltv <= 75) adjustment += 0.375;
-  else adjustment += 0.5;
-  
-  if (dscr >= 1.5) adjustment -= 0.125;
-  else if (dscr >= 1.25) adjustment += 0;
-  else if (dscr >= 1.0) adjustment += 0.125;
-  else if (dscr >= 0.75) adjustment += 0.25;
-  else adjustment += 0.375;
-  
-  return Math.max(5.75, Math.min(9.0, BASE_RATE + adjustment));
 }
 
 export default function DSCRAnalyzerPage() {
@@ -154,6 +124,7 @@ export default function DSCRAnalyzerPage() {
 
   const [propertyType, setPropertyType] = useState("sfr");
   const [transactionType, setTransactionType] = useState("purchase");
+  const [rentalType, setRentalType] = useState("long_term");
   const [propertyAddress, setPropertyAddress] = useState("");
   const [propertyValue, setPropertyValue] = useState("450000");
   const [requestedLoanAmount, setRequestedLoanAmount] = useState("360000");
@@ -165,10 +136,19 @@ export default function DSCRAnalyzerPage() {
   const [ltvSlider, setLtvSlider] = useState([80]);
 
   const maxLtv = transactionType === "cash_out" ? 75 : 80;
+  const baseRate = transactionTypes.find(t => t.id === transactionType)?.baseRate || 6.25;
+
+  // Auto-adjust LTV when transaction type changes
+  useEffect(() => {
+    if (ltvSlider[0] > maxLtv) {
+      setLtvSlider([maxLtv]);
+    }
+  }, [transactionType, maxLtv]);
 
   const getCurrentScenarioData = useCallback(() => ({
     propertyType,
     transactionType,
+    rentalType,
     propertyAddress,
     propertyValue,
     requestedLoanAmount,
@@ -177,11 +157,12 @@ export default function DSCRAnalyzerPage() {
     annualInsurance,
     annualHOA,
     creditScore,
-  }), [propertyType, transactionType, propertyAddress, propertyValue, requestedLoanAmount, monthlyRent, annualTaxes, annualInsurance, annualHOA, creditScore]);
+  }), [propertyType, transactionType, rentalType, propertyAddress, propertyValue, requestedLoanAmount, monthlyRent, annualTaxes, annualInsurance, annualHOA, creditScore]);
 
   const handleLoadScenario = useCallback((data: Record<string, any>) => {
     if (data.propertyType) setPropertyType(data.propertyType);
     if (data.transactionType) setTransactionType(data.transactionType);
+    if (data.rentalType) setRentalType(data.rentalType);
     if (data.propertyAddress) setPropertyAddress(data.propertyAddress);
     if (data.propertyValue) setPropertyValue(data.propertyValue);
     if (data.requestedLoanAmount) setRequestedLoanAmount(data.requestedLoanAmount);
@@ -252,6 +233,7 @@ export default function DSCRAnalyzerPage() {
     const monthlyHOA = hoaVal / 12;
     const monthlyTIA = monthlyTaxes + monthlyInsurance + monthlyHOA;
     
+    // Calculate preliminary DSCR with estimated rate
     const estimatedMonthlyRate = 6.5 / 100 / 12;
     const loanTermInMonths = 30 * 12;
     const estimatedMonthlyPI = loanAmount > 0 
@@ -261,7 +243,43 @@ export default function DSCRAnalyzerPage() {
     const estimatedMonthlyPITIA = estimatedMonthlyPI + monthlyTIA;
     const preliminaryDSCR = estimatedMonthlyPITIA > 0 ? monthlyRentVal / estimatedMonthlyPITIA : 0;
     
-    const rate = calculateDSCRInterestRate(ltv, preliminaryDSCR);
+    // Calculate actual rate with all adjustments
+    const score = creditScore[0];
+    const dscr = preliminaryDSCR;
+    
+    // Base rate from transaction type
+    let rate = baseRate;
+    
+    // Credit score adjustment
+    if (score >= 760) rate += 0;
+    else if (score >= 740) rate += 0.25;
+    else if (score >= 720) rate += 0.375;
+    else if (score >= 700) rate += 0.5;
+    else if (score >= 680) rate += 0.75;
+    else rate += 1.0;
+    
+    // LTV adjustment - NO negative adjustment for low LTV
+    if (ltv <= 60) rate += 0;
+    else if (ltv <= 65) rate += 0.125;
+    else if (ltv <= 70) rate += 0.25;
+    else if (ltv <= 75) rate += 0.375;
+    else rate += 0.5;
+    
+    // DSCR adjustment - new brackets: <0.75, 0.75-1.0, 1.0-1.14, 1.15+
+    if (dscr >= 1.15) rate += 0;
+    else if (dscr >= 1.0) rate += 0.125;
+    else if (dscr >= 0.75) rate += 0.25;
+    else rate += 0.5;
+    
+    // Property type adjustment
+    const isMultiUnit = propertyType !== "sfr" && propertyType !== "townhome";
+    if (isMultiUnit) rate += 0.25;
+    
+    // Rental type adjustment - STR gets 0.5% premium
+    if (rentalType === "short_term") rate += 0.5;
+    
+    // Clamp rate
+    rate = Math.max(5.75, Math.min(9.5, rate));
     
     const actualMonthlyRate = rate / 100 / 12;
     const actualMonthlyPI = loanAmount > 0 
@@ -271,6 +289,16 @@ export default function DSCRAnalyzerPage() {
     const totalMonthlyPITIA = actualMonthlyPI + monthlyTIA;
     const finalDSCR = totalMonthlyPITIA > 0 ? monthlyRentVal / totalMonthlyPITIA : 0;
     const monthlyCashFlow = monthlyRentVal - totalMonthlyPITIA;
+    
+    // Cash to close / cash to borrower calculation
+    const downPayment = propertyVal - loanAmount;
+    const estimatedClosingCosts = loanAmount * 0.02; // ~2% closing costs
+    const cashToClose = transactionType === "purchase" 
+      ? downPayment + estimatedClosingCosts 
+      : 0;
+    const cashToBorrower = transactionType !== "purchase" 
+      ? loanAmount - estimatedClosingCosts 
+      : 0;
 
     return {
       ltv,
@@ -284,29 +312,29 @@ export default function DSCRAnalyzerPage() {
       monthlyPITIA: totalMonthlyPITIA,
       monthlyRent: monthlyRentVal,
       monthlyCashFlow,
+      cashToClose,
+      cashToBorrower,
+      downPayment,
     };
-  }, [propertyValue, requestedLoanAmount, annualTaxes, annualInsurance, annualHOA, monthlyRent, creditScore, propertyType]);
+  }, [propertyValue, requestedLoanAmount, annualTaxes, annualInsurance, annualHOA, monthlyRent, creditScore, propertyType, baseRate, rentalType, transactionType]);
 
   const rateBreakdown = useMemo(() => {
-    const BASE_RATE = 6.25;
     const score = creditScore[0];
     const ltv = results.ltv;
     const dscr = results.dscrRatio;
 
     let creditAdj = 0;
     let creditLabel = "";
-    if (score >= 760) { creditAdj = 0; creditLabel = "760+ (Excellent)"; }
-    else if (score >= 740) { creditAdj = 0.25; creditLabel = "740-759 (Very Good)"; }
-    else if (score >= 720) { creditAdj = 0.375; creditLabel = "720-739 (Good)"; }
-    else if (score >= 700) { creditAdj = 0.5; creditLabel = "700-719 (Fair)"; }
+    if (score >= 760) { creditAdj = 0; creditLabel = "760+"; }
+    else if (score >= 740) { creditAdj = 0.25; creditLabel = "740-759"; }
+    else if (score >= 720) { creditAdj = 0.375; creditLabel = "720-739"; }
+    else if (score >= 700) { creditAdj = 0.5; creditLabel = "700-719"; }
     else if (score >= 680) { creditAdj = 0.75; creditLabel = "680-699"; }
     else { creditAdj = 1.0; creditLabel = "660-679"; }
 
     let ltvAdj = 0;
     let ltvLabel = "";
-    if (ltv <= 50) { ltvAdj = -0.5; ltvLabel = "≤50% (Best)"; }
-    else if (ltv <= 55) { ltvAdj = -0.25; ltvLabel = "51-55%"; }
-    else if (ltv <= 60) { ltvAdj = 0; ltvLabel = "56-60%"; }
+    if (ltv <= 60) { ltvAdj = 0; ltvLabel = "≤60%"; }
     else if (ltv <= 65) { ltvAdj = 0.125; ltvLabel = "61-65%"; }
     else if (ltv <= 70) { ltvAdj = 0.25; ltvLabel = "66-70%"; }
     else if (ltv <= 75) { ltvAdj = 0.375; ltvLabel = "71-75%"; }
@@ -314,18 +342,22 @@ export default function DSCRAnalyzerPage() {
 
     let dscrAdj = 0;
     let dscrLabel = "";
-    if (dscr >= 1.5) { dscrAdj = -0.125; dscrLabel = "1.50+ (Excellent)"; }
-    else if (dscr >= 1.25) { dscrAdj = 0; dscrLabel = "1.25-1.49 (Good)"; }
-    else if (dscr >= 1.0) { dscrAdj = 0.125; dscrLabel = "1.00-1.24"; }
+    if (dscr >= 1.15) { dscrAdj = 0; dscrLabel = "1.15+"; }
+    else if (dscr >= 1.0) { dscrAdj = 0.125; dscrLabel = "1.00-1.14"; }
     else if (dscr >= 0.75) { dscrAdj = 0.25; dscrLabel = "0.75-0.99"; }
-    else { dscrAdj = 0.375; dscrLabel = "<0.75"; }
+    else { dscrAdj = 0.5; dscrLabel = "<0.75"; }
 
     const isMultiUnit = propertyType !== "sfr" && propertyType !== "townhome";
     let propAdj = isMultiUnit ? 0.25 : 0;
-    let propLabel = isMultiUnit ? "Multi-Unit" : "Single Family/Condo";
+    let propLabel = isMultiUnit ? "Multi-Unit" : "1-Unit";
+    
+    let rentalAdj = rentalType === "short_term" ? 0.5 : 0;
+    let rentalLabel = rentalType === "short_term" ? "STR" : "LTR";
 
-    return { BASE_RATE, creditAdj, creditLabel, ltvAdj, ltvLabel, dscrAdj, dscrLabel, propAdj, propLabel };
-  }, [creditScore, results.ltv, results.dscrRatio, propertyType]);
+    const txLabel = transactionTypes.find(t => t.id === transactionType)?.label || "Purchase";
+
+    return { baseRate, txLabel, creditAdj, creditLabel, ltvAdj, ltvLabel, dscrAdj, dscrLabel, propAdj, propLabel, rentalAdj, rentalLabel };
+  }, [creditScore, results.ltv, results.dscrRatio, propertyType, baseRate, rentalType, transactionType]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -352,14 +384,14 @@ export default function DSCRAnalyzerPage() {
     <div className="min-h-screen bg-background">
       <PortalHeader user={user} />
 
-      <main className="max-w-7xl mx-auto px-6 py-8">
-        <div className="mb-8 flex items-start justify-between gap-4">
+      <main className="max-w-7xl mx-auto px-6 py-6">
+        <div className="mb-6 flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold mb-2" data-testid="text-page-title">
+            <h1 className="text-2xl font-bold" data-testid="text-page-title">
               DSCR Loan Analyzer
             </h1>
-            <p className="text-muted-foreground">
-              Analyze rental property cash flow and calculate your DSCR loan qualification
+            <p className="text-sm text-muted-foreground">
+              Analyze rental property cash flow and loan qualification
             </p>
           </div>
           <ScenarioManager
@@ -369,70 +401,87 @@ export default function DSCRAnalyzerPage() {
           />
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-6">
-            {/* Property Type Selection */}
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* Left Column - Inputs */}
+          <div className="lg:col-span-2 space-y-4">
+            {/* Property & Transaction Type - Condensed */}
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Home className="h-5 w-5 text-primary" />
-                  Property Type
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-5 gap-2">
-                  {propertyTypes.map((type) => (
-                    <button
-                      key={type.id}
-                      onClick={() => setPropertyType(type.id)}
-                      className={`p-3 rounded-lg border-2 transition-all flex flex-col items-center gap-2 ${
-                        propertyType === type.id
-                          ? "border-primary bg-primary/10"
-                          : "border-border hover:border-primary/50"
-                      }`}
-                      data-testid={`button-property-type-${type.id}`}
-                    >
-                      <PropertyTypeIcon type={type.icon} className="w-8 h-8" />
-                      <span className="text-xs font-medium text-center">{type.label}</span>
-                    </button>
-                  ))}
+              <CardContent className="pt-4 space-y-4">
+                {/* Property Type - Single Row */}
+                <div className="flex items-center gap-3">
+                  <Label className="w-24 shrink-0 text-sm">Property</Label>
+                  <div className="flex gap-1.5 flex-1">
+                    {propertyTypes.map((type) => (
+                      <button
+                        key={type.id}
+                        onClick={() => setPropertyType(type.id)}
+                        className={`flex-1 py-2 px-2 rounded-md border transition-all flex flex-col items-center gap-1 ${
+                          propertyType === type.id
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border hover:border-primary/50"
+                        }`}
+                        data-testid={`button-property-type-${type.id}`}
+                      >
+                        <PropertyTypeIcon type={type.icon} className="w-5 h-5" />
+                        <span className="text-[10px] font-medium">{type.label}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
 
-            {/* Transaction Type */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Transaction Type</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-3 gap-2">
-                  {transactionTypes.map((type) => (
-                    <button
-                      key={type.id}
-                      onClick={() => setTransactionType(type.id)}
-                      className={`p-3 rounded-lg border-2 transition-all text-sm font-medium ${
-                        transactionType === type.id
-                          ? "border-primary bg-primary/10"
-                          : "border-border hover:border-primary/50"
-                      }`}
-                      data-testid={`button-transaction-type-${type.id}`}
-                    >
-                      {type.label}
-                    </button>
-                  ))}
+                {/* Transaction Type - Single Row */}
+                <div className="flex items-center gap-3">
+                  <Label className="w-24 shrink-0 text-sm">Transaction</Label>
+                  <div className="flex gap-1.5 flex-1">
+                    {transactionTypes.map((type) => (
+                      <button
+                        key={type.id}
+                        onClick={() => setTransactionType(type.id)}
+                        className={`flex-1 py-2 px-3 rounded-md border text-xs font-medium transition-all ${
+                          transactionType === type.id
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border hover:border-primary/50"
+                        }`}
+                        data-testid={`button-transaction-type-${type.id}`}
+                      >
+                        {type.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Rental Type - Single Row */}
+                <div className="flex items-center gap-3">
+                  <Label className="w-24 shrink-0 text-sm">Rental Type</Label>
+                  <div className="flex gap-1.5 flex-1">
+                    {rentalTypes.map((type) => {
+                      const Icon = type.icon;
+                      return (
+                        <button
+                          key={type.id}
+                          onClick={() => setRentalType(type.id)}
+                          className={`flex-1 py-2 px-3 rounded-md border text-xs font-medium transition-all flex items-center justify-center gap-2 ${
+                            rentalType === type.id
+                              ? "border-primary bg-primary/10 text-primary"
+                              : "border-border hover:border-primary/50"
+                          }`}
+                          data-testid={`button-rental-type-${type.id}`}
+                        >
+                          <Icon className="h-3.5 w-3.5" />
+                          {type.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
             {/* Property Details */}
             <Card>
-              <CardHeader>
-                <CardTitle>Property Details</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="pt-4 space-y-3">
                 <div>
-                  <Label>Property Address</Label>
+                  <Label className="text-sm">Property Address</Label>
                   <AddressAutocomplete
                     value={propertyAddress}
                     onChange={setPropertyAddress}
@@ -441,33 +490,33 @@ export default function DSCRAnalyzerPage() {
                     data-testid="input-property-address"
                   />
                 </div>
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label htmlFor="propertyValue">
+                    <Label htmlFor="propertyValue" className="text-sm">
                       {transactionType === "purchase" ? "Purchase Price" : "Property Value"}
                     </Label>
                     <div className="relative mt-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                       <Input
                         id="propertyValue"
                         type="number"
                         value={propertyValue}
                         onChange={(e) => setPropertyValue(e.target.value)}
-                        className="pl-7"
+                        className="pl-7 h-9"
                         data-testid="input-property-value"
                       />
                     </div>
                   </div>
                   <div>
-                    <Label htmlFor="monthlyRent">Expected Monthly Rent</Label>
+                    <Label htmlFor="monthlyRent" className="text-sm">Expected Monthly Rent</Label>
                     <div className="relative mt-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                       <Input
                         id="monthlyRent"
                         type="number"
                         value={monthlyRent}
                         onChange={(e) => setMonthlyRent(e.target.value)}
-                        className="pl-7"
+                        className="pl-7 h-9"
                         data-testid="input-monthly-rent"
                       />
                     </div>
@@ -476,69 +525,63 @@ export default function DSCRAnalyzerPage() {
               </CardContent>
             </Card>
 
-            {/* Loan Details with LTV Slider */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Loan Details</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <Label>Loan-to-Value (LTV)</Label>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="number"
-                        value={ltvSlider[0]}
-                        onChange={(e) => {
-                          const val = Math.min(parseInt(e.target.value) || 0, maxLtv);
-                          setLtvSlider([val]);
-                        }}
-                        className="w-20 h-8 text-center"
-                        max={maxLtv}
-                        data-testid="input-ltv"
-                      />
-                      <span className="text-lg font-bold text-primary">%</span>
+            {/* Loan Details & Rate Breakdown - Side by Side */}
+            <div className="grid md:grid-cols-2 gap-4">
+              {/* Loan Details */}
+              <Card>
+                <CardContent className="pt-4 space-y-4">
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <Label className="text-sm">LTV</Label>
+                      <div className="flex items-center gap-1">
+                        <Input
+                          type="number"
+                          value={ltvSlider[0]}
+                          onChange={(e) => {
+                            const val = Math.min(parseInt(e.target.value) || 0, maxLtv);
+                            setLtvSlider([val]);
+                          }}
+                          className="w-14 h-7 text-center text-sm"
+                          max={maxLtv}
+                          data-testid="input-ltv"
+                        />
+                        <span className="text-sm font-medium text-primary">%</span>
+                      </div>
+                    </div>
+                    <Slider
+                      value={ltvSlider}
+                      onValueChange={setLtvSlider}
+                      min={0}
+                      max={maxLtv}
+                      step={1}
+                      className="w-full"
+                      data-testid="slider-ltv"
+                    />
+                    <div className="flex justify-between text-[10px] text-muted-foreground mt-0.5">
+                      <span>0%</span>
+                      <span>{maxLtv}% Max</span>
                     </div>
                   </div>
-                  <Slider
-                    value={ltvSlider}
-                    onValueChange={setLtvSlider}
-                    min={0}
-                    max={maxLtv}
-                    step={1}
-                    className="w-full"
-                    data-testid="slider-ltv"
-                  />
-                  <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                    <span>0%</span>
-                    <span>{maxLtv}% Max</span>
-                  </div>
-                  {transactionType === "cash_out" && (
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Cash-out refinance limited to 75% LTV
-                    </p>
-                  )}
-                </div>
 
-                <div className="grid md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="requestedLoanAmount">Requested Loan Amount</Label>
+                    <Label htmlFor="requestedLoanAmount" className="text-sm">Loan Amount</Label>
                     <div className="relative mt-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                       <Input
                         id="requestedLoanAmount"
                         type="number"
                         value={requestedLoanAmount}
                         onChange={(e) => setRequestedLoanAmount(e.target.value)}
-                        className="pl-7"
+                        className="pl-7 h-9"
                         data-testid="input-loan-amount"
                       />
                     </div>
                   </div>
+
                   <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <Label>Credit Score</Label>
-                      <span className="text-lg font-bold text-primary">{creditScore[0]}</span>
+                    <div className="flex justify-between items-center mb-1">
+                      <Label className="text-sm">Credit Score</Label>
+                      <span className="text-sm font-bold text-primary">{creditScore[0]}</span>
                     </div>
                     <Slider
                       value={creditScore}
@@ -549,60 +592,103 @@ export default function DSCRAnalyzerPage() {
                       className="w-full"
                       data-testid="slider-credit-score"
                     />
-                    <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                    <div className="flex justify-between text-[10px] text-muted-foreground mt-0.5">
                       <span>660</span>
                       <span>800</span>
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            {/* Operating Expenses */}
+              {/* Rate Breakdown - Now side by side */}
+              <Card>
+                <CardContent className="pt-4">
+                  <div className="bg-muted/50 rounded-lg p-3 space-y-1.5 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Base ({rateBreakdown.txLabel}):</span>
+                      <span className="font-medium">{rateBreakdown.baseRate.toFixed(3)}%</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Credit ({rateBreakdown.creditLabel}):</span>
+                      <span className={`font-medium ${rateBreakdown.creditAdj > 0 ? "text-red-600" : ""}`}>
+                        {rateBreakdown.creditAdj > 0 ? "+" : ""}{rateBreakdown.creditAdj.toFixed(3)}%
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">LTV ({rateBreakdown.ltvLabel}):</span>
+                      <span className={`font-medium ${rateBreakdown.ltvAdj > 0 ? "text-red-600" : ""}`}>
+                        {rateBreakdown.ltvAdj > 0 ? "+" : ""}{rateBreakdown.ltvAdj.toFixed(3)}%
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">DSCR ({rateBreakdown.dscrLabel}):</span>
+                      <span className={`font-medium ${rateBreakdown.dscrAdj > 0 ? "text-red-600" : ""}`}>
+                        {rateBreakdown.dscrAdj > 0 ? "+" : ""}{rateBreakdown.dscrAdj.toFixed(3)}%
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Property ({rateBreakdown.propLabel}):</span>
+                      <span className={`font-medium ${rateBreakdown.propAdj > 0 ? "text-red-600" : ""}`}>
+                        {rateBreakdown.propAdj > 0 ? "+" : ""}{rateBreakdown.propAdj.toFixed(3)}%
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Rental ({rateBreakdown.rentalLabel}):</span>
+                      <span className={`font-medium ${rateBreakdown.rentalAdj > 0 ? "text-red-600" : ""}`}>
+                        {rateBreakdown.rentalAdj > 0 ? "+" : ""}{rateBreakdown.rentalAdj.toFixed(3)}%
+                      </span>
+                    </div>
+                    <div className="border-t pt-1.5 mt-1.5 flex justify-between font-semibold text-sm">
+                      <span>Your Rate:</span>
+                      <span className="text-primary">{results.calculatedRate.toFixed(3)}%</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Operating Expenses - Condensed */}
             <Card>
-              <CardHeader>
-                <CardTitle>Operating Expenses</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid md:grid-cols-3 gap-4">
+              <CardContent className="pt-4">
+                <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <Label htmlFor="annualTaxes">Annual Taxes</Label>
+                    <Label htmlFor="annualTaxes" className="text-sm">Annual Taxes</Label>
                     <div className="relative mt-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                       <Input
                         id="annualTaxes"
                         type="number"
                         value={annualTaxes}
                         onChange={(e) => setAnnualTaxes(e.target.value)}
-                        className="pl-7"
+                        className="pl-7 h-9"
                         data-testid="input-annual-taxes"
                       />
                     </div>
                   </div>
                   <div>
-                    <Label htmlFor="annualInsurance">Annual Insurance</Label>
+                    <Label htmlFor="annualInsurance" className="text-sm">Annual Insurance</Label>
                     <div className="relative mt-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                       <Input
                         id="annualInsurance"
                         type="number"
                         value={annualInsurance}
                         onChange={(e) => setAnnualInsurance(e.target.value)}
-                        className="pl-7"
+                        className="pl-7 h-9"
                         data-testid="input-annual-insurance"
                       />
                     </div>
                   </div>
                   <div>
-                    <Label htmlFor="annualHOA">Annual HOA</Label>
+                    <Label htmlFor="annualHOA" className="text-sm">Annual HOA</Label>
                     <div className="relative mt-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                       <Input
                         id="annualHOA"
                         type="number"
                         value={annualHOA}
                         onChange={(e) => setAnnualHOA(e.target.value)}
-                        className="pl-7"
+                        className="pl-7 h-9"
                         data-testid="input-annual-hoa"
                       />
                     </div>
@@ -610,219 +696,144 @@ export default function DSCRAnalyzerPage() {
                 </div>
               </CardContent>
             </Card>
-
-            {/* Rate Breakdown */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Rate Breakdown</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="bg-muted/50 rounded-lg p-4 space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Base Rate:</span>
-                    <span className="font-medium">{rateBreakdown.BASE_RATE.toFixed(2)}%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Credit ({rateBreakdown.creditLabel}):</span>
-                    <span className={`font-medium ${rateBreakdown.creditAdj > 0 ? "text-red-600" : rateBreakdown.creditAdj < 0 ? "text-green-600" : ""}`}>
-                      {rateBreakdown.creditAdj > 0 ? "+" : ""}{rateBreakdown.creditAdj.toFixed(2)}%
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">LTV ({rateBreakdown.ltvLabel}):</span>
-                    <span className={`font-medium ${rateBreakdown.ltvAdj > 0 ? "text-red-600" : rateBreakdown.ltvAdj < 0 ? "text-green-600" : ""}`}>
-                      {rateBreakdown.ltvAdj > 0 ? "+" : ""}{rateBreakdown.ltvAdj.toFixed(2)}%
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">DSCR ({rateBreakdown.dscrLabel}):</span>
-                    <span className={`font-medium ${rateBreakdown.dscrAdj > 0 ? "text-red-600" : rateBreakdown.dscrAdj < 0 ? "text-green-600" : ""}`}>
-                      {rateBreakdown.dscrAdj > 0 ? "+" : ""}{rateBreakdown.dscrAdj.toFixed(3)}%
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Property ({rateBreakdown.propLabel}):</span>
-                    <span className={`font-medium ${rateBreakdown.propAdj > 0 ? "text-red-600" : ""}`}>
-                      {rateBreakdown.propAdj > 0 ? "+" : ""}{rateBreakdown.propAdj.toFixed(2)}%
-                    </span>
-                  </div>
-                  <div className="border-t pt-2 mt-2 flex justify-between font-semibold">
-                    <span>Your Estimated Rate:</span>
-                    <span className="text-green-600">{results.calculatedRate.toFixed(3)}%</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           </div>
 
-          {/* Results Panel */}
+          {/* Results Panel - Right Column */}
           <div>
             <Card 
-              className={`sticky top-12 border transition-colors ${
+              className={`sticky top-4 border transition-colors ${
                 results.dscrRatio >= 1.0 
-                  ? "bg-gradient-to-br from-green-500/20 to-green-500/10 border-green-500/30"
+                  ? "bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20"
                   : results.dscrRatio >= 0.75
-                  ? "bg-gradient-to-br from-yellow-500/20 to-yellow-500/10 border-yellow-500/30"
-                  : "bg-gradient-to-br from-red-500/20 to-red-500/10 border-red-500/30"
+                  ? "bg-gradient-to-br from-yellow-500/10 to-yellow-500/5 border-yellow-500/20"
+                  : "bg-gradient-to-br from-red-500/10 to-red-500/5 border-red-500/20"
               }`}
               data-testid="card-results"
             >
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-primary" />
-                    Results
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {results.dscrRatio >= 1.0 ? (
-                      <ArrowUpRight className="h-5 w-5 text-green-600" />
-                    ) : results.dscrRatio >= 0.75 ? (
-                      <Minus className="h-5 w-5 text-yellow-600" />
-                    ) : (
-                      <ArrowDown className="h-5 w-5 text-red-600" />
-                    )}
-                  </div>
+              <CardHeader className="pb-2 pt-4">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-primary" />
+                  DSCR Results
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {/* Interest Rate and DSCR */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-background rounded-lg p-3">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Interest Rate</p>
-                      <p className="text-xl font-bold text-green-600" data-testid="result-interest-rate">
-                        {results.calculatedRate.toFixed(3)}%
-                      </p>
-                    </div>
-                    <div className="bg-background rounded-lg p-3">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">DSCR</p>
-                      <p className={`text-xl font-bold ${results.dscrRatio >= 1.0 ? "text-green-600" : results.dscrRatio >= 0.75 ? "text-yellow-600" : "text-red-600"}`} data-testid="result-dscr">
-                        {results.dscrRatio.toFixed(2)}
-                      </p>
-                    </div>
+              <CardContent className="space-y-3 pb-4">
+                {/* Interest Rate and DSCR */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-background rounded-lg p-2.5">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">Interest Rate</p>
+                    <p className="text-lg font-bold text-primary" data-testid="result-interest-rate">
+                      {results.calculatedRate.toFixed(3)}%
+                    </p>
                   </div>
-
-                  {/* Estimated Value and Equity % */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-background rounded-lg p-3">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Estimated Value</p>
-                      <p className="text-lg font-bold text-green-600" data-testid="result-estimated-value">
-                        {formatCurrency(results.estimatedValue)}
-                      </p>
-                    </div>
-                    <div className="bg-background rounded-lg p-3">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Equity %</p>
-                      <p className="text-lg font-bold text-green-600" data-testid="result-equity">
-                        {results.equityPercent.toFixed(1)}%
-                      </p>
-                    </div>
+                  <div className="bg-background rounded-lg p-2.5">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">DSCR</p>
+                    <p className={`text-lg font-bold ${results.dscrRatio >= 1.0 ? "text-green-600" : results.dscrRatio >= 0.75 ? "text-yellow-600" : "text-red-600"}`} data-testid="result-dscr">
+                      {results.dscrRatio.toFixed(2)}
+                    </p>
                   </div>
-
-                  {/* Loan Amount and LTV */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-background rounded-lg p-3">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Loan Amount</p>
-                      <p className="text-lg font-semibold" data-testid="result-loan-amount">
-                        {formatCurrency(results.loanAmount)}
-                      </p>
-                    </div>
-                    <div className="bg-background rounded-lg p-3">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">LTV %</p>
-                      <p className={`text-lg font-bold ${
-                        results.ltv > maxLtv 
-                          ? "text-red-600" 
-                          : results.ltv > 70 
-                          ? "text-yellow-600" 
-                          : "text-green-600"
-                      }`} data-testid="result-ltv">
-                        {results.ltv.toFixed(1)}%
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Monthly Payment Breakdown */}
-                  <div className="bg-background rounded-lg p-3">
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">Monthly Breakdown</p>
-                    <div className="space-y-1.5 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Rent Income:</span>
-                        <span className="font-medium text-green-600" data-testid="result-monthly-rent">
-                          {formatCurrency(results.monthlyRent)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Principal & Interest:</span>
-                        <span className="font-medium" data-testid="result-monthly-pi">
-                          {formatCurrency(results.monthlyPI)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Taxes/Ins/HOA:</span>
-                        <span className="font-medium" data-testid="result-monthly-tia">
-                          {formatCurrency(results.monthlyTIA)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between pt-1.5 border-t">
-                        <span className="font-medium">Total PITIA:</span>
-                        <span className="font-bold" data-testid="result-monthly-pitia">
-                          {formatCurrency(results.monthlyPITIA)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between pt-1.5 border-t">
-                        <span className="font-medium">Monthly Cash Flow:</span>
-                        <span className={`font-bold ${results.monthlyCashFlow >= 0 ? "text-green-600" : "text-red-600"}`} data-testid="result-monthly-cashflow">
-                          {formatCurrency(results.monthlyCashFlow)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Qualification Status */}
-                  <div className={`p-3 rounded-lg border ${
-                    results.dscrRatio >= 1.0 
-                      ? "bg-green-500/10 border-green-500/30" 
-                      : results.dscrRatio >= 0.75 
-                      ? "bg-yellow-500/10 border-yellow-500/30"
-                      : "bg-red-500/10 border-red-500/30"
-                  }`}>
-                    <div className="flex items-center gap-2">
-                      {results.dscrRatio >= 1.0 ? (
-                        <>
-                          <ArrowUpRight className="h-5 w-5 text-green-600" />
-                          <span className="text-sm font-semibold text-green-600">
-                            {results.dscrRatio >= 1.25 ? "Excellent! Strong cash flow." : "Good! DSCR of 1.0+ qualifies."}
-                          </span>
-                        </>
-                      ) : results.dscrRatio >= 0.75 ? (
-                        <>
-                          <Minus className="h-5 w-5 text-yellow-600" />
-                          <span className="text-sm font-semibold text-yellow-600">Marginal - We may have options.</span>
-                        </>
-                      ) : (
-                        <>
-                          <ArrowDown className="h-5 w-5 text-red-600" />
-                          <span className="text-sm font-semibold text-red-600">Contact us for alternatives.</span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-
-                  <Button 
-                    className="w-full"
-                    onClick={() => createApplicationMutation.mutate()}
-                    disabled={createApplicationMutation.isPending}
-                    data-testid="button-get-term-sheet"
-                  >
-                    {createApplicationMutation.isPending ? (
-                      "Creating Application..."
-                    ) : (
-                      <>
-                        <FileText className="h-4 w-4 mr-2" />
-                        Get Term Sheet
-                      </>
-                    )}
-                  </Button>
                 </div>
+
+                {/* Loan Amount and LTV */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-background rounded-lg p-2.5">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">Loan Amount</p>
+                    <p className="text-sm font-semibold" data-testid="result-loan-amount">
+                      {formatCurrency(results.loanAmount)}
+                    </p>
+                  </div>
+                  <div className="bg-background rounded-lg p-2.5">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">LTV</p>
+                    <p className={`text-sm font-bold ${
+                      results.ltv > maxLtv ? "text-red-600" : results.ltv > 70 ? "text-yellow-600" : "text-green-600"
+                    }`} data-testid="result-ltv">
+                      {results.ltv.toFixed(1)}%
+                    </p>
+                  </div>
+                </div>
+
+                {/* Cash to Close / Cash to Borrower */}
+                <div className="bg-background rounded-lg p-2.5">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">
+                    {transactionType === "purchase" ? "Estimated Cash to Close" : "Estimated Cash to Borrower"}
+                  </p>
+                  <p className="text-lg font-bold text-primary" data-testid="result-cash">
+                    {formatCurrency(transactionType === "purchase" ? results.cashToClose : results.cashToBorrower)}
+                  </p>
+                </div>
+
+                {/* Monthly Breakdown */}
+                <div className="bg-background rounded-lg p-2.5">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1.5">Monthly Breakdown</p>
+                  <div className="space-y-1 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Rent Income:</span>
+                      <span className="font-medium text-green-600" data-testid="result-monthly-rent">
+                        {formatCurrency(results.monthlyRent)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">P&I:</span>
+                      <span className="font-medium" data-testid="result-monthly-pi">
+                        {formatCurrency(results.monthlyPI)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Taxes/Ins/HOA:</span>
+                      <span className="font-medium" data-testid="result-monthly-tia">
+                        {formatCurrency(results.monthlyTIA)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between pt-1 border-t">
+                      <span className="font-medium">Total PITIA:</span>
+                      <span className="font-bold" data-testid="result-monthly-pitia">
+                        {formatCurrency(results.monthlyPITIA)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between pt-1 border-t">
+                      <span className="font-medium">Cash Flow:</span>
+                      <span className={`font-bold ${results.monthlyCashFlow >= 0 ? "text-green-600" : "text-red-600"}`} data-testid="result-monthly-cashflow">
+                        {formatCurrency(results.monthlyCashFlow)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Qualification Status - No emoji */}
+                <div className={`p-2.5 rounded-lg border text-xs ${
+                  results.dscrRatio >= 1.0 
+                    ? "bg-green-500/10 border-green-500/20" 
+                    : results.dscrRatio >= 0.75 
+                    ? "bg-yellow-500/10 border-yellow-500/20"
+                    : "bg-red-500/10 border-red-500/20"
+                }`}>
+                  <span className={`font-semibold ${
+                    results.dscrRatio >= 1.0 ? "text-green-600" : results.dscrRatio >= 0.75 ? "text-yellow-600" : "text-red-600"
+                  }`}>
+                    {results.dscrRatio >= 1.15 
+                      ? "Excellent! Strong cash flow coverage." 
+                      : results.dscrRatio >= 1.0 
+                      ? "Good! DSCR qualifies for best rates."
+                      : results.dscrRatio >= 0.75 
+                      ? "Marginal - We may have options."
+                      : "Contact us for alternatives."}
+                  </span>
+                </div>
+
+                <Button 
+                  className="w-full"
+                  onClick={() => createApplicationMutation.mutate()}
+                  disabled={createApplicationMutation.isPending}
+                  data-testid="button-get-term-sheet"
+                >
+                  {createApplicationMutation.isPending ? (
+                    "Creating Application..."
+                  ) : (
+                    <>
+                      <FileText className="h-4 w-4 mr-2" />
+                      Get Term Sheet
+                    </>
+                  )}
+                </Button>
               </CardContent>
             </Card>
           </div>
