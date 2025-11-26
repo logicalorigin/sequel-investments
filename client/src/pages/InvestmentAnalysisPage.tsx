@@ -319,8 +319,55 @@ export default function InvestmentAnalysisPage() {
       monthlyTIA,
       monthlyPITIA: totalMonthlyPITIA,
       monthlyRent: monthlyRentVal,
+      purchasePrice: purchasePriceVal,
+      rehabBudget: rehabBudgetVal,
+      closingCosts: closingCostsVal,
+      holdingCosts: totalHoldingCosts,
+      interestCost,
+      downPayment: downPaymentVal,
+      rehabEquity: rehabBudgetVal - rehabFundingVal,
     };
   }, [arv, purchasePrice, rehabBudget, downPayment, totalClosingCosts, annualTaxes, annualInsurance, annualHOA, holdTimeMonths, interestRate, requestedRehabFunding, dealType, loanTermMonths, monthlyRent, creditScore, propertyType, requestedLoanAmount]);
+
+  const rateBreakdown = useMemo(() => {
+    const BASE_RATE = 6.25;
+    const score = creditScore[0];
+    const ltv = results.ltv;
+    const dscr = results.dscrRatio;
+
+    let creditAdj = 0;
+    let creditLabel = "";
+    if (score >= 760) { creditAdj = 0; creditLabel = "760+ (Excellent)"; }
+    else if (score >= 740) { creditAdj = 0.25; creditLabel = "740-759 (Very Good)"; }
+    else if (score >= 720) { creditAdj = 0.375; creditLabel = "720-739 (Good)"; }
+    else if (score >= 700) { creditAdj = 0.5; creditLabel = "700-719 (Fair)"; }
+    else if (score >= 680) { creditAdj = 0.75; creditLabel = "680-699"; }
+    else { creditAdj = 1.0; creditLabel = "660-679"; }
+
+    let ltvAdj = 0;
+    let ltvLabel = "";
+    if (ltv <= 50) { ltvAdj = -0.5; ltvLabel = "≤50% (Best)"; }
+    else if (ltv <= 55) { ltvAdj = -0.25; ltvLabel = "51-55%"; }
+    else if (ltv <= 60) { ltvAdj = 0; ltvLabel = "56-60%"; }
+    else if (ltv <= 65) { ltvAdj = 0.125; ltvLabel = "61-65%"; }
+    else if (ltv <= 70) { ltvAdj = 0.25; ltvLabel = "66-70%"; }
+    else if (ltv <= 75) { ltvAdj = 0.375; ltvLabel = "71-75%"; }
+    else { ltvAdj = 0.5; ltvLabel = "76-80%"; }
+
+    let dscrAdj = 0;
+    let dscrLabel = "";
+    if (dscr >= 1.5) { dscrAdj = -0.125; dscrLabel = "1.50+ (Excellent)"; }
+    else if (dscr >= 1.25) { dscrAdj = 0; dscrLabel = "1.25-1.49 (Good)"; }
+    else if (dscr >= 1.0) { dscrAdj = 0.125; dscrLabel = "1.00-1.24"; }
+    else if (dscr >= 0.75) { dscrAdj = 0.25; dscrLabel = "0.75-0.99"; }
+    else { dscrAdj = 0.375; dscrLabel = "<0.75"; }
+
+    const isMultiUnit = propertyType !== "sfr" && propertyType !== "townhome";
+    let propAdj = isMultiUnit ? 0.25 : 0;
+    let propLabel = isMultiUnit ? "Multi-Unit" : "Single Family/Condo";
+
+    return { BASE_RATE, creditAdj, creditLabel, ltvAdj, ltvLabel, dscrAdj, dscrLabel, propAdj, propLabel };
+  }, [creditScore, results.ltv, results.dscrRatio, propertyType]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -740,6 +787,79 @@ export default function InvestmentAnalysisPage() {
                     </div>
                   </div>
                 </div>
+
+                {/* Rate Breakdown - DSCR Only */}
+                {dealType === "rental" && (
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide border-b pb-2">
+                      Rate Breakdown
+                    </h3>
+                    <div className="bg-muted/50 rounded-lg p-4 space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Base Rate:</span>
+                        <span className="font-medium">{rateBreakdown.BASE_RATE.toFixed(2)}%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Credit ({rateBreakdown.creditLabel}):</span>
+                        <span className={`font-medium ${rateBreakdown.creditAdj > 0 ? "text-red-600" : rateBreakdown.creditAdj < 0 ? "text-green-600" : ""}`}>
+                          {rateBreakdown.creditAdj > 0 ? "+" : ""}{rateBreakdown.creditAdj.toFixed(2)}%
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">LTV ({rateBreakdown.ltvLabel}):</span>
+                        <span className={`font-medium ${rateBreakdown.ltvAdj > 0 ? "text-red-600" : rateBreakdown.ltvAdj < 0 ? "text-green-600" : ""}`}>
+                          {rateBreakdown.ltvAdj > 0 ? "+" : ""}{rateBreakdown.ltvAdj.toFixed(2)}%
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">DSCR ({rateBreakdown.dscrLabel}):</span>
+                        <span className={`font-medium ${rateBreakdown.dscrAdj > 0 ? "text-red-600" : rateBreakdown.dscrAdj < 0 ? "text-green-600" : ""}`}>
+                          {rateBreakdown.dscrAdj > 0 ? "+" : ""}{rateBreakdown.dscrAdj.toFixed(3)}%
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Property ({rateBreakdown.propLabel}):</span>
+                        <span className={`font-medium ${rateBreakdown.propAdj > 0 ? "text-red-600" : ""}`}>
+                          {rateBreakdown.propAdj > 0 ? "+" : ""}{rateBreakdown.propAdj.toFixed(2)}%
+                        </span>
+                      </div>
+                      <div className="border-t pt-2 mt-2 flex justify-between font-semibold">
+                        <span>Your Estimated Rate:</span>
+                        <span className="text-green-600">{results.calculatedRate.toFixed(3)}%</span>
+                      </div>
+                    </div>
+                    
+                    {/* Qualification Status */}
+                    <div className={`p-3 rounded-lg border ${
+                      results.dscrRatio >= 1.0 
+                        ? "bg-green-500/10 border-green-500/30" 
+                        : results.dscrRatio >= 0.75 
+                        ? "bg-yellow-500/10 border-yellow-500/30"
+                        : "bg-red-500/10 border-red-500/30"
+                    }`}>
+                      <div className="flex items-center gap-2">
+                        {results.dscrRatio >= 1.0 ? (
+                          <>
+                            <ArrowUpRight className="h-5 w-5 text-green-600" />
+                            <span className="font-semibold text-green-600">
+                              {results.dscrRatio >= 1.25 ? "Excellent! Strong cash flow qualification." : "Good! DSCR of 1.0+ typically qualifies."}
+                            </span>
+                          </>
+                        ) : results.dscrRatio >= 0.75 ? (
+                          <>
+                            <Minus className="h-5 w-5 text-yellow-600" />
+                            <span className="font-semibold text-yellow-600">Marginal - We may still have options for you.</span>
+                          </>
+                        ) : (
+                          <>
+                            <ArrowDown className="h-5 w-5 text-red-600" />
+                            <span className="font-semibold text-red-600">Contact us to discuss alternative programs.</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -747,13 +867,17 @@ export default function InvestmentAnalysisPage() {
           <div>
             <Card 
               className={`sticky top-12 border transition-colors ${
-                dealType !== "rental" 
-                  ? results.roi >= 10 
+                dealType === "rental"
+                  ? results.dscrRatio >= 1.0 
+                    ? "bg-gradient-to-br from-green-500/20 to-green-500/10 border-green-500/30"
+                    : results.dscrRatio >= 0.75
+                    ? "bg-gradient-to-br from-yellow-500/20 to-yellow-500/10 border-yellow-500/30"
+                    : "bg-gradient-to-br from-red-500/20 to-red-500/10 border-red-500/30"
+                  : results.roi >= 10 
                     ? "bg-gradient-to-br from-green-500/20 to-green-500/10 border-green-500/30"
                     : results.roi >= 5
                     ? "bg-gradient-to-br from-yellow-500/20 to-yellow-500/10 border-yellow-500/30"
-                    : "bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20"
-                  : "bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20"
+                    : "bg-gradient-to-br from-red-500/20 to-red-500/10 border-red-500/30"
               }`}
               data-testid="card-results"
             >
@@ -763,17 +887,25 @@ export default function InvestmentAnalysisPage() {
                     <TrendingUp className="h-5 w-5 text-primary" />
                     Results
                   </div>
-                  {dealType !== "rental" && (
-                    <div className="flex items-center gap-1">
-                      {results.roi >= 10 ? (
+                  <div className="flex items-center gap-1">
+                    {dealType === "rental" ? (
+                      results.dscrRatio >= 1.0 ? (
+                        <ArrowUpRight className="h-5 w-5 text-green-600" />
+                      ) : results.dscrRatio >= 0.75 ? (
+                        <Minus className="h-5 w-5 text-yellow-600" />
+                      ) : (
+                        <ArrowDown className="h-5 w-5 text-red-600" />
+                      )
+                    ) : (
+                      results.roi >= 10 ? (
                         <ArrowUpRight className="h-5 w-5 text-green-600" />
                       ) : results.roi >= 5 ? (
                         <Minus className="h-5 w-5 text-yellow-600" />
                       ) : (
                         <ArrowDown className="h-5 w-5 text-red-600" />
-                      )}
-                    </div>
-                  )}
+                      )
+                    )}
+                  </div>
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -785,7 +917,7 @@ export default function InvestmentAnalysisPage() {
                       <div className="grid grid-cols-2 gap-3">
                         <div className="bg-background rounded-lg p-3">
                           <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Interest Rate</p>
-                          <p className="text-xl font-bold text-primary" data-testid="result-interest-rate">
+                          <p className="text-xl font-bold text-green-600" data-testid="result-interest-rate">
                             {results.calculatedRate.toFixed(2)}%
                           </p>
                         </div>
@@ -801,19 +933,19 @@ export default function InvestmentAnalysisPage() {
                       <div className="grid grid-cols-2 gap-3">
                         <div className="bg-background rounded-lg p-3">
                           <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Estimated Value</p>
-                          <p className="text-lg font-bold text-primary" data-testid="result-estimated-value">
+                          <p className="text-lg font-bold text-green-600" data-testid="result-estimated-value">
                             {formatCurrency(results.estimatedValue)}
                           </p>
                         </div>
                         <div className="bg-background rounded-lg p-3">
-                          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Equity</p>
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Equity %</p>
                           <p className="text-lg font-bold text-green-600" data-testid="result-equity">
                             {results.equityPercent.toFixed(1)}%
                           </p>
                         </div>
                       </div>
 
-                      {/* Loan Amount and LTV */}
+                      {/* Loan Amount and LTV - inverse relationship */}
                       <div className="grid grid-cols-2 gap-3">
                         <div className="bg-background rounded-lg p-3">
                           <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Loan Amount</p>
@@ -822,7 +954,7 @@ export default function InvestmentAnalysisPage() {
                           </p>
                         </div>
                         <div className="bg-background rounded-lg p-3">
-                          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">LTV</p>
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">LTV %</p>
                           <p className={`text-lg font-bold ${
                             results.ltv > (transactionType === "cash_out" ? 75 : 80) 
                               ? "text-red-600" 
@@ -832,6 +964,7 @@ export default function InvestmentAnalysisPage() {
                           }`} data-testid="result-ltv">
                             {results.ltv.toFixed(1)}%
                           </p>
+                          <p className="text-xs text-muted-foreground">(Equity: {results.equityPercent.toFixed(1)}%)</p>
                         </div>
                       </div>
 
@@ -950,6 +1083,80 @@ export default function InvestmentAnalysisPage() {
                         <p className="text-lg font-semibold" data-testid="result-loan-amount">
                           {formatCurrency(results.loanAmount)}
                         </p>
+                      </div>
+
+                      {/* Costs Breakdown */}
+                      <div className="bg-background rounded-lg p-3">
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">Costs Breakdown</p>
+                        <div className="space-y-1.5 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Purchase Price:</span>
+                            <span className="font-medium" data-testid="result-purchase-price">
+                              {formatCurrency(results.purchasePrice)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Rehab Budget:</span>
+                            <span className="font-medium" data-testid="result-rehab-budget">
+                              {formatCurrency(results.rehabBudget)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Closing Costs:</span>
+                            <span className="font-medium" data-testid="result-closing-costs">
+                              {formatCurrency(results.closingCosts)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Holding Costs:</span>
+                            <span className="font-medium" data-testid="result-holding-costs">
+                              {formatCurrency(results.holdingCosts)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Interest Cost:</span>
+                            <span className="font-medium" data-testid="result-interest-cost">
+                              {formatCurrency(results.interestCost)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between pt-1.5 border-t">
+                            <span className="font-medium">Total Project Cost:</span>
+                            <span className="font-bold text-primary" data-testid="result-total-cost">
+                              {formatCurrency(results.totalProjectCost)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Cash to Close Breakdown */}
+                      <div className="bg-background rounded-lg p-3">
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">Cash to Close</p>
+                        <div className="space-y-1.5 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Down Payment:</span>
+                            <span className="font-medium" data-testid="result-down-payment">
+                              {formatCurrency(results.downPayment)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Rehab Equity:</span>
+                            <span className="font-medium" data-testid="result-rehab-equity">
+                              {formatCurrency(results.rehabEquity)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Closing Costs:</span>
+                            <span className="font-medium">
+                              {formatCurrency(results.closingCosts)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between pt-1.5 border-t">
+                            <span className="font-medium">Total Cash Invested:</span>
+                            <span className="font-bold" data-testid="result-cash-to-close">
+                              {formatCurrency(results.cashInvested)}
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </>
                   )}
