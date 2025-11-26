@@ -60,6 +60,20 @@ async function upsertUser(
     lastName: claims["last_name"],
     profileImageUrl: claims["profile_image_url"],
   });
+  
+  // Convert any leads matching this email to loan applications
+  const userEmail = claims["email"];
+  const userId = claims["sub"];
+  if (userEmail && userId) {
+    try {
+      const convertedApps = await storage.convertLeadsToApplications(userId, userEmail);
+      if (convertedApps.length > 0) {
+        console.log(`Converted ${convertedApps.length} leads to applications for user ${userId}`);
+      }
+    } catch (error) {
+      console.error("Error converting leads to applications:", error);
+    }
+  }
 }
 
 export async function setupAuth(app: Express) {

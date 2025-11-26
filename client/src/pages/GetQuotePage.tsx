@@ -194,14 +194,19 @@ export default function GetQuotePage() {
       "": "Other",
     };
 
-    const location = [formData.propertyCity, formData.propertyState].filter(Boolean).join(", ");
+    const fullAddress = [
+      formData.propertyAddress,
+      formData.propertyCity,
+      formData.propertyState,
+      formData.propertyZip
+    ].filter(Boolean).join(", ");
 
     createLeadMutation.mutate({
       name: `${formData.firstName} ${formData.lastName}`,
       email: formData.email,
       phone: formData.phone,
       loanType: loanTypeMap[formData.loanType],
-      propertyLocation: location,
+      propertyLocation: fullAddress,
       propertyValue: formData.purchasePrice,
       investmentExperience: formData.investmentExperience,
       message: formData.additionalNotes || undefined,

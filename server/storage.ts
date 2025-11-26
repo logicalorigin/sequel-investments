@@ -53,11 +53,17 @@ export interface IStorage {
   // User operations (required for Replit Auth)
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
+  getUserByEmail(email: string): Promise<User | undefined>;
   
   // Lead operations
   createLead(lead: InsertLead): Promise<Lead>;
   getLeads(): Promise<Lead[]>;
   getLead(id: string): Promise<Lead | undefined>;
+  getLeadsByEmail(email: string): Promise<Lead[]>;
+  markLeadConverted(leadId: string): Promise<void>;
+  
+  // Lead-to-Application conversion
+  convertLeadsToApplications(userId: string, email: string): Promise<LoanApplication[]>;
   
   // Loan application operations
   createLoanApplication(application: InsertLoanApplication): Promise<LoanApplication>;
@@ -162,6 +168,11 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+
   // Lead operations
   async createLead(insertLead: InsertLead): Promise<Lead> {
     const [lead] = await db
@@ -178,6 +189,77 @@ export class DatabaseStorage implements IStorage {
   async getLead(id: string): Promise<Lead | undefined> {
     const [lead] = await db.select().from(leads).where(eq(leads.id, id));
     return lead;
+  }
+
+  async getLeadsByEmail(email: string): Promise<Lead[]> {
+    return await db.select().from(leads).where(eq(leads.email, email)).orderBy(desc(leads.createdAt));
+  }
+
+  async markLeadConverted(leadId: string): Promise<void> {
+    await db.delete(leads).where(eq(leads.id, leadId));
+  }
+
+  async convertLeadsToApplications(userId: string, email: string): Promise<LoanApplication[]> {
+    const unconvertedLeads = await this.getLeadsByEmail(email);
+    const createdApplications: LoanApplication[] = [];
+    
+    for (const lead of unconvertedLeads) {
+      const loanTypeMap: Record<string, string> = {
+        "DSCR": "DSCR",
+        "Fix & Flip": "Fix & Flip",
+        "New Construction": "New Construction",
+        "Hard Money": "Fix & Flip",
+        "Both": "DSCR",
+        "Other": "DSCR",
+      };
+      
+      // Parse address - format may be "Street, City, State, Zip" or just "City, State"
+      const addressParts = (lead.propertyLocation || "").split(", ");
+      let propertyAddress: string | undefined;
+      let propertyCity: string | undefined;
+      let propertyState: string | undefined;
+      let propertyZip: string | undefined;
+      
+      if (addressParts.length >= 4) {
+        // Full address: Street, City, State, Zip
+        propertyAddress = addressParts[0];
+        propertyCity = addressParts[1];
+        propertyState = addressParts[2];
+        propertyZip = addressParts[3];
+      } else if (addressParts.length === 2) {
+        // Just City, State
+        propertyCity = addressParts[0];
+        propertyState = addressParts[1];
+      } else if (addressParts.length === 3) {
+        // Could be "Street, City, State" or "City, State, Zip"
+        if (/^\d{5}(-\d{4})?$/.test(addressParts[2])) {
+          propertyCity = addressParts[0];
+          propertyState = addressParts[1];
+          propertyZip = addressParts[2];
+        } else {
+          propertyAddress = addressParts[0];
+          propertyCity = addressParts[1];
+          propertyState = addressParts[2];
+        }
+      }
+      
+      const application = await this.createLoanApplication({
+        userId,
+        loanType: loanTypeMap[lead.loanType] || "DSCR",
+        propertyAddress: propertyAddress || undefined,
+        propertyCity: propertyCity || undefined,
+        propertyState: propertyState || undefined,
+        propertyZip: propertyZip || undefined,
+        purchasePrice: lead.propertyValue ? parseInt(lead.propertyValue.replace(/[^0-9]/g, "")) : undefined,
+        status: "submitted",
+        guarantor: lead.name,
+      });
+      
+      createdApplications.push(application);
+      await this.markLeadConverted(lead.id);
+    }
+    
+    return createdApplications;
   }
 
   // Loan application operations
