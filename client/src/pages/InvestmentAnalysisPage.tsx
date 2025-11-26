@@ -315,6 +315,10 @@ export default function InvestmentAnalysisPage() {
       estimatedValue,
       equity,
       equityPercent,
+      monthlyPI: actualMonthlyPI,
+      monthlyTIA,
+      monthlyPITIA: totalMonthlyPITIA,
+      monthlyRent: monthlyRentVal,
     };
   }, [arv, purchasePrice, rehabBudget, downPayment, totalClosingCosts, annualTaxes, annualInsurance, annualHOA, holdTimeMonths, interestRate, requestedRehabFunding, dealType, loanTermMonths, monthlyRent, creditScore, propertyType, requestedLoanAmount]);
 
@@ -828,6 +832,43 @@ export default function InvestmentAnalysisPage() {
                           }`} data-testid="result-ltv">
                             {results.ltv.toFixed(1)}%
                           </p>
+                        </div>
+                      </div>
+
+                      {/* Monthly Payment Breakdown */}
+                      <div className="bg-background rounded-lg p-3">
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">Monthly Breakdown</p>
+                        <div className="space-y-1.5 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Rent Income:</span>
+                            <span className="font-medium text-green-600" data-testid="result-monthly-rent">
+                              {formatCurrency(results.monthlyRent)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Principal & Interest:</span>
+                            <span className="font-medium" data-testid="result-monthly-pi">
+                              {formatCurrency(results.monthlyPI)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Taxes/Ins/HOA:</span>
+                            <span className="font-medium" data-testid="result-monthly-tia">
+                              {formatCurrency(results.monthlyTIA)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between pt-1.5 border-t">
+                            <span className="font-medium">Total PITIA:</span>
+                            <span className="font-bold" data-testid="result-monthly-pitia">
+                              {formatCurrency(results.monthlyPITIA)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between pt-1.5 border-t">
+                            <span className="font-medium">Monthly Cash Flow:</span>
+                            <span className={`font-bold ${results.monthlyRent - results.monthlyPITIA >= 0 ? "text-green-600" : "text-red-600"}`} data-testid="result-monthly-cashflow">
+                              {formatCurrency(results.monthlyRent - results.monthlyPITIA)}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </>
