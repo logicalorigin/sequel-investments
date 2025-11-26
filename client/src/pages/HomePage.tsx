@@ -24,54 +24,54 @@ import {
   Star,
   MapPin
 } from "lucide-react";
-import dscrImage from "@assets/stock_images/luxury_modern_single_2639d1bd.jpg";
-import fixFlipImage from "@assets/stock_images/house_renovation_con_aaeb0f05.jpg";
-import newConstructionImage from "@assets/stock_images/new_construction_hom_ee055247.jpg";
 import dscrCardImage from "@assets/stock_images/luxury_beach_house_v_60312048.jpg";
 import fixFlipCardImage from "@assets/image_1764095965996.png";
 import newConstructionCardImage from "@assets/image_1764097000811.png";
 import testimonial1 from "@assets/generated_images/Investor_testimonial_headshot_1_2a222601.png";
 import testimonial2 from "@assets/generated_images/Investor_testimonial_headshot_2_bb13b1a2.png";
 import testimonial3 from "@assets/generated_images/Investor_testimonial_headshot_3_a4e6c79b.png";
-import rateTermImage from "@assets/image_1764113864033.png";
+import tempeAZImage from "@assets/stock_images/tempe_arizona_desert_2030a89d.jpg";
+import fortWorthTXImage from "@assets/stock_images/fort_worth_texas_urb_5cb75584.jpg";
+import doverDEImage from "@assets/stock_images/dover_delaware_histo_fb5ab321.jpg";
+import postFallsIDImage from "@assets/stock_images/post_falls_idaho_mou_594827e5.jpg";
 import { useToast } from "@/hooks/use-toast";
 
 const heroSlides = [
   {
-    id: "dscr",
-    image: dscrImage,
-    loanType: "DSCR Rental Loan",
-    loanAmount: "$320,000",
-    rate: "6.25%",
-    closedIn: "21 Days",
-    location: "Scottsdale, AZ",
+    id: "1026-e-concorda",
+    image: tempeAZImage,
+    loanType: "Bridge Loan",
+    loanAmount: "$370,350",
+    rate: "9.25%",
+    closedIn: "5 Days",
+    location: "Tempe, AZ",
   },
   {
-    id: "fixflip",
-    image: fixFlipImage,
-    loanType: "Fix & Flip Loan",
-    loanAmount: "$425,000",
-    rate: "9.50%",
-    closedIn: "4 Days",
+    id: "6020-lantana",
+    image: fortWorthTXImage,
+    loanType: "Bridge Loan",
+    loanAmount: "$297,500",
+    rate: "9.75%",
+    closedIn: "6 Days",
     location: "Fort Worth, TX",
   },
   {
-    id: "construction",
-    image: newConstructionImage,
-    loanType: "New Construction",
-    loanAmount: "$580,000",
-    rate: "10.25%",
-    closedIn: "10 Days",
-    location: "Austin, TX",
+    id: "103-saxton",
+    image: doverDEImage,
+    loanType: "DSCR Loan",
+    loanAmount: "$189,000",
+    rate: "6.875%",
+    closedIn: "18 Days",
+    location: "Dover, DE",
   },
   {
-    id: "rateterm",
-    image: rateTermImage,
-    loanType: "Rate & Term Refinance",
-    loanAmount: "$900,000",
-    rate: "6.875%",
-    closedIn: "35 Days",
-    location: "Gatlinburg, TN",
+    id: "113-w-23rd",
+    image: postFallsIDImage,
+    loanType: "Bridge Loan",
+    loanAmount: "$387,500",
+    rate: "9.375%",
+    closedIn: "3 Days",
+    location: "Post Falls, ID",
   },
 ];
 
