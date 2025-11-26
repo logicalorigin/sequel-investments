@@ -41,7 +41,11 @@ I prefer simple language. I want iterative development. Ask before making major 
 - **Portal Landing Page**: Links to deal analyzers.
 - **Application Detail Page**: Progress stepper, loan info, contact info, fees breakdown, funds to close, document status, and a "View Analysis" button for analyzer-created applications.
 - **Analyzer-to-Application Data Persistence**: Scenario data from analyzers (DSCR, Fix & Flip, Construction) is saved with Draft applications, allowing for round-trip editing and data restoration.
-- **Investment Analysis Page**: Comprehensive deal calculator with property, cost, and loan inputs, providing ROI, profit margin, and LTV/LTC. Includes specific DSCR calculator features for rental deals and Construction Calculator features (e.g., "Land is Owned" checkbox).
+- **Investment Analysis Page**: Comprehensive deal calculator with property, cost, and loan inputs, providing ROI, profit margin, and LTV/LTC. Includes specific DSCR calculator features for rental deals and Construction Calculator features (e.g., "Land is Owned" checkbox, state-based rates).
+- **Analyzer Rate Structure**: 
+  - Fix & Flip: 8.9% fixed base rate, credit score adjustments (+0% for 720+, +0.5% for 700-719, +1.0% for 680-699, +1.5% below 680)
+  - Construction: State-based base rate (8.9% for California, 9.9% for non-California), same credit score adjustments
+  - Origination Points: Linear scale from 2.0% at base rate to 0.0% at 12.9% rate (both analyzers)
 - **Profile Page**: User profile management, password, investment preferences, notification settings, connected entities, and account overview.
 - **Shared Portal Header**: Consistent branding and user menu.
 
