@@ -29,30 +29,32 @@ export function DSCROnlyCalculator() {
   };
 
   const calculateInterestRate = (ltv: number, dscr: number) => {
-    const BASE_RATE = 5.75;
+    const BASE_RATE = 6.25;
     
     let creditAdjustment = 0;
     const score = creditScore[0];
     if (score >= 760) creditAdjustment = 0;
     else if (score >= 740) creditAdjustment = 0.25;
-    else if (score >= 720) creditAdjustment = 0.5;
-    else if (score >= 700) creditAdjustment = 0.75;
-    else if (score >= 680) creditAdjustment = 1.0;
-    else creditAdjustment = 1.25;
+    else if (score >= 720) creditAdjustment = 0.375;
+    else if (score >= 700) creditAdjustment = 0.5;
+    else if (score >= 680) creditAdjustment = 0.75;
+    else creditAdjustment = 1.0;
     
     let ltvAdjustment = 0;
-    if (ltv <= 60) ltvAdjustment = -0.25;
-    else if (ltv <= 65) ltvAdjustment = 0;
+    if (ltv <= 50) ltvAdjustment = -0.5;
+    else if (ltv <= 55) ltvAdjustment = -0.25;
+    else if (ltv <= 60) ltvAdjustment = 0;
+    else if (ltv <= 65) ltvAdjustment = 0.125;
     else if (ltv <= 70) ltvAdjustment = 0.25;
-    else if (ltv <= 75) ltvAdjustment = 0.5;
-    else ltvAdjustment = 0.75;
+    else if (ltv <= 75) ltvAdjustment = 0.375;
+    else ltvAdjustment = 0.5;
     
     let dscrAdjustment = 0;
     if (dscr >= 1.5) dscrAdjustment = -0.125;
     else if (dscr >= 1.25) dscrAdjustment = 0;
-    else if (dscr >= 1.0) dscrAdjustment = 0.25;
-    else if (dscr >= 0.75) dscrAdjustment = 0.5;
-    else dscrAdjustment = 0.75;
+    else if (dscr >= 1.0) dscrAdjustment = 0.125;
+    else if (dscr >= 0.75) dscrAdjustment = 0.25;
+    else dscrAdjustment = 0.375;
     
     let propertyAdjustment = 0;
     if (propertyType === "2-4unit") propertyAdjustment = 0.25;
@@ -114,7 +116,7 @@ export function DSCROnlyCalculator() {
   const results = calculateDSCR();
 
   const rateBreakdown = useMemo(() => {
-    const BASE_RATE = 5.75;
+    const BASE_RATE = 6.25;
     const score = creditScore[0];
     const ltv = results.ltv;
     const dscr = results.dscrValue;
@@ -123,26 +125,28 @@ export function DSCROnlyCalculator() {
     let creditLabel = "";
     if (score >= 760) { creditAdj = 0; creditLabel = "760+ (Excellent)"; }
     else if (score >= 740) { creditAdj = 0.25; creditLabel = "740-759 (Very Good)"; }
-    else if (score >= 720) { creditAdj = 0.5; creditLabel = "720-739 (Good)"; }
-    else if (score >= 700) { creditAdj = 0.75; creditLabel = "700-719 (Fair)"; }
-    else if (score >= 680) { creditAdj = 1.0; creditLabel = "680-699"; }
-    else { creditAdj = 1.25; creditLabel = "660-679"; }
+    else if (score >= 720) { creditAdj = 0.375; creditLabel = "720-739 (Good)"; }
+    else if (score >= 700) { creditAdj = 0.5; creditLabel = "700-719 (Fair)"; }
+    else if (score >= 680) { creditAdj = 0.75; creditLabel = "680-699"; }
+    else { creditAdj = 1.0; creditLabel = "660-679"; }
 
     let ltvAdj = 0;
     let ltvLabel = "";
-    if (ltv <= 60) { ltvAdj = -0.25; ltvLabel = "≤60% (Best)"; }
-    else if (ltv <= 65) { ltvAdj = 0; ltvLabel = "61-65%"; }
+    if (ltv <= 50) { ltvAdj = -0.5; ltvLabel = "≤50% (Best)"; }
+    else if (ltv <= 55) { ltvAdj = -0.25; ltvLabel = "51-55%"; }
+    else if (ltv <= 60) { ltvAdj = 0; ltvLabel = "56-60%"; }
+    else if (ltv <= 65) { ltvAdj = 0.125; ltvLabel = "61-65%"; }
     else if (ltv <= 70) { ltvAdj = 0.25; ltvLabel = "66-70%"; }
-    else if (ltv <= 75) { ltvAdj = 0.5; ltvLabel = "71-75%"; }
-    else { ltvAdj = 0.75; ltvLabel = "76-80%"; }
+    else if (ltv <= 75) { ltvAdj = 0.375; ltvLabel = "71-75%"; }
+    else { ltvAdj = 0.5; ltvLabel = "76-80%"; }
 
     let dscrAdj = 0;
     let dscrLabel = "";
     if (dscr >= 1.5) { dscrAdj = -0.125; dscrLabel = "1.50+ (Excellent)"; }
     else if (dscr >= 1.25) { dscrAdj = 0; dscrLabel = "1.25-1.49 (Good)"; }
-    else if (dscr >= 1.0) { dscrAdj = 0.25; dscrLabel = "1.00-1.24"; }
-    else if (dscr >= 0.75) { dscrAdj = 0.5; dscrLabel = "0.75-0.99"; }
-    else { dscrAdj = 0.75; dscrLabel = "<0.75"; }
+    else if (dscr >= 1.0) { dscrAdj = 0.125; dscrLabel = "1.00-1.24"; }
+    else if (dscr >= 0.75) { dscrAdj = 0.25; dscrLabel = "0.75-0.99"; }
+    else { dscrAdj = 0.375; dscrLabel = "<0.75"; }
 
     let propAdj = propertyType === "2-4unit" ? 0.25 : 0;
     let propLabel = propertyType === "sfr" ? "Single Family" : "2-4 Unit";
@@ -299,7 +303,7 @@ export function DSCROnlyCalculator() {
                 data-testid="input-dscr-monthly-expenses"
               />
               <p className="text-sm text-muted-foreground mt-1">
-                Taxes, insurance, HOA, maintenance
+                Taxes, insurance, HOA
               </p>
             </div>
 
@@ -425,6 +429,15 @@ export function DSCROnlyCalculator() {
               </div>
             )}
           </div>
+        </div>
+
+        <div className="bg-muted/50 border border-muted rounded-lg p-4 mb-4">
+          <p className="text-sm text-muted-foreground text-center">
+            <strong>Note:</strong> This is an estimate only. Actual rates depend on full underwriting review. 
+            <Link href="/get-quote" className="text-primary hover:underline ml-1">
+              Talk to a loan specialist
+            </Link> for a personalized quote.
+          </p>
         </div>
 
         <div className="text-center pt-4">

@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link, useLocation } from "wouter";
-import { DSCRCalculator } from "@/components/DSCRCalculator";
 import { LeadForm } from "@/components/LeadForm";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
@@ -517,21 +516,6 @@ export default function HomePage() {
                 </p>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="py-24 bg-background">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">DSCR Calculator</h2>
-            <p className="text-xl text-muted-foreground">
-              Estimate your financing and see if you qualify in seconds
-            </p>
-          </div>
-
-          <div className="w-full">
-            <DSCRCalculator />
           </div>
         </div>
       </section>

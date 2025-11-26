@@ -36,16 +36,12 @@ export function Navigation() {
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex items-center justify-between h-20">
           <Link href="/" data-testid="link-home">
-            <div className="flex items-center gap-3 cursor-pointer hover-elevate active-elevate-2 px-2 py-1 rounded-md -ml-2">
+            <div className="flex items-center cursor-pointer hover-elevate active-elevate-2 px-2 py-1 rounded-md -ml-2">
               <img 
                 src={logoIcon} 
-                alt="SAF" 
-                className="h-14 w-14 object-contain"
+                alt="Secured Asset Funding" 
+                className="h-16 w-auto object-contain"
               />
-              <span className="font-bold text-2xl hidden sm:inline text-foreground">
-                Secured Asset Funding
-              </span>
-              <span className="font-bold text-xl sm:hidden text-foreground">SAF</span>
             </div>
           </Link>
 
