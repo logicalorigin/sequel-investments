@@ -39,6 +39,7 @@ import {
   TrendingUp,
   MessageSquare,
   Trash2,
+  Send,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import {
@@ -190,6 +191,30 @@ export default function ApplicationDetailPage() {
 
   const [, navigate] = useLocation();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showSubmitDialog, setShowSubmitDialog] = useState(false);
+
+  const submitMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("PATCH", `/api/applications/${applicationId}/submit`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/applications", applicationId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/applications", applicationId, "timeline"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/applications"] });
+      setShowSubmitDialog(false);
+      toast({
+        title: "Application Submitted!",
+        description: "Your loan application has been submitted for review. Our team will contact you shortly.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Submission Failed",
+        description: "Could not submit the application. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
@@ -364,6 +389,55 @@ export default function ApplicationDetailPage() {
                 View Documents
               </Button>
             </Link>
+            {application.status === "draft" && (
+              <Dialog open={showSubmitDialog} onOpenChange={setShowSubmitDialog}>
+                <DialogTrigger asChild>
+                  <Button data-testid="button-submit-application">
+                    <Send className="h-4 w-4 mr-2" />
+                    Submit Application
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Submit Application</DialogTitle>
+                    <DialogDescription>
+                      Are you ready to submit this loan application? Once submitted, our team will begin reviewing your application and may reach out for additional information.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="py-4 space-y-3">
+                    <div className="flex items-center gap-2 text-sm">
+                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                      <span>Your loan details have been saved</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                      <span>You can still upload additional documents after submission</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <AlertCircle className="h-4 w-4 text-yellow-500" />
+                      <span>You cannot edit loan details after submission</span>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setShowSubmitDialog(false)}>
+                      Cancel
+                    </Button>
+                    <Button 
+                      onClick={() => submitMutation.mutate()}
+                      disabled={submitMutation.isPending}
+                      data-testid="button-confirm-submit"
+                    >
+                      {submitMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4 mr-2" />
+                      )}
+                      Submit for Review
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            )}
             <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
               <DialogTrigger asChild>
                 <Button variant="outline" size="icon" className="text-destructive hover:text-destructive" data-testid="button-delete-application">

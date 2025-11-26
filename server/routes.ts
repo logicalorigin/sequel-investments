@@ -164,6 +164,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update application (user updates their own application - limited fields, draft only)
   app.patch("/api/applications/:id", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
@@ -177,66 +178,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Access denied" });
       }
       
-      const oldStatus = application.status;
-      const oldStage = application.processingStage;
-      const updated = await storage.updateLoanApplication(req.params.id, req.body);
-      
-      // Create notifications and timeline events for status changes
-      if (req.body.status && req.body.status !== oldStatus) {
-        const statusLabels: Record<string, string> = {
-          draft: "Draft",
-          submitted: "Submitted",
-          in_review: "In Review",
-          approved: "Approved",
-          funded: "Funded",
-          denied: "Denied",
-          withdrawn: "Withdrawn",
-        };
-        
-        // Create notification for status change
-        await storage.createNotification({
-          userId,
-          type: "status_change",
-          title: `Application Status Updated`,
-          message: `Your loan application status has changed to ${statusLabels[req.body.status] || req.body.status}.`,
-          relatedApplicationId: req.params.id,
-        });
-        
-        // Create timeline event
-        await storage.createTimelineEvent({
-          loanApplicationId: req.params.id,
-          eventType: "status_changed",
-          title: `Status changed to ${statusLabels[req.body.status] || req.body.status}`,
-          description: `Application status updated from ${statusLabels[oldStatus] || oldStatus}`,
-        });
+      // Users can only update certain fields and only on draft applications
+      if (application.status !== "draft") {
+        return res.status(400).json({ error: "Cannot modify submitted applications" });
       }
       
-      // Create timeline event for processing stage change
-      if (req.body.processingStage && req.body.processingStage !== oldStage) {
-        const stageLabels: Record<string, string> = {
-          account_review: "Account Executive Review",
-          underwriting: "Underwriting",
-          term_sheet: "Term Sheet Issued",
-          processing: "Processing",
-          docs_out: "Docs Out",
-          closed: "Closed",
-        };
-        
-        await storage.createNotification({
-          userId,
-          type: "general",
-          title: `Application Stage Advanced`,
-          message: `Your application has moved to: ${stageLabels[req.body.processingStage] || req.body.processingStage}`,
-          relatedApplicationId: req.params.id,
-        });
-        
-        await storage.createTimelineEvent({
-          loanApplicationId: req.params.id,
-          eventType: "stage_advanced",
-          title: `Advanced to ${stageLabels[req.body.processingStage] || req.body.processingStage}`,
-        });
+      // Allow only safe fields to be updated by users
+      const allowedFields = [
+        "propertyAddress", "propertyCity", "propertyState", "propertyZip",
+        "purchasePrice", "loanAmount", "rehabBudget", "arv",
+        "guarantor", "entityName", "closingDate",
+      ];
+      
+      const updates: Record<string, any> = {};
+      for (const field of allowedFields) {
+        if (req.body[field] !== undefined) {
+          updates[field] = req.body[field];
+        }
       }
       
+      const updated = await storage.updateLoanApplication(req.params.id, updates);
       return res.json(updated);
     } catch (error) {
       console.error("Error updating application:", error);
@@ -262,6 +223,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting application:", error);
       return res.status(500).json({ error: "Failed to delete application" });
+    }
+  });
+
+  // Submit application (user submits their draft application for review)
+  app.patch("/api/applications/:id/submit", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const application = await storage.getLoanApplication(req.params.id);
+      
+      if (!application) {
+        return res.status(404).json({ error: "Application not found" });
+      }
+      
+      if (application.userId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      if (application.status !== "draft") {
+        return res.status(400).json({ error: "Only draft applications can be submitted" });
+      }
+      
+      // Update status to submitted and set processing stage to account review
+      const updated = await storage.updateLoanApplication(req.params.id, {
+        status: "submitted",
+        processingStage: "account_review",
+      });
+      
+      // Create timeline event
+      await storage.createTimelineEvent({
+        loanApplicationId: req.params.id,
+        eventType: "application_submitted",
+        title: "Application Submitted",
+        description: "Application has been submitted for review by the borrower.",
+        createdByUserId: userId,
+      });
+      
+      return res.json(updated);
+    } catch (error) {
+      console.error("Error submitting application:", error);
+      return res.status(500).json({ error: "Failed to submit application" });
     }
   });
 
@@ -1374,7 +1375,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (req.body.status && req.body.status !== application.status) {
         await storage.createTimelineEvent({
           loanApplicationId: id,
-          eventType: "status_change",
+          eventType: "status_changed",
           title: `Status changed to ${req.body.status}`,
           description: `Updated by ${req.staffUser.firstName || req.staffUser.email}`,
           createdByUserId: req.staffUser.id,

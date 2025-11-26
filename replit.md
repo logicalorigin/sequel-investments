@@ -39,7 +39,7 @@ I prefer simple language. I want iterative development. Ask before making major 
 
 - **Portal Navigation**: Portfolio, Investment Analysis (DSCR, Fix & Flip, Construction Analyzers).
 - **Portal Landing Page**: Links to deal analyzers.
-- **Application Detail Page**: Progress stepper, loan info, contact info, fees breakdown, funds to close, document status, and a "View Analysis" button for analyzer-created applications.
+- **Application Detail Page**: Progress stepper, loan info, contact info, fees breakdown, funds to close, document status, "View Analysis" button for analyzer-created applications, and "Submit Application" button for draft applications.
 - **Analyzer-to-Application Data Persistence**: Scenario data from analyzers (DSCR, Fix & Flip, Construction) is saved with Draft applications, allowing for round-trip editing and data restoration.
 - **Investment Analysis Page**: Comprehensive deal calculator with property, cost, and loan inputs, providing ROI, profit margin, and LTV/LTC. Includes specific DSCR calculator features for rental deals and Construction Calculator features (e.g., "Land is Owned" checkbox, state-based rates).
 - **Analyzer Rate Structure**: 
