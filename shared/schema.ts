@@ -34,6 +34,16 @@ export const documentStatusEnum = pgEnum("document_status", ["pending", "uploade
 // Loan application status enum
 export const loanApplicationStatusEnum = pgEnum("loan_application_status", ["draft", "submitted", "in_review", "approved", "funded", "denied", "withdrawn"]);
 
+// Processing stage enum (for progress stepper)
+export const processingStageEnum = pgEnum("processing_stage", [
+  "account_review",
+  "underwriting", 
+  "term_sheet",
+  "processing",
+  "docs_out",
+  "closed"
+]);
+
 // Loan Applications table
 export const loanApplications = pgTable("loan_applications", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -45,6 +55,55 @@ export const loanApplications = pgTable("loan_applications", {
   propertyZip: text("property_zip"),
   loanAmount: integer("loan_amount"),
   status: loanApplicationStatusEnum("status").default("draft").notNull(),
+  processingStage: processingStageEnum("processing_stage").default("account_review"),
+  
+  // Property & Deal Details
+  purchasePrice: integer("purchase_price"),
+  arv: integer("arv"),
+  rehabBudget: integer("rehab_budget"),
+  requestedRehabFunding: integer("requested_rehab_funding"),
+  downPayment: integer("down_payment"),
+  
+  // Loan Terms
+  loanTermMonths: integer("loan_term_months"),
+  holdTimeMonths: integer("hold_time_months"),
+  interestRate: text("interest_rate"),
+  interestType: text("interest_type"),
+  ltc: text("ltc"),
+  ltv: text("ltv"),
+  
+  // Annual Costs
+  annualTaxes: integer("annual_taxes"),
+  annualInsurance: integer("annual_insurance"),
+  annualHOA: integer("annual_hoa"),
+  totalClosingCosts: integer("total_closing_costs"),
+  
+  // Fees
+  originationFee: integer("origination_fee"),
+  documentPrepFee: integer("document_prep_fee"),
+  escrowFee: integer("escrow_fee"),
+  dailyInterestCharges: integer("daily_interest_charges"),
+  
+  // Funds to Close
+  rehabEquity: integer("rehab_equity"),
+  debtServicing: integer("debt_servicing"),
+  
+  // Borrower Info
+  guarantor: text("guarantor"),
+  entity: text("entity"),
+  
+  // Staff Assignments
+  accountExecutiveName: text("account_executive_name"),
+  accountExecutiveEmail: text("account_executive_email"),
+  accountExecutivePhone: text("account_executive_phone"),
+  processorName: text("processor_name"),
+  processorEmail: text("processor_email"),
+  processorPhone: text("processor_phone"),
+  
+  // Dates
+  requestedClosingDate: timestamp("requested_closing_date"),
+  closingDate: timestamp("closing_date"),
+  
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
