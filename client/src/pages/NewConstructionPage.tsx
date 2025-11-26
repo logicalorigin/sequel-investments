@@ -6,6 +6,12 @@ import { LeadForm } from "@/components/LeadForm";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { ConstructionCalculator } from "@/components/ConstructionCalculator";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { 
   Building2, 
   CheckCircle2, 
@@ -82,6 +88,33 @@ export default function NewConstructionPage() {
           <div className="grid lg:grid-cols-3 gap-12">
             <div className="lg:col-span-2 space-y-12">
               <div>
+                <h2 className="text-3xl font-bold mb-6">Eligible Projects</h2>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="flex items-center gap-3 p-4 bg-card rounded-lg border">
+                    <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
+                    <span>Spec Homes & Infill Development</span>
+                  </div>
+                  <div className="flex items-center gap-3 p-4 bg-card rounded-lg border">
+                    <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
+                    <span>Small Subdivisions (up to 4 units per parcel)</span>
+                  </div>
+                  <div className="flex items-center gap-3 p-4 bg-card rounded-lg border">
+                    <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
+                    <span>Custom Builds & Owner-Investor Projects</span>
+                  </div>
+                  <div className="flex items-center gap-3 p-4 bg-card rounded-lg border">
+                    <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
+                    <span>Multi-Home Developments (1-4 Units)</span>
+                  </div>
+                </div>
+                <div className="mt-4 p-4 bg-muted rounded-lg">
+                  <p className="text-sm text-muted-foreground">
+                    <strong>Note:</strong> We do not finance horizontal development or land-only loans. Projects must include vertical construction.
+                  </p>
+                </div>
+              </div>
+
+              <div>
                 <h2 className="text-3xl font-bold mb-6">Program Highlights</h2>
                 <div className="grid sm:grid-cols-2 gap-6">
                   <Card>
@@ -107,7 +140,7 @@ export default function NewConstructionPage() {
                     </CardHeader>
                     <CardContent>
                       <p className="text-muted-foreground">
-                        Finance spec homes and small subdivisions. Flexible structures for builders at any scale.
+                        Finance spec homes and small subdivisions with up to 4 units per parcel. Flexible structures for builders.
                       </p>
                     </CardContent>
                   </Card>
@@ -143,6 +176,28 @@ export default function NewConstructionPage() {
               </div>
 
               <div>
+                <h2 className="text-3xl font-bold mb-6">Ideal For</h2>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="flex items-center gap-3 p-4 bg-card rounded-lg border">
+                    <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
+                    <span>Ground-Up Builders & Developers</span>
+                  </div>
+                  <div className="flex items-center gap-3 p-4 bg-card rounded-lg border">
+                    <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
+                    <span>Spec Home Investors</span>
+                  </div>
+                  <div className="flex items-center gap-3 p-4 bg-card rounded-lg border">
+                    <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
+                    <span>Infill & Urban Development</span>
+                  </div>
+                  <div className="flex items-center gap-3 p-4 bg-card rounded-lg border">
+                    <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
+                    <span>Build-to-Rent Projects</span>
+                  </div>
+                </div>
+              </div>
+
+              <div>
                 <h2 className="text-3xl font-bold mb-6">Loan Terms</h2>
                 <Card>
                   <CardContent className="pt-6">
@@ -153,23 +208,23 @@ export default function NewConstructionPage() {
                       </div>
                       <div className="flex justify-between py-3 border-b">
                         <span className="text-muted-foreground">Loan-to-Cost (LTC)</span>
-                        <span className="font-semibold">Up to 82.5%</span>
+                        <span className="font-semibold">Up to 90%</span>
                       </div>
                       <div className="flex justify-between py-3 border-b">
-                        <span className="text-muted-foreground">Term Length</span>
-                        <span className="font-semibold">12-18 Months</span>
+                        <span className="text-muted-foreground">Base Term</span>
+                        <span className="font-semibold">9 Months</span>
+                      </div>
+                      <div className="flex justify-between py-3 border-b">
+                        <span className="text-muted-foreground">Extended Terms</span>
+                        <span className="font-semibold">Up to 24 Months</span>
                       </div>
                       <div className="flex justify-between py-3 border-b">
                         <span className="text-muted-foreground">Draw Turnaround</span>
                         <span className="font-semibold">48 Hours</span>
                       </div>
                       <div className="flex justify-between py-3 border-b">
-                        <span className="text-muted-foreground">Property Types</span>
-                        <span className="font-semibold">Residential</span>
-                      </div>
-                      <div className="flex justify-between py-3 border-b">
                         <span className="text-muted-foreground">Project Size</span>
-                        <span className="font-semibold">Single & Multi-Home</span>
+                        <span className="font-semibold">1-4 Units</span>
                       </div>
                     </div>
                   </CardContent>
@@ -177,48 +232,48 @@ export default function NewConstructionPage() {
               </div>
 
               <div>
-                <h2 className="text-3xl font-bold mb-6">Eligible Projects</h2>
-                <div className="space-y-3">
-                  <div className="flex items-start gap-3">
-                    <CheckCircle2 className="h-6 w-6 text-primary mt-0.5" />
-                    <div>
-                      <h4 className="font-semibold">Spec Homes</h4>
-                      <p className="text-muted-foreground">Single-family speculation builds for resale</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <CheckCircle2 className="h-6 w-6 text-primary mt-0.5" />
-                    <div>
-                      <h4 className="font-semibold">Infill Development</h4>
-                      <p className="text-muted-foreground">Urban infill projects on existing lots</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <CheckCircle2 className="h-6 w-6 text-primary mt-0.5" />
-                    <div>
-                      <h4 className="font-semibold">Small Subdivisions</h4>
-                      <p className="text-muted-foreground">Multi-home developments with vertical construction</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <CheckCircle2 className="h-6 w-6 text-primary mt-0.5" />
-                    <div>
-                      <h4 className="font-semibold">Custom Builds</h4>
-                      <p className="text-muted-foreground">Owner-investor custom home projects</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-6 p-4 bg-muted rounded-lg">
-                  <p className="text-sm text-muted-foreground">
-                    <strong>Note:</strong> We do not finance horizontal development or land-only loans. Projects must include vertical construction.
-                  </p>
-                </div>
+                <h2 className="text-3xl font-bold mb-6">Construction Loan Calculator</h2>
+                <ConstructionCalculator />
               </div>
 
               <div>
-                <h2 className="text-3xl font-bold mb-6">Construction Loan Calculator</h2>
-                <ConstructionCalculator />
+                <h2 className="text-3xl font-bold mb-6">Frequently Asked Questions</h2>
+                <Accordion type="single" collapsible className="w-full">
+                  <AccordionItem value="item-1" data-testid="faq-guc-item-1">
+                    <AccordionTrigger>What if I already own the land?</AccordionTrigger>
+                    <AccordionContent>
+                      If you own the land free and clear, the equity in your land can be applied toward your down payment and cash to close. Use our calculator's "Land is Owned" option to see how this affects your financing.
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="item-2" data-testid="faq-guc-item-2">
+                    <AccordionTrigger>How does the draw process work?</AccordionTrigger>
+                    <AccordionContent>
+                      Construction funds are released through a draw process as work is completed. After each phase, you submit photos and invoices, we conduct an inspection, and funds are released within 48 hours. This ensures steady cash flow throughout your build.
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="item-3" data-testid="faq-guc-item-3">
+                    <AccordionTrigger>What experience do I need to qualify?</AccordionTrigger>
+                    <AccordionContent>
+                      We work with builders at all experience levels. New builders may need a licensed general contractor on the project or may qualify with a higher down payment. Experienced builders with a track record of completed projects will receive the best terms.
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="item-4" data-testid="faq-guc-item-4">
+                    <AccordionTrigger>Can I build multiple homes on one loan?</AccordionTrigger>
+                    <AccordionContent>
+                      Yes! We finance multi-home developments with up to 4 units per parcel. Whether you're building duplexes, townhomes, or multiple single-family homes, we can structure financing to fit your project.
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="item-5" data-testid="faq-guc-item-5">
+                    <AccordionTrigger>What happens when construction is complete?</AccordionTrigger>
+                    <AccordionContent>
+                      Once construction is complete, you can sell the property and pay off the construction loan, or refinance into a long-term DSCR loan if you plan to hold it as a rental. We offer seamless transitions to permanent financing.
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
               </div>
             </div>
 
