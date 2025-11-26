@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Link, useLocation } from "wouter";
+import { useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { LoanApplication } from "@shared/schema";
@@ -10,17 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
+import { PortalHeader } from "@/components/PortalHeader";
 import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { 
-  Building2,
-  LogOut,
   Calculator,
   TrendingUp,
   DollarSign,
@@ -204,12 +195,6 @@ export default function InvestmentAnalysisPage() {
     },
   });
 
-  const getInitials = (firstName?: string | null, lastName?: string | null) => {
-    const first = firstName?.charAt(0) || "";
-    const last = lastName?.charAt(0) || "";
-    return (first + last).toUpperCase() || "U";
-  };
-
   const calculateDSCRInterestRate = (ltv: number, dscr: number) => {
     const BASE_RATE = 6.25;
     
@@ -310,6 +295,11 @@ export default function InvestmentAnalysisPage() {
     
     const totalCost = purchasePriceVal + rehabBudgetVal;
     const ltc = totalCost > 0 ? (loanAmount / totalCost) * 100 : 0;
+    
+    // Equity calculations for DSCR
+    const estimatedValue = dealType === "rental" ? purchasePriceVal : arvVal;
+    const equity = estimatedValue - loanAmount;
+    const equityPercent = estimatedValue > 0 ? (equity / estimatedValue) * 100 : 0;
 
     return {
       totalProjectCost,
@@ -322,6 +312,9 @@ export default function InvestmentAnalysisPage() {
       loanAmount,
       dscrRatio: finalDSCR,
       calculatedRate: rate,
+      estimatedValue,
+      equity,
+      equityPercent,
     };
   }, [arv, purchasePrice, rehabBudget, downPayment, totalClosingCosts, annualTaxes, annualInsurance, annualHOA, holdTimeMonths, interestRate, requestedRehabFunding, dealType, loanTermMonths, monthlyRent, creditScore, propertyType, requestedLoanAmount]);
 
@@ -348,40 +341,7 @@ export default function InvestmentAnalysisPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b bg-card sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between gap-3">
-          <Link href="/">
-            <div className="flex items-center gap-1.5 cursor-pointer">
-              <Building2 className="h-5 w-5 text-primary" />
-              <span className="font-bold text-sm">SAF</span>
-            </div>
-          </Link>
-          
-          <div className="flex items-center gap-2">
-            <Link href="/portal">
-              <Button variant="ghost" size="sm" className="h-7 text-xs px-2" data-testid="link-portfolio">
-                Portfolio
-              </Button>
-            </Link>
-            <Link href="/portal/investment-analysis">
-              <Button variant="ghost" size="sm" className="h-7 text-xs px-2 bg-primary/10" data-testid="link-investment-analysis">
-                Analysis
-              </Button>
-            </Link>
-            <div className="flex items-center gap-1.5">
-              <Avatar className="h-6 w-6">
-                <AvatarImage src={user?.profileImageUrl || undefined} />
-                <AvatarFallback className="text-xs">{getInitials(user?.firstName, user?.lastName)}</AvatarFallback>
-              </Avatar>
-            </div>
-            <a href="/api/logout">
-              <Button variant="ghost" size="sm" className="h-7 text-xs px-2" data-testid="button-logout">
-                <LogOut className="h-3 w-3" />
-              </Button>
-            </a>
-          </div>
-        </div>
-      </header>
+      <PortalHeader user={user} />
 
       <main className="max-w-7xl mx-auto px-6 py-8">
         <div className="mb-8">
@@ -519,6 +479,22 @@ export default function InvestmentAnalysisPage() {
                               className="pl-7"
                               data-testid="input-requested-loan-amount"
                             />
+                          </div>
+                          {/* LTV Display with Max Limits */}
+                          <div className="mt-2 flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">LTV:</span>
+                            <span className={`font-semibold ${
+                              results.ltv > (transactionType === "cash_out" ? 75 : 80) 
+                                ? "text-red-600" 
+                                : results.ltv > 70 
+                                ? "text-yellow-600" 
+                                : "text-green-600"
+                            }`}>
+                              {results.ltv.toFixed(1)}%
+                              <span className="text-xs text-muted-foreground ml-1">
+                                (max {transactionType === "cash_out" ? "75" : "80"}%)
+                              </span>
+                            </span>
                           </div>
                         </div>
                       </>
@@ -669,52 +645,52 @@ export default function InvestmentAnalysisPage() {
                   </div>
                 )}
 
-                {/* DSCR Rate Factors Section - Only for DSCR */}
-                {dealType === "rental" && (
-                  <div className="space-y-4">
-                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide border-b pb-2">Rate Factors</h3>
-                    
-                    <div>
-                      <div className="flex justify-between items-center mb-2">
-                        <Label>Credit Score</Label>
-                        <span className="text-lg font-bold text-primary">{creditScore[0]}</span>
-                      </div>
-                      <Slider
-                        value={creditScore}
-                        onValueChange={setCreditScore}
-                        min={660}
-                        max={800}
-                        step={5}
-                        className="w-full"
-                        data-testid="slider-credit-score"
-                      />
-                      <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                        <span>660</span>
-                        <span>800</span>
-                      </div>
-                    </div>
-
-                    <div>
-                      <Label htmlFor="monthlyRent">Expected Monthly Rent</Label>
-                      <div className="relative mt-1">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                        <Input
-                          id="monthlyRent"
-                          type="number"
-                          value={monthlyRent}
-                          onChange={(e) => setMonthlyRent(e.target.value)}
-                          className="pl-7"
-                          data-testid="input-monthly-rent"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Operating Expenses Section */}
+                {/* Loan Factors Section - Combined for DSCR, or just Operating Expenses for others */}
                 <div className="space-y-4">
-                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide border-b pb-2">Operating Expenses</h3>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide border-b pb-2">
+                    {dealType === "rental" ? "Loan Factors" : "Operating Expenses"}
+                  </h3>
                   
+                  {/* Credit Score and Monthly Rent - Only for DSCR */}
+                  {dealType === "rental" && (
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <div className="flex justify-between items-center mb-2">
+                          <Label>Credit Score</Label>
+                          <span className="text-lg font-bold text-primary">{creditScore[0]}</span>
+                        </div>
+                        <Slider
+                          value={creditScore}
+                          onValueChange={setCreditScore}
+                          min={660}
+                          max={800}
+                          step={5}
+                          className="w-full"
+                          data-testid="slider-credit-score"
+                        />
+                        <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                          <span>660</span>
+                          <span>800</span>
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="monthlyRent">Expected Monthly Rent</Label>
+                        <div className="relative mt-1">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                          <Input
+                            id="monthlyRent"
+                            type="number"
+                            value={monthlyRent}
+                            onChange={(e) => setMonthlyRent(e.target.value)}
+                            className="pl-7"
+                            data-testid="input-monthly-rent"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Operating Expenses - All deal types */}
                   <div className="grid md:grid-cols-3 gap-4">
                     <div>
                       <Label htmlFor="annualTaxes">Annual Taxes</Label>
@@ -798,106 +774,144 @@ export default function InvestmentAnalysisPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {/* DSCR-specific: Show calculated rate and DSCR */}
-                  {dealType === "rental" && (
-                    <div className="grid grid-cols-2 gap-3">
+                  {/* DSCR Results Layout */}
+                  {dealType === "rental" ? (
+                    <>
+                      {/* Interest Rate and DSCR */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-background rounded-lg p-3">
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Interest Rate</p>
+                          <p className="text-xl font-bold text-primary" data-testid="result-interest-rate">
+                            {results.calculatedRate.toFixed(2)}%
+                          </p>
+                        </div>
+                        <div className="bg-background rounded-lg p-3">
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">DSCR</p>
+                          <p className={`text-xl font-bold ${results.dscrRatio >= 1.0 ? "text-green-600" : results.dscrRatio >= 0.75 ? "text-yellow-600" : "text-red-600"}`} data-testid="result-dscr">
+                            {results.dscrRatio.toFixed(2)}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Estimated Value and Equity % */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-background rounded-lg p-3">
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Estimated Value</p>
+                          <p className="text-lg font-bold text-primary" data-testid="result-estimated-value">
+                            {formatCurrency(results.estimatedValue)}
+                          </p>
+                        </div>
+                        <div className="bg-background rounded-lg p-3">
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Equity</p>
+                          <p className="text-lg font-bold text-green-600" data-testid="result-equity">
+                            {results.equityPercent.toFixed(1)}%
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Loan Amount and LTV */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-background rounded-lg p-3">
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Loan Amount</p>
+                          <p className="text-lg font-semibold" data-testid="result-loan-amount">
+                            {formatCurrency(results.loanAmount)}
+                          </p>
+                        </div>
+                        <div className="bg-background rounded-lg p-3">
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">LTV</p>
+                          <p className={`text-lg font-bold ${
+                            results.ltv > (transactionType === "cash_out" ? 75 : 80) 
+                              ? "text-red-600" 
+                              : results.ltv > 70 
+                              ? "text-yellow-600" 
+                              : "text-green-600"
+                          }`} data-testid="result-ltv">
+                            {results.ltv.toFixed(1)}%
+                          </p>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      {/* Non-DSCR Results Layout */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-background rounded-lg p-3">
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Total Project Cost</p>
+                          <p className="text-lg font-bold text-primary" data-testid="result-project-cost">
+                            {formatCurrency(results.totalProjectCost)}
+                          </p>
+                        </div>
+                        <div className="bg-background rounded-lg p-3">
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Cash Invested</p>
+                          <p className="text-lg font-bold" data-testid="result-cash-invested">
+                            {formatCurrency(results.cashInvested)}
+                          </p>
+                        </div>
+                      </div>
+
                       <div className="bg-background rounded-lg p-3">
-                        <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Interest Rate</p>
-                        <p className="text-xl font-bold text-primary" data-testid="result-interest-rate">
-                          {results.calculatedRate.toFixed(2)}%
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Total Profit</p>
+                        <p className={`text-xl font-bold ${results.totalProfit >= 0 ? "text-green-600" : "text-red-600"}`} data-testid="result-profit">
+                          {formatCurrency(results.totalProfit)}
                         </p>
                       </div>
-                      <div className="bg-background rounded-lg p-3">
-                        <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">DSCR</p>
-                        <p className={`text-xl font-bold ${results.dscrRatio >= 1.0 ? "text-green-600" : results.dscrRatio >= 0.75 ? "text-yellow-600" : "text-red-600"}`} data-testid="result-dscr">
-                          {results.dscrRatio.toFixed(2)}
-                        </p>
-                      </div>
-                    </div>
-                  )}
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-background rounded-lg p-3">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Total Project Cost</p>
-                      <p className="text-lg font-bold text-primary" data-testid="result-project-cost">
-                        {formatCurrency(results.totalProjectCost)}
-                      </p>
-                    </div>
-                    <div className="bg-background rounded-lg p-3">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Cash Invested</p>
-                      <p className="text-lg font-bold" data-testid="result-cash-invested">
-                        {formatCurrency(results.cashInvested)}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="bg-background rounded-lg p-3">
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Total Profit</p>
-                    <p className={`text-xl font-bold ${results.totalProfit >= 0 ? "text-green-600" : "text-red-600"}`} data-testid="result-profit">
-                      {formatCurrency(results.totalProfit)}
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-background rounded-lg p-3">
-                      <div className="flex items-center gap-1 mb-1">
-                        <Percent className="h-3 w-3 text-muted-foreground" />
-                        <p className="text-xs text-muted-foreground uppercase tracking-wide">ROI</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <p className={`text-lg font-bold ${
-                          dealType !== "rental"
-                            ? results.roi >= 10 
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-background rounded-lg p-3">
+                          <div className="flex items-center gap-1 mb-1">
+                            <Percent className="h-3 w-3 text-muted-foreground" />
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">ROI</p>
+                          </div>
+                          <p className={`text-lg font-bold ${
+                            results.roi >= 10 
                               ? "text-green-600" 
                               : results.roi >= 5 
                               ? "text-yellow-600" 
                               : "text-red-600"
-                            : results.roi >= 0 
-                            ? "text-green-600" 
-                            : "text-red-600"
-                        }`} data-testid="result-roi">
-                          {results.roi.toFixed(1)}%
+                          }`} data-testid="result-roi">
+                            {results.roi.toFixed(1)}%
+                          </p>
+                        </div>
+                        <div className="bg-background rounded-lg p-3">
+                          <div className="flex items-center gap-1 mb-1">
+                            <Percent className="h-3 w-3 text-muted-foreground" />
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Profit Margin</p>
+                          </div>
+                          <p className={`text-lg font-bold ${results.profitMargin >= 0 ? "text-green-600" : "text-red-600"}`} data-testid="result-margin">
+                            {results.profitMargin.toFixed(1)}%
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-background rounded-lg p-3">
+                          <div className="flex items-center gap-1 mb-1">
+                            <DollarSign className="h-3 w-3 text-muted-foreground" />
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">LTC</p>
+                          </div>
+                          <p className="text-lg font-bold" data-testid="result-ltc">
+                            {results.ltc.toFixed(1)}%
+                          </p>
+                        </div>
+                        <div className="bg-background rounded-lg p-3">
+                          <div className="flex items-center gap-1 mb-1">
+                            <DollarSign className="h-3 w-3 text-muted-foreground" />
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">LTV</p>
+                          </div>
+                          <p className="text-lg font-bold" data-testid="result-ltv">
+                            {results.ltv.toFixed(1)}%
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="bg-background rounded-lg p-3">
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Loan Amount</p>
+                        <p className="text-lg font-semibold" data-testid="result-loan-amount">
+                          {formatCurrency(results.loanAmount)}
                         </p>
                       </div>
-                    </div>
-                    <div className="bg-background rounded-lg p-3">
-                      <div className="flex items-center gap-1 mb-1">
-                        <Percent className="h-3 w-3 text-muted-foreground" />
-                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Profit Margin</p>
-                      </div>
-                      <p className={`text-lg font-bold ${results.profitMargin >= 0 ? "text-green-600" : "text-red-600"}`} data-testid="result-margin">
-                        {results.profitMargin.toFixed(1)}%
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-background rounded-lg p-3">
-                      <div className="flex items-center gap-1 mb-1">
-                        <DollarSign className="h-3 w-3 text-muted-foreground" />
-                        <p className="text-xs text-muted-foreground uppercase tracking-wide">LTC (%)</p>
-                      </div>
-                      <p className="text-lg font-bold" data-testid="result-ltc">
-                        {results.ltc.toFixed(1)}%
-                      </p>
-                    </div>
-                    <div className="bg-background rounded-lg p-3">
-                      <div className="flex items-center gap-1 mb-1">
-                        <DollarSign className="h-3 w-3 text-muted-foreground" />
-                        <p className="text-xs text-muted-foreground uppercase tracking-wide">LTV (%)</p>
-                      </div>
-                      <p className="text-lg font-bold" data-testid="result-ltv">
-                        {results.ltv.toFixed(1)}%
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="bg-background rounded-lg p-3">
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Loan Amount</p>
-                    <p className="text-lg font-semibold" data-testid="result-loan-amount">
-                      {formatCurrency(results.loanAmount)}
-                    </p>
-                  </div>
+                    </>
+                  )}
 
                   <Button 
                     className="w-full"
