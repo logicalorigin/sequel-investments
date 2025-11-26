@@ -20,6 +20,10 @@ localPort = 32917
 externalPort = 5000
 
 [[ports]]
+localPort = 33227
+externalPort = 6800
+
+[[ports]]
 localPort = 34313
 externalPort = 3001
 
@@ -78,8 +82,8 @@ integrations = ["javascript_mem_db:1.0.0", "javascript_database:1.0.0", "javascr
 
 [userenv.shared]
 VITE_GOOGLE_MAPS_API_KEY = "AIzaSyAkUNFuXSm5BekoHKGGp06g9AMkBSwbQvg"
-PRIVATE_OBJECT_DIR = "/replit-objstore-adef886b-287c-4835-a264-e35141d96902/private"
-PUBLIC_OBJECT_SEARCH_PATHS = "/replit-objstore-adef886b-287c-4835-a264-e35141d96902/public"
+PRIVATE_OBJECT_DIR = "/replit-objstore-c71ae623-418a-4376-b56d-3798fb4bbcc7/private"
+PUBLIC_OBJECT_SEARCH_PATHS = "/replit-objstore-c71ae623-418a-4376-b56d-3798fb4bbcc7/public"
 
 [objectStorage]
 defaultBucketID = "replit-objstore-c71ae623-418a-4376-b56d-3798fb4bbcc7"
