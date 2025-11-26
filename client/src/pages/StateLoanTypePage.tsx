@@ -118,7 +118,7 @@ const loanTypeConfigs: Record<LoanType, LoanTypeConfig> = {
     rates: "9.90%",
     ltv: "82.5% LTC",
     terms: [
-      "12-18 month terms",
+      "9-24 month terms (9 months base)",
       "48-hour draw turnaround",
       "Spec homes and infill development",
       "Multi-home developments",
