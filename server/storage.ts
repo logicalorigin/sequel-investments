@@ -37,6 +37,7 @@ export interface IStorage {
   getLoanApplications(userId: string): Promise<LoanApplication[]>;
   getLoanApplication(id: string): Promise<LoanApplication | undefined>;
   updateLoanApplication(id: string, data: Partial<InsertLoanApplication>): Promise<LoanApplication | undefined>;
+  deleteLoanApplication(id: string): Promise<boolean>;
   
   // Document type operations
   getDocumentTypes(): Promise<DocumentType[]>;
@@ -125,6 +126,14 @@ export class DatabaseStorage implements IStorage {
       .where(eq(loanApplications.id, id))
       .returning();
     return updated;
+  }
+
+  async deleteLoanApplication(id: string): Promise<boolean> {
+    // First delete associated documents
+    await db.delete(documents).where(eq(documents.loanApplicationId, id));
+    // Then delete the application
+    const result = await db.delete(loanApplications).where(eq(loanApplications.id, id));
+    return true;
   }
 
   // Document type operations

@@ -155,6 +155,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/applications/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const application = await storage.getLoanApplication(req.params.id);
+      
+      if (!application) {
+        return res.status(404).json({ error: "Application not found" });
+      }
+      
+      if (application.userId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      await storage.deleteLoanApplication(req.params.id);
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting application:", error);
+      return res.status(500).json({ error: "Failed to delete application" });
+    }
+  });
+
   // Document routes
   app.get("/api/applications/:id/documents", isAuthenticated, async (req: any, res) => {
     try {
