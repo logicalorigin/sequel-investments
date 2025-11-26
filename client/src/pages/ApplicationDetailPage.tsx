@@ -645,7 +645,7 @@ export default function ApplicationDetailPage() {
                     const roi = getResultValue("roi") as number | null;
                     const loanAmount = getResultValue("loanAmount") as number | null || application.loanAmount;
                     const landOwned = inputs.landOwned as boolean;
-                    const buildDuration = inputs.buildDuration as string || application.holdTimeMonths;
+                    const loanTermMonths = (inputs.loanTermMonths as number) || application.holdTimeMonths;
 
                     return (
                       <div className="grid md:grid-cols-3 gap-6">
@@ -682,8 +682,8 @@ export default function ApplicationDetailPage() {
                             <p className="font-medium">{roi ? `${Number(roi).toFixed(1)}%` : "N/A"}</p>
                           </div>
                           <div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Build Duration</p>
-                            <p className="font-medium">{buildDuration ? `${buildDuration} Months` : "N/A"}</p>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Loan Term</p>
+                            <p className="font-medium">{loanTermMonths ? `${loanTermMonths} Months` : "N/A"}</p>
                           </div>
                         </div>
                         
@@ -695,14 +695,6 @@ export default function ApplicationDetailPage() {
                           <div>
                             <p className="text-xs text-muted-foreground uppercase tracking-wide">Experience Level</p>
                             <p className="font-medium">{experienceLabel}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Property Type</p>
-                            <p className="font-medium capitalize">{(inputs.propertyType as string)?.replace(/_/g, " ") || "SFR"}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Exit Strategy</p>
-                            <p className="font-medium">Sale/Refinance</p>
                           </div>
                         </div>
                       </div>
