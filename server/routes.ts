@@ -15,6 +15,7 @@ import {
 } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupStaffAuth, createAdminUser } from "./staffAuth";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { ObjectPermission } from "./objectAcl";
 import crypto from "crypto";
@@ -23,6 +24,12 @@ import { getMarketData, refreshAllMarketData, getMarketDataStatus, getPropertyVa
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication
   await setupAuth(app);
+  
+  // Set up staff local authentication (username/password)
+  await setupStaffAuth(app);
+  
+  // Create default admin user if not exists
+  await createAdminUser("admin", "admin123");
   
   // Seed document types on startup
   await storage.seedDocumentTypes();
