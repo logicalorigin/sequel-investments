@@ -18,7 +18,7 @@ import { setupAuth, isAuthenticated } from "./replitAuth";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { ObjectPermission } from "./objectAcl";
 import crypto from "crypto";
-import { getMarketData, refreshAllMarketData, getMarketDataStatus, getPropertyValue } from "./services/marketDataService";
+import { getMarketData, refreshAllMarketData, getMarketDataStatus, getPropertyValue, getPropertyLookup } from "./services/marketDataService";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication
@@ -1170,6 +1170,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching property value:", error);
       return res.status(500).json({ error: "Failed to fetch property value" });
+    }
+  });
+
+  // Property lookup for autofill (value, rent, taxes, etc.)
+  app.get("/api/property-lookup", async (req, res) => {
+    try {
+      const { address, city, state, zip } = req.query;
+      
+      if (!address || typeof address !== "string") {
+        return res.status(400).json({ error: "Address is required" });
+      }
+      
+      const propertyData = await getPropertyLookup(
+        address,
+        city as string | undefined,
+        state as string | undefined,
+        zip as string | undefined
+      );
+      
+      return res.json(propertyData);
+    } catch (error) {
+      console.error("Error fetching property lookup:", error);
+      return res.status(500).json({ error: "Failed to fetch property data" });
     }
   });
 

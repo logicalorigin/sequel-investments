@@ -108,6 +108,14 @@ export default function AddressAutocomplete({
   const autocompleteRef = useRef<any>(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const [inputValue, setInputValue] = useState(value);
+  
+  const onChangeRef = useRef(onChange);
+  const onPlaceSelectRef = useRef(onPlaceSelect);
+  
+  useEffect(() => {
+    onChangeRef.current = onChange;
+    onPlaceSelectRef.current = onPlaceSelect;
+  }, [onChange, onPlaceSelect]);
 
   useEffect(() => {
     setInputValue(value);
@@ -115,13 +123,13 @@ export default function AddressAutocomplete({
 
   const handleSelection = useCallback((address: RadarAddress) => {
     if (address.formattedAddress) {
-      onChange(address.formattedAddress);
+      onChangeRef.current(address.formattedAddress);
       setInputValue(address.formattedAddress);
     }
-    if (onPlaceSelect) {
-      onPlaceSelect(convertRadarToPlaceResult(address));
+    if (onPlaceSelectRef.current) {
+      onPlaceSelectRef.current(convertRadarToPlaceResult(address));
     }
-  }, [onChange, onPlaceSelect]);
+  }, []);
 
   useEffect(() => {
     if (!apiKey || !containerRef.current || isInitialized) return;

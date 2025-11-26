@@ -406,6 +406,114 @@ export async function getPropertyValue(address: string, purchasePrice?: number):
   };
 }
 
+export interface PropertyLookupResponse {
+  address: string;
+  city: string;
+  state: string;
+  zip: string;
+  propertyValue: number | null;
+  rentEstimate: number | null;
+  annualTaxes: number | null;
+  annualInsurance: number | null;
+  bedrooms: number | null;
+  bathrooms: number | null;
+  squareFeet: number | null;
+  yearBuilt: number | null;
+  propertyType: string | null;
+  source: string;
+  confidence: "high" | "medium" | "low";
+}
+
+export async function getPropertyLookup(
+  address: string,
+  city?: string,
+  state?: string,
+  zip?: string
+): Promise<PropertyLookupResponse> {
+  const result: PropertyLookupResponse = {
+    address,
+    city: city || "",
+    state: state || "",
+    zip: zip || "",
+    propertyValue: null,
+    rentEstimate: null,
+    annualTaxes: null,
+    annualInsurance: null,
+    bedrooms: null,
+    bathrooms: null,
+    squareFeet: null,
+    yearBuilt: null,
+    propertyType: null,
+    source: "estimate",
+    confidence: "low",
+  };
+
+  if (!RENTCAST_API_KEY || !address) {
+    return generateEstimatedPropertyData(result, state);
+  }
+
+  try {
+    const encodedAddress = encodeURIComponent(address);
+    
+    const [valueResponse, rentResponse] = await Promise.all([
+      fetch(`https://api.rentcast.io/v1/avm/value?address=${encodedAddress}`, {
+        headers: { "X-Api-Key": RENTCAST_API_KEY, "Accept": "application/json" }
+      }),
+      fetch(`https://api.rentcast.io/v1/avm/rent?address=${encodedAddress}`, {
+        headers: { "X-Api-Key": RENTCAST_API_KEY, "Accept": "application/json" }
+      })
+    ]);
+
+    if (valueResponse.ok) {
+      const valueData = await valueResponse.json();
+      if (valueData) {
+        result.propertyValue = valueData.price || valueData.priceRangeLow || null;
+        result.bedrooms = valueData.bedrooms || null;
+        result.bathrooms = valueData.bathrooms || null;
+        result.squareFeet = valueData.squareFeet || null;
+        result.yearBuilt = valueData.yearBuilt || null;
+        result.propertyType = valueData.propertyType || null;
+        result.source = "rentcast";
+        result.confidence = valueData.price ? "high" : "medium";
+      }
+    }
+
+    if (rentResponse.ok) {
+      const rentData = await rentResponse.json();
+      if (rentData) {
+        result.rentEstimate = rentData.rent || rentData.rentRangeLow || null;
+      }
+    }
+
+    if (result.propertyValue) {
+      result.annualTaxes = Math.round(result.propertyValue * 0.012);
+      result.annualInsurance = Math.round(result.propertyValue * 0.004);
+    }
+
+    return result;
+  } catch (error) {
+    console.error("Property lookup error:", error);
+    return generateEstimatedPropertyData(result, state);
+  }
+}
+
+function generateEstimatedPropertyData(
+  result: PropertyLookupResponse,
+  state?: string
+): PropertyLookupResponse {
+  const stateSlug = state ? state.toLowerCase().replace(/\s+/g, "-") : "default";
+  const fallback = fallbackData[stateSlug] || fallbackData["default"];
+  
+  result.propertyValue = fallback.medianPrice;
+  result.rentEstimate = fallback.medianRent;
+  result.annualTaxes = Math.round(fallback.medianPrice * 0.012);
+  result.annualInsurance = Math.round(fallback.medianPrice * 0.004);
+  result.source = "estimate";
+  result.confidence = "low";
+  
+  return result;
+}
+
 export async function getMarketDataStatus(): Promise<{
   totalStates: number;
   cachedStates: number;
