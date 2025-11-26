@@ -15,7 +15,9 @@ import WhereWeLendPage from "@/pages/WhereWeLendPage";
 import StateInvestmentPage from "@/pages/StateInvestmentPage";
 import StateLoanTypePage from "@/pages/StateLoanTypePage";
 import PortalPage from "@/pages/PortalPage";
+import ApplicationDetailPage from "@/pages/ApplicationDetailPage";
 import ApplicationDocumentsPage from "@/pages/ApplicationDocumentsPage";
+import InvestmentAnalysisPage from "@/pages/InvestmentAnalysisPage";
 import STRCalculatorPage from "@/pages/STRCalculatorPage";
 import RecentFundingsPage from "@/pages/RecentFundingsPage";
 import PropertyDetailPage from "@/pages/PropertyDetailPage";
@@ -37,7 +39,9 @@ function Router() {
       <Route path="/states/:stateSlug" component={StateInvestmentPage} />
       <Route path="/states/:stateSlug/:loanType" component={StateLoanTypePage} />
       <Route path="/portal" component={PortalPage} />
-      <Route path="/portal/application/:id" component={ApplicationDocumentsPage} />
+      <Route path="/portal/application/:id" component={ApplicationDetailPage} />
+      <Route path="/portal/application/:id/documents" component={ApplicationDocumentsPage} />
+      <Route path="/portal/investment-analysis" component={InvestmentAnalysisPage} />
       <Route path="/str-calculator" component={STRCalculatorPage} />
       <Route path="/fundings" component={RecentFundingsPage} />
       <Route path="/fundings/:propertyId" component={PropertyDetailPage} />

@@ -44,15 +44,19 @@ The design is inspired by leading fintech lenders like Kiavi and Easy Street Cap
 **Framework**: React 18 with TypeScript, using Vite as the build tool and development server.
 
 **Routing**: Client-side routing implemented with Wouter. Routes include:
-- `/` - Homepage with hero, stats, product cards, why choose us, calculator, testimonials
-- `/dscr-loans` - DSCR Loans product page with detailed terms and sidebar form
-- `/fix-flip` - Fix & Flip product page (replaces old hard-money route)
-- `/new-construction` - New Construction product page
+- `/` - Homepage with hero, stats, product cards, why choose us, testimonials
+- `/dscr-loans` - DSCR Loans product page with detailed terms, sidebar form, and DSCR calculator
+- `/fix-flip` - Fix & Flip product page with Fix & Flip calculator
+- `/new-construction` - New Construction product page with Construction calculator
 - `/calculator` - Interactive DSCR calculator page
 - `/str-calculator` - STR (Short-Term Rental) income estimator with market data
 - `/about` - About us page with company info and track record
 - `/contact` - Contact page with lead form and contact details
 - `/get-quote` - Multi-step quote application flow (Kiavi-style)
+- `/portal` - Customer portal with loan applications list
+- `/portal/application/:id` - Application detail page with progress stepper, loan info, fees, funds to close
+- `/portal/application/:id/documents` - Document upload and checklist page
+- `/portal/investment-analysis` - Investment Analysis deal calculator with ROI/profit analysis
 
 **UI Component System**: shadcn/ui component library in "New York" style, built on Radix UI primitives.
 
@@ -79,6 +83,29 @@ The design is inspired by leading fintech lenders like Kiavi and Easy Street Cap
 - `STRCalculatorPage` - Short-term rental income estimator with state-based market data, bedroom/property type multipliers, operating expense calculation, and DSCR analysis for loan qualification
 - `GetQuotePage` - Multi-step quote flow: loan type → property details → contact info
 - `USMap` - Interactive SVG map of US states using SimpleMaps coordinates (viewBox: 0 0 1000 589). States are color-coded by loan volume and clickable for navigation to state detail pages
+
+### Borrower Portal (ESC-Inspired)
+
+The borrower portal is modeled after Easy Street Capital's portal design with the following features:
+
+**Portal Navigation**:
+- Portfolio tab - Lists all loan applications
+- Investment Analysis tab - Deal analyzer calculator
+
+**Application Detail Page** (`/portal/application/:id`):
+- Progress stepper with 6 stages: Account Executive Review → Underwriting → Term Sheet Issued → Processing → Docs Out → Closed
+- Loan Info section with property address, guarantor, entity, purchase price, rehab budget, interest rate, LTC, loan term
+- Contact Info sidebar with Account Executive and Processor contact details
+- Fees breakdown: Daily Interest Charges, Origination Fee, Document Preparation Fee, Escrow Fee
+- Funds to Close section: Down Payment, Rehab Equity, Debt Servicing, Fees
+- Document status tabs (Needs/Documents) with Completed/Outstanding badges
+
+**Investment Analysis Page** (`/portal/investment-analysis`):
+- Deal type selector (Rehab, New Construction, Rental)
+- Property inputs: Address, ARV, Purchase Price, Down Payment
+- Cost inputs: Rehab Budget, Requested Rehab Funding, Annual Taxes/Insurance/HOA, Closing Costs
+- Loan inputs: Loan Term, Hold Time, Interest Rate
+- Results panel: Total Project Cost, Cash Invested, Total Profit, ROI (%), Profit Margin (%), LTC (%), LTV (%)
 
 ### Assets
 

@@ -116,6 +116,16 @@ export default function PortalPage() {
           </Link>
           
           <div className="flex items-center gap-4">
+            <Link href="/portal">
+              <Button variant="ghost" size="sm" className="bg-primary/10" data-testid="link-portfolio">
+                Portfolio
+              </Button>
+            </Link>
+            <Link href="/portal/investment-analysis">
+              <Button variant="ghost" size="sm" data-testid="link-investment-analysis">
+                Investment Analysis
+              </Button>
+            </Link>
             <div className="flex items-center gap-2">
               <Avatar className="h-8 w-8">
                 <AvatarImage src={user?.profileImageUrl || undefined} />
