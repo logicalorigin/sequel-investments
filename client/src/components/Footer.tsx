@@ -97,7 +97,7 @@ export function Footer() {
                 </span>
               </li>
               <li>
-                <Link href="/admin" data-testid="link-footer-staff-login">
+                <Link href="/admin/login" data-testid="link-footer-staff-login">
                   <span className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
                     Staff Login
                   </span>

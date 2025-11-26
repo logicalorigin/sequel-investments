@@ -162,14 +162,20 @@ export default function AdminDashboard() {
               Access Denied
             </CardTitle>
             <CardDescription>
-              You don't have permission to access this page. Please contact an administrator if you believe this is an error.
+              You don't have permission to access this page. Please sign in with a staff account.
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <Link href="/portal">
-              <Button className="w-full" data-testid="button-back-portal">
+          <CardContent className="space-y-3">
+            <Link href="/admin/login">
+              <Button className="w-full" data-testid="button-staff-login">
+                <Shield className="h-4 w-4 mr-2" />
+                Staff Login
+              </Button>
+            </Link>
+            <Link href="/">
+              <Button variant="outline" className="w-full" data-testid="button-back-home">
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Portal
+                Back to Home
               </Button>
             </Link>
           </CardContent>
