@@ -208,7 +208,7 @@ export default function StateLoanTypePage() {
     <div className="min-h-screen bg-background">
       <Navigation />
 
-      <section className="relative pt-32 pb-20 overflow-hidden bg-gradient-to-b from-primary/10 to-background">
+      <section className="relative pt-12 pb-20 overflow-hidden bg-gradient-to-b from-primary/10 to-background">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex items-center gap-2 text-muted-foreground mb-4 flex-wrap">
             <Link href="/where-we-lend" className="hover:text-primary transition-colors">

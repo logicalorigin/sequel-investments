@@ -258,7 +258,7 @@ export default function RecentFundingsPage() {
     <div className="min-h-screen bg-background">
       <Navigation />
       
-      <section className="pt-32 pb-16 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <section className="pt-12 pb-16 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-12">
             <Badge className="mb-4 bg-[#e55c2b]/20 text-[#e55c2b] border-[#e55c2b]/30">

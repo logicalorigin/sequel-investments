@@ -29,7 +29,7 @@ export default function WhereWeLendPage() {
     <div className="min-h-screen bg-background">
       <Navigation />
 
-      <section className="relative pt-32 pb-20 overflow-hidden bg-card">
+      <section className="relative pt-12 pb-20 overflow-hidden bg-card">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-12">
             <h1 className="text-4xl md:text-5xl font-bold mb-6" data-testid="text-page-title">

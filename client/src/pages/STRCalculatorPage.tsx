@@ -203,7 +203,7 @@ export default function STRCalculatorPage() {
       <Navigation />
       
       {/* Hero Section */}
-      <section className="pt-24 pb-16 bg-gradient-to-br from-primary/10 via-background to-background">
+      <section className="pt-12 pb-16 bg-gradient-to-br from-primary/10 via-background to-background">
         <div className="max-w-7xl mx-auto px-6">
           <div className="max-w-3xl">
             <Badge className="mb-4" variant="secondary">
