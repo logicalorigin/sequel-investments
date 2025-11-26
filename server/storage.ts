@@ -212,9 +212,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteLoanApplication(id: string): Promise<boolean> {
-    // First delete associated documents
+    // First delete associated notifications
+    await db.delete(notifications).where(eq(notifications.relatedApplicationId, id));
+    // Then delete associated document comments
+    const docs = await db.select({ id: documents.id }).from(documents).where(eq(documents.loanApplicationId, id));
+    for (const doc of docs) {
+      await db.delete(documentComments).where(eq(documentComments.documentId, doc.id));
+    }
+    // Then delete associated documents
     await db.delete(documents).where(eq(documents.loanApplicationId, id));
-    // Then delete the application
+    // Delete associated timeline events
+    await db.delete(applicationTimeline).where(eq(applicationTimeline.loanApplicationId, id));
+    // Delete associated co-borrowers
+    await db.delete(coBorrowers).where(eq(coBorrowers.loanApplicationId, id));
+    // Finally delete the application
     const result = await db.delete(loanApplications).where(eq(loanApplications.id, id));
     return true;
   }

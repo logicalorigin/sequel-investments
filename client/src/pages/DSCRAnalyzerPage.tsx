@@ -23,7 +23,9 @@ import {
   Building2,
   Sun,
   Loader2,
+  ArrowLeft,
 } from "lucide-react";
+import { Link } from "wouter";
 import { Slider } from "@/components/ui/slider";
 
 const propertyTypes = [
@@ -464,7 +466,14 @@ export default function DSCRAnalyzerPage() {
 
       <main className="max-w-7xl mx-auto px-6 py-6">
         <div className="mb-6 flex items-start justify-between gap-4">
-          <div>
+          <div className="flex items-center gap-3">
+            {applicationId && (
+              <Link href={`/portal/application/${applicationId}`}>
+                <Button variant="ghost" size="icon" data-testid="button-back-to-application">
+                  <ArrowLeft className="h-5 w-5" />
+                </Button>
+              </Link>
+            )}
             <h1 className="text-2xl font-bold" data-testid="text-page-title">
               DSCR Loan Analyzer
             </h1>
