@@ -12,6 +12,7 @@ import {
   documentSignatures,
   coBorrowers,
   applicationTimeline,
+  marketDataSnapshots,
   type User, 
   type UpsertUser,
   type Lead, 
@@ -38,6 +39,8 @@ import {
   type InsertCoBorrower,
   type ApplicationTimelineEvent,
   type InsertApplicationTimelineEvent,
+  type MarketDataSnapshot,
+  type InsertMarketDataSnapshot,
   DEFAULT_DOCUMENT_TYPES,
 } from "@shared/schema";
 import { db } from "./db";
@@ -119,6 +122,12 @@ export interface IStorage {
   // Application timeline operations
   getApplicationTimeline(applicationId: string): Promise<ApplicationTimelineEvent[]>;
   createTimelineEvent(event: InsertApplicationTimelineEvent): Promise<ApplicationTimelineEvent>;
+  
+  // Market data cache operations
+  getMarketDataSnapshot(stateSlug: string): Promise<MarketDataSnapshot | undefined>;
+  getLatestMarketData(stateSlug: string): Promise<MarketDataSnapshot | undefined>;
+  createMarketDataSnapshot(snapshot: InsertMarketDataSnapshot): Promise<MarketDataSnapshot>;
+  getAllMarketDataSnapshots(): Promise<MarketDataSnapshot[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -505,6 +514,47 @@ export class DatabaseStorage implements IStorage {
       .values(event)
       .returning();
     return created;
+  }
+
+  // Market data cache operations
+  async getMarketDataSnapshot(stateSlug: string): Promise<MarketDataSnapshot | undefined> {
+    const [snapshot] = await db
+      .select()
+      .from(marketDataSnapshots)
+      .where(eq(marketDataSnapshots.stateSlug, stateSlug))
+      .orderBy(desc(marketDataSnapshots.fetchedAt))
+      .limit(1);
+    return snapshot;
+  }
+
+  async getLatestMarketData(stateSlug: string): Promise<MarketDataSnapshot | undefined> {
+    const now = new Date();
+    const [snapshot] = await db
+      .select()
+      .from(marketDataSnapshots)
+      .where(eq(marketDataSnapshots.stateSlug, stateSlug))
+      .orderBy(desc(marketDataSnapshots.fetchedAt))
+      .limit(1);
+    
+    if (snapshot && new Date(snapshot.expiresAt) > now) {
+      return snapshot;
+    }
+    return undefined;
+  }
+
+  async createMarketDataSnapshot(snapshot: InsertMarketDataSnapshot): Promise<MarketDataSnapshot> {
+    const [created] = await db
+      .insert(marketDataSnapshots)
+      .values(snapshot)
+      .returning();
+    return created;
+  }
+
+  async getAllMarketDataSnapshots(): Promise<MarketDataSnapshot[]> {
+    return await db
+      .select()
+      .from(marketDataSnapshots)
+      .orderBy(desc(marketDataSnapshots.fetchedAt));
   }
 }
 
