@@ -40,6 +40,7 @@ import LoginPage from "@/pages/LoginPage";
 import AdminDashboard from "@/pages/AdminDashboard";
 import AdminApplicationDetail from "@/pages/AdminApplicationDetail";
 import JoinPage from "@/pages/JoinPage";
+import StaffLoginPage from "@/pages/StaffLoginPage";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -69,6 +70,7 @@ function Router() {
       <Route path="/fundings" component={RecentFundingsPage} />
       <Route path="/fundings/:propertyId" component={PropertyDetailPage} />
       <Route path="/login" component={LoginPage} />
+      <Route path="/admin/login" component={StaffLoginPage} />
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/admin/application/:id" component={AdminApplicationDetail} />
       <Route path="/join/:token" component={JoinPage} />
