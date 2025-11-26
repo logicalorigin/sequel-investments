@@ -50,6 +50,16 @@ I prefer simple language. I want iterative development. Ask before making major 
 - **Shared Portal Header**: Consistent branding and user menu.
 - **Document Upload Organization**: Automated file organization creates deal-specific folders using the property address (e.g., "123 Main Street, Los Angeles, CA") for human-readable document storage. Files are stored as `/{dealName}/{uniqueId}_{fileName}`.
 
+### Company Backend (Staff Portal)
+
+- **Role-Based Access Control**: Three user roles - borrower (default), staff, admin. Staff and admin can access the Company Backend.
+- **Admin Dashboard** (`/admin`): Pipeline view of all loan applications with filters for status and loan type. Shows stats cards for Total Apps, Submitted, In Review, Approved, Funded.
+- **Application Management**: Staff can view any application, update status (draft/submitted/in_review/approved/funded/denied/withdrawn), and advance processing stage (Account Review → Underwriting → Term Sheet → Processing → Docs Out → Closed).
+- **User Management** (Admin only): View all users, change user roles between borrower/staff/admin.
+- **Staff Invitations** (Admin only): Create invitation links with 7-day expiry, send to email addresses with specified role (staff or admin). Invites are token-based and single-use.
+- **Join Flow** (`/join/:token`): Invited users access the join page, sign in with the invited email address, and accept the invitation to gain staff/admin access.
+- **Timeline Events**: Status and stage changes create timeline events with staff attribution.
+
 ### Trust Indicators
 
 Homepage displays: $500M+ Loans Funded, 1,500+ Investors Served, 48hrs Fastest Closing, 48 States + DC Licensed.
