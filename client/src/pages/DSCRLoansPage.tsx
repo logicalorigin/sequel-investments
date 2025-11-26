@@ -5,7 +5,7 @@ import { Link } from "wouter";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { LeadForm } from "@/components/LeadForm";
-import { DSCROnlyCalculator } from "@/components/DSCROnlyCalculator";
+import { TeaserDSCRCalculator } from "@/components/TeaserDSCRCalculator";
 import {
   Accordion,
   AccordionContent,
@@ -253,7 +253,7 @@ export default function DSCRLoansPage() {
 
               <div>
                 <h2 className="text-3xl font-bold mb-6">DSCR Calculator</h2>
-                <DSCROnlyCalculator />
+                <TeaserDSCRCalculator />
               </div>
 
               <div>
