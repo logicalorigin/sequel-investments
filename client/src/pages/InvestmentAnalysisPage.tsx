@@ -34,6 +34,56 @@ const propertyTypes = [
   { id: "townhome", label: "Townhome/Condo", icon: "townhome" },
 ];
 
+const dealTypes = [
+  { id: "rehab", label: "Rehab", icon: "rehab" },
+  { id: "new_construction", label: "New Construction", icon: "construction" },
+  { id: "rental", label: "Rental", icon: "rental" },
+];
+
+function DealTypeIcon({ type, className = "" }: { type: string; className?: string }) {
+  const baseClass = `${className}`;
+  
+  if (type === "rehab") {
+    return (
+      <svg className={baseClass} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M20 44L44 20" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
+        <path d="M40 16L48 24" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
+        <path d="M44 20L52 12" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
+        <path d="M48 16L56 8" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
+        <path d="M16 48L8 56" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
+        <rect x="8" y="48" width="12" height="8" rx="1" stroke="currentColor" strokeWidth="2" fill="none" transform="rotate(-45 14 52)"/>
+      </svg>
+    );
+  }
+  
+  if (type === "construction") {
+    return (
+      <svg className={baseClass} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 36L32 16L52 36" stroke="currentColor" strokeWidth="2" fill="none"/>
+        <path d="M32 16V8" stroke="currentColor" strokeWidth="2"/>
+        <rect x="16" y="36" width="32" height="20" stroke="currentColor" strokeWidth="2" fill="none"/>
+        <rect x="26" y="42" width="12" height="14" stroke="currentColor" strokeWidth="2" fill="none"/>
+        <line x1="8" y1="56" x2="56" y2="56" stroke="currentColor" strokeWidth="2"/>
+        <circle cx="32" cy="24" r="4" stroke="currentColor" strokeWidth="2" fill="none"/>
+      </svg>
+    );
+  }
+  
+  if (type === "rental") {
+    return (
+      <svg className={baseClass} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M8 28L32 8L56 28V56H8V28Z" stroke="currentColor" strokeWidth="2" fill="none"/>
+        <rect x="26" y="38" width="12" height="18" stroke="currentColor" strokeWidth="2" fill="none"/>
+        <circle cx="35" cy="48" r="2" fill="currentColor"/>
+        <path d="M44 20L44 8L52 8L52 16" stroke="currentColor" strokeWidth="2"/>
+        <path d="M20 56V48C20 46 22 44 24 44H26" stroke="currentColor" strokeWidth="2" fill="none"/>
+      </svg>
+    );
+  }
+  
+  return <Home className={baseClass} />;
+}
+
 function PropertyTypeIcon({ type, className = "" }: { type: string; className?: string }) {
   const baseClass = `${className}`;
   
@@ -161,15 +211,17 @@ export default function InvestmentAnalysisPage() {
   const results = useMemo(() => {
     const arvVal = parseFloat(arv) || 0;
     const purchasePriceVal = parseFloat(purchasePrice) || 0;
-    const rehabBudgetVal = parseFloat(rehabBudget) || 0;
     const downPaymentVal = parseFloat(downPayment) || 0;
     const closingCostsVal = parseFloat(totalClosingCosts) || 0;
     const taxesVal = parseFloat(annualTaxes) || 0;
     const insuranceVal = parseFloat(annualInsurance) || 0;
     const hoaVal = parseFloat(annualHOA) || 0;
-    const holdMonths = parseFloat(holdTimeMonths) || 9;
     const rate = parseFloat(interestRate) || 9.9;
-    const rehabFundingVal = parseFloat(requestedRehabFunding) || 0;
+    const loanTermVal = parseFloat(loanTermMonths) || 12;
+    
+    const rehabBudgetVal = dealType !== "rental" ? (parseFloat(rehabBudget) || 0) : 0;
+    const rehabFundingVal = dealType !== "rental" ? (parseFloat(requestedRehabFunding) || 0) : 0;
+    const holdMonths = dealType !== "rental" ? (parseFloat(holdTimeMonths) || 9) : loanTermVal;
 
     const loanAmount = purchasePriceVal - downPaymentVal + rehabFundingVal;
     
@@ -206,7 +258,7 @@ export default function InvestmentAnalysisPage() {
       ltc,
       loanAmount,
     };
-  }, [arv, purchasePrice, rehabBudget, downPayment, totalClosingCosts, annualTaxes, annualInsurance, annualHOA, holdTimeMonths, interestRate, requestedRehabFunding]);
+  }, [arv, purchasePrice, rehabBudget, downPayment, totalClosingCosts, annualTaxes, annualInsurance, annualHOA, holdTimeMonths, interestRate, requestedRehabFunding, dealType, loanTermMonths]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -324,22 +376,31 @@ export default function InvestmentAnalysisPage() {
                   />
                 </div>
 
+                <div className="mb-6">
+                  <Label className="mb-3 block">Deal Type</Label>
+                  <div className="grid grid-cols-3 gap-3">
+                    {dealTypes.map((dt) => (
+                      <button
+                        key={dt.id}
+                        type="button"
+                        onClick={() => setDealType(dt.id)}
+                        className={`flex flex-col items-center p-3 rounded-lg border-2 transition-all ${
+                          dealType === dt.id
+                            ? "border-primary bg-primary/5"
+                            : "border-border hover:border-primary/50 hover:bg-muted/50"
+                        }`}
+                        data-testid={`button-deal-type-${dt.id}`}
+                      >
+                        <DealTypeIcon type={dt.icon} className="w-10 h-10 mb-2 text-muted-foreground" />
+                        <span className="text-xs text-center font-medium">{dt.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="grid md:grid-cols-3 gap-6 mb-6">
                   <div>
-                    <Label htmlFor="dealType">Deal Type</Label>
-                    <Select value={dealType} onValueChange={setDealType}>
-                      <SelectTrigger className="mt-1" data-testid="select-deal-type">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="rehab">Rehab</SelectItem>
-                        <SelectItem value="new_construction">New Construction</SelectItem>
-                        <SelectItem value="rental">Rental</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="arv">ARV</Label>
+                    <Label htmlFor="arv">{dealType === "rental" ? "Property Value" : "ARV"}</Label>
                     <div className="relative mt-1">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                       <Input
@@ -353,6 +414,87 @@ export default function InvestmentAnalysisPage() {
                     </div>
                   </div>
                   <div>
+                    <Label htmlFor="purchasePrice">Purchase Price</Label>
+                    <div className="relative mt-1">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                      <Input
+                        id="purchasePrice"
+                        type="number"
+                        value={purchasePrice}
+                        onChange={(e) => setPurchasePrice(e.target.value)}
+                        className="pl-7"
+                        data-testid="input-purchase-price"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="downPayment">Down Payment</Label>
+                    <div className="relative mt-1">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                      <Input
+                        id="downPayment"
+                        type="number"
+                        value={downPayment}
+                        onChange={(e) => setDownPayment(e.target.value)}
+                        className="pl-7"
+                        data-testid="input-down-payment"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {dealType !== "rental" && (
+                  <div className="grid md:grid-cols-3 gap-6 mb-6">
+                    <div>
+                      <Label htmlFor="rehabBudget">
+                        {dealType === "new_construction" ? "Construction Budget" : "Rehab Budget"}
+                      </Label>
+                      <div className="relative mt-1">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                        <Input
+                          id="rehabBudget"
+                          type="number"
+                          value={rehabBudget}
+                          onChange={(e) => setRehabBudget(e.target.value)}
+                          className="pl-7"
+                          data-testid="input-rehab-budget"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="requestedRehabFunding">
+                        {dealType === "new_construction" ? "Requested Construction Funding" : "Requested Rehab Funding"}
+                      </Label>
+                      <div className="relative mt-1">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                        <Input
+                          id="requestedRehabFunding"
+                          type="number"
+                          value={requestedRehabFunding}
+                          onChange={(e) => setRequestedRehabFunding(e.target.value)}
+                          className="pl-7"
+                          data-testid="input-rehab-funding"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="holdTime">
+                        {dealType === "new_construction" ? "Build Duration (months)" : "Hold Time (months)"}
+                      </Label>
+                      <Input
+                        id="holdTime"
+                        type="number"
+                        value={holdTimeMonths}
+                        onChange={(e) => setHoldTimeMonths(e.target.value)}
+                        className="mt-1"
+                        data-testid="input-hold-time"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid md:grid-cols-3 gap-6 mb-6">
+                  <div>
                     <Label htmlFor="loanTerm">Loan Term (months)</Label>
                     <Input
                       id="loanTerm"
@@ -363,20 +505,35 @@ export default function InvestmentAnalysisPage() {
                       data-testid="input-loan-term"
                     />
                   </div>
+                  <div>
+                    <Label htmlFor="interestRate">Interest Rate (%)</Label>
+                    <Input
+                      id="interestRate"
+                      type="number"
+                      step="0.1"
+                      value={interestRate}
+                      onChange={(e) => setInterestRate(e.target.value)}
+                      className="mt-1"
+                      data-testid="input-interest-rate"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="closingCosts">Total Closing Costs</Label>
+                    <div className="relative mt-1">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                      <Input
+                        id="closingCosts"
+                        type="number"
+                        value={totalClosingCosts}
+                        onChange={(e) => setTotalClosingCosts(e.target.value)}
+                        className="pl-7"
+                        data-testid="input-closing-costs"
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div className="grid md:grid-cols-3 gap-6 mb-6">
-                  <div>
-                    <Label htmlFor="holdTime">Hold Time (months)</Label>
-                    <Input
-                      id="holdTime"
-                      type="number"
-                      value={holdTimeMonths}
-                      onChange={(e) => setHoldTimeMonths(e.target.value)}
-                      className="mt-1"
-                      data-testid="input-hold-time"
-                    />
-                  </div>
                   <div>
                     <Label htmlFor="annualTaxes">Annual Taxes</Label>
                     <div className="relative mt-1">
@@ -405,9 +562,6 @@ export default function InvestmentAnalysisPage() {
                       />
                     </div>
                   </div>
-                </div>
-
-                <div className="grid md:grid-cols-3 gap-6 mb-6">
                   <div>
                     <Label htmlFor="annualHOA">Annual HOA</Label>
                     <div className="relative mt-1">
@@ -420,97 +574,6 @@ export default function InvestmentAnalysisPage() {
                         className="pl-7"
                         data-testid="input-annual-hoa"
                       />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="closingCosts">Total Closing Costs</Label>
-                    <div className="relative mt-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                      <Input
-                        id="closingCosts"
-                        type="number"
-                        value={totalClosingCosts}
-                        onChange={(e) => setTotalClosingCosts(e.target.value)}
-                        className="pl-7"
-                        data-testid="input-closing-costs"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="purchasePrice">Purchase Price</Label>
-                    <div className="relative mt-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                      <Input
-                        id="purchasePrice"
-                        type="number"
-                        value={purchasePrice}
-                        onChange={(e) => setPurchasePrice(e.target.value)}
-                        className="pl-7"
-                        data-testid="input-purchase-price"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid md:grid-cols-3 gap-6 mb-6">
-                  <div>
-                    <Label htmlFor="downPayment">Down Payment</Label>
-                    <div className="relative mt-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                      <Input
-                        id="downPayment"
-                        type="number"
-                        value={downPayment}
-                        onChange={(e) => setDownPayment(e.target.value)}
-                        className="pl-7"
-                        data-testid="input-down-payment"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="rehabBudget">Rehab Budget</Label>
-                    <div className="relative mt-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                      <Input
-                        id="rehabBudget"
-                        type="number"
-                        value={rehabBudget}
-                        onChange={(e) => setRehabBudget(e.target.value)}
-                        className="pl-7"
-                        data-testid="input-rehab-budget"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="requestedRehabFunding">Requested Rehab Funding</Label>
-                    <div className="relative mt-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                      <Input
-                        id="requestedRehabFunding"
-                        type="number"
-                        value={requestedRehabFunding}
-                        onChange={(e) => setRequestedRehabFunding(e.target.value)}
-                        className="pl-7"
-                        data-testid="input-rehab-funding"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid md:grid-cols-3 gap-6">
-                  <div>
-                    <Label htmlFor="interestRate">Interest Rate</Label>
-                    <div className="relative mt-1">
-                      <Input
-                        id="interestRate"
-                        type="number"
-                        step="0.1"
-                        value={interestRate}
-                        onChange={(e) => setInterestRate(e.target.value)}
-                        className="pr-7"
-                        data-testid="input-interest-rate"
-                      />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">%</span>
                     </div>
                   </div>
                 </div>
