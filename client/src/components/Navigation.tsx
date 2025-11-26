@@ -8,40 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-function SAFLogo({ size = "default" }: { size?: "default" | "small" }) {
-  const isSmall = size === "small";
-  
-  return (
-    <div className="flex items-center gap-3">
-      {/* SAF Badge */}
-      <div 
-        className={`relative flex items-center justify-center bg-foreground text-background ${isSmall ? 'w-10 h-11' : 'w-12 h-14'}`}
-        style={{
-          clipPath: 'polygon(0 0, 100% 0, 100% 75%, 50% 100%, 0 75%)',
-        }}
-      >
-        <span 
-          className={`font-display tracking-tight ${isSmall ? 'text-lg' : 'text-xl'}`}
-          style={{ fontFamily: "'Bebas Neue', sans-serif" }}
-        >
-          SAF
-        </span>
-      </div>
-      {/* Stacked Text */}
-      <div 
-        className="flex flex-col leading-none"
-        style={{ fontFamily: "'Bebas Neue', sans-serif" }}
-      >
-        <span className={`tracking-wide ${isSmall ? 'text-lg' : 'text-xl'}`}>SECURED</span>
-        <span className={`tracking-wide ${isSmall ? 'text-lg' : 'text-xl'}`}>ASSET</span>
-        <span className={`tracking-wide ${isSmall ? 'text-lg' : 'text-xl'}`}>FUNDING</span>
-      </div>
-    </div>
-  );
-}
-
-export { SAFLogo };
+import logoIcon from "@assets/logo_saf_only_removed_bg (1)_1764095523171.png";
 
 export function Navigation() {
   const [location] = useLocation();
@@ -70,7 +37,11 @@ export function Navigation() {
         <div className="flex items-center justify-between h-20">
           <Link href="/" data-testid="link-home">
             <div className="flex items-center cursor-pointer hover-elevate active-elevate-2 px-2 py-1 rounded-md -ml-2">
-              <SAFLogo />
+              <img 
+                src={logoIcon} 
+                alt="Secured Asset Funding" 
+                className="h-16 w-auto object-contain"
+              />
             </div>
           </Link>
 
