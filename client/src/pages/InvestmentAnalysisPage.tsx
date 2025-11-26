@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import AddressAutocomplete from "@/components/AddressAutocomplete";
 import { 
   Select,
   SelectContent,
@@ -35,54 +36,10 @@ const propertyTypes = [
 ];
 
 const dealTypes = [
-  { id: "rehab", label: "Rehab", icon: "rehab" },
-  { id: "new_construction", label: "New Construction", icon: "construction" },
-  { id: "rental", label: "Rental", icon: "rental" },
+  { id: "rental", label: "DSCR" },
+  { id: "rehab", label: "Fix & Flip" },
+  { id: "new_construction", label: "New Construction" },
 ];
-
-function DealTypeIcon({ type, className = "" }: { type: string; className?: string }) {
-  const baseClass = `${className}`;
-  
-  if (type === "rehab") {
-    return (
-      <svg className={baseClass} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M20 44L44 20" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
-        <path d="M40 16L48 24" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
-        <path d="M44 20L52 12" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
-        <path d="M48 16L56 8" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
-        <path d="M16 48L8 56" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
-        <rect x="8" y="48" width="12" height="8" rx="1" stroke="currentColor" strokeWidth="2" fill="none" transform="rotate(-45 14 52)"/>
-      </svg>
-    );
-  }
-  
-  if (type === "construction") {
-    return (
-      <svg className={baseClass} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 36L32 16L52 36" stroke="currentColor" strokeWidth="2" fill="none"/>
-        <path d="M32 16V8" stroke="currentColor" strokeWidth="2"/>
-        <rect x="16" y="36" width="32" height="20" stroke="currentColor" strokeWidth="2" fill="none"/>
-        <rect x="26" y="42" width="12" height="14" stroke="currentColor" strokeWidth="2" fill="none"/>
-        <line x1="8" y1="56" x2="56" y2="56" stroke="currentColor" strokeWidth="2"/>
-        <circle cx="32" cy="24" r="4" stroke="currentColor" strokeWidth="2" fill="none"/>
-      </svg>
-    );
-  }
-  
-  if (type === "rental") {
-    return (
-      <svg className={baseClass} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M8 28L32 8L56 28V56H8V28Z" stroke="currentColor" strokeWidth="2" fill="none"/>
-        <rect x="26" y="38" width="12" height="18" stroke="currentColor" strokeWidth="2" fill="none"/>
-        <circle cx="35" cy="48" r="2" fill="currentColor"/>
-        <path d="M44 20L44 8L52 8L52 16" stroke="currentColor" strokeWidth="2"/>
-        <path d="M20 56V48C20 46 22 44 24 44H26" stroke="currentColor" strokeWidth="2" fill="none"/>
-      </svg>
-    );
-  }
-  
-  return <Home className={baseClass} />;
-}
 
 function PropertyTypeIcon({ type, className = "" }: { type: string; className?: string }) {
   const baseClass = `${className}`;
@@ -171,7 +128,7 @@ export default function InvestmentAnalysisPage() {
 
   const [address, setAddress] = useState("");
   const [propertyType, setPropertyType] = useState("sfr");
-  const [dealType, setDealType] = useState("rehab");
+  const [dealType, setDealType] = useState("rental");
   const [arv, setArv] = useState("500000");
   const [loanTermMonths, setLoanTermMonths] = useState("9");
   const [holdTimeMonths, setHoldTimeMonths] = useState("9");
@@ -366,33 +323,32 @@ export default function InvestmentAnalysisPage() {
 
                 <div className="mb-6">
                   <Label htmlFor="address">Address</Label>
-                  <Input
-                    id="address"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    placeholder="10180 E CARON ST, SCOTTSDALE, AZ 85258"
-                    className="mt-1"
-                    data-testid="input-address"
-                  />
+                  <div className="mt-1">
+                    <AddressAutocomplete
+                      value={address}
+                      onChange={setAddress}
+                      placeholder="Enter property address"
+                      data-testid="input-address"
+                    />
+                  </div>
                 </div>
 
                 <div className="mb-6">
                   <Label className="mb-3 block">Deal Type</Label>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-3 gap-2">
                     {dealTypes.map((dt) => (
                       <button
                         key={dt.id}
                         type="button"
                         onClick={() => setDealType(dt.id)}
-                        className={`flex flex-col items-center p-3 rounded-lg border-2 transition-all ${
+                        className={`px-4 py-2 rounded-lg border-2 text-sm font-medium transition-all ${
                           dealType === dt.id
-                            ? "border-primary bg-primary/5"
+                            ? "border-primary bg-primary/10 text-primary"
                             : "border-border hover:border-primary/50 hover:bg-muted/50"
                         }`}
                         data-testid={`button-deal-type-${dt.id}`}
                       >
-                        <DealTypeIcon type={dt.icon} className="w-10 h-10 mb-2 text-muted-foreground" />
-                        <span className="text-xs text-center font-medium">{dt.label}</span>
+                        {dt.label}
                       </button>
                     ))}
                   </div>
