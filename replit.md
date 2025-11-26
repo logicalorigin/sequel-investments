@@ -101,7 +101,10 @@ The borrower portal is modeled after Easy Street Capital's portal design with th
   - DSCR Analyzer (data-testid="link-dscr-analyzer") - Rental property cash flow analysis
   - Fix & Flip Analyzer (data-testid="link-fixflip-analyzer") - Rehab deal profitability
   - Construction Analyzer (data-testid="link-construction-analyzer") - Ground-up build analysis
-  - All-in-One Analyzer (data-testid="link-all-in-one-analyzer") - Combined deal calculator
+
+**Portal Landing Page** (`/portal`):
+- "Analyze a New Deal" section with 3 cards linking to individual analyzers
+- Each card navigates to its dedicated analyzer page (DSCR, Fix & Flip, Construction)
 
 **Application Detail Page** (`/portal/application/:id`):
 - Progress stepper with 6 stages: Account Executive Review → Underwriting → Term Sheet Issued → Processing → Docs Out → Closed

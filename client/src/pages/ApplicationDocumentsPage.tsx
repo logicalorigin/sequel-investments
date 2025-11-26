@@ -234,9 +234,9 @@ export default function ApplicationDocumentsPage() {
                 Portfolio
               </Button>
             </Link>
-            <Link href="/portal/investment-analysis">
-              <Button variant="ghost" size="sm" data-testid="link-investment-analysis">
-                Investment Analysis
+            <Link href="/portal">
+              <Button variant="ghost" size="sm" data-testid="link-analyzers">
+                Analyzers
               </Button>
             </Link>
             <div className="flex items-center gap-2">
