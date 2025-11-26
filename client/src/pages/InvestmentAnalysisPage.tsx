@@ -25,11 +25,13 @@ import {
   TrendingUp,
   DollarSign,
   Percent,
-  ArrowRight,
   Home,
-  Building,
   FileText,
+  ArrowDown,
+  ArrowUpRight,
+  Minus,
 } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
 
 const propertyTypes = [
   { id: "sfr", label: "Single Family", icon: "sfr" },
@@ -43,6 +45,12 @@ const dealTypes = [
   { id: "rental", label: "DSCR" },
   { id: "rehab", label: "Fix & Flip" },
   { id: "new_construction", label: "New Construction" },
+];
+
+const transactionTypes = [
+  { id: "purchase", label: "Purchase" },
+  { id: "cash_out", label: "Cash-Out Refinance" },
+  { id: "rate_term", label: "Rate & Term Refinance" },
 ];
 
 function PropertyTypeIcon({ type, className = "" }: { type: string; className?: string }) {
@@ -134,8 +142,9 @@ export default function InvestmentAnalysisPage() {
   const [address, setAddress] = useState("");
   const [propertyType, setPropertyType] = useState("sfr");
   const [dealType, setDealType] = useState("rental");
+  const [transactionType, setTransactionType] = useState("purchase");
   const [arv, setArv] = useState("500000");
-  const [loanTermMonths, setLoanTermMonths] = useState("9");
+  const [loanTermMonths, setLoanTermMonths] = useState("30");
   const [holdTimeMonths, setHoldTimeMonths] = useState("9");
   const [annualTaxes, setAnnualTaxes] = useState("7500");
   const [annualInsurance, setAnnualInsurance] = useState("3500");
@@ -146,6 +155,9 @@ export default function InvestmentAnalysisPage() {
   const [rehabBudget, setRehabBudget] = useState("100000");
   const [requestedRehabFunding, setRequestedRehabFunding] = useState("100000");
   const [interestRate, setInterestRate] = useState("9.9");
+  
+  const [creditScore, setCreditScore] = useState([720]);
+  const [monthlyRent, setMonthlyRent] = useState("3500");
 
   useEffect(() => {
     document.title = "Investment Analysis | Secured Asset Funding";
@@ -197,6 +209,41 @@ export default function InvestmentAnalysisPage() {
     return (first + last).toUpperCase() || "U";
   };
 
+  const calculateDSCRInterestRate = (ltv: number, dscr: number) => {
+    const BASE_RATE = 6.25;
+    
+    let creditAdjustment = 0;
+    const score = creditScore[0];
+    if (score >= 760) creditAdjustment = 0;
+    else if (score >= 740) creditAdjustment = 0.25;
+    else if (score >= 720) creditAdjustment = 0.375;
+    else if (score >= 700) creditAdjustment = 0.5;
+    else if (score >= 680) creditAdjustment = 0.75;
+    else creditAdjustment = 1.0;
+    
+    let ltvAdjustment = 0;
+    if (ltv <= 50) ltvAdjustment = -0.5;
+    else if (ltv <= 55) ltvAdjustment = -0.25;
+    else if (ltv <= 60) ltvAdjustment = 0;
+    else if (ltv <= 65) ltvAdjustment = 0.125;
+    else if (ltv <= 70) ltvAdjustment = 0.25;
+    else if (ltv <= 75) ltvAdjustment = 0.375;
+    else ltvAdjustment = 0.5;
+    
+    let dscrAdjustment = 0;
+    if (dscr >= 1.5) dscrAdjustment = -0.125;
+    else if (dscr >= 1.25) dscrAdjustment = 0;
+    else if (dscr >= 1.0) dscrAdjustment = 0.125;
+    else if (dscr >= 0.75) dscrAdjustment = 0.25;
+    else dscrAdjustment = 0.375;
+    
+    let propertyAdjustment = 0;
+    if (propertyType !== "sfr" && propertyType !== "townhome") propertyAdjustment = 0.25;
+    
+    const finalRate = BASE_RATE + creditAdjustment + ltvAdjustment + dscrAdjustment + propertyAdjustment;
+    return Math.max(5.75, Math.min(9.0, finalRate));
+  };
+
   const results = useMemo(() => {
     const arvVal = parseFloat(arv) || 0;
     const purchasePriceVal = parseFloat(purchasePrice) || 0;
@@ -205,21 +252,45 @@ export default function InvestmentAnalysisPage() {
     const taxesVal = parseFloat(annualTaxes) || 0;
     const insuranceVal = parseFloat(annualInsurance) || 0;
     const hoaVal = parseFloat(annualHOA) || 0;
-    const rate = parseFloat(interestRate) || 9.9;
-    const loanTermVal = parseFloat(loanTermMonths) || 12;
+    const loanTermInputVal = parseFloat(loanTermMonths) || (dealType === "rental" ? 30 : 12);
+    const monthlyRentVal = parseFloat(monthlyRent) || 0;
+    
+    const loanTermInMonths = dealType === "rental" ? loanTermInputVal * 12 : loanTermInputVal;
     
     const rehabBudgetVal = dealType !== "rental" ? (parseFloat(rehabBudget) || 0) : 0;
     const rehabFundingVal = dealType !== "rental" ? (parseFloat(requestedRehabFunding) || 0) : 0;
-    const holdMonths = dealType !== "rental" ? (parseFloat(holdTimeMonths) || 9) : loanTermVal;
+    const holdMonths = dealType !== "rental" ? (parseFloat(holdTimeMonths) || 9) : loanTermInMonths;
 
     const loanAmount = purchasePriceVal - downPaymentVal + rehabFundingVal;
+    
+    const ltv = arvVal > 0 ? (loanAmount / arvVal) * 100 : 0;
     
     const monthlyTaxes = taxesVal / 12;
     const monthlyInsurance = insuranceVal / 12;
     const monthlyHOA = hoaVal / 12;
-    const monthlyHoldingCosts = monthlyTaxes + monthlyInsurance + monthlyHOA;
-    const totalHoldingCosts = monthlyHoldingCosts * holdMonths;
+    const monthlyTIA = monthlyTaxes + monthlyInsurance + monthlyHOA;
     
+    const estimatedMonthlyRate = 6.5 / 100 / 12;
+    const estimatedMonthlyPI = loanAmount > 0 && loanTermInMonths > 0
+      ? (loanAmount * estimatedMonthlyRate * Math.pow(1 + estimatedMonthlyRate, loanTermInMonths)) / 
+        (Math.pow(1 + estimatedMonthlyRate, loanTermInMonths) - 1)
+      : 0;
+    const estimatedMonthlyPITIA = estimatedMonthlyPI + monthlyTIA;
+    const preliminaryDSCR = estimatedMonthlyPITIA > 0 ? monthlyRentVal / estimatedMonthlyPITIA : 0;
+    
+    const rate = dealType === "rental" 
+      ? calculateDSCRInterestRate(ltv, preliminaryDSCR)
+      : parseFloat(interestRate) || 9.9;
+    
+    const actualMonthlyRate = rate / 100 / 12;
+    const actualMonthlyPI = loanAmount > 0 && loanTermInMonths > 0
+      ? (loanAmount * actualMonthlyRate * Math.pow(1 + actualMonthlyRate, loanTermInMonths)) / 
+        (Math.pow(1 + actualMonthlyRate, loanTermInMonths) - 1)
+      : 0;
+    const totalMonthlyPITIA = actualMonthlyPI + monthlyTIA;
+    const finalDSCR = totalMonthlyPITIA > 0 ? monthlyRentVal / totalMonthlyPITIA : 0;
+    
+    const totalHoldingCosts = monthlyTIA * holdMonths;
     const interestCost = (loanAmount * (rate / 100)) * (holdMonths / 12);
     
     const totalProjectCost = purchasePriceVal + rehabBudgetVal + closingCostsVal + totalHoldingCosts + interestCost;
@@ -231,8 +302,6 @@ export default function InvestmentAnalysisPage() {
     const roi = cashInvested > 0 ? (totalProfit / cashInvested) * 100 : 0;
     
     const profitMargin = arvVal > 0 ? (totalProfit / arvVal) * 100 : 0;
-    
-    const ltv = arvVal > 0 ? (loanAmount / arvVal) * 100 : 0;
     
     const totalCost = purchasePriceVal + rehabBudgetVal;
     const ltc = totalCost > 0 ? (loanAmount / totalCost) * 100 : 0;
@@ -246,8 +315,10 @@ export default function InvestmentAnalysisPage() {
       ltv,
       ltc,
       loanAmount,
+      dscrRatio: finalDSCR,
+      calculatedRate: rate,
     };
-  }, [arv, purchasePrice, rehabBudget, downPayment, totalClosingCosts, annualTaxes, annualInsurance, annualHOA, holdTimeMonths, interestRate, requestedRehabFunding, dealType, loanTermMonths]);
+  }, [arv, purchasePrice, rehabBudget, downPayment, totalClosingCosts, annualTaxes, annualInsurance, annualHOA, holdTimeMonths, interestRate, requestedRehabFunding, dealType, loanTermMonths, monthlyRent, creditScore, propertyType]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -273,38 +344,34 @@ export default function InvestmentAnalysisPage() {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
+        <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between gap-3">
           <Link href="/">
-            <div className="flex items-center gap-2 cursor-pointer">
-              <Building2 className="h-6 w-6 text-primary" />
-              <span className="font-bold text-lg">Secured Asset Funding</span>
+            <div className="flex items-center gap-1.5 cursor-pointer">
+              <Building2 className="h-5 w-5 text-primary" />
+              <span className="font-bold text-sm">SAF</span>
             </div>
           </Link>
           
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             <Link href="/portal">
-              <Button variant="ghost" size="sm" data-testid="link-portfolio">
+              <Button variant="ghost" size="sm" className="h-7 text-xs px-2" data-testid="link-portfolio">
                 Portfolio
               </Button>
             </Link>
             <Link href="/portal/investment-analysis">
-              <Button variant="ghost" size="sm" className="bg-primary/10" data-testid="link-investment-analysis">
-                Investment Analysis
+              <Button variant="ghost" size="sm" className="h-7 text-xs px-2 bg-primary/10" data-testid="link-investment-analysis">
+                Analysis
               </Button>
             </Link>
-            <div className="flex items-center gap-2">
-              <Avatar className="h-8 w-8">
+            <div className="flex items-center gap-1.5">
+              <Avatar className="h-6 w-6">
                 <AvatarImage src={user?.profileImageUrl || undefined} />
-                <AvatarFallback>{getInitials(user?.firstName, user?.lastName)}</AvatarFallback>
+                <AvatarFallback className="text-xs">{getInitials(user?.firstName, user?.lastName)}</AvatarFallback>
               </Avatar>
-              <span className="text-sm font-medium hidden sm:inline">
-                {user?.firstName || user?.email || "User"}
-              </span>
             </div>
             <a href="/api/logout">
-              <Button variant="ghost" size="sm" data-testid="button-logout">
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
+              <Button variant="ghost" size="sm" className="h-7 text-xs px-2" data-testid="button-logout">
+                <LogOut className="h-3 w-3" />
               </Button>
             </a>
           </div>
@@ -330,50 +397,88 @@ export default function InvestmentAnalysisPage() {
                   Deal Details
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="mb-6">
-                  <Label className="mb-3 block">Property Type</Label>
-                  <div className="grid grid-cols-5 gap-3">
-                    {propertyTypes.map((pt) => (
-                      <button
-                        key={pt.id}
-                        type="button"
-                        onClick={() => setPropertyType(pt.id)}
-                        className={`flex flex-col items-center p-3 rounded-lg border-2 transition-all ${
-                          propertyType === pt.id
-                            ? "border-primary bg-primary/5"
-                            : "border-border hover:border-primary/50 hover:bg-muted/50"
-                        }`}
-                        data-testid={`button-property-type-${pt.id}`}
-                      >
-                        <PropertyTypeIcon type={pt.icon} className="w-10 h-10 mb-2 text-muted-foreground" />
-                        <span className="text-xs text-center font-medium">{pt.label}</span>
-                      </button>
-                    ))}
+              <CardContent className="space-y-8">
+                {/* Property Section */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide border-b pb-2">Property</h3>
+                  
+                  <div>
+                    <Label className="mb-3 block">Property Type</Label>
+                    <div className="grid grid-cols-5 gap-2">
+                      {propertyTypes.map((pt) => (
+                        <button
+                          key={pt.id}
+                          type="button"
+                          onClick={() => setPropertyType(pt.id)}
+                          className={`flex flex-col items-center p-2 rounded-lg border-2 transition-all ${
+                            propertyType === pt.id
+                              ? "border-primary bg-primary/5"
+                              : "border-border hover:border-primary/50 hover:bg-muted/50"
+                          }`}
+                          data-testid={`button-property-type-${pt.id}`}
+                        >
+                          <PropertyTypeIcon type={pt.icon} className="w-8 h-8 mb-1 text-muted-foreground" />
+                          <span className="text-[10px] text-center font-medium">{pt.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="address">Address</Label>
+                    <div className="mt-1">
+                      <AddressAutocomplete
+                        value={address}
+                        onChange={setAddress}
+                        placeholder="Enter property address"
+                        data-testid="input-address"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="arv">{dealType === "rental" ? "Property Value" : "ARV"}</Label>
+                      <div className="relative mt-1">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                        <Input
+                          id="arv"
+                          type="number"
+                          value={arv}
+                          onChange={(e) => setArv(e.target.value)}
+                          className="pl-7"
+                          data-testid="input-arv"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="purchasePrice">Purchase Price</Label>
+                      <div className="relative mt-1">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                        <Input
+                          id="purchasePrice"
+                          type="number"
+                          value={purchasePrice}
+                          onChange={(e) => setPurchasePrice(e.target.value)}
+                          className="pl-7"
+                          data-testid="input-purchase-price"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <div className="mb-6">
-                  <Label htmlFor="address">Address</Label>
-                  <div className="mt-1">
-                    <AddressAutocomplete
-                      value={address}
-                      onChange={setAddress}
-                      placeholder="Enter property address"
-                      data-testid="input-address"
-                    />
-                  </div>
-                </div>
-
-                <div className="mb-6">
-                  <Label className="mb-3 block">Deal Type</Label>
+                {/* Deal Type Section */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide border-b pb-2">Deal Type</h3>
+                  
                   <div className="grid grid-cols-3 gap-2">
                     {dealTypes.map((dt) => (
                       <button
                         key={dt.id}
                         type="button"
                         onClick={() => setDealType(dt.id)}
-                        className={`px-4 py-2 rounded-lg border-2 text-sm font-medium transition-all ${
+                        className={`px-3 py-2 rounded-lg border-2 text-sm font-medium transition-all ${
                           dealType === dt.id
                             ? "border-primary bg-primary/10 text-primary"
                             : "border-border hover:border-primary/50 hover:bg-muted/50"
@@ -384,282 +489,374 @@ export default function InvestmentAnalysisPage() {
                       </button>
                     ))}
                   </div>
-                </div>
 
-                <div className="grid md:grid-cols-3 gap-6 mb-6">
-                  <div>
-                    <Label htmlFor="arv">{dealType === "rental" ? "Property Value" : "ARV"}</Label>
-                    <div className="relative mt-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                      <Input
-                        id="arv"
-                        type="number"
-                        value={arv}
-                        onChange={(e) => setArv(e.target.value)}
-                        className="pl-7"
-                        data-testid="input-arv"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="purchasePrice">Purchase Price</Label>
-                    <div className="relative mt-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                      <Input
-                        id="purchasePrice"
-                        type="number"
-                        value={purchasePrice}
-                        onChange={(e) => setPurchasePrice(e.target.value)}
-                        className="pl-7"
-                        data-testid="input-purchase-price"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="downPayment">Down Payment</Label>
-                    <div className="relative mt-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                      <Input
-                        id="downPayment"
-                        type="number"
-                        value={downPayment}
-                        onChange={(e) => setDownPayment(e.target.value)}
-                        className="pl-7"
-                        data-testid="input-down-payment"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {dealType !== "rental" && (
-                  <div className="grid md:grid-cols-3 gap-6 mb-6">
+                  {/* DSCR-specific: Transaction Type */}
+                  {dealType === "rental" && (
                     <div>
-                      <Label htmlFor="rehabBudget">
-                        {dealType === "new_construction" ? "Construction Budget" : "Rehab Budget"}
-                      </Label>
+                      <Label className="mb-2 block">Transaction Type</Label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {transactionTypes.map((tt) => (
+                          <button
+                            key={tt.id}
+                            type="button"
+                            onClick={() => setTransactionType(tt.id)}
+                            className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${
+                              transactionType === tt.id
+                                ? "border-primary bg-primary/10 text-primary"
+                                : "border-border hover:border-primary/50 hover:bg-muted/50"
+                            }`}
+                            data-testid={`button-transaction-type-${tt.id}`}
+                          >
+                            {tt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Financing Section */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide border-b pb-2">Financing</h3>
+                  
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="downPayment">Down Payment</Label>
                       <div className="relative mt-1">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                         <Input
-                          id="rehabBudget"
+                          id="downPayment"
                           type="number"
-                          value={rehabBudget}
-                          onChange={(e) => setRehabBudget(e.target.value)}
+                          value={downPayment}
+                          onChange={(e) => setDownPayment(e.target.value)}
                           className="pl-7"
-                          data-testid="input-rehab-budget"
+                          data-testid="input-down-payment"
                         />
                       </div>
                     </div>
                     <div>
-                      <Label htmlFor="requestedRehabFunding">
-                        {dealType === "new_construction" ? "Requested Construction Funding" : "Requested Rehab Funding"}
-                      </Label>
+                      <Label htmlFor="closingCosts">Total Closing Costs</Label>
                       <div className="relative mt-1">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                         <Input
-                          id="requestedRehabFunding"
+                          id="closingCosts"
                           type="number"
-                          value={requestedRehabFunding}
-                          onChange={(e) => setRequestedRehabFunding(e.target.value)}
+                          value={totalClosingCosts}
+                          onChange={(e) => setTotalClosingCosts(e.target.value)}
                           className="pl-7"
-                          data-testid="input-rehab-funding"
+                          data-testid="input-closing-costs"
                         />
                       </div>
                     </div>
+                  </div>
+
+                  {dealType !== "rental" && (
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="rehabBudget">
+                          {dealType === "new_construction" ? "Construction Budget" : "Rehab Budget"}
+                        </Label>
+                        <div className="relative mt-1">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                          <Input
+                            id="rehabBudget"
+                            type="number"
+                            value={rehabBudget}
+                            onChange={(e) => setRehabBudget(e.target.value)}
+                            className="pl-7"
+                            data-testid="input-rehab-budget"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="requestedRehabFunding">
+                          {dealType === "new_construction" ? "Requested Construction Funding" : "Requested Rehab Funding"}
+                        </Label>
+                        <div className="relative mt-1">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                          <Input
+                            id="requestedRehabFunding"
+                            type="number"
+                            value={requestedRehabFunding}
+                            onChange={(e) => setRequestedRehabFunding(e.target.value)}
+                            className="pl-7"
+                            data-testid="input-rehab-funding"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="grid md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="holdTime">
-                        {dealType === "new_construction" ? "Build Duration (months)" : "Hold Time (months)"}
+                      <Label htmlFor="loanTerm">
+                        {dealType === "rental" ? "Loan Term (years)" : "Loan Term (months)"}
                       </Label>
                       <Input
-                        id="holdTime"
+                        id="loanTerm"
                         type="number"
-                        value={holdTimeMonths}
-                        onChange={(e) => setHoldTimeMonths(e.target.value)}
+                        value={loanTermMonths}
+                        onChange={(e) => setLoanTermMonths(e.target.value)}
                         className="mt-1"
-                        data-testid="input-hold-time"
+                        data-testid="input-loan-term"
                       />
+                    </div>
+                    {dealType !== "rental" && (
+                      <div>
+                        <Label htmlFor="holdTime">
+                          {dealType === "new_construction" ? "Build Duration (months)" : "Hold Time (months)"}
+                        </Label>
+                        <Input
+                          id="holdTime"
+                          type="number"
+                          value={holdTimeMonths}
+                          onChange={(e) => setHoldTimeMonths(e.target.value)}
+                          className="mt-1"
+                          data-testid="input-hold-time"
+                        />
+                      </div>
+                    )}
+                    {dealType !== "rental" && (
+                      <div>
+                        <Label htmlFor="interestRate">Interest Rate (%)</Label>
+                        <Input
+                          id="interestRate"
+                          type="number"
+                          step="0.1"
+                          value={interestRate}
+                          onChange={(e) => setInterestRate(e.target.value)}
+                          className="mt-1"
+                          data-testid="input-interest-rate"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* DSCR Rate Factors Section - Only for DSCR */}
+                {dealType === "rental" && (
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide border-b pb-2">Rate Factors</h3>
+                    
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <Label>Credit Score</Label>
+                        <span className="text-lg font-bold text-primary">{creditScore[0]}</span>
+                      </div>
+                      <Slider
+                        value={creditScore}
+                        onValueChange={setCreditScore}
+                        min={660}
+                        max={800}
+                        step={5}
+                        className="w-full"
+                        data-testid="slider-credit-score"
+                      />
+                      <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                        <span>660</span>
+                        <span>800</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="monthlyRent">Expected Monthly Rent</Label>
+                      <div className="relative mt-1">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                        <Input
+                          id="monthlyRent"
+                          type="number"
+                          value={monthlyRent}
+                          onChange={(e) => setMonthlyRent(e.target.value)}
+                          className="pl-7"
+                          data-testid="input-monthly-rent"
+                        />
+                      </div>
                     </div>
                   </div>
                 )}
 
-                <div className="grid md:grid-cols-3 gap-6 mb-6">
-                  <div>
-                    <Label htmlFor="loanTerm">Loan Term (months)</Label>
-                    <Input
-                      id="loanTerm"
-                      type="number"
-                      value={loanTermMonths}
-                      onChange={(e) => setLoanTermMonths(e.target.value)}
-                      className="mt-1"
-                      data-testid="input-loan-term"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="interestRate">Interest Rate (%)</Label>
-                    <Input
-                      id="interestRate"
-                      type="number"
-                      step="0.1"
-                      value={interestRate}
-                      onChange={(e) => setInterestRate(e.target.value)}
-                      className="mt-1"
-                      data-testid="input-interest-rate"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="closingCosts">Total Closing Costs</Label>
-                    <div className="relative mt-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                      <Input
-                        id="closingCosts"
-                        type="number"
-                        value={totalClosingCosts}
-                        onChange={(e) => setTotalClosingCosts(e.target.value)}
-                        className="pl-7"
-                        data-testid="input-closing-costs"
-                      />
+                {/* Operating Expenses Section */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide border-b pb-2">Operating Expenses</h3>
+                  
+                  <div className="grid md:grid-cols-3 gap-4">
+                    <div>
+                      <Label htmlFor="annualTaxes">Annual Taxes</Label>
+                      <div className="relative mt-1">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                        <Input
+                          id="annualTaxes"
+                          type="number"
+                          value={annualTaxes}
+                          onChange={(e) => setAnnualTaxes(e.target.value)}
+                          className="pl-7"
+                          data-testid="input-annual-taxes"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="annualInsurance">Annual Insurance</Label>
+                      <div className="relative mt-1">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                        <Input
+                          id="annualInsurance"
+                          type="number"
+                          value={annualInsurance}
+                          onChange={(e) => setAnnualInsurance(e.target.value)}
+                          className="pl-7"
+                          data-testid="input-annual-insurance"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="annualHOA">Annual HOA</Label>
+                      <div className="relative mt-1">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                        <Input
+                          id="annualHOA"
+                          type="number"
+                          value={annualHOA}
+                          onChange={(e) => setAnnualHOA(e.target.value)}
+                          className="pl-7"
+                          data-testid="input-annual-hoa"
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
-
-                <div className="grid md:grid-cols-3 gap-6 mb-6">
-                  <div>
-                    <Label htmlFor="annualTaxes">Annual Taxes</Label>
-                    <div className="relative mt-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                      <Input
-                        id="annualTaxes"
-                        type="number"
-                        value={annualTaxes}
-                        onChange={(e) => setAnnualTaxes(e.target.value)}
-                        className="pl-7"
-                        data-testid="input-annual-taxes"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="annualInsurance">Annual Insurance</Label>
-                    <div className="relative mt-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                      <Input
-                        id="annualInsurance"
-                        type="number"
-                        value={annualInsurance}
-                        onChange={(e) => setAnnualInsurance(e.target.value)}
-                        className="pl-7"
-                        data-testid="input-annual-insurance"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="annualHOA">Annual HOA</Label>
-                    <div className="relative mt-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                      <Input
-                        id="annualHOA"
-                        type="number"
-                        value={annualHOA}
-                        onChange={(e) => setAnnualHOA(e.target.value)}
-                        className="pl-7"
-                        data-testid="input-annual-hoa"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex gap-4 mt-8">
-                  <Button 
-                    className="bg-primary hover:bg-primary/90"
-                    data-testid="button-analyze"
-                  >
-                    <Calculator className="h-4 w-4 mr-2" />
-                    Analyze
-                  </Button>
-                  <Link href="/get-quote">
-                    <Button variant="outline" data-testid="button-continue-application">
-                      <ArrowRight className="h-4 w-4 mr-2" />
-                      Continue to Application
-                    </Button>
-                  </Link>
                 </div>
               </CardContent>
             </Card>
           </div>
 
           <div>
-            <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 sticky top-24">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5 text-primary" />
-                  Results
+            <Card 
+              className={`sticky top-12 border transition-colors ${
+                dealType !== "rental" 
+                  ? results.roi >= 10 
+                    ? "bg-gradient-to-br from-green-500/20 to-green-500/10 border-green-500/30"
+                    : results.roi >= 5
+                    ? "bg-gradient-to-br from-yellow-500/20 to-yellow-500/10 border-yellow-500/30"
+                    : "bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20"
+                  : "bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20"
+              }`}
+              data-testid="card-results"
+            >
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-primary" />
+                    Results
+                  </div>
+                  {dealType !== "rental" && (
+                    <div className="flex items-center gap-1">
+                      {results.roi >= 10 ? (
+                        <ArrowUpRight className="h-5 w-5 text-green-600" />
+                      ) : results.roi >= 5 ? (
+                        <Minus className="h-5 w-5 text-yellow-600" />
+                      ) : (
+                        <ArrowDown className="h-5 w-5 text-red-600" />
+                      )}
+                    </div>
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-background rounded-lg p-4">
+                <div className="space-y-3">
+                  {/* DSCR-specific: Show calculated rate and DSCR */}
+                  {dealType === "rental" && (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-background rounded-lg p-3">
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Interest Rate</p>
+                        <p className="text-xl font-bold text-primary" data-testid="result-interest-rate">
+                          {results.calculatedRate.toFixed(2)}%
+                        </p>
+                      </div>
+                      <div className="bg-background rounded-lg p-3">
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">DSCR</p>
+                        <p className={`text-xl font-bold ${results.dscrRatio >= 1.0 ? "text-green-600" : results.dscrRatio >= 0.75 ? "text-yellow-600" : "text-red-600"}`} data-testid="result-dscr">
+                          {results.dscrRatio.toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-background rounded-lg p-3">
                       <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Total Project Cost</p>
-                      <p className="text-xl font-bold text-primary" data-testid="result-project-cost">
+                      <p className="text-lg font-bold text-primary" data-testid="result-project-cost">
                         {formatCurrency(results.totalProjectCost)}
                       </p>
                     </div>
-                    <div className="bg-background rounded-lg p-4">
+                    <div className="bg-background rounded-lg p-3">
                       <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Cash Invested</p>
-                      <p className="text-xl font-bold" data-testid="result-cash-invested">
+                      <p className="text-lg font-bold" data-testid="result-cash-invested">
                         {formatCurrency(results.cashInvested)}
                       </p>
                     </div>
                   </div>
 
-                  <div className="bg-background rounded-lg p-4">
+                  <div className="bg-background rounded-lg p-3">
                     <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Total Profit</p>
-                    <p className={`text-2xl font-bold ${results.totalProfit >= 0 ? "text-green-600" : "text-red-600"}`} data-testid="result-profit">
+                    <p className={`text-xl font-bold ${results.totalProfit >= 0 ? "text-green-600" : "text-red-600"}`} data-testid="result-profit">
                       {formatCurrency(results.totalProfit)}
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-background rounded-lg p-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-background rounded-lg p-3">
                       <div className="flex items-center gap-1 mb-1">
                         <Percent className="h-3 w-3 text-muted-foreground" />
                         <p className="text-xs text-muted-foreground uppercase tracking-wide">ROI</p>
                       </div>
-                      <p className={`text-xl font-bold ${results.roi >= 0 ? "text-green-600" : "text-red-600"}`} data-testid="result-roi">
-                        {results.roi.toFixed(1)}%
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className={`text-lg font-bold ${
+                          dealType !== "rental"
+                            ? results.roi >= 10 
+                              ? "text-green-600" 
+                              : results.roi >= 5 
+                              ? "text-yellow-600" 
+                              : "text-red-600"
+                            : results.roi >= 0 
+                            ? "text-green-600" 
+                            : "text-red-600"
+                        }`} data-testid="result-roi">
+                          {results.roi.toFixed(1)}%
+                        </p>
+                      </div>
                     </div>
-                    <div className="bg-background rounded-lg p-4">
+                    <div className="bg-background rounded-lg p-3">
                       <div className="flex items-center gap-1 mb-1">
                         <Percent className="h-3 w-3 text-muted-foreground" />
                         <p className="text-xs text-muted-foreground uppercase tracking-wide">Profit Margin</p>
                       </div>
-                      <p className={`text-xl font-bold ${results.profitMargin >= 0 ? "text-green-600" : "text-red-600"}`} data-testid="result-margin">
+                      <p className={`text-lg font-bold ${results.profitMargin >= 0 ? "text-green-600" : "text-red-600"}`} data-testid="result-margin">
                         {results.profitMargin.toFixed(1)}%
                       </p>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-background rounded-lg p-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-background rounded-lg p-3">
                       <div className="flex items-center gap-1 mb-1">
                         <DollarSign className="h-3 w-3 text-muted-foreground" />
                         <p className="text-xs text-muted-foreground uppercase tracking-wide">LTC (%)</p>
                       </div>
-                      <p className="text-xl font-bold" data-testid="result-ltc">
+                      <p className="text-lg font-bold" data-testid="result-ltc">
                         {results.ltc.toFixed(1)}%
                       </p>
                     </div>
-                    <div className="bg-background rounded-lg p-4">
+                    <div className="bg-background rounded-lg p-3">
                       <div className="flex items-center gap-1 mb-1">
                         <DollarSign className="h-3 w-3 text-muted-foreground" />
                         <p className="text-xs text-muted-foreground uppercase tracking-wide">LTV (%)</p>
                       </div>
-                      <p className="text-xl font-bold" data-testid="result-ltv">
+                      <p className="text-lg font-bold" data-testid="result-ltv">
                         {results.ltv.toFixed(1)}%
                       </p>
                     </div>
                   </div>
 
-                  <div className="bg-background rounded-lg p-4">
+                  <div className="bg-background rounded-lg p-3">
                     <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Loan Amount</p>
                     <p className="text-lg font-semibold" data-testid="result-loan-amount">
                       {formatCurrency(results.loanAmount)}
@@ -667,7 +864,7 @@ export default function InvestmentAnalysisPage() {
                   </div>
 
                   <Button 
-                    className="w-full mt-4"
+                    className="w-full"
                     onClick={() => createApplicationMutation.mutate(getLoanType())}
                     disabled={createApplicationMutation.isPending}
                     data-testid="button-get-term-sheet"
