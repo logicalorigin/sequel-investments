@@ -124,9 +124,7 @@ export default function FixFlipPage() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-muted-foreground">
-                        Get your rehab funds released in 48 hours. Keep your project on schedule with the fastest draw process.
-                      </p>
+                      <p className="text-muted-foreground">Rehab funds released in 48 hours, no inspection needed. Keep your project on schedule with an industry leading draw process.</p>
                     </CardContent>
                   </Card>
                   
