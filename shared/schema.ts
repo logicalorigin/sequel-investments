@@ -160,7 +160,7 @@ export const documents = pgTable("documents", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const documentsRelations = relations(documents, ({ one }) => ({
+export const documentsRelations = relations(documents, ({ one, many }) => ({
   loanApplication: one(loanApplications, {
     fields: [documents.loanApplicationId],
     references: [loanApplications.id],
@@ -169,6 +169,7 @@ export const documentsRelations = relations(documents, ({ one }) => ({
     fields: [documents.documentTypeId],
     references: [documentTypes.id],
   }),
+  comments: many(documentComments),
 }));
 
 export type Document = typeof documents.$inferSelect;
@@ -557,6 +558,39 @@ export type InsertDocumentSignature = typeof documentSignatures.$inferInsert;
 export const insertDocumentSignatureSchema = createInsertSchema(documentSignatures).omit({
   id: true,
   createdAt: true,
+});
+
+// ============================================
+// DOCUMENT COMMENTS
+// ============================================
+export const documentComments = pgTable("document_comments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  documentId: varchar("document_id").notNull().references(() => documents.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  content: text("content").notNull(),
+  isInternal: boolean("is_internal").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const documentCommentsRelations = relations(documentComments, ({ one }) => ({
+  document: one(documents, {
+    fields: [documentComments.documentId],
+    references: [documents.id],
+  }),
+  user: one(users, {
+    fields: [documentComments.userId],
+    references: [users.id],
+  }),
+}));
+
+export type DocumentComment = typeof documentComments.$inferSelect;
+export type InsertDocumentComment = typeof documentComments.$inferInsert;
+
+export const insertDocumentCommentSchema = createInsertSchema(documentComments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
 });
 
 // ============================================
