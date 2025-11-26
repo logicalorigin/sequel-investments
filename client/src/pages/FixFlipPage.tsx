@@ -33,7 +33,7 @@ export default function FixFlipPage() {
     <div className="min-h-screen bg-background">
       <Navigation />
 
-      <section className="relative pt-32 pb-20 overflow-hidden">
+      <section className="relative pt-12 pb-20 overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: `url(${fixFlipImage})` }}

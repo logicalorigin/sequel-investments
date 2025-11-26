@@ -167,7 +167,7 @@ export default function USMap({ onStateClick }: USMapProps) {
             </div>
           ) : (
             <div className="text-gray-500 dark:text-gray-400 text-xs mt-1">
-              Coming Soon
+              Not Yet Available
             </div>
           )}
         </div>

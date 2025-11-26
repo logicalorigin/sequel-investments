@@ -44,7 +44,7 @@ export default function PropertyDetailPage() {
     return (
       <div className="min-h-screen bg-background">
         <Navigation />
-        <div className="pt-32 pb-16 text-center">
+        <div className="pt-12 pb-16 text-center">
           <h1 className="text-2xl font-bold mb-4">Property Not Found</h1>
           <Link href="/fundings">
             <Button data-testid="button-back-not-found">
@@ -66,7 +66,7 @@ export default function PropertyDetailPage() {
     <div className="min-h-screen bg-background">
       <Navigation />
       
-      <section className="pt-24 pb-8">
+      <section className="pt-8 pb-8">
         <div className="max-w-7xl mx-auto px-6">
           <Link href="/fundings" data-testid="link-back-fundings">
             <Button variant="ghost" className="mb-6" data-testid="button-back-fundings">

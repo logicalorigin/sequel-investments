@@ -9,7 +9,7 @@ export default function CalculatorPage() {
     <div className="min-h-screen bg-background">
       <Navigation />
 
-      <section className="pt-32 pb-16 bg-gradient-to-b from-primary/10 to-background">
+      <section className="pt-12 pb-16 bg-gradient-to-b from-primary/10 to-background">
         <div className="max-w-7xl mx-auto px-6">
           <div className="max-w-3xl mx-auto text-center">
             <h1 className="text-5xl md:text-6xl font-bold mb-6" data-testid="text-calculator-title">

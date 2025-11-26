@@ -30,16 +30,16 @@ import newConstructionCardImage from "@assets/image_1764097000811.png";
 import testimonial1 from "@assets/generated_images/Investor_testimonial_headshot_1_2a222601.png";
 import testimonial2 from "@assets/generated_images/Investor_testimonial_headshot_2_bb13b1a2.png";
 import testimonial3 from "@assets/generated_images/Investor_testimonial_headshot_3_a4e6c79b.png";
-import tempeAZImage from "@assets/stock_images/tempe_arizona_desert_2030a89d.jpg";
-import fortWorthTXImage from "@assets/stock_images/fort_worth_texas_urb_5cb75584.jpg";
-import doverDEImage from "@assets/stock_images/dover_delaware_histo_fb5ab321.jpg";
-import postFallsIDImage from "@assets/stock_images/post_falls_idaho_mou_594827e5.jpg";
+import tempeAZProperty from "@assets/stock_images/investment_rental_pr_734e4eb6.jpg";
+import fortWorthTXProperty from "@assets/stock_images/investment_property__f60ec7c8.jpg";
+import doverDEProperty from "@assets/stock_images/investment_rental_ho_757cf226.jpg";
+import postFallsIDProperty from "@assets/stock_images/investment_property__fdbf9598.jpg";
 import { useToast } from "@/hooks/use-toast";
 
 const heroSlides = [
   {
-    id: "1026-e-concorda",
-    image: tempeAZImage,
+    id: "tempe-az-comp",
+    image: tempeAZProperty,
     loanType: "Bridge Loan",
     loanAmount: "$370,350",
     rate: "9.25%",
@@ -47,8 +47,8 @@ const heroSlides = [
     location: "Tempe, AZ",
   },
   {
-    id: "6020-lantana",
-    image: fortWorthTXImage,
+    id: "fort-worth-tx-comp",
+    image: fortWorthTXProperty,
     loanType: "Bridge Loan",
     loanAmount: "$297,500",
     rate: "9.75%",
@@ -56,8 +56,8 @@ const heroSlides = [
     location: "Fort Worth, TX",
   },
   {
-    id: "103-saxton",
-    image: doverDEImage,
+    id: "dover-de-comp",
+    image: doverDEProperty,
     loanType: "DSCR Loan",
     loanAmount: "$189,000",
     rate: "6.875%",
@@ -65,8 +65,8 @@ const heroSlides = [
     location: "Dover, DE",
   },
   {
-    id: "113-w-23rd",
-    image: postFallsIDImage,
+    id: "post-falls-id-comp",
+    image: postFallsIDProperty,
     loanType: "Bridge Loan",
     loanAmount: "$387,500",
     rate: "9.375%",
@@ -105,7 +105,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-background">
       <Navigation />
 
-      <section className="relative min-h-[85vh] pt-24 pb-16 overflow-hidden bg-background">
+      <section className="relative min-h-[85vh] pt-12 pb-16 overflow-hidden bg-background">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid lg:grid-cols-[0.4fr_0.6fr] gap-12 lg:gap-8 items-center min-h-[70vh]">
             <div className="space-y-8">
@@ -126,8 +126,9 @@ export default function HomePage() {
               </div>
 
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight" data-testid="text-hero-title">
-                Funding Solutions.<br />
-                <span className="text-primary">For Investors. By Investors.</span>
+                Funding Solutions.
+                <br />
+                <span className="block mt-2 text-primary">For Investors. By Investors.</span>
               </h1>
 
               <p className="text-lg md:text-xl text-muted-foreground max-w-lg">
