@@ -337,9 +337,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const objectStorageService = new ObjectStorageService();
       const uploadURL = await objectStorageService.getObjectEntityUploadURL();
       res.json({ uploadURL });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error getting upload URL:", error);
-      res.status(500).json({ error: "Failed to get upload URL" });
+      if (error.message?.includes("PRIVATE_OBJECT_DIR")) {
+        res.status(503).json({ 
+          error: "File storage not configured. Please contact support.",
+          details: "Object storage environment not set up"
+        });
+      } else {
+        res.status(500).json({ error: "Failed to get upload URL. Please try again." });
+      }
     }
   });
 
