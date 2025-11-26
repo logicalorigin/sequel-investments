@@ -34,11 +34,14 @@ const propertyTypes = [
 ];
 
 const experienceLevels = [
-  { id: "1", label: "1-2 Builds", rateAdj: 1.0, downPaymentAdj: 5 },
-  { id: "3-5", label: "3-5 Builds", rateAdj: 0.5, downPaymentAdj: 2.5 },
-  { id: "6-10", label: "6-10 Builds", rateAdj: 0.25, downPaymentAdj: 0 },
-  { id: "10+", label: "10+ Builds", rateAdj: 0, downPaymentAdj: 0 },
+  { id: "0", label: "0 Builds", rateAdj: 0 },
+  { id: "1", label: "1-2 Builds", rateAdj: 0 },
+  { id: "3-5", label: "3-5 Builds", rateAdj: 0 },
+  { id: "6-10", label: "6-10 Builds", rateAdj: 0 },
+  { id: "10+", label: "10+ Builds", rateAdj: 0 },
 ];
+
+const loanTermOptions = [9, 12, 15, 18, 21, 24];
 
 function PropertyTypeIcon({ type, className = "" }: { type: string; className?: string }) {
   const baseClass = `${className}`;
@@ -135,14 +138,11 @@ export default function ConstructionAnalyzerPage() {
   const [landCost, setLandCost] = useState("100000");
   const [constructionBudget, setConstructionBudget] = useState("350000");
   const [arv, setArv] = useState("550000");
-  const [downPayment, setDownPayment] = useState("45000");
-  const [requestedConstructionFunding, setRequestedConstructionFunding] = useState("315000");
-  const [totalClosingCosts, setTotalClosingCosts] = useState("12000");
   const [annualTaxes, setAnnualTaxes] = useState("6000");
   const [annualInsurance, setAnnualInsurance] = useState("3600");
-  const [buildDuration, setBuildDuration] = useState("9");
+  const [loanTermMonths, setLoanTermMonths] = useState(12);
   const [creditScore, setCreditScore] = useState([720]);
-  const [experience, setExperience] = useState("1");
+  const [experience, setExperience] = useState("0");
   const [ltcSlider, setLtcSlider] = useState([90]);
   const [landOwned, setLandOwned] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
@@ -190,7 +190,7 @@ export default function ConstructionAnalyzerPage() {
   const maxLtc = 90;
 
   const calculatedRate = useMemo(() => {
-    const BASE_RATE = 10.9;
+    const BASE_RATE = 8.9;
     let rate = BASE_RATE;
     
     const score = creditScore[0];
@@ -199,16 +199,8 @@ export default function ConstructionAnalyzerPage() {
     else if (score >= 680) rate += 1.0;
     else rate += 1.5;
     
-    const expLevel = experienceLevels.find(e => e.id === experience);
-    rate += expLevel?.rateAdj || 0;
-    
-    return Math.max(9.9, Math.min(13.5, rate));
-  }, [creditScore, experience]);
-
-  const minDownPaymentPercent = useMemo(() => {
-    const expLevel = experienceLevels.find(e => e.id === experience);
-    return 10 + (expLevel?.downPaymentAdj || 0);
-  }, [experience]);
+    return Math.max(8.9, Math.min(12.5, rate));
+  }, [creditScore]);
 
   const getCurrentScenarioData = useCallback(() => ({
     propertyType,
@@ -216,16 +208,14 @@ export default function ConstructionAnalyzerPage() {
     landCost,
     constructionBudget,
     arv,
-    downPayment,
-    requestedConstructionFunding,
-    totalClosingCosts,
     annualTaxes,
     annualInsurance,
-    buildDuration,
+    loanTermMonths,
     creditScore,
     experience,
+    ltcSlider,
     landOwned,
-  }), [propertyType, propertyAddress, landCost, constructionBudget, arv, downPayment, requestedConstructionFunding, totalClosingCosts, annualTaxes, annualInsurance, buildDuration, creditScore, experience, landOwned]);
+  }), [propertyType, propertyAddress, landCost, constructionBudget, arv, annualTaxes, annualInsurance, loanTermMonths, creditScore, experience, ltcSlider, landOwned]);
 
   const handleLoadScenario = useCallback((data: Record<string, any>) => {
     if (data.propertyType) setPropertyType(data.propertyType);
@@ -233,14 +223,12 @@ export default function ConstructionAnalyzerPage() {
     if (data.landCost) setLandCost(data.landCost);
     if (data.constructionBudget) setConstructionBudget(data.constructionBudget);
     if (data.arv) setArv(data.arv);
-    if (data.downPayment) setDownPayment(data.downPayment);
-    if (data.requestedConstructionFunding) setRequestedConstructionFunding(data.requestedConstructionFunding);
-    if (data.totalClosingCosts) setTotalClosingCosts(data.totalClosingCosts);
     if (data.annualTaxes) setAnnualTaxes(data.annualTaxes);
     if (data.annualInsurance) setAnnualInsurance(data.annualInsurance);
-    if (data.buildDuration) setBuildDuration(data.buildDuration);
+    if (data.loanTermMonths) setLoanTermMonths(data.loanTermMonths);
     if (data.creditScore) setCreditScore(data.creditScore);
     if (data.experience) setExperience(data.experience);
+    if (data.ltcSlider) setLtcSlider(data.ltcSlider);
     if (typeof data.landOwned === 'boolean') setLandOwned(data.landOwned);
   }, []);
 
@@ -258,22 +246,6 @@ export default function ConstructionAnalyzerPage() {
     }
   }, [linkedApplication, dataLoaded, handleLoadScenario, toast]);
 
-  useEffect(() => {
-    const land = parseFloat(landCost) || 0;
-    const construction = parseFloat(constructionBudget) || 0;
-    const totalCost = land + construction;
-    const targetLoan = totalCost * (ltcSlider[0] / 100);
-    
-    if (landOwned) {
-      setRequestedConstructionFunding(Math.round(construction * 0.9).toString());
-      setDownPayment(Math.round(construction * 0.1).toString());
-    } else {
-      const newDown = Math.max(0, totalCost - targetLoan);
-      setDownPayment(Math.round(newDown).toString());
-      setRequestedConstructionFunding(Math.round(construction * 0.9).toString());
-    }
-  }, [ltcSlider, landCost, constructionBudget, landOwned]);
-
   const createApplicationMutation = useMutation({
     mutationFn: async () => {
       const analyzerData = {
@@ -284,14 +256,14 @@ export default function ConstructionAnalyzerPage() {
         loanType: "New Construction",
         propertyAddress: propertyAddress || "TBD",
         arv: parseFloat(arv) || 0,
-        purchasePrice: parseFloat(landCost) || 0, // Land cost as purchase price
-        rehabBudget: parseFloat(constructionBudget) || 0, // Construction budget as rehab
+        purchasePrice: parseFloat(landCost) || 0,
+        rehabBudget: parseFloat(constructionBudget) || 0,
         loanAmount: results.loanAmount,
         interestRate: calculatedRate.toFixed(3),
         ltc: results.ltc.toFixed(1),
         annualTaxes: parseFloat(annualTaxes) || 0,
         annualInsurance: parseFloat(annualInsurance) || 0,
-        holdTimeMonths: parseFloat(buildDuration) || 9,
+        holdTimeMonths: loanTermMonths,
         analyzerType: "construction",
         analyzerData: analyzerData,
       });
@@ -318,18 +290,43 @@ export default function ConstructionAnalyzerPage() {
     const arvVal = parseFloat(arv) || 0;
     const landCostVal = parseFloat(landCost) || 0;
     const constructionBudgetVal = parseFloat(constructionBudget) || 0;
-    const downPaymentVal = parseFloat(downPayment) || 0;
-    const constructionFundingVal = parseFloat(requestedConstructionFunding) || 0;
-    const closingCostsVal = parseFloat(totalClosingCosts) || 0;
     const taxesVal = parseFloat(annualTaxes) || 0;
     const insuranceVal = parseFloat(annualInsurance) || 0;
-    const holdMonths = parseFloat(buildDuration) || 9;
+    const holdMonths = loanTermMonths;
     const rate = calculatedRate;
 
-    const landEquity = landOwned ? landCostVal : 0;
-    const loanAmount = landOwned 
-      ? constructionFundingVal 
-      : (landCostVal - downPaymentVal) + constructionFundingVal;
+    const totalCost = landCostVal + constructionBudgetVal;
+    const targetLtc = ltcSlider[0] / 100;
+    
+    const closingCostsVal = Math.round(totalCost * 0.025);
+    
+    let loanAmount: number;
+    let downPaymentVal: number;
+    let constructionFundingVal: number;
+    let landLoanPortion: number;
+    let constructionEquityVal: number;
+    let landEquityVal: number;
+    
+    let cashInvested: number;
+    
+    if (landOwned) {
+      constructionFundingVal = Math.round(constructionBudgetVal * targetLtc);
+      constructionEquityVal = constructionBudgetVal - constructionFundingVal;
+      landLoanPortion = 0;
+      downPaymentVal = constructionEquityVal;
+      loanAmount = constructionFundingVal;
+      landEquityVal = landCostVal;
+      cashInvested = closingCostsVal + constructionEquityVal;
+    } else {
+      landLoanPortion = Math.round(landCostVal * targetLtc);
+      constructionFundingVal = Math.round(constructionBudgetVal * targetLtc);
+      loanAmount = landLoanPortion + constructionFundingVal;
+      const landDownPayment = landCostVal - landLoanPortion;
+      constructionEquityVal = constructionBudgetVal - constructionFundingVal;
+      downPaymentVal = landDownPayment;
+      landEquityVal = 0;
+      cashInvested = downPaymentVal + closingCostsVal + constructionEquityVal;
+    }
     
     const ltv = arvVal > 0 ? (loanAmount / arvVal) * 100 : 0;
 
@@ -341,17 +338,13 @@ export default function ConstructionAnalyzerPage() {
     const interestCost = (loanAmount * (rate / 100)) * (holdMonths / 12);
 
     const totalProjectCost = landCostVal + constructionBudgetVal + closingCostsVal + holdingCosts + interestCost;
-    const cashInvested = landOwned 
-      ? downPaymentVal + closingCostsVal + (constructionBudgetVal - constructionFundingVal)
-      : downPaymentVal + closingCostsVal + (constructionBudgetVal - constructionFundingVal);
     
-    const totalCapitalDeployed = cashInvested + landEquity;
+    const totalCapitalDeployed = cashInvested + landEquityVal;
     
     const totalProfit = arvVal - totalProjectCost;
     const roi = totalCapitalDeployed > 0 ? (totalProfit / totalCapitalDeployed) * 100 : 0;
     const profitMargin = arvVal > 0 ? (totalProfit / arvVal) * 100 : 0;
 
-    const totalCost = landCostVal + constructionBudgetVal;
     const ltc = totalCost > 0 ? (loanAmount / totalCost) * 100 : 0;
 
     return {
@@ -370,10 +363,11 @@ export default function ConstructionAnalyzerPage() {
       holdingCosts,
       interestCost,
       downPayment: downPaymentVal,
-      constructionEquity: constructionBudgetVal - constructionFundingVal,
-      landEquity,
+      constructionFunding: constructionFundingVal,
+      constructionEquity: constructionEquityVal,
+      landEquity: landEquityVal,
     };
-  }, [arv, landCost, constructionBudget, downPayment, requestedConstructionFunding, totalClosingCosts, annualTaxes, annualInsurance, buildDuration, calculatedRate, landOwned]);
+  }, [arv, landCost, constructionBudget, annualTaxes, annualInsurance, loanTermMonths, calculatedRate, ltcSlider, landOwned]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -581,7 +575,7 @@ export default function ConstructionAnalyzerPage() {
                   <div className="bg-muted/50 rounded-lg p-3 space-y-1.5 text-xs">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Base Rate:</span>
-                      <span className="font-medium">10.900%</span>
+                      <span className="font-medium">8.900%</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Credit ({creditScore[0]}):</span>
@@ -589,27 +583,21 @@ export default function ConstructionAnalyzerPage() {
                         +{creditScore[0] >= 720 ? "0.000" : creditScore[0] >= 700 ? "0.500" : creditScore[0] >= 680 ? "1.000" : "1.500"}%
                       </span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Experience ({experience}):</span>
-                      <span className={`font-medium ${experienceLevels.find(e => e.id === experience)?.rateAdj ? "text-red-600" : ""}`}>
-                        +{experienceLevels.find(e => e.id === experience)?.rateAdj.toFixed(3) || "0.000"}%
-                      </span>
-                    </div>
                     <div className="border-t pt-1.5 mt-1.5 flex justify-between font-semibold text-sm">
-                      <span>Your Rate:</span>
+                      <span>Estimated Rate:</span>
                       <span className="text-primary">{calculatedRate.toFixed(3)}%</span>
                     </div>
-                    <div className="text-[10px] text-muted-foreground pt-1">
-                      Min Down Payment: {minDownPaymentPercent}%
+                    <div className="text-[10px] text-muted-foreground pt-1 italic">
+                      Contact your rep for accurate estimate
                     </div>
                   </div>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Financing Details */}
+            {/* Financing Details - LTC Slider */}
             <Card>
-              <CardContent className="pt-4 space-y-4">
+              <CardContent className="pt-4">
                 <div>
                   <div className="flex justify-between items-center mb-1">
                     <Label className="text-sm">Loan-to-Cost (LTC)</Label>
@@ -642,69 +630,32 @@ export default function ConstructionAnalyzerPage() {
                     <span>{maxLtc}% Max</span>
                   </div>
                 </div>
-
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <Label htmlFor="downPayment" className="text-sm">Down Payment</Label>
-                    <div className="relative mt-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                      <Input
-                        id="downPayment"
-                        type="number"
-                        value={downPayment}
-                        onChange={(e) => setDownPayment(e.target.value)}
-                        className="pl-7 h-9"
-                        data-testid="input-down-payment"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="constructionFunding" className="text-sm">Construction Funding</Label>
-                    <div className="relative mt-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                      <Input
-                        id="constructionFunding"
-                        type="number"
-                        value={requestedConstructionFunding}
-                        onChange={(e) => setRequestedConstructionFunding(e.target.value)}
-                        className="pl-7 h-9"
-                        data-testid="input-construction-funding"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="closingCosts" className="text-sm">Closing Costs</Label>
-                    <div className="relative mt-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                      <Input
-                        id="closingCosts"
-                        type="number"
-                        value={totalClosingCosts}
-                        onChange={(e) => setTotalClosingCosts(e.target.value)}
-                        className="pl-7 h-9"
-                        data-testid="input-closing-costs"
-                      />
-                    </div>
-                  </div>
-                </div>
               </CardContent>
             </Card>
 
-            {/* Holding Costs - Condensed */}
+            {/* Loan Term & Holding Costs */}
             <Card>
-              <CardContent className="pt-4">
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <Label htmlFor="buildDuration" className="text-sm">Build (Months)</Label>
-                    <Input
-                      id="buildDuration"
-                      type="number"
-                      value={buildDuration}
-                      onChange={(e) => setBuildDuration(e.target.value)}
-                      className="mt-1 h-9"
-                      data-testid="input-build-duration"
-                    />
+              <CardContent className="pt-4 space-y-4">
+                <div>
+                  <Label className="text-sm mb-2 block">Loan Term (Months)</Label>
+                  <div className="flex gap-1.5">
+                    {loanTermOptions.map((months) => (
+                      <button
+                        key={months}
+                        onClick={() => setLoanTermMonths(months)}
+                        className={`flex-1 py-2 px-1 rounded-md border text-xs font-medium transition-all ${
+                          loanTermMonths === months
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border hover:border-primary/50"
+                        }`}
+                        data-testid={`button-loan-term-${months}`}
+                      >
+                        {months}
+                      </button>
+                    ))}
                   </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
                   <div>
                     <Label htmlFor="annualTaxes" className="text-sm">Annual Taxes</Label>
                     <div className="relative mt-1">
@@ -818,6 +769,25 @@ export default function ConstructionAnalyzerPage() {
                     <p className={`text-sm font-bold ${results.ltv > 70 ? "text-red-600" : results.ltv > 65 ? "text-yellow-600" : "text-green-600"}`} data-testid="result-ltv">
                       {results.ltv.toFixed(1)}%
                     </p>
+                  </div>
+                </div>
+
+                {/* Financing Breakdown */}
+                <div className="bg-background rounded-lg p-2.5">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1.5">Financing @ {ltcSlider[0]}% LTC</p>
+                  <div className="space-y-1 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Down Payment:</span>
+                      <span className="font-medium" data-testid="result-down-payment">{formatCurrency(results.downPayment)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Construction Funding:</span>
+                      <span className="font-medium" data-testid="result-construction-funding">{formatCurrency(results.constructionFunding)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Closing Costs:</span>
+                      <span className="font-medium" data-testid="result-closing-costs">{formatCurrency(results.closingCosts)}</span>
+                    </div>
                   </div>
                 </div>
 
