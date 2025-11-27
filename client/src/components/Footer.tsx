@@ -3,11 +3,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Facebook, Twitter, Linkedin, Mail } from "lucide-react";
 import logoIcon from "@assets/logo_saf_only_removed_bg (1)_1764095523171.png";
+import { GeometricPattern } from "@/components/GeometricPattern";
 
 export function Footer() {
   return (
-    <footer className="bg-card border-t">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 sm:py-12 md:py-16">
+    <footer className="bg-card border-t relative overflow-hidden">
+      <GeometricPattern 
+        variant="minimal" 
+        className="text-muted-foreground" 
+        opacity={0.05}
+        strokeColor="currentColor"
+      />
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-10 sm:py-12 md:py-16">
         <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 md:gap-12 mb-8 sm:mb-12">
           <div className="col-span-2 lg:col-span-1">
             <div className="flex items-center mb-4 sm:mb-6">

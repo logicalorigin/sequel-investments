@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getArticleBySlug, getRelatedArticles } from "@/data/articles";
 import { Calendar, Clock, ArrowLeft, ArrowRight, User, Tag } from "lucide-react";
+import { GeometricPattern } from "@/components/GeometricPattern";
 import { useEffect } from "react";
 
 const badgeColors: Record<string, string> = {
@@ -216,8 +217,14 @@ export default function ArticlePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 bg-primary">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 text-center">
+      <section className="py-16 bg-primary relative overflow-hidden">
+        <GeometricPattern 
+          variant="buildings" 
+          className="text-primary-foreground" 
+          opacity={0.1}
+          strokeColor="currentColor"
+        />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 text-center">
           <h2 className="text-2xl sm:text-3xl font-bold text-primary-foreground mb-4">
             Scale Your Investment Portfolio
           </h2>

@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import dscrImage from "@assets/stock_images/luxury_modern_single_2639d1bd.jpg";
 import { useToast } from "@/hooks/use-toast";
+import { GeometricPattern } from "@/components/GeometricPattern";
 
 const ratesTermsItems: RateTermItem[] = [
   { label: "Rates as low as", value: "5.75%*", icon: "percent" },
@@ -389,8 +390,14 @@ export default function DSCRLoansPage() {
       />
 
       {/* CTA Section */}
-      <section className="py-16 bg-primary">
-        <div className="max-w-7xl mx-auto px-6 text-center">
+      <section className="py-16 bg-primary relative overflow-hidden">
+        <GeometricPattern 
+          variant="buildings" 
+          className="text-primary-foreground" 
+          opacity={0.1}
+          strokeColor="currentColor"
+        />
+        <div className="relative max-w-7xl mx-auto px-6 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-primary-foreground mb-4">
             Ready to Grow Your Rental Portfolio?
           </h2>
