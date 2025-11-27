@@ -47,13 +47,13 @@ const ratesTermsBenefits: BenefitItem[] = [
 const resourcesItems: ResourceItem[] = [
   {
     type: "Guide",
-    title: "DSCR Loans Explained: How to Qualify Without Income Docs",
-    link: "/resources/dscr-loans-explained",
+    title: "The Complete Guide to DSCR Rental Property Loans",
+    link: "/resources/complete-guide-to-dscr-loans",
   },
   {
     type: "Article",
-    title: "BRRRR Strategy: How to Build a Rental Portfolio Fast",
-    link: "/resources/brrrr-strategy-guide",
+    title: "What Every Real Estate Investor Should Know About ADUs",
+    link: "/resources/what-investors-should-know-about-adus",
   },
   {
     type: "Calculator",

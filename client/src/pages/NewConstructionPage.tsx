@@ -46,13 +46,13 @@ const ratesTermsBenefits: BenefitItem[] = [
 const resourcesItems: ResourceItem[] = [
   {
     type: "Guide",
-    title: "Ground-Up Construction: Complete Financing Guide for Builders",
-    link: "/resources/construction-financing-guide",
+    title: "The Ins and Outs of Your Scope of Work",
+    link: "/resources/scope-of-work-guide",
   },
   {
     type: "Article",
-    title: "How to Calculate Your Construction Loan Budget and Timeline",
-    link: "/resources/construction-budget-planning",
+    title: "Top Renovations to Maximize Profits for Real Estate Investors",
+    link: "/resources/top-renovations-to-maximize-profits",
   },
   {
     type: "Calculator",

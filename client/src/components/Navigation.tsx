@@ -91,6 +91,16 @@ export function Navigation() {
                 Where We Lend
               </span>
             </Link>
+
+            <Link href="/resources" data-testid="link-nav-resources">
+              <span
+                className={`text-sm font-medium transition-colors cursor-pointer ${
+                  location.startsWith("/resources") ? "text-primary" : "text-foreground/80 hover:text-foreground"
+                }`}
+              >
+                Resources
+              </span>
+            </Link>
           </div>
 
           <div className="hidden lg:flex items-center gap-3">
@@ -170,6 +180,17 @@ export function Navigation() {
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Where We Lend
+              </div>
+            </Link>
+
+            <Link href="/resources" data-testid="link-mobile-resources">
+              <div
+                className={`block py-2 text-base font-medium ${
+                  location.startsWith("/resources") ? "text-primary" : "text-foreground"
+                }`}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Resources
               </div>
             </Link>
 
