@@ -2,8 +2,10 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, DollarSign, Percent, Clock } from "lucide-react";
+import { MapPin, DollarSign, Percent, Clock, Loader2 } from "lucide-react";
 import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import type { FundedDeal as DbFundedDeal } from "@shared/schema";
 
 import luxuryHome from "@assets/stock_images/luxury_modern_single_2639d1bd.jpg";
 import renovationHome from "@assets/stock_images/house_renovation_con_aaeb0f05.jpg";
@@ -26,7 +28,9 @@ interface FundedDeal {
   propertyType: string;
 }
 
-const allDeals: FundedDeal[] = [
+const defaultImages = [luxuryHome, renovationHome, newConstruction, rentalProperty, suburbanHome, multiFamilyHome];
+
+const sampleDeals: FundedDeal[] = [
   {
     id: "1",
     image: luxuryHome,
@@ -139,23 +143,65 @@ const allDeals: FundedDeal[] = [
 
 interface RecentlyFundedCarouselProps {
   loanType?: "DSCR" | "Fix & Flip" | "New Construction" | "all";
+  state?: string;
   title?: string;
   subtitle?: string;
 }
 
+function mapDbDealToDisplay(deal: DbFundedDeal, index: number): FundedDeal {
+  const rateStr = deal.rate.replace('%', '');
+  const rateNum = parseFloat(rateStr) || 0;
+  
+  return {
+    id: deal.id,
+    image: deal.imageUrl || defaultImages[index % defaultImages.length],
+    location: deal.location,
+    state: deal.state,
+    loanType: deal.loanType as "DSCR" | "Fix & Flip" | "New Construction",
+    loanAmount: deal.loanAmount,
+    rate: rateNum,
+    ltv: deal.ltv || undefined,
+    ltc: deal.ltc || undefined,
+    closeTime: deal.closeTime,
+    propertyType: deal.propertyType,
+  };
+}
+
 export function RecentlyFundedCarousel({ 
-  loanType = "all", 
+  loanType = "all",
+  state,
   title = "Recently Funded Deals",
   subtitle = "See what we've funded for investors like you"
 }: RecentlyFundedCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
+  const queryParams = new URLSearchParams();
+  if (loanType !== "all") {
+    queryParams.set("loanType", loanType);
+  }
+  if (state) {
+    queryParams.set("state", state);
+  }
+  const queryString = queryParams.toString();
+  const apiUrl = `/api/funded-deals${queryString ? `?${queryString}` : ''}`;
+
+  const { data: apiDeals, isLoading } = useQuery<DbFundedDeal[]>({
+    queryKey: ["/api/funded-deals", loanType, state],
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const mappedDeals = apiDeals && apiDeals.length > 0 
+    ? apiDeals.map((deal, idx) => mapDbDealToDisplay(deal, idx))
+    : null;
+
+  const baseDeals = mappedDeals || sampleDeals;
+  
   const deals = loanType === "all" 
-    ? allDeals 
-    : allDeals.filter(deal => deal.loanType === loanType);
+    ? baseDeals 
+    : baseDeals.filter(deal => deal.loanType === loanType);
 
   const extendedDeals = deals.length >= 3 ? deals : 
-    deals.length > 0 ? Array.from({ length: 3 }, (_, i) => deals[i % deals.length]) : allDeals.slice(0, 3);
+    deals.length > 0 ? Array.from({ length: 3 }, (_, i) => deals[i % deals.length]) : sampleDeals.slice(0, 3);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -196,6 +242,22 @@ export function RecentlyFundedCarousel({
     return visible;
   };
 
+  if (isLoading) {
+    return (
+      <section className="py-10 sm:py-16 bg-muted/30">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6">
+          <div className="text-center mb-6 sm:mb-10">
+            <h2 className="text-2xl sm:text-3xl font-bold mb-2">{title}</h2>
+            <p className="text-sm sm:text-base text-muted-foreground">{subtitle}</p>
+          </div>
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="py-10 sm:py-16 bg-muted/30">
       <div className="max-w-7xl mx-auto px-3 sm:px-6">
@@ -205,7 +267,6 @@ export function RecentlyFundedCarousel({
         </div>
 
         <div className="relative">
-          {/* Cards Container */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {getVisibleDeals().map((deal, index) => (
               <Card 
