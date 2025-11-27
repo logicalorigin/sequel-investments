@@ -777,3 +777,164 @@ export const insertStaffInviteSchema = createInsertSchema(staffInvites).omit({
   acceptedAt: true,
   acceptedByUserId: true,
 });
+
+// ============================================
+// FUNDED DEALS (for Recently Funded section)
+// ============================================
+export const loanTypeEnum = pgEnum("loan_type", ["DSCR", "Fix & Flip", "New Construction"]);
+
+export const fundedDeals = pgTable("funded_deals", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  
+  // Property Info
+  location: text("location").notNull(), // City name
+  state: varchar("state", { length: 2 }).notNull(), // State abbreviation
+  propertyType: text("property_type").notNull(), // Single Family, Duplex, etc.
+  
+  // Loan Details
+  loanType: text("loan_type").notNull(), // DSCR, Fix & Flip, New Construction
+  loanAmount: integer("loan_amount").notNull(),
+  rate: text("rate").notNull(), // Interest rate as decimal string
+  ltv: integer("ltv"), // Loan-to-Value percentage (for DSCR)
+  ltc: integer("ltc"), // Loan-to-Cost percentage (for Fix & Flip/Construction)
+  closeTime: text("close_time").notNull(), // e.g., "21 days", "48 hrs"
+  
+  // Display
+  imageUrl: text("image_url"), // URL to property image
+  imageKey: text("image_key"), // Key for uploaded images (for internal storage)
+  isVisible: boolean("is_visible").default(true).notNull(),
+  displayOrder: integer("display_order").default(0),
+  
+  // Metadata
+  createdById: varchar("created_by_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const fundedDealsRelations = relations(fundedDeals, ({ one }) => ({
+  createdBy: one(users, {
+    fields: [fundedDeals.createdById],
+    references: [users.id],
+  }),
+}));
+
+export type FundedDeal = typeof fundedDeals.$inferSelect;
+export type InsertFundedDeal = typeof fundedDeals.$inferInsert;
+
+export const insertFundedDealSchema = createInsertSchema(fundedDeals).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// ============================================
+// WEBHOOKS (for LendFlowPro CRM integration)
+// ============================================
+export const webhookEventTypeEnum = pgEnum("webhook_event_type", [
+  "fundedDeal.created",
+  "fundedDeal.updated", 
+  "fundedDeal.deleted",
+  "loanApplication.created",
+  "loanApplication.updated",
+  "loanApplication.statusChanged"
+]);
+
+export const webhookDeliveryStatusEnum = pgEnum("webhook_delivery_status", [
+  "pending",
+  "success",
+  "failed",
+  "retrying"
+]);
+
+// Webhook endpoints configuration (where to send webhooks)
+export const webhookEndpoints = pgTable("webhook_endpoints", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(), // e.g., "LendFlowPro Production"
+  targetUrl: text("target_url").notNull(),
+  secret: text("secret").notNull(), // For HMAC signing
+  subscribedEvents: jsonb("subscribed_events").notNull().$type<string[]>(), // Array of event types
+  isActive: boolean("is_active").default(true).notNull(),
+  
+  createdById: varchar("created_by_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const webhookEndpointsRelations = relations(webhookEndpoints, ({ one }) => ({
+  createdBy: one(users, {
+    fields: [webhookEndpoints.createdById],
+    references: [users.id],
+  }),
+}));
+
+export type WebhookEndpoint = typeof webhookEndpoints.$inferSelect;
+export type InsertWebhookEndpoint = typeof webhookEndpoints.$inferInsert;
+
+export const insertWebhookEndpointSchema = createInsertSchema(webhookEndpoints).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Webhook events (outbox pattern - events waiting to be delivered)
+export const webhookEvents = pgTable("webhook_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  eventType: text("event_type").notNull(),
+  payload: jsonb("payload").notNull(),
+  resourceId: varchar("resource_id"), // ID of the related resource (deal, application, etc.)
+  
+  // Processing state
+  lockedAt: timestamp("locked_at"),
+  lockedBy: text("locked_by"), // Worker instance ID
+  processedAt: timestamp("processed_at"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type WebhookEvent = typeof webhookEvents.$inferSelect;
+export type InsertWebhookEvent = typeof webhookEvents.$inferInsert;
+
+export const insertWebhookEventSchema = createInsertSchema(webhookEvents).omit({
+  id: true,
+  createdAt: true,
+  lockedAt: true,
+  lockedBy: true,
+  processedAt: true,
+});
+
+// Webhook delivery logs (tracking each delivery attempt)
+export const webhookDeliveryLogs = pgTable("webhook_delivery_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  eventId: varchar("event_id").notNull().references(() => webhookEvents.id),
+  endpointId: varchar("endpoint_id").notNull().references(() => webhookEndpoints.id),
+  
+  status: text("status").notNull().default("pending"), // pending, success, failed, retrying
+  responseCode: integer("response_code"),
+  responseBody: text("response_body"),
+  errorMessage: text("error_message"),
+  
+  attemptCount: integer("attempt_count").default(0).notNull(),
+  nextRetryAt: timestamp("next_retry_at"),
+  lastAttemptAt: timestamp("last_attempt_at"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const webhookDeliveryLogsRelations = relations(webhookDeliveryLogs, ({ one }) => ({
+  event: one(webhookEvents, {
+    fields: [webhookDeliveryLogs.eventId],
+    references: [webhookEvents.id],
+  }),
+  endpoint: one(webhookEndpoints, {
+    fields: [webhookDeliveryLogs.endpointId],
+    references: [webhookEndpoints.id],
+  }),
+}));
+
+export type WebhookDeliveryLog = typeof webhookDeliveryLogs.$inferSelect;
+export type InsertWebhookDeliveryLog = typeof webhookDeliveryLogs.$inferInsert;
+
+export const insertWebhookDeliveryLogSchema = createInsertSchema(webhookDeliveryLogs).omit({
+  id: true,
+  createdAt: true,
+});
