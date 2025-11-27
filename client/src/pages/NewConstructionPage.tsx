@@ -227,6 +227,10 @@ export default function NewConstructionPage() {
                         <span className="text-muted-foreground">Project Size</span>
                         <span className="font-semibold">1-4 Units</span>
                       </div>
+                      <div className="flex justify-between py-3 border-b">
+                        <span className="text-muted-foreground">Credit Score</span>
+                        <span className="font-semibold">660+ FICO</span>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
