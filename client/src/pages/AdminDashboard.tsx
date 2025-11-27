@@ -52,6 +52,12 @@ import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import type { LoanApplication, User, StaffInvite } from "@shared/schema";
 
+type EnrichedUser = User & {
+  applicationCount: number;
+  activeApplications: number;
+  fundedLoans: number;
+};
+
 type EnrichedApplication = LoanApplication & {
   borrowerName: string;
   borrowerEmail?: string;
@@ -105,7 +111,7 @@ export default function AdminDashboard() {
     enabled: currentUser?.role === "staff" || currentUser?.role === "admin",
   });
 
-  const { data: users, isLoading: usersLoading } = useQuery<User[]>({
+  const { data: users, isLoading: usersLoading } = useQuery<EnrichedUser[]>({
     queryKey: ["/api/admin/users"],
     enabled: currentUser?.role === "admin",
   });
@@ -190,7 +196,7 @@ export default function AdminDashboard() {
     return true;
   });
 
-  const loanTypes = [...new Set(applications?.map((app) => app.loanType) || [])];
+  const loanTypes = Array.from(new Set(applications?.map((app) => app.loanType) || []));
 
   const stats = {
     total: applications?.length || 0,
@@ -238,7 +244,11 @@ export default function AdminDashboard() {
 
       <main className="max-w-7xl mx-auto px-6 py-8">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
-          <Card>
+          <Card 
+            className={`cursor-pointer transition-all hover-elevate ${statusFilter === "all" ? "ring-2 ring-primary" : ""}`}
+            onClick={() => setStatusFilter("all")}
+            data-testid="stat-card-total"
+          >
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-primary/10 rounded-lg">
@@ -251,7 +261,11 @@ export default function AdminDashboard() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card 
+            className={`cursor-pointer transition-all hover-elevate ${statusFilter === "submitted" ? "ring-2 ring-blue-500" : ""}`}
+            onClick={() => setStatusFilter("submitted")}
+            data-testid="stat-card-submitted"
+          >
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-500/10 rounded-lg">
@@ -264,7 +278,11 @@ export default function AdminDashboard() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card 
+            className={`cursor-pointer transition-all hover-elevate ${statusFilter === "in_review" ? "ring-2 ring-yellow-500" : ""}`}
+            onClick={() => setStatusFilter("in_review")}
+            data-testid="stat-card-in-review"
+          >
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-yellow-500/10 rounded-lg">
@@ -277,7 +295,11 @@ export default function AdminDashboard() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card 
+            className={`cursor-pointer transition-all hover-elevate ${statusFilter === "approved" ? "ring-2 ring-green-500" : ""}`}
+            onClick={() => setStatusFilter("approved")}
+            data-testid="stat-card-approved"
+          >
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-green-500/10 rounded-lg">
@@ -290,7 +312,11 @@ export default function AdminDashboard() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card 
+            className={`cursor-pointer transition-all hover-elevate ${statusFilter === "funded" ? "ring-2 ring-emerald-500" : ""}`}
+            onClick={() => setStatusFilter("funded")}
+            data-testid="stat-card-funded"
+          >
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-emerald-500/10 rounded-lg">
@@ -453,8 +479,8 @@ export default function AdminDashboard() {
               <TabsContent value="users" className="space-y-4">
                 <Card>
                   <CardHeader>
-                    <CardTitle>User Management</CardTitle>
-                    <CardDescription>Manage user accounts and roles</CardDescription>
+                    <CardTitle>Client Portal Accounts</CardTitle>
+                    <CardDescription>View borrower accounts and their linked applications</CardDescription>
                   </CardHeader>
                   <CardContent>
                     {usersLoading ? (
@@ -468,6 +494,7 @@ export default function AdminDashboard() {
                             <TableHead>Name</TableHead>
                             <TableHead>Email</TableHead>
                             <TableHead>Role</TableHead>
+                            <TableHead>Portal Activity</TableHead>
                             <TableHead>Joined</TableHead>
                             <TableHead>Actions</TableHead>
                           </TableRow>
@@ -476,13 +503,34 @@ export default function AdminDashboard() {
                           {users?.map((user) => (
                             <TableRow key={user.id} data-testid={`row-user-${user.id}`}>
                               <TableCell>
-                                {user.firstName} {user.lastName}
+                                <div className="font-medium">
+                                  {user.firstName} {user.lastName}
+                                </div>
+                                {user.username && (
+                                  <div className="text-xs text-muted-foreground">@{user.username}</div>
+                                )}
                               </TableCell>
                               <TableCell>{user.email}</TableCell>
                               <TableCell>
                                 <Badge variant="outline" className="capitalize">
                                   {user.role}
                                 </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex gap-2">
+                                  <div className="text-center px-2 py-1 bg-muted rounded">
+                                    <div className="text-sm font-medium">{user.applicationCount || 0}</div>
+                                    <div className="text-xs text-muted-foreground">Total</div>
+                                  </div>
+                                  <div className="text-center px-2 py-1 bg-blue-500/10 rounded">
+                                    <div className="text-sm font-medium text-blue-600">{user.activeApplications || 0}</div>
+                                    <div className="text-xs text-muted-foreground">Active</div>
+                                  </div>
+                                  <div className="text-center px-2 py-1 bg-emerald-500/10 rounded">
+                                    <div className="text-sm font-medium text-emerald-600">{user.fundedLoans || 0}</div>
+                                    <div className="text-xs text-muted-foreground">Funded</div>
+                                  </div>
+                                </div>
                               </TableCell>
                               <TableCell>
                                 {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "-"}
