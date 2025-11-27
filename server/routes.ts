@@ -11,6 +11,8 @@ import {
   insertDocumentSignatureSchema,
   insertCoBorrowerSchema,
   insertApplicationTimelineEventSchema,
+  insertFundedDealSchema,
+  insertWebhookEndpointSchema,
   getStateBySlug,
 } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
@@ -1587,6 +1589,320 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error accepting invite:", error);
       return res.status(500).json({ error: "Failed to accept invite" });
+    }
+  });
+
+  // =====================
+  // Funded Deals Routes
+  // =====================
+  
+  // Helper function to emit webhook events for funded deals
+  async function emitFundedDealWebhookEvent(eventType: string, deal: any, userId?: string) {
+    try {
+      const event = await storage.createWebhookEvent({
+        eventType,
+        payload: {
+          event: eventType,
+          data: deal,
+          timestamp: new Date().toISOString(),
+          triggeredBy: userId,
+        },
+        resourceId: deal.id,
+      });
+      console.log(`Webhook event created: ${eventType} for deal ${deal.id}`);
+      return event;
+    } catch (error) {
+      console.error("Error creating webhook event:", error);
+    }
+  }
+
+  // Public: Get visible funded deals (for homepage/carousels)
+  app.get("/api/funded-deals", async (req, res) => {
+    try {
+      const deals = await storage.getFundedDeals(true);
+      return res.json(deals);
+    } catch (error) {
+      console.error("Error fetching funded deals:", error);
+      return res.status(500).json({ error: "Failed to fetch funded deals" });
+    }
+  });
+
+  // Admin/Staff: Get all funded deals (including hidden)
+  app.get("/api/admin/funded-deals", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const deals = await storage.getFundedDeals(false);
+      return res.json(deals);
+    } catch (error) {
+      console.error("Error fetching all funded deals:", error);
+      return res.status(500).json({ error: "Failed to fetch funded deals" });
+    }
+  });
+
+  // Admin/Staff: Create funded deal
+  app.post("/api/admin/funded-deals", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const validationResult = insertFundedDealSchema.safeParse(req.body);
+      
+      if (!validationResult.success) {
+        const validationError = fromZodError(validationResult.error);
+        return res.status(400).json({
+          error: "Validation failed",
+          message: validationError.message,
+        });
+      }
+
+      const userId = req.user?.claims?.sub || req.adminUser?.id;
+      const deal = await storage.createFundedDeal({
+        ...validationResult.data,
+        createdById: userId,
+      });
+      
+      // Emit webhook event
+      await emitFundedDealWebhookEvent("fundedDeal.created", deal, userId);
+      
+      return res.status(201).json(deal);
+    } catch (error) {
+      console.error("Error creating funded deal:", error);
+      return res.status(500).json({ error: "Failed to create funded deal" });
+    }
+  });
+
+  // Admin/Staff: Update funded deal
+  app.patch("/api/admin/funded-deals/:id", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const existing = await storage.getFundedDeal(id);
+      
+      if (!existing) {
+        return res.status(404).json({ error: "Funded deal not found" });
+      }
+
+      const userId = req.user?.claims?.sub || req.adminUser?.id;
+      const updated = await storage.updateFundedDeal(id, req.body);
+      
+      if (!updated) {
+        return res.status(500).json({ error: "Failed to update funded deal" });
+      }
+      
+      // Emit webhook event
+      await emitFundedDealWebhookEvent("fundedDeal.updated", updated, userId);
+      
+      return res.json(updated);
+    } catch (error) {
+      console.error("Error updating funded deal:", error);
+      return res.status(500).json({ error: "Failed to update funded deal" });
+    }
+  });
+
+  // Admin/Staff: Delete funded deal
+  app.delete("/api/admin/funded-deals/:id", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const existing = await storage.getFundedDeal(id);
+      
+      if (!existing) {
+        return res.status(404).json({ error: "Funded deal not found" });
+      }
+
+      const userId = req.user?.claims?.sub || req.adminUser?.id;
+      const deleted = await storage.deleteFundedDeal(id);
+      
+      if (!deleted) {
+        return res.status(500).json({ error: "Failed to delete funded deal" });
+      }
+      
+      // Emit webhook event
+      await emitFundedDealWebhookEvent("fundedDeal.deleted", existing, userId);
+      
+      return res.json({ message: "Funded deal deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting funded deal:", error);
+      return res.status(500).json({ error: "Failed to delete funded deal" });
+    }
+  });
+
+  // =====================
+  // Webhook Management Routes (Admin only)
+  // =====================
+
+  // Get all webhook endpoints
+  app.get("/api/admin/webhooks/endpoints", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const endpoints = await storage.getWebhookEndpoints();
+      // Mask secrets in response
+      const masked = endpoints.map(e => ({
+        ...e,
+        secret: e.secret ? "••••••••" : null,
+      }));
+      return res.json(masked);
+    } catch (error) {
+      console.error("Error fetching webhook endpoints:", error);
+      return res.status(500).json({ error: "Failed to fetch webhook endpoints" });
+    }
+  });
+
+  // Create webhook endpoint
+  app.post("/api/admin/webhooks/endpoints", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const validationResult = insertWebhookEndpointSchema.safeParse(req.body);
+      
+      if (!validationResult.success) {
+        const validationError = fromZodError(validationResult.error);
+        return res.status(400).json({
+          error: "Validation failed",
+          message: validationError.message,
+        });
+      }
+
+      // Generate secret if not provided
+      const secret = req.body.secret || crypto.randomBytes(32).toString("hex");
+      
+      const userId = req.user?.claims?.sub || req.adminUser?.id;
+      const subscribedEvents = validationResult.data.subscribedEvents as string[];
+      const endpoint = await storage.createWebhookEndpoint({
+        ...validationResult.data,
+        subscribedEvents,
+        secret,
+        createdById: userId,
+      });
+      
+      // Return with unmasked secret only on creation
+      return res.status(201).json(endpoint);
+    } catch (error) {
+      console.error("Error creating webhook endpoint:", error);
+      return res.status(500).json({ error: "Failed to create webhook endpoint" });
+    }
+  });
+
+  // Update webhook endpoint
+  app.patch("/api/admin/webhooks/endpoints/:id", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const existing = await storage.getWebhookEndpoint(id);
+      
+      if (!existing) {
+        return res.status(404).json({ error: "Webhook endpoint not found" });
+      }
+
+      const updated = await storage.updateWebhookEndpoint(id, req.body);
+      
+      if (!updated) {
+        return res.status(500).json({ error: "Failed to update webhook endpoint" });
+      }
+      
+      // Mask secret in response
+      return res.json({
+        ...updated,
+        secret: updated.secret ? "••••••••" : null,
+      });
+    } catch (error) {
+      console.error("Error updating webhook endpoint:", error);
+      return res.status(500).json({ error: "Failed to update webhook endpoint" });
+    }
+  });
+
+  // Delete webhook endpoint
+  app.delete("/api/admin/webhooks/endpoints/:id", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteWebhookEndpoint(id);
+      
+      if (!deleted) {
+        return res.status(404).json({ error: "Webhook endpoint not found" });
+      }
+      
+      return res.json({ message: "Webhook endpoint deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting webhook endpoint:", error);
+      return res.status(500).json({ error: "Failed to delete webhook endpoint" });
+    }
+  });
+
+  // Regenerate webhook secret
+  app.post("/api/admin/webhooks/endpoints/:id/regenerate-secret", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const newSecret = crypto.randomBytes(32).toString("hex");
+      
+      const updated = await storage.updateWebhookEndpoint(id, { secret: newSecret });
+      
+      if (!updated) {
+        return res.status(404).json({ error: "Webhook endpoint not found" });
+      }
+      
+      // Return the new secret (only time it's shown)
+      return res.json({ secret: newSecret });
+    } catch (error) {
+      console.error("Error regenerating webhook secret:", error);
+      return res.status(500).json({ error: "Failed to regenerate secret" });
+    }
+  });
+
+  // Get recent webhook deliveries
+  app.get("/api/admin/webhooks/deliveries", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 50;
+      const deliveries = await storage.getRecentWebhookDeliveries(limit);
+      return res.json(deliveries);
+    } catch (error) {
+      console.error("Error fetching webhook deliveries:", error);
+      return res.status(500).json({ error: "Failed to fetch webhook deliveries" });
+    }
+  });
+
+  // Test webhook endpoint (send a test payload)
+  app.post("/api/admin/webhooks/endpoints/:id/test", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const endpoint = await storage.getWebhookEndpoint(id);
+      
+      if (!endpoint) {
+        return res.status(404).json({ error: "Webhook endpoint not found" });
+      }
+
+      // Create a test event
+      const testPayload = {
+        event: "test.ping",
+        data: {
+          message: "This is a test webhook from Secured Asset Funding",
+          timestamp: new Date().toISOString(),
+        },
+        timestamp: new Date().toISOString(),
+      };
+
+      // Sign the payload
+      const signature = crypto
+        .createHmac("sha256", endpoint.secret)
+        .update(JSON.stringify(testPayload))
+        .digest("hex");
+
+      try {
+        const response = await fetch(endpoint.targetUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-SAF-Signature": `sha256=${signature}`,
+            "X-SAF-Event": "test.ping",
+          },
+          body: JSON.stringify(testPayload),
+        });
+
+        const responseText = await response.text();
+        
+        return res.json({
+          success: response.ok,
+          statusCode: response.status,
+          response: responseText.substring(0, 500),
+        });
+      } catch (fetchError: any) {
+        return res.json({
+          success: false,
+          error: fetchError.message,
+        });
+      }
+    } catch (error) {
+      console.error("Error testing webhook endpoint:", error);
+      return res.status(500).json({ error: "Failed to test webhook endpoint" });
     }
   });
 
