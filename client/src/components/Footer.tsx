@@ -11,7 +11,7 @@ export function Footer() {
       <GeometricPattern 
         variant="minimal" 
         className="text-muted-foreground" 
-        opacity={0.05}
+        opacity={0.08}
         strokeColor="currentColor"
       />
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-10 sm:py-12 md:py-16">

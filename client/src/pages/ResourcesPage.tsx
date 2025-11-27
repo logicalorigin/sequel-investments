@@ -42,7 +42,7 @@ export default function ResourcesPage() {
         <GeometricPattern 
           variant="buildings" 
           className="text-primary-foreground" 
-          opacity={0.12}
+          opacity={0.15}
           strokeColor="currentColor"
         />
         
