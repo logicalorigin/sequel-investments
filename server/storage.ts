@@ -15,6 +15,10 @@ import {
   marketDataSnapshots,
   documentComments,
   staffInvites,
+  fundedDeals,
+  webhookEndpoints,
+  webhookEvents,
+  webhookDeliveryLogs,
   type User, 
   type UpsertUser,
   type Lead, 
@@ -47,6 +51,14 @@ import {
   type InsertDocumentComment,
   type StaffInvite,
   type InsertStaffInvite,
+  type FundedDeal,
+  type InsertFundedDeal,
+  type WebhookEndpoint,
+  type InsertWebhookEndpoint,
+  type WebhookEvent,
+  type InsertWebhookEvent,
+  type WebhookDeliveryLog,
+  type InsertWebhookDeliveryLog,
   DEFAULT_DOCUMENT_TYPES,
 } from "@shared/schema";
 import { db } from "./db";
@@ -161,6 +173,33 @@ export interface IStorage {
   getAllUsers(): Promise<User[]>;
   updateUserRole(id: string, role: string): Promise<User | undefined>;
   getAllLoanApplications(): Promise<LoanApplication[]>;
+  
+  // Funded deals operations
+  getFundedDeals(visibleOnly?: boolean): Promise<FundedDeal[]>;
+  getFundedDeal(id: string): Promise<FundedDeal | undefined>;
+  createFundedDeal(deal: InsertFundedDeal): Promise<FundedDeal>;
+  updateFundedDeal(id: string, data: Partial<InsertFundedDeal>): Promise<FundedDeal | undefined>;
+  deleteFundedDeal(id: string): Promise<boolean>;
+  
+  // Webhook endpoint operations
+  getWebhookEndpoints(): Promise<WebhookEndpoint[]>;
+  getWebhookEndpoint(id: string): Promise<WebhookEndpoint | undefined>;
+  getActiveWebhookEndpoints(): Promise<WebhookEndpoint[]>;
+  createWebhookEndpoint(endpoint: InsertWebhookEndpoint): Promise<WebhookEndpoint>;
+  updateWebhookEndpoint(id: string, data: Partial<InsertWebhookEndpoint>): Promise<WebhookEndpoint | undefined>;
+  deleteWebhookEndpoint(id: string): Promise<boolean>;
+  
+  // Webhook event operations (outbox)
+  createWebhookEvent(event: InsertWebhookEvent): Promise<WebhookEvent>;
+  getPendingWebhookEvents(limit?: number): Promise<WebhookEvent[]>;
+  lockWebhookEvent(eventId: string, workerId: string): Promise<WebhookEvent | undefined>;
+  markWebhookEventProcessed(eventId: string): Promise<WebhookEvent | undefined>;
+  
+  // Webhook delivery log operations
+  createWebhookDeliveryLog(log: InsertWebhookDeliveryLog): Promise<WebhookDeliveryLog>;
+  getWebhookDeliveryLogs(eventId: string): Promise<WebhookDeliveryLog[]>;
+  updateWebhookDeliveryLog(id: string, data: Partial<InsertWebhookDeliveryLog>): Promise<WebhookDeliveryLog | undefined>;
+  getRecentWebhookDeliveries(limit?: number): Promise<WebhookDeliveryLog[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -831,6 +870,166 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(loanApplications)
       .orderBy(desc(loanApplications.createdAt));
+  }
+
+  // Funded deals operations
+  async getFundedDeals(visibleOnly: boolean = false): Promise<FundedDeal[]> {
+    if (visibleOnly) {
+      return await db
+        .select()
+        .from(fundedDeals)
+        .where(eq(fundedDeals.isVisible, true))
+        .orderBy(fundedDeals.displayOrder, desc(fundedDeals.createdAt));
+    }
+    return await db
+      .select()
+      .from(fundedDeals)
+      .orderBy(fundedDeals.displayOrder, desc(fundedDeals.createdAt));
+  }
+
+  async getFundedDeal(id: string): Promise<FundedDeal | undefined> {
+    const [deal] = await db.select().from(fundedDeals).where(eq(fundedDeals.id, id));
+    return deal;
+  }
+
+  async createFundedDeal(deal: InsertFundedDeal): Promise<FundedDeal> {
+    const [created] = await db
+      .insert(fundedDeals)
+      .values(deal)
+      .returning();
+    return created;
+  }
+
+  async updateFundedDeal(id: string, data: Partial<InsertFundedDeal>): Promise<FundedDeal | undefined> {
+    const [updated] = await db
+      .update(fundedDeals)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(fundedDeals.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteFundedDeal(id: string): Promise<boolean> {
+    const result = await db.delete(fundedDeals).where(eq(fundedDeals.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  // Webhook endpoint operations
+  async getWebhookEndpoints(): Promise<WebhookEndpoint[]> {
+    return await db
+      .select()
+      .from(webhookEndpoints)
+      .orderBy(desc(webhookEndpoints.createdAt));
+  }
+
+  async getWebhookEndpoint(id: string): Promise<WebhookEndpoint | undefined> {
+    const [endpoint] = await db.select().from(webhookEndpoints).where(eq(webhookEndpoints.id, id));
+    return endpoint;
+  }
+
+  async getActiveWebhookEndpoints(): Promise<WebhookEndpoint[]> {
+    return await db
+      .select()
+      .from(webhookEndpoints)
+      .where(eq(webhookEndpoints.isActive, true));
+  }
+
+  async createWebhookEndpoint(endpoint: InsertWebhookEndpoint): Promise<WebhookEndpoint> {
+    const [created] = await db
+      .insert(webhookEndpoints)
+      .values(endpoint)
+      .returning();
+    return created;
+  }
+
+  async updateWebhookEndpoint(id: string, data: Partial<InsertWebhookEndpoint>): Promise<WebhookEndpoint | undefined> {
+    const [updated] = await db
+      .update(webhookEndpoints)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(webhookEndpoints.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteWebhookEndpoint(id: string): Promise<boolean> {
+    const result = await db.delete(webhookEndpoints).where(eq(webhookEndpoints.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  // Webhook event operations (outbox)
+  async createWebhookEvent(event: InsertWebhookEvent): Promise<WebhookEvent> {
+    const [created] = await db
+      .insert(webhookEvents)
+      .values(event)
+      .returning();
+    return created;
+  }
+
+  async getPendingWebhookEvents(limit: number = 50): Promise<WebhookEvent[]> {
+    return await db
+      .select()
+      .from(webhookEvents)
+      .where(and(
+        eq(webhookEvents.processedAt, null as any),
+        eq(webhookEvents.lockedAt, null as any)
+      ))
+      .orderBy(webhookEvents.createdAt)
+      .limit(limit);
+  }
+
+  async lockWebhookEvent(eventId: string, workerId: string): Promise<WebhookEvent | undefined> {
+    const [locked] = await db
+      .update(webhookEvents)
+      .set({ lockedAt: new Date(), lockedBy: workerId })
+      .where(and(
+        eq(webhookEvents.id, eventId),
+        eq(webhookEvents.lockedAt, null as any)
+      ))
+      .returning();
+    return locked;
+  }
+
+  async markWebhookEventProcessed(eventId: string): Promise<WebhookEvent | undefined> {
+    const [processed] = await db
+      .update(webhookEvents)
+      .set({ processedAt: new Date() })
+      .where(eq(webhookEvents.id, eventId))
+      .returning();
+    return processed;
+  }
+
+  // Webhook delivery log operations
+  async createWebhookDeliveryLog(log: InsertWebhookDeliveryLog): Promise<WebhookDeliveryLog> {
+    const [created] = await db
+      .insert(webhookDeliveryLogs)
+      .values(log)
+      .returning();
+    return created;
+  }
+
+  async getWebhookDeliveryLogs(eventId: string): Promise<WebhookDeliveryLog[]> {
+    return await db
+      .select()
+      .from(webhookDeliveryLogs)
+      .where(eq(webhookDeliveryLogs.eventId, eventId))
+      .orderBy(desc(webhookDeliveryLogs.createdAt));
+  }
+
+  async updateWebhookDeliveryLog(id: string, data: Partial<InsertWebhookDeliveryLog>): Promise<WebhookDeliveryLog | undefined> {
+    const [updated] = await db
+      .update(webhookDeliveryLogs)
+      .set(data)
+      .where(eq(webhookDeliveryLogs.id, id))
+      .returning();
+    return updated;
+  }
+
+  async getRecentWebhookDeliveries(limit: number = 50): Promise<WebhookDeliveryLog[]> {
+    return await db
+      .select()
+      .from(webhookDeliveryLogs)
+      .orderBy(desc(webhookDeliveryLogs.createdAt))
+      .limit(limit);
   }
 }
 
