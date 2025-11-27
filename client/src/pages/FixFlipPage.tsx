@@ -53,7 +53,7 @@ export default function FixFlipPage() {
               Close in 48 Hours. No Appraisal Required.
             </h1>
             <p className="text-base sm:text-xl text-white/90 mb-6 sm:mb-8">
-              Compete with cash buyers using our fast, flexible fix & flip financing. Up to 90% LTC with rates starting at 8.90%.
+              Compete with cash buyers using our fast, flexible fix & flip financing. Up to 90% of purchase + 100% of rehab with rates starting at 8.90%.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6 sm:mb-8">
@@ -72,7 +72,7 @@ export default function FixFlipPage() {
               </div>
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <DollarSign className="h-4 w-4 sm:h-5 sm:w-5" />
-                <span className="font-medium">Up to 90% LTC</span>
+                <span className="font-medium">90% Purchase + 100% Rehab</span>
               </div>
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <FileCheck className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -181,8 +181,12 @@ export default function FixFlipPage() {
                         <span className="font-semibold">$80K - $2M</span>
                       </div>
                       <div className="flex justify-between py-3 border-b">
-                        <span className="text-muted-foreground">Loan-to-Cost (LTC)</span>
-                        <span className="font-semibold">Up to 92.5%</span>
+                        <span className="text-muted-foreground">Purchase Financing</span>
+                        <span className="font-semibold">Up to 90%</span>
+                      </div>
+                      <div className="flex justify-between py-3 border-b">
+                        <span className="text-muted-foreground">Rehab Financing</span>
+                        <span className="font-semibold">Up to 100%</span>
                       </div>
                       <div className="flex justify-between py-3 border-b">
                         <span className="text-muted-foreground">ARV</span>
