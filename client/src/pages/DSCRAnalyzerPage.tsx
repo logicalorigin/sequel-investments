@@ -634,9 +634,9 @@ export default function DSCRAnalyzerPage() {
                     <p className="text-xs text-muted-foreground mt-1">Loading property data...</p>
                   )}
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <Label htmlFor="propertyValue" className="text-sm">
+                    <Label htmlFor="propertyValue" className="text-xs sm:text-sm">
                       {transactionType === "purchase" ? "Purchase Price" : "Property Value"}
                     </Label>
                     <div className="relative mt-1">
@@ -652,7 +652,7 @@ export default function DSCRAnalyzerPage() {
                     </div>
                   </div>
                   <div>
-                    <Label htmlFor="monthlyRent" className="text-sm">Expected Monthly Rent</Label>
+                    <Label htmlFor="monthlyRent" className="text-xs sm:text-sm">Expected Monthly Rent</Label>
                     <div className="relative mt-1">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                       <Input
@@ -666,9 +666,9 @@ export default function DSCRAnalyzerPage() {
                     </div>
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
-                    <Label htmlFor="annualTaxes" className="text-sm">Annual Taxes</Label>
+                    <Label htmlFor="annualTaxes" className="text-xs sm:text-sm">Annual Taxes</Label>
                     <div className="relative mt-1">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                       <Input
@@ -682,7 +682,7 @@ export default function DSCRAnalyzerPage() {
                     </div>
                   </div>
                   <div>
-                    <Label htmlFor="annualInsurance" className="text-sm">Annual Insurance</Label>
+                    <Label htmlFor="annualInsurance" className="text-xs sm:text-sm">Insurance</Label>
                     <div className="relative mt-1">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                       <Input
@@ -696,7 +696,7 @@ export default function DSCRAnalyzerPage() {
                     </div>
                   </div>
                   <div>
-                    <Label htmlFor="annualHOA" className="text-sm">Annual HOA</Label>
+                    <Label htmlFor="annualHOA" className="text-xs sm:text-sm">HOA</Label>
                     <div className="relative mt-1">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                       <Input

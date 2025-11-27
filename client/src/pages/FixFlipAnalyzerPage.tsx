@@ -389,17 +389,17 @@ export default function FixFlipAnalyzerPage() {
     <div className="min-h-screen bg-background">
       <PortalHeader user={user} />
 
-      <main className="max-w-7xl mx-auto px-6 py-6">
-        <div className="mb-6 flex items-start justify-between gap-4">
-          <div className="flex items-center gap-3">
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
+        <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-3">
             {applicationId && (
               <Link href={`/portal/application/${applicationId}`}>
                 <Button variant="ghost" size="icon" data-testid="button-back-to-application">
-                  <ArrowLeft className="h-5 w-5" />
+                  <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
                 </Button>
               </Link>
             )}
-            <h1 className="text-2xl font-bold" data-testid="text-page-title">
+            <h1 className="text-lg sm:text-2xl font-bold" data-testid="text-page-title">
               Fix & Flip Analyzer
             </h1>
           </div>
@@ -410,27 +410,27 @@ export default function FixFlipAnalyzerPage() {
           />
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           <div className="lg:col-span-2 space-y-4">
             {/* Property Type - Condensed Single Row */}
             <Card>
-              <CardContent className="pt-4">
-                <div className="flex items-center gap-3">
-                  <Label className="w-24 shrink-0 text-sm">Property</Label>
-                  <div className="flex gap-1.5 flex-1">
+              <CardContent className="pt-3 sm:pt-4">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                  <Label className="sm:w-24 shrink-0 text-xs sm:text-sm">Property</Label>
+                  <div className="flex gap-1 sm:gap-1.5 flex-1">
                     {propertyTypes.map((type) => (
                       <button
                         key={type.id}
                         onClick={() => setPropertyType(type.id)}
-                        className={`flex-1 py-2 px-2 rounded-md border transition-all flex flex-col items-center gap-1 ${
+                        className={`flex-1 min-w-[48px] py-1.5 sm:py-2 px-1.5 sm:px-2 rounded-md border transition-all flex flex-col items-center gap-0.5 sm:gap-1 ${
                           propertyType === type.id
                             ? "border-primary bg-primary/10 text-primary"
                             : "border-border hover:border-primary/50"
                         }`}
                         data-testid={`button-property-type-${type.id}`}
                       >
-                        <PropertyTypeIcon type={type.icon} className="w-5 h-5" />
-                        <span className="text-[10px] font-medium">{type.label}</span>
+                        <PropertyTypeIcon type={type.icon} className="w-4 h-4 sm:w-5 sm:h-5" />
+                        <span className="text-[8px] sm:text-[10px] font-medium">{type.label}</span>
                       </button>
                     ))}
                   </div>
@@ -440,9 +440,9 @@ export default function FixFlipAnalyzerPage() {
 
             {/* Property Details - Purchase → Rehab → ARV Order */}
             <Card>
-              <CardContent className="pt-4 space-y-3">
+              <CardContent className="pt-3 sm:pt-4 space-y-3">
                 <div>
-                  <Label className="text-sm">Property Address {isAutofilling && <Loader2 className="inline-block h-3 w-3 ml-1 animate-spin" />}</Label>
+                  <Label className="text-xs sm:text-sm">Property Address {isAutofilling && <Loader2 className="inline-block h-3 w-3 ml-1 animate-spin" />}</Label>
                   <AddressAutocomplete
                     value={propertyAddress}
                     onChange={setPropertyAddress}
@@ -455,9 +455,9 @@ export default function FixFlipAnalyzerPage() {
                     <p className="text-xs text-muted-foreground mt-1">Loading property data...</p>
                   )}
                 </div>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
-                    <Label htmlFor="purchasePrice" className="text-sm">Purchase Price</Label>
+                    <Label htmlFor="purchasePrice" className="text-xs sm:text-sm">Purchase Price</Label>
                     <div className="relative mt-1">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                       <Input
@@ -471,7 +471,7 @@ export default function FixFlipAnalyzerPage() {
                     </div>
                   </div>
                   <div>
-                    <Label htmlFor="rehabBudget" className="text-sm">Rehab Budget</Label>
+                    <Label htmlFor="rehabBudget" className="text-xs sm:text-sm">Rehab Budget</Label>
                     <div className="relative mt-1">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                       <Input
@@ -485,7 +485,7 @@ export default function FixFlipAnalyzerPage() {
                     </div>
                   </div>
                   <div>
-                    <Label htmlFor="arv" className="text-sm">After Repair Value</Label>
+                    <Label htmlFor="arv" className="text-xs sm:text-sm">After Repair Value</Label>
                     <div className="relative mt-1">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                       <Input
@@ -499,25 +499,25 @@ export default function FixFlipAnalyzerPage() {
                     </div>
                   </div>
                 </div>
-                <div className="grid grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div>
-                    <Label htmlFor="loanTerm" className="text-sm">Loan Term</Label>
+                    <Label htmlFor="loanTerm" className="text-xs sm:text-sm">Loan Term</Label>
                     <select
                       id="loanTerm"
                       value={loanTermMonths}
                       onChange={(e) => setLoanTermMonths(parseInt(e.target.value))}
-                      className="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                      className="mt-1 h-9 w-full rounded-md border border-input bg-background px-2 sm:px-3 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                       data-testid="select-loan-term"
                     >
                       {loanTermOptions.map((months) => (
                         <option key={months} value={months}>
-                          {months} Months
+                          {months} Mo
                         </option>
                       ))}
                     </select>
                   </div>
                   <div>
-                    <Label htmlFor="annualTaxes" className="text-sm">Annual Taxes</Label>
+                    <Label htmlFor="annualTaxes" className="text-xs sm:text-sm">Annual Taxes</Label>
                     <div className="relative mt-1">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                       <Input
@@ -531,7 +531,7 @@ export default function FixFlipAnalyzerPage() {
                     </div>
                   </div>
                   <div>
-                    <Label htmlFor="annualInsurance" className="text-sm">Annual Insurance</Label>
+                    <Label htmlFor="annualInsurance" className="text-xs sm:text-sm">Insurance</Label>
                     <div className="relative mt-1">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                       <Input
@@ -545,7 +545,7 @@ export default function FixFlipAnalyzerPage() {
                     </div>
                   </div>
                   <div>
-                    <Label htmlFor="annualHOA" className="text-sm">Annual HOA</Label>
+                    <Label htmlFor="annualHOA" className="text-xs sm:text-sm">HOA</Label>
                     <div className="relative mt-1">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                       <Input
@@ -563,12 +563,12 @@ export default function FixFlipAnalyzerPage() {
             </Card>
 
             {/* Borrower Profile - FICO & Experience */}
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Card>
-                <CardContent className="pt-4 space-y-4">
+                <CardContent className="pt-3 sm:pt-4 space-y-4">
                   <div>
                     <div className="flex justify-between items-center mb-1">
-                      <Label className="text-sm">Credit Score</Label>
+                      <Label className="text-xs sm:text-sm">Credit Score</Label>
                       <span className="text-sm font-bold text-primary">{creditScore[0]}</span>
                     </div>
                     <Slider
@@ -586,13 +586,13 @@ export default function FixFlipAnalyzerPage() {
                     </div>
                   </div>
                   <div>
-                    <Label className="text-sm mb-2 block">Experience Level</Label>
-                    <div className="flex gap-1.5">
+                    <Label className="text-xs sm:text-sm mb-2 block">Experience Level</Label>
+                    <div className="flex flex-wrap gap-1 sm:gap-1.5">
                       {experienceLevels.map((level) => (
                         <button
                           key={level.id}
                           onClick={() => setExperience(level.id)}
-                          className={`flex-1 py-2 px-2 rounded-md border text-xs font-medium transition-all ${
+                          className={`flex-1 min-w-[60px] py-1.5 sm:py-2 px-1.5 sm:px-2 rounded-md border text-[10px] sm:text-xs font-medium transition-all ${
                             experience === level.id
                               ? "border-primary bg-primary/10 text-primary"
                               : "border-border hover:border-primary/50"
@@ -609,27 +609,27 @@ export default function FixFlipAnalyzerPage() {
 
               {/* Rate Breakdown */}
               <Card>
-                <CardContent className="pt-4">
-                  <div className="bg-muted/50 rounded-lg p-3 space-y-1.5 text-xs">
-                    <div className="flex justify-between">
+                <CardContent className="pt-3 sm:pt-4">
+                  <div className="bg-muted/50 rounded-lg p-2.5 sm:p-3 space-y-1.5 text-[10px] sm:text-xs">
+                    <div className="flex justify-between gap-2">
                       <span className="text-muted-foreground">Base Rate:</span>
                       <span className="font-medium">{baseRate.toFixed(3)}%</span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex justify-between gap-2">
                       <span className="text-muted-foreground">Credit ({creditScore[0]}):</span>
                       <span className={`font-medium ${creditScore[0] < 720 ? "text-red-600" : ""}`}>
                         +{creditScore[0] >= 720 ? "0.000" : creditScore[0] >= 700 ? "0.500" : creditScore[0] >= 680 ? "1.000" : "1.500"}%
                       </span>
                     </div>
-                    <div className="border-t pt-1.5 mt-1.5 flex justify-between font-semibold text-sm">
+                    <div className="border-t pt-1.5 mt-1.5 flex justify-between gap-2 font-semibold text-xs sm:text-sm">
                       <span>Estimated Rate:</span>
                       <span className="text-primary">{calculatedRate.toFixed(3)}%</span>
                     </div>
-                    <div className="flex justify-between pt-1.5 border-t mt-1.5">
+                    <div className="flex justify-between gap-2 pt-1.5 border-t mt-1.5">
                       <span className="text-muted-foreground">Origination Points:</span>
                       <span className="font-semibold text-primary">{originationPoints.toFixed(2)}%</span>
                     </div>
-                    <div className="text-[10px] text-amber-600 pt-2 text-center">
+                    <div className="text-[9px] sm:text-[10px] text-amber-600 pt-2 text-center">
                       Contact your rep for an accurate estimate
                     </div>
                   </div>
@@ -639,10 +639,10 @@ export default function FixFlipAnalyzerPage() {
 
             {/* Financing Details */}
             <Card>
-              <CardContent className="pt-4">
+              <CardContent className="pt-3 sm:pt-4">
                 <div>
                   <div className="flex justify-between items-center mb-1">
-                    <Label className="text-sm">Loan-to-Cost (LTC)</Label>
+                    <Label className="text-xs sm:text-sm">Loan-to-Cost (LTC)</Label>
                     <div className="flex items-center gap-1">
                       <Input
                         type="number"
@@ -651,11 +651,11 @@ export default function FixFlipAnalyzerPage() {
                           const val = Math.min(parseInt(e.target.value) || 0, maxLtc);
                           setLtcSlider([val]);
                         }}
-                        className="w-14 h-7 text-center text-sm"
+                        className="w-12 sm:w-14 h-7 text-center text-xs sm:text-sm"
                         max={maxLtc}
                         data-testid="input-ltc"
                       />
-                      <span className="text-sm font-medium text-primary">%</span>
+                      <span className="text-xs sm:text-sm font-medium text-primary">%</span>
                     </div>
                   </div>
                   <Slider
