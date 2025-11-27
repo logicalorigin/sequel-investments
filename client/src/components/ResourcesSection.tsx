@@ -111,6 +111,7 @@ export function ResourcesSection({
                   href={resource.link} 
                   target="_blank" 
                   rel="noopener noreferrer"
+                  data-testid={`link-resource-external-${index}`}
                 >
                   {CardContent}
                 </a>
@@ -118,7 +119,7 @@ export function ResourcesSection({
             }
             
             return (
-              <Link key={index} href={resource.link}>
+              <Link key={index} href={resource.link} data-testid={`link-resource-${index}`}>
                 {CardContent}
               </Link>
             );
