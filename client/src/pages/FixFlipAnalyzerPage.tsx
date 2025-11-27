@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
+import { PropertyMapPreview } from "@/components/PropertyMapPreview";
 import { PortalHeader } from "@/components/PortalHeader";
 import { ScenarioManager } from "@/components/ScenarioManager";
 import { 
@@ -134,6 +135,10 @@ export default function FixFlipAnalyzerPage() {
 
   const [propertyType, setPropertyType] = useState("sfr");
   const [propertyAddress, setPropertyAddress] = useState("");
+  const [propertyLatitude, setPropertyLatitude] = useState(0);
+  const [propertyLongitude, setPropertyLongitude] = useState(0);
+  const [estimatedValue, setEstimatedValue] = useState<number | null>(null);
+  const [valueSource, setValueSource] = useState<string>("");
   const [purchasePrice, setPurchasePrice] = useState("280000");
   const [rehabBudget, setRehabBudget] = useState("60000");
   const [arv, setArv] = useState("400000");
@@ -152,6 +157,8 @@ export default function FixFlipAnalyzerPage() {
         setPurchasePrice(data.propertyValue.toString());
         const estimatedArv = Math.round(data.propertyValue * 1.3);
         setArv(estimatedArv.toString());
+        setEstimatedValue(data.propertyValue);
+        setValueSource(data.source === "rentcast" ? "RentCast" : "Estimated");
       }
       if (data.annualTaxes) {
         setAnnualTaxes(data.annualTaxes.toString());
@@ -162,7 +169,11 @@ export default function FixFlipAnalyzerPage() {
     },
   });
 
-  const handleAddressSelect = useCallback(async (place: { formatted_address?: string; address_components?: Array<{ long_name: string; short_name: string; types: string[] }> }) => {
+  const handleAddressSelect = useCallback(async (place: { 
+    formatted_address?: string; 
+    address_components?: Array<{ long_name: string; short_name: string; types: string[] }>;
+    geometry?: { location?: { lat: () => number; lng: () => number } };
+  }) => {
     let city = "";
     let state = "";
     let zip = "";
@@ -178,6 +189,11 @@ export default function FixFlipAnalyzerPage() {
           zip = component.long_name;
         }
       }
+    }
+
+    if (place.geometry?.location) {
+      setPropertyLatitude(place.geometry.location.lat());
+      setPropertyLongitude(place.geometry.location.lng());
     }
 
     if (streetAddress) {
@@ -453,6 +469,18 @@ export default function FixFlipAnalyzerPage() {
                   />
                   {isAutofilling && (
                     <p className="text-xs text-muted-foreground mt-1">Loading property data...</p>
+                  )}
+                  {propertyLatitude !== 0 && propertyLongitude !== 0 && (
+                    <div className="mt-3">
+                      <PropertyMapPreview
+                        latitude={propertyLatitude}
+                        longitude={propertyLongitude}
+                        address={propertyAddress}
+                        estimatedValue={estimatedValue || undefined}
+                        isLoadingValue={isAutofilling}
+                        valueSource={valueSource}
+                      />
+                    </div>
                   )}
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
