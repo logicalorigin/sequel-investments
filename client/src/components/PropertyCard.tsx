@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { Map, AdvancedMarker } from "@vis.gl/react-google-maps";
+import { Map } from "@vis.gl/react-google-maps";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -52,6 +52,27 @@ function MapTypeToggle({ onToggle, mapType }: { onToggle: () => void; mapType: M
   );
 }
 
+function CenterPinOverlay() {
+  return (
+    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+      <div className="relative">
+        <div 
+          className="w-8 h-8 bg-primary rounded-full flex items-center justify-center"
+          style={{ 
+            boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+            border: "3px solid white"
+          }}
+        >
+          <MapPin className="h-4 w-4 text-primary-foreground" />
+        </div>
+        <div 
+          className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-3 h-3 bg-black/30 rounded-full blur-sm"
+        />
+      </div>
+    </div>
+  );
+}
+
 function PropertyMapView({ 
   latitude, 
   longitude, 
@@ -71,19 +92,15 @@ function PropertyMapView({
         defaultCenter={{ lat: latitude, lng: longitude }}
         defaultZoom={18}
         mapTypeId={mapType}
-        gestureHandling="cooperative"
+        gestureHandling="none"
         disableDefaultUI={true}
         zoomControl={false}
         mapTypeControl={false}
         streetViewControl={false}
         fullscreenControl={false}
-      >
-        <AdvancedMarker position={{ lat: latitude, lng: longitude }}>
-          <div className="bg-primary text-primary-foreground p-2 rounded-full shadow-lg">
-            <MapPin className="h-4 w-4" />
-          </div>
-        </AdvancedMarker>
-      </Map>
+        clickableIcons={false}
+      />
+      <CenterPinOverlay />
       <MapTypeToggle onToggle={onMapTypeToggle} mapType={mapType} />
       <div className="absolute top-3 left-3 z-10">
         <Badge variant="secondary" className="bg-white/90 text-foreground shadow-sm">
