@@ -40,54 +40,54 @@ export default function DSCRLoansPage() {
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      <section className="relative pt-12 pb-20 overflow-hidden">
+      <section className="relative pt-8 sm:pt-12 pb-12 sm:pb-20 overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: `url(${dscrImage})` }}
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/70 to-black/80" />
         
-        <div className="relative z-10 max-w-7xl mx-auto px-6">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6">
           <div className="max-w-3xl">
-            <Badge className="mb-4" variant="secondary">DSCR Loans</Badge>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6" data-testid="text-dscr-title">
+            <Badge className="mb-3 sm:mb-4" variant="secondary">DSCR Loans</Badge>
+            <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 sm:mb-6" data-testid="text-dscr-title">
               Rates from 5.75%. No W2 Required.
             </h1>
-            <p className="text-xl text-white/90 mb-8">Financing for Long Term and Short Term Rentals that qualifies based on property cash flow, not personal income. Up to 80% LTV with 30-year fixed terms.</p>
+            <p className="text-base sm:text-xl text-white/90 mb-6 sm:mb-8">Financing for Long Term and Short Term Rentals that qualifies based on property cash flow, not personal income. Up to 80% LTV with 30-year fixed terms.</p>
             
-            <div className="flex flex-col sm:flex-row gap-4 mb-8">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6 sm:mb-8">
               <Link href="/get-quote">
-                <Button size="lg" className="text-lg px-8" data-testid="button-hero-getrate">
+                <Button size="lg" className="text-base sm:text-lg px-6 sm:px-8 w-full sm:w-auto" data-testid="button-hero-getrate">
                   Get Your Rate
-                  <ArrowRight className="ml-2 h-5 w-5" />
+                  <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
                 </Button>
               </Link>
             </div>
 
-            <div className="flex flex-wrap gap-6 text-white">
-              <div className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5" />
+            <div className="flex flex-wrap gap-3 sm:gap-6 text-white text-sm sm:text-base">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <DollarSign className="h-4 w-4 sm:h-5 sm:w-5" />
                 <span className="font-medium">5.75%+ Rates</span>
               </div>
-              <div className="flex items-center gap-2">
-                <Home className="h-5 w-5" />
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <Home className="h-4 w-4 sm:h-5 sm:w-5" />
                 <span className="font-medium">Up to 80% LTV</span>
               </div>
-              <div className="flex items-center gap-2">
-                <FileCheck className="h-5 w-5" />
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <FileCheck className="h-4 w-4 sm:h-5 sm:w-5" />
                 <span className="font-medium">No Minimum DSCR</span>
               </div>
             </div>
           </div>
         </div>
       </section>
-      <section className="py-20 bg-background">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid lg:grid-cols-3 gap-12">
-            <div className="lg:col-span-2 space-y-12">
+      <section className="py-12 sm:py-20 bg-background">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
+            <div className="lg:col-span-2 space-y-8 sm:space-y-12">
               <div>
-                <h2 className="text-3xl font-bold mb-6">Program Highlights</h2>
-                <div className="grid sm:grid-cols-2 gap-6">
+                <h2 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">Program Highlights</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   <Card>
                     <CardHeader className="pb-3">
                       <CardTitle className="flex items-center gap-2 text-lg">
