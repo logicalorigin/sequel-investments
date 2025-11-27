@@ -35,6 +35,7 @@ import fortWorthTXProperty from "@assets/stock_images/investment_property__f60ec
 import doverDEProperty from "@assets/stock_images/investment_rental_ho_757cf226.jpg";
 import postFallsIDProperty from "@assets/stock_images/investment_property__fdbf9598.jpg";
 import { useToast } from "@/hooks/use-toast";
+import { GeometricPattern } from "@/components/GeometricPattern";
 
 interface HeroSlide {
   id: string;
@@ -683,8 +684,14 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="py-12 sm:py-16 md:py-24 bg-primary">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+      <section className="py-12 sm:py-16 md:py-24 bg-primary relative overflow-hidden">
+        <GeometricPattern 
+          variant="buildings" 
+          className="text-primary-foreground" 
+          opacity={0.1}
+          strokeColor="currentColor"
+        />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6">
           <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-center">
             <div className="text-primary-foreground">
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 sm:mb-6">

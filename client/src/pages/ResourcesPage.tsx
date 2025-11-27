@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { articles, type Article } from "@/data/articles";
 import { Search, ArrowRight, Calendar, Clock, BookOpen } from "lucide-react";
+import { GeometricPattern } from "@/components/GeometricPattern";
 
 const categories: Article["category"][] = ["Guide", "Article", "Webinar", "Calculator"];
 
@@ -38,11 +39,12 @@ export default function ResourcesPage() {
       
       {/* Hero Section */}
       <section className="relative py-16 sm:py-24 bg-primary overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-0 right-0 w-96 h-96 border border-primary-foreground/30 transform rotate-45 translate-x-1/2 -translate-y-1/2" />
-          <div className="absolute bottom-0 right-1/4 w-64 h-64 border border-primary-foreground/30 transform rotate-45 translate-y-1/2" />
-          <div className="absolute top-1/2 left-0 w-48 h-48 border border-primary-foreground/30 transform rotate-45 -translate-x-1/2" />
-        </div>
+        <GeometricPattern 
+          variant="buildings" 
+          className="text-primary-foreground" 
+          opacity={0.12}
+          strokeColor="currentColor"
+        />
         
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6">
           <div className="max-w-3xl">

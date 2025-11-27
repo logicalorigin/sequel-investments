@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import fixFlipImage from "@assets/stock_images/house_renovation_con_aaeb0f05.jpg";
 import { useToast } from "@/hooks/use-toast";
+import { GeometricPattern } from "@/components/GeometricPattern";
 
 const ratesTermsItems: RateTermItem[] = [
   { label: "Rates as low as", value: "8.90%*", icon: "percent" },
@@ -350,8 +351,14 @@ export default function FixFlipPage() {
       />
 
       {/* CTA Section */}
-      <section className="py-16 bg-primary">
-        <div className="max-w-7xl mx-auto px-6 text-center">
+      <section className="py-16 bg-primary relative overflow-hidden">
+        <GeometricPattern 
+          variant="construction" 
+          className="text-primary-foreground" 
+          opacity={0.1}
+          strokeColor="currentColor"
+        />
+        <div className="relative max-w-7xl mx-auto px-6 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-primary-foreground mb-4">
             Ready to Close Your Next Deal?
           </h2>
