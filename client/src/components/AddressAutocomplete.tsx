@@ -1,21 +1,9 @@
 import { useRef, useEffect, useState, useCallback } from "react";
-import Radar from "radar-sdk-js";
-import "radar-sdk-js/dist/radar.css";
+import { useMapsLibrary } from "@vis.gl/react-google-maps";
 import { Input } from "@/components/ui/input";
-import { MapPin, Loader2 } from "lucide-react";
-
-interface RadarAddress {
-  latitude?: number;
-  longitude?: number;
-  formattedAddress?: string;
-  addressLabel?: string;
-  city?: string;
-  state?: string;
-  stateCode?: string;
-  postalCode?: string;
-  country?: string;
-  countryCode?: string;
-}
+import { MapPin, Loader2, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useGoogleMapsApiKey } from "@/components/GoogleMapsProvider";
 
 interface PlaceResult {
   formatted_address?: string;
@@ -43,59 +31,49 @@ interface AddressAutocompleteProps {
   "data-testid"?: string;
 }
 
-function convertRadarToPlaceResult(radarAddress: RadarAddress): PlaceResult {
-  const addressComponents: Array<{
-    long_name: string;
-    short_name: string;
-    types: string[];
-  }> = [];
-
-  if (radarAddress.city) {
-    addressComponents.push({
-      long_name: radarAddress.city,
-      short_name: radarAddress.city,
-      types: ["locality", "political"],
-    });
-  }
-
-  if (radarAddress.state) {
-    addressComponents.push({
-      long_name: radarAddress.state,
-      short_name: radarAddress.stateCode || radarAddress.state,
-      types: ["administrative_area_level_1", "political"],
-    });
-  }
-
-  if (radarAddress.postalCode) {
-    addressComponents.push({
-      long_name: radarAddress.postalCode,
-      short_name: radarAddress.postalCode,
-      types: ["postal_code"],
-    });
-  }
-
-  if (radarAddress.country) {
-    addressComponents.push({
-      long_name: radarAddress.country,
-      short_name: radarAddress.countryCode || radarAddress.country,
-      types: ["country", "political"],
-    });
-  }
-
-  return {
-    formatted_address: radarAddress.formattedAddress,
-    name: radarAddress.addressLabel,
-    geometry: radarAddress.latitude && radarAddress.longitude ? {
-      location: {
-        lat: () => radarAddress.latitude!,
-        lng: () => radarAddress.longitude!,
-      },
-    } : undefined,
-    address_components: addressComponents,
+interface AutocompletePrediction {
+  place_id: string;
+  description: string;
+  structured_formatting?: {
+    main_text: string;
+    secondary_text: string;
   };
 }
 
-export default function AddressAutocomplete({
+interface AddressComponent {
+  long_name: string;
+  short_name: string;
+  types: string[];
+}
+
+interface PlaceDetailsResult {
+  address_components?: AddressComponent[];
+  geometry?: {
+    location?: {
+      lat: () => number;
+      lng: () => number;
+    };
+  };
+  formatted_address?: string;
+  place_id?: string;
+  name?: string;
+}
+
+type AutocompleteService = {
+  getPlacePredictions: (
+    request: { input: string; componentRestrictions?: { country: string }; types?: string[] },
+    callback: (results: AutocompletePrediction[] | null, status: string) => void
+  ) => void;
+};
+
+type PlacesService = {
+  getDetails: (
+    request: { placeId: string; fields: string[] },
+    callback: (result: PlaceDetailsResult | null, status: string) => void
+  ) => void;
+};
+
+function GoogleMapsAutocomplete({
   value,
   onChange,
   onPlaceSelect,
@@ -103,148 +81,247 @@ export default function AddressAutocomplete({
   className = "",
   "data-testid": testId,
 }: AddressAutocompleteProps) {
-  const apiKey = import.meta.env.VITE_RADAR_PUBLISHABLE_KEY;
-  const containerRef = useRef<HTMLDivElement>(null);
-  const autocompleteRef = useRef<any>(null);
-  const [isInitialized, setIsInitialized] = useState(false);
   const [inputValue, setInputValue] = useState(value);
+  const [predictions, setPredictions] = useState<AutocompletePrediction[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   
-  const onChangeRef = useRef(onChange);
-  const onPlaceSelectRef = useRef(onPlaceSelect);
-  
+  const places = useMapsLibrary("places");
+  const autocompleteServiceRef = useRef<AutocompleteService | null>(null);
+  const placesServiceRef = useRef<PlacesService | null>(null);
+
   useEffect(() => {
-    onChangeRef.current = onChange;
-    onPlaceSelectRef.current = onPlaceSelect;
-  }, [onChange, onPlaceSelect]);
+    if (places) {
+      autocompleteServiceRef.current = new places.AutocompleteService() as unknown as AutocompleteService;
+      const dummyDiv = document.createElement("div");
+      placesServiceRef.current = new places.PlacesService(dummyDiv) as unknown as PlacesService;
+    }
+  }, [places]);
 
   useEffect(() => {
     setInputValue(value);
   }, [value]);
 
-  const handleSelection = useCallback((address: RadarAddress) => {
-    if (address.formattedAddress) {
-      onChangeRef.current(address.formattedAddress);
-      setInputValue(address.formattedAddress);
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node) &&
+        inputRef.current &&
+        !inputRef.current.contains(event.target as Node)
+      ) {
+        setShowDropdown(false);
+      }
     }
-    if (onPlaceSelectRef.current) {
-      onPlaceSelectRef.current(convertRadarToPlaceResult(address));
-    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  useEffect(() => {
-    if (!apiKey || !containerRef.current || isInitialized) return;
-
-    try {
-      Radar.initialize(apiKey);
-
-      const containerId = `radar-autocomplete-${Math.random().toString(36).substr(2, 9)}`;
-      containerRef.current.id = containerId;
-
-      autocompleteRef.current = Radar.ui.autocomplete({
-        container: containerId,
-        width: "100%",
-        responsive: true,
-        placeholder: placeholder,
-        limit: 8,
-        countryCode: "US",
-        onSelection: handleSelection,
-      });
-
-      setIsInitialized(true);
-    } catch (error) {
-      console.error("Failed to initialize Radar autocomplete:", error);
-    }
-
-    return () => {
-      if (autocompleteRef.current) {
-        try {
-          autocompleteRef.current.remove();
-        } catch (e) {
-        }
-        autocompleteRef.current = null;
+  const fetchPredictions = useCallback(
+    async (input: string) => {
+      if (!autocompleteServiceRef.current || input.length < 3) {
+        setPredictions([]);
+        return;
       }
-    };
-  }, [apiKey, placeholder, handleSelection, isInitialized]);
 
-  if (!apiKey) {
-    return (
-      <div className="relative">
-        <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
-        <Input
-          value={inputValue}
-          onChange={(e) => {
-            setInputValue(e.target.value);
-            onChange(e.target.value);
-          }}
-          placeholder={placeholder}
-          className={`pl-10 ${className}`}
-          data-testid={testId}
-        />
-      </div>
-    );
-  }
+      setIsLoading(true);
+      try {
+        const request = {
+          input,
+          componentRestrictions: { country: "us" },
+          types: ["address"],
+        };
+
+        autocompleteServiceRef.current.getPlacePredictions(
+          request,
+          (results: AutocompletePrediction[] | null, status: string) => {
+            if (status === "OK" && results) {
+              setPredictions(results);
+              setShowDropdown(true);
+            } else {
+              setPredictions([]);
+            }
+            setIsLoading(false);
+          }
+        );
+      } catch (error) {
+        console.error("Error fetching predictions:", error);
+        setIsLoading(false);
+      }
+    },
+    []
+  );
+
+  const handleInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const newValue = e.target.value;
+      setInputValue(newValue);
+      onChange(newValue);
+      fetchPredictions(newValue);
+    },
+    [onChange, fetchPredictions]
+  );
+
+  const handleSelectPlace = useCallback(
+    (prediction: AutocompletePrediction) => {
+      if (!placesServiceRef.current) return;
+
+      setIsLoading(true);
+      placesServiceRef.current.getDetails(
+        {
+          placeId: prediction.place_id,
+          fields: ["address_components", "geometry", "formatted_address", "place_id", "name"],
+        },
+        (place: PlaceDetailsResult | null, status: string) => {
+          if (status === "OK" && place) {
+            const formattedAddress = place.formatted_address || prediction.description;
+            
+            setInputValue(formattedAddress);
+            onChange(formattedAddress);
+            setShowDropdown(false);
+            setPredictions([]);
+
+            if (onPlaceSelect) {
+              const placeResult: PlaceResult = {
+                formatted_address: formattedAddress,
+                name: place.name,
+                geometry: place.geometry ? {
+                  location: place.geometry.location ? {
+                    lat: () => place.geometry!.location!.lat(),
+                    lng: () => place.geometry!.location!.lng(),
+                  } : undefined,
+                } : undefined,
+                address_components: place.address_components,
+                place_id: place.place_id || prediction.place_id,
+              };
+              onPlaceSelect(placeResult);
+            }
+          }
+          setIsLoading(false);
+        }
+      );
+    },
+    [onChange, onPlaceSelect]
+  );
+
+  const handleClear = useCallback(() => {
+    setInputValue("");
+    onChange("");
+    setPredictions([]);
+    setShowDropdown(false);
+    inputRef.current?.focus();
+  }, [onChange]);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Escape") {
+        setShowDropdown(false);
+      }
+    },
+    []
+  );
 
   return (
-    <div className="relative radar-autocomplete-wrapper">
-      <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
-      <div 
-        ref={containerRef} 
-        className={`radar-container ${className}`}
+    <div className="relative">
+      <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+      <Input
+        ref={inputRef}
+        value={inputValue}
+        onChange={handleInputChange}
+        onKeyDown={handleKeyDown}
+        onFocus={() => predictions.length > 0 && setShowDropdown(true)}
+        placeholder={placeholder}
+        className={`pl-10 pr-8 ${className}`}
         data-testid={testId}
       />
-      <style>{`
-        .radar-autocomplete-wrapper .radar-autocomplete-wrapper {
-          width: 100%;
-        }
-        .radar-autocomplete-wrapper input {
-          width: 100% !important;
-          height: 36px !important;
-          padding-left: 40px !important;
-          padding-right: 12px !important;
-          border-radius: 6px !important;
-          border: 1px solid hsl(var(--input)) !important;
-          background: transparent !important;
-          font-size: 14px !important;
-          color: hsl(var(--foreground)) !important;
-          transition: border-color 0.2s, box-shadow 0.2s !important;
-        }
-        .radar-autocomplete-wrapper input::placeholder {
-          color: hsl(var(--muted-foreground)) !important;
-        }
-        .radar-autocomplete-wrapper input:focus {
-          outline: none !important;
-          border-color: hsl(var(--ring)) !important;
-          box-shadow: 0 0 0 1px hsl(var(--ring)) !important;
-        }
-        .radar-autocomplete-results {
-          background: hsl(var(--popover)) !important;
-          border: 1px solid hsl(var(--border)) !important;
-          border-radius: 6px !important;
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
-          margin-top: 4px !important;
-          overflow: hidden !important;
-          z-index: 50 !important;
-        }
-        .radar-autocomplete-results-item {
-          padding: 8px 12px !important;
-          cursor: pointer !important;
-          color: hsl(var(--popover-foreground)) !important;
-          font-size: 14px !important;
-          border-bottom: 1px solid hsl(var(--border)) !important;
-        }
-        .radar-autocomplete-results-item:last-child {
-          border-bottom: none !important;
-        }
-        .radar-autocomplete-results-item:hover {
-          background: hsl(var(--accent)) !important;
-        }
-        .radar-autocomplete-results-item-highlight {
-          font-weight: 600 !important;
-        }
-        .radar-powered {
-          display: none !important;
-        }
-      `}</style>
+      {inputValue && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6"
+          onClick={handleClear}
+          data-testid="button-clear-address"
+        >
+          <X className="h-3 w-3" />
+        </Button>
+      )}
+      {isLoading && (
+        <Loader2 className="absolute right-8 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+      )}
+
+      {showDropdown && predictions.length > 0 && (
+        <div
+          ref={dropdownRef}
+          className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-lg overflow-hidden"
+        >
+          {predictions.map((prediction) => (
+            <button
+              key={prediction.place_id}
+              type="button"
+              className="w-full px-4 py-3 text-left hover:bg-accent transition-colors flex items-start gap-3"
+              onClick={() => handleSelectPlace(prediction)}
+            >
+              <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm truncate">
+                  {prediction.structured_formatting?.main_text || prediction.description}
+                </p>
+                {prediction.structured_formatting?.secondary_text && (
+                  <p className="text-xs text-muted-foreground truncate">
+                    {prediction.structured_formatting.secondary_text}
+                  </p>
+                )}
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
+
+function FallbackInput({
+  value,
+  onChange,
+  placeholder = "Enter property address",
+  className = "",
+  "data-testid": testId,
+}: Omit<AddressAutocompleteProps, "onPlaceSelect">) {
+  const [inputValue, setInputValue] = useState(value);
+
+  useEffect(() => {
+    setInputValue(value);
+  }, [value]);
+
+  return (
+    <div className="relative">
+      <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+      <Input
+        value={inputValue}
+        onChange={(e) => {
+          setInputValue(e.target.value);
+          onChange(e.target.value);
+        }}
+        placeholder={placeholder}
+        className={`pl-10 ${className}`}
+        data-testid={testId}
+      />
+    </div>
+  );
+}
+
+export default function AddressAutocomplete(props: AddressAutocompleteProps) {
+  const apiKey = useGoogleMapsApiKey();
+
+  if (!apiKey) {
+    return <FallbackInput {...props} />;
+  }
+
+  return <GoogleMapsAutocomplete {...props} />;
+}
+
+export type { PlaceResult };
