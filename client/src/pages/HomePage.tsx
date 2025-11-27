@@ -152,7 +152,12 @@ export default function HomePage() {
       <Navigation />
 
       <section className="relative pt-8 pb-12 md:pt-12 md:pb-16 overflow-hidden bg-background">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        <GeometricPattern 
+          variant="orbs" 
+          className="text-primary" 
+          opacity={0.08}
+        />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6">
           <div className="grid lg:grid-cols-[0.4fr_0.6fr] gap-8 lg:gap-8 items-center">
             <div className="space-y-6 md:space-y-8 order-1">
               <div className="flex flex-wrap items-center gap-3">
@@ -301,23 +306,29 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="py-8 sm:py-12 bg-card border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+      <section className="py-8 sm:py-12 bg-card border-b relative overflow-hidden">
+        <GeometricPattern 
+          variant="dots" 
+          className="text-primary" 
+          opacity={0.15}
+          animated={false}
+        />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-8">
-            <div className="text-center" data-testid="stat-funded">
-              <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-primary">$500M+</p>
+            <div className="text-center group" data-testid="stat-funded">
+              <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-primary group-hover:animate-scale-pulse">$500M+</p>
               <p className="text-xs sm:text-sm text-muted-foreground mt-1">Loans Funded</p>
             </div>
-            <div className="text-center" data-testid="stat-loans">
-              <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-primary">1,500+</p>
+            <div className="text-center group" data-testid="stat-loans">
+              <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-primary group-hover:animate-scale-pulse">1,500+</p>
               <p className="text-xs sm:text-sm text-muted-foreground mt-1">Investors Served</p>
             </div>
-            <div className="text-center" data-testid="stat-closing">
-              <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-primary">48 hrs</p>
+            <div className="text-center group" data-testid="stat-closing">
+              <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-primary group-hover:animate-scale-pulse">48 hrs</p>
               <p className="text-xs sm:text-sm text-muted-foreground mt-1">Fastest Closing</p>
             </div>
-            <div className="text-center" data-testid="stat-states">
-              <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-primary">48 States</p>
+            <div className="text-center group" data-testid="stat-states">
+              <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-primary group-hover:animate-scale-pulse">48 States</p>
               <p className="text-xs sm:text-sm text-muted-foreground mt-1">+ DC Licensed</p>
             </div>
           </div>
@@ -686,10 +697,9 @@ export default function HomePage() {
 
       <section className="py-12 sm:py-16 md:py-24 bg-primary relative overflow-hidden">
         <GeometricPattern 
-          variant="buildings" 
+          variant="circles" 
           className="text-primary-foreground" 
-          opacity={0.1}
-          strokeColor="currentColor"
+          opacity={0.2}
         />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6">
           <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-center">

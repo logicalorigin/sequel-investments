@@ -83,6 +83,11 @@ export default function NewConstructionPage() {
           style={{ backgroundImage: `url(${constructionImage})` }}
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/70 to-black/80" />
+        <GeometricPattern 
+          variant="rings" 
+          className="text-white" 
+          opacity={0.12}
+        />
         
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6">
           <div className="max-w-3xl">
@@ -374,10 +379,9 @@ export default function NewConstructionPage() {
       {/* CTA Section */}
       <section className="py-16 bg-primary relative overflow-hidden">
         <GeometricPattern 
-          variant="construction" 
+          variant="rings" 
           className="text-primary-foreground" 
-          opacity={0.15}
-          strokeColor="currentColor"
+          opacity={0.2}
         />
         <div className="relative max-w-7xl mx-auto px-6 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-primary-foreground mb-4">

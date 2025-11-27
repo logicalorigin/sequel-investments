@@ -9,10 +9,9 @@ export function Footer() {
   return (
     <footer className="bg-card border-t relative overflow-hidden">
       <GeometricPattern 
-        variant="minimal" 
+        variant="dots" 
         className="text-muted-foreground" 
-        opacity={0.08}
-        strokeColor="currentColor"
+        opacity={0.3}
       />
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-10 sm:py-12 md:py-16">
         <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 md:gap-12 mb-8 sm:mb-12">
