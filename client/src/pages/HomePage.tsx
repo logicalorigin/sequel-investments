@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link, useLocation } from "wouter";
@@ -6,7 +6,8 @@ import { LeadForm } from "@/components/LeadForm";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import USMap from "@/components/USMap";
-import { type StateData, getEligibleStates } from "@shared/schema";
+import { type StateData, getEligibleStates, type FundedDeal } from "@shared/schema";
+import { useQuery } from "@tanstack/react-query";
 import { 
   Home, 
   TrendingUp, 
@@ -35,7 +36,19 @@ import doverDEProperty from "@assets/stock_images/investment_rental_ho_757cf226.
 import postFallsIDProperty from "@assets/stock_images/investment_property__fdbf9598.jpg";
 import { useToast } from "@/hooks/use-toast";
 
-const heroSlides = [
+interface HeroSlide {
+  id: string;
+  image: string;
+  loanType: string;
+  loanAmount: string;
+  rate: string;
+  closedIn: string;
+  location: string;
+}
+
+const defaultImages = [tempeAZProperty, fortWorthTXProperty, doverDEProperty, postFallsIDProperty];
+
+const fallbackHeroSlides: HeroSlide[] = [
   {
     id: "tempe-az-comp",
     image: tempeAZProperty,
@@ -74,18 +87,51 @@ const heroSlides = [
   },
 ];
 
+function formatCurrency(value: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function mapDealToHeroSlide(deal: FundedDeal, index: number): HeroSlide {
+  return {
+    id: deal.id,
+    image: deal.imageUrl || defaultImages[index % defaultImages.length],
+    loanType: deal.loanType === "Fix & Flip" ? "Bridge Loan" : `${deal.loanType} Loan`,
+    loanAmount: formatCurrency(deal.loanAmount),
+    rate: deal.rate,
+    closedIn: deal.closeTime,
+    location: `${deal.location}, ${deal.state}`,
+  };
+}
+
 export default function HomePage() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const eligibleStates = getEligibleStates();
   const [currentSlide, setCurrentSlide] = useState(0);
 
+  const { data: fundedDeals } = useQuery<FundedDeal[]>({
+    queryKey: ["/api/funded-deals"],
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const heroSlides = useMemo(() => {
+    if (fundedDeals && fundedDeals.length >= 4) {
+      return fundedDeals.slice(0, 4).map((deal, idx) => mapDealToHeroSlide(deal, idx));
+    }
+    return fallbackHeroSlides;
+  }, [fundedDeals]);
+
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
     }, 5000);
     return () => clearInterval(timer);
-  }, []);
+  }, [heroSlides.length]);
 
   const handleFormSuccess = () => {
     toast({

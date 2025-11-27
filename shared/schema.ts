@@ -874,6 +874,8 @@ export const insertWebhookEndpointSchema = createInsertSchema(webhookEndpoints).
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  secret: z.string().optional(),
 });
 
 // Webhook events (outbox pattern - events waiting to be delivered)
