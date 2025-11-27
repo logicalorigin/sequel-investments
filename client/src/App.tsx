@@ -4,6 +4,7 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { GoogleMapsProvider } from "@/components/GoogleMapsProvider";
 
 function ScrollToTop() {
   const [location] = useLocation();
@@ -43,6 +44,7 @@ import JoinPage from "@/pages/JoinPage";
 import StaffLoginPage from "@/pages/StaffLoginPage";
 import ResourcesPage from "@/pages/ResourcesPage";
 import ArticlePage from "@/pages/ArticlePage";
+import PropertySearchPage from "@/pages/PropertySearchPage";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -78,6 +80,7 @@ function Router() {
       <Route path="/join/:token" component={JoinPage} />
       <Route path="/resources" component={ResourcesPage} />
       <Route path="/resources/:slug" component={ArticlePage} />
+      <Route path="/property-search" component={PropertySearchPage} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -87,9 +90,11 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <ScrollToTop />
-        <Toaster />
-        <Router />
+        <GoogleMapsProvider>
+          <ScrollToTop />
+          <Toaster />
+          <Router />
+        </GoogleMapsProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );
