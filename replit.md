@@ -87,8 +87,21 @@ Homepage displays: $500M+ Loans Funded, 1,500+ Investors Served, 48hrs Fastest C
 
 Dedicated state pages (`/states/{state-slug}`) feature a Recent Fundings Dashboard, Market Data Widgets, a Mini DSCR Calculator, and state-specific investor testimonials.
 
+### Property Search Feature
+
+- **Property Search Page** (`/property-search`): Dedicated page for searching investment properties with Google Maps integration.
+- **GoogleMapsProvider**: App-level provider wrapping the entire application with Google Maps API context (via @vis.gl/react-google-maps).
+- **PropertySearchBar**: Search component using Google Places Autocomplete for address lookup with debounced search and dropdown suggestions.
+- **PropertyCard**: Zillow/Redfin-inspired property cards with satellite map view, featuring:
+  - Map type toggle (satellite/hybrid/roadmap) 
+  - Property details (beds, baths, sqft, year built)
+  - Estimated value display
+  - "Analyze Deal" button linking to deal analyzers
+- **Circle-Based Geometric Patterns**: Modern decorative patterns with CSS animations across all pages using mint/teal accent colors with subtle opacity (0.08-0.15 range).
+
 ## External Dependencies
 
-- **Google Maps Places Autocomplete**: Used for address autocomplete in analyzer pages via `AddressAutocomplete` component.
+- **Google Maps API**: Powers property search autocomplete and satellite map views via @vis.gl/react-google-maps library. Requires `VITE_GOOGLE_MAPS_API_KEY` environment variable with Places and Maps JavaScript API enabled.
+- **Google Places Autocomplete**: Used for address autocomplete in PropertySearchBar and analyzer pages.
 - **Bridge Interactive (formerly Zillow API services)**: Recommended for property valuations, public records, and historical data. Requires manual approval and attribution.
 - **Attom Data Solutions, Estated API, CoreLogic, HouseCanary**: Alternatives for comprehensive property data and AVMs for production environments.
