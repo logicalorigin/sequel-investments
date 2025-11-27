@@ -217,46 +217,46 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-4">
             <Link href="/">
-              <Button variant="ghost" size="icon" data-testid="button-back-home">
-                <ArrowLeft className="h-5 w-5" />
+              <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" data-testid="button-back-home">
+                <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
             </Link>
             <div>
-              <h1 className="text-2xl font-bold" data-testid="text-admin-title">Company Backend</h1>
-              <p className="text-muted-foreground text-sm">
+              <h1 className="text-lg sm:text-xl md:text-2xl font-bold" data-testid="text-admin-title">Company Backend</h1>
+              <p className="text-muted-foreground text-xs sm:text-sm hidden sm:block">
                 {currentUser.role === "admin" ? "Administrator" : "Staff"} Dashboard
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="capitalize">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <Badge variant="outline" className="capitalize text-xs">
               {currentUser.role}
             </Badge>
-            <span className="text-sm text-muted-foreground">
+            <span className="text-xs sm:text-sm text-muted-foreground hidden sm:inline">
               {currentUser.firstName} {currentUser.lastName}
             </span>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-8">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-8">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-4 mb-4 sm:mb-8">
           <Card 
             className={`cursor-pointer transition-all hover-elevate ${statusFilter === "all" ? "ring-2 ring-primary" : ""}`}
             onClick={() => setStatusFilter("all")}
             data-testid="stat-card-total"
           >
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <FileText className="h-5 w-5 text-primary" />
+            <CardContent className="p-2 sm:p-4">
+              <div className="flex flex-col sm:flex-row items-center sm:items-center gap-1 sm:gap-3 text-center sm:text-left">
+                <div className="p-1.5 sm:p-2 bg-primary/10 rounded-lg">
+                  <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{stats.total}</p>
-                  <p className="text-xs text-muted-foreground">Total Apps</p>
+                  <p className="text-lg sm:text-2xl font-bold">{stats.total}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Total</p>
                 </div>
               </div>
             </CardContent>
@@ -266,14 +266,14 @@ export default function AdminDashboard() {
             onClick={() => setStatusFilter("submitted")}
             data-testid="stat-card-submitted"
           >
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-500/10 rounded-lg">
-                  <Clock className="h-5 w-5 text-blue-600" />
+            <CardContent className="p-2 sm:p-4">
+              <div className="flex flex-col sm:flex-row items-center sm:items-center gap-1 sm:gap-3 text-center sm:text-left">
+                <div className="p-1.5 sm:p-2 bg-blue-500/10 rounded-lg">
+                  <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{stats.submitted}</p>
-                  <p className="text-xs text-muted-foreground">Submitted</p>
+                  <p className="text-lg sm:text-2xl font-bold">{stats.submitted}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Submitted</p>
                 </div>
               </div>
             </CardContent>
@@ -283,68 +283,68 @@ export default function AdminDashboard() {
             onClick={() => setStatusFilter("in_review")}
             data-testid="stat-card-in-review"
           >
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-yellow-500/10 rounded-lg">
-                  <AlertCircle className="h-5 w-5 text-yellow-600" />
+            <CardContent className="p-2 sm:p-4">
+              <div className="flex flex-col sm:flex-row items-center sm:items-center gap-1 sm:gap-3 text-center sm:text-left">
+                <div className="p-1.5 sm:p-2 bg-yellow-500/10 rounded-lg">
+                  <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{stats.inReview}</p>
-                  <p className="text-xs text-muted-foreground">In Review</p>
+                  <p className="text-lg sm:text-2xl font-bold">{stats.inReview}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Review</p>
                 </div>
               </div>
             </CardContent>
           </Card>
           <Card 
-            className={`cursor-pointer transition-all hover-elevate ${statusFilter === "approved" ? "ring-2 ring-green-500" : ""}`}
+            className={`cursor-pointer transition-all hover-elevate hidden md:block ${statusFilter === "approved" ? "ring-2 ring-green-500" : ""}`}
             onClick={() => setStatusFilter("approved")}
             data-testid="stat-card-approved"
           >
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-500/10 rounded-lg">
-                  <CheckCircle2 className="h-5 w-5 text-green-600" />
+            <CardContent className="p-2 sm:p-4">
+              <div className="flex flex-col sm:flex-row items-center sm:items-center gap-1 sm:gap-3 text-center sm:text-left">
+                <div className="p-1.5 sm:p-2 bg-green-500/10 rounded-lg">
+                  <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{stats.approved}</p>
-                  <p className="text-xs text-muted-foreground">Approved</p>
+                  <p className="text-lg sm:text-2xl font-bold">{stats.approved}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Approved</p>
                 </div>
               </div>
             </CardContent>
           </Card>
           <Card 
-            className={`cursor-pointer transition-all hover-elevate ${statusFilter === "funded" ? "ring-2 ring-emerald-500" : ""}`}
+            className={`cursor-pointer transition-all hover-elevate hidden md:block ${statusFilter === "funded" ? "ring-2 ring-emerald-500" : ""}`}
             onClick={() => setStatusFilter("funded")}
             data-testid="stat-card-funded"
           >
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-emerald-500/10 rounded-lg">
-                  <DollarSign className="h-5 w-5 text-emerald-600" />
+            <CardContent className="p-2 sm:p-4">
+              <div className="flex flex-col sm:flex-row items-center sm:items-center gap-1 sm:gap-3 text-center sm:text-left">
+                <div className="p-1.5 sm:p-2 bg-emerald-500/10 rounded-lg">
+                  <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{stats.funded}</p>
-                  <p className="text-xs text-muted-foreground">Funded</p>
+                  <p className="text-lg sm:text-2xl font-bold">{stats.funded}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Funded</p>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        <Tabs defaultValue="pipeline" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="pipeline" data-testid="tab-pipeline">
-              <FileText className="h-4 w-4 mr-2" />
+        <Tabs defaultValue="pipeline" className="space-y-4 sm:space-y-6">
+          <TabsList className="w-full sm:w-auto flex-wrap">
+            <TabsTrigger value="pipeline" className="flex-1 sm:flex-none text-xs sm:text-sm" data-testid="tab-pipeline">
+              <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
               Pipeline
             </TabsTrigger>
             {currentUser.role === "admin" && (
               <>
-                <TabsTrigger value="users" data-testid="tab-users">
-                  <Users className="h-4 w-4 mr-2" />
+                <TabsTrigger value="users" className="flex-1 sm:flex-none text-xs sm:text-sm" data-testid="tab-users">
+                  <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                   Users
                 </TabsTrigger>
-                <TabsTrigger value="invites" data-testid="tab-invites">
-                  <UserPlus className="h-4 w-4 mr-2" />
+                <TabsTrigger value="invites" className="flex-1 sm:flex-none text-xs sm:text-sm" data-testid="tab-invites">
+                  <UserPlus className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                   Invites
                 </TabsTrigger>
               </>
@@ -353,15 +353,15 @@ export default function AdminDashboard() {
 
           <TabsContent value="pipeline" className="space-y-4">
             <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between flex-wrap gap-4">
+              <CardHeader className="p-3 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
                   <div>
-                    <CardTitle>Loan Applications Pipeline</CardTitle>
-                    <CardDescription>View and manage all loan applications</CardDescription>
+                    <CardTitle className="text-base sm:text-lg">Loan Applications</CardTitle>
+                    <CardDescription className="text-xs sm:text-sm">View and manage all loan applications</CardDescription>
                   </div>
                   <div className="flex gap-2">
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
-                      <SelectTrigger className="w-[140px]" data-testid="select-status-filter">
+                      <SelectTrigger className="w-[110px] sm:w-[140px] h-8 sm:h-9 text-xs sm:text-sm" data-testid="select-status-filter">
                         <SelectValue placeholder="Status" />
                       </SelectTrigger>
                       <SelectContent>
@@ -375,7 +375,7 @@ export default function AdminDashboard() {
                       </SelectContent>
                     </Select>
                     <Select value={loanTypeFilter} onValueChange={setLoanTypeFilter}>
-                      <SelectTrigger className="w-[160px]" data-testid="select-type-filter">
+                      <SelectTrigger className="w-[110px] sm:w-[160px] h-8 sm:h-9 text-xs sm:text-sm" data-testid="select-type-filter">
                         <SelectValue placeholder="Loan Type" />
                       </SelectTrigger>
                       <SelectContent>
@@ -388,7 +388,7 @@ export default function AdminDashboard() {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-0 sm:p-6 sm:pt-0">
                 {appsLoading ? (
                   <div className="flex items-center justify-center py-12">
                     <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -398,77 +398,79 @@ export default function AdminDashboard() {
                     No applications found
                   </div>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Loan ID</TableHead>
-                        <TableHead>Borrower</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Property</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Stage</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredApplications?.map((app) => (
-                        <TableRow key={app.id} data-testid={`row-app-${app.id}`}>
-                          <TableCell className="font-mono text-sm">
-                            {app.id.slice(0, 8).toUpperCase()}
-                          </TableCell>
-                          <TableCell>
-                            <div>
-                              <p className="font-medium">{app.borrowerName}</p>
-                              <p className="text-xs text-muted-foreground">{app.borrowerEmail}</p>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{app.loanType}</Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="max-w-[200px] truncate">
-                              {app.propertyAddress || app.propertyCity ? (
-                                <>
-                                  {app.propertyAddress && <span>{app.propertyAddress}, </span>}
-                                  {app.propertyCity}, {app.propertyState}
-                                </>
-                              ) : (
-                                <span className="text-muted-foreground">No address</span>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {app.loanAmount ? (
-                              `$${app.loanAmount.toLocaleString()}`
-                            ) : app.purchasePrice ? (
-                              `$${app.purchasePrice.toLocaleString()}`
-                            ) : (
-                              <span className="text-muted-foreground">-</span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <Badge className={statusColors[app.status]}>
-                              {statusLabels[app.status]}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <span className="text-sm">
-                              {app.processingStage ? stageLabels[app.processingStage] : "-"}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            <Link href={`/admin/application/${app.id}`}>
-                              <Button size="sm" variant="outline" data-testid={`button-view-${app.id}`}>
-                                <ExternalLink className="h-4 w-4 mr-1" />
-                                View
-                              </Button>
-                            </Link>
-                          </TableCell>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="text-xs sm:text-sm whitespace-nowrap">Loan ID</TableHead>
+                          <TableHead className="text-xs sm:text-sm whitespace-nowrap">Borrower</TableHead>
+                          <TableHead className="text-xs sm:text-sm whitespace-nowrap">Type</TableHead>
+                          <TableHead className="text-xs sm:text-sm whitespace-nowrap hidden md:table-cell">Property</TableHead>
+                          <TableHead className="text-xs sm:text-sm whitespace-nowrap">Amount</TableHead>
+                          <TableHead className="text-xs sm:text-sm whitespace-nowrap">Status</TableHead>
+                          <TableHead className="text-xs sm:text-sm whitespace-nowrap hidden lg:table-cell">Stage</TableHead>
+                          <TableHead className="text-xs sm:text-sm whitespace-nowrap">Actions</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredApplications?.map((app) => (
+                          <TableRow key={app.id} data-testid={`row-app-${app.id}`}>
+                            <TableCell className="font-mono text-xs sm:text-sm">
+                              {app.id.slice(0, 8).toUpperCase()}
+                            </TableCell>
+                            <TableCell>
+                              <div>
+                                <p className="font-medium text-xs sm:text-sm">{app.borrowerName}</p>
+                                <p className="text-[10px] sm:text-xs text-muted-foreground hidden sm:block">{app.borrowerEmail}</p>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="text-[10px] sm:text-xs">{app.loanType}</Badge>
+                            </TableCell>
+                            <TableCell className="hidden md:table-cell">
+                              <div className="max-w-[200px] truncate text-xs sm:text-sm">
+                                {app.propertyAddress || app.propertyCity ? (
+                                  <>
+                                    {app.propertyAddress && <span>{app.propertyAddress}, </span>}
+                                    {app.propertyCity}, {app.propertyState}
+                                  </>
+                                ) : (
+                                  <span className="text-muted-foreground">No address</span>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-xs sm:text-sm">
+                              {app.loanAmount ? (
+                                `$${app.loanAmount.toLocaleString()}`
+                              ) : app.purchasePrice ? (
+                                `$${app.purchasePrice.toLocaleString()}`
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Badge className={`${statusColors[app.status]} text-[10px] sm:text-xs`}>
+                                {statusLabels[app.status]}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="hidden lg:table-cell">
+                              <span className="text-xs sm:text-sm">
+                                {app.processingStage ? stageLabels[app.processingStage] : "-"}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <Link href={`/admin/application/${app.id}`}>
+                                <Button size="sm" variant="outline" className="h-7 sm:h-8 text-xs sm:text-sm px-2 sm:px-3" data-testid={`button-view-${app.id}`}>
+                                  <ExternalLink className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                                  View
+                                </Button>
+                              </Link>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -478,83 +480,85 @@ export default function AdminDashboard() {
             <>
               <TabsContent value="users" className="space-y-4">
                 <Card>
-                  <CardHeader>
-                    <CardTitle>Client Portal Accounts</CardTitle>
-                    <CardDescription>View borrower accounts and their linked applications</CardDescription>
+                  <CardHeader className="p-3 sm:p-6">
+                    <CardTitle className="text-base sm:text-lg">Client Portal Accounts</CardTitle>
+                    <CardDescription className="text-xs sm:text-sm">View borrower accounts and their linked applications</CardDescription>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="p-0 sm:p-6 sm:pt-0">
                     {usersLoading ? (
                       <div className="flex items-center justify-center py-12">
                         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                       </div>
                     ) : (
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Name</TableHead>
-                            <TableHead>Email</TableHead>
-                            <TableHead>Role</TableHead>
-                            <TableHead>Portal Activity</TableHead>
-                            <TableHead>Joined</TableHead>
-                            <TableHead>Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {users?.map((user) => (
-                            <TableRow key={user.id} data-testid={`row-user-${user.id}`}>
-                              <TableCell>
-                                <div className="font-medium">
-                                  {user.firstName} {user.lastName}
-                                </div>
-                                {user.username && (
-                                  <div className="text-xs text-muted-foreground">@{user.username}</div>
-                                )}
-                              </TableCell>
-                              <TableCell>{user.email}</TableCell>
-                              <TableCell>
-                                <Badge variant="outline" className="capitalize">
-                                  {user.role}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex gap-2">
-                                  <div className="text-center px-2 py-1 bg-muted rounded">
-                                    <div className="text-sm font-medium">{user.applicationCount || 0}</div>
-                                    <div className="text-xs text-muted-foreground">Total</div>
-                                  </div>
-                                  <div className="text-center px-2 py-1 bg-blue-500/10 rounded">
-                                    <div className="text-sm font-medium text-blue-600">{user.activeApplications || 0}</div>
-                                    <div className="text-xs text-muted-foreground">Active</div>
-                                  </div>
-                                  <div className="text-center px-2 py-1 bg-emerald-500/10 rounded">
-                                    <div className="text-sm font-medium text-emerald-600">{user.fundedLoans || 0}</div>
-                                    <div className="text-xs text-muted-foreground">Funded</div>
-                                  </div>
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "-"}
-                              </TableCell>
-                              <TableCell>
-                                <Select
-                                  value={user.role}
-                                  onValueChange={(role) => updateRoleMutation.mutate({ userId: user.id, role })}
-                                  disabled={user.id === currentUser.id}
-                                >
-                                  <SelectTrigger className="w-[120px]" data-testid={`select-role-${user.id}`}>
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="borrower">Borrower</SelectItem>
-                                    <SelectItem value="staff">Staff</SelectItem>
-                                    <SelectItem value="admin">Admin</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </TableCell>
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="text-xs sm:text-sm whitespace-nowrap">Name</TableHead>
+                              <TableHead className="text-xs sm:text-sm whitespace-nowrap hidden sm:table-cell">Email</TableHead>
+                              <TableHead className="text-xs sm:text-sm whitespace-nowrap">Role</TableHead>
+                              <TableHead className="text-xs sm:text-sm whitespace-nowrap hidden md:table-cell">Portal Activity</TableHead>
+                              <TableHead className="text-xs sm:text-sm whitespace-nowrap hidden lg:table-cell">Joined</TableHead>
+                              <TableHead className="text-xs sm:text-sm whitespace-nowrap">Actions</TableHead>
                             </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+                          </TableHeader>
+                          <TableBody>
+                            {users?.map((user) => (
+                              <TableRow key={user.id} data-testid={`row-user-${user.id}`}>
+                                <TableCell>
+                                  <div className="font-medium text-xs sm:text-sm">
+                                    {user.firstName} {user.lastName}
+                                  </div>
+                                  {user.username && (
+                                    <div className="text-[10px] sm:text-xs text-muted-foreground">@{user.username}</div>
+                                  )}
+                                </TableCell>
+                                <TableCell className="hidden sm:table-cell text-xs sm:text-sm">{user.email}</TableCell>
+                                <TableCell>
+                                  <Badge variant="outline" className="capitalize text-[10px] sm:text-xs">
+                                    {user.role}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="hidden md:table-cell">
+                                  <div className="flex gap-1 sm:gap-2">
+                                    <div className="text-center px-1.5 sm:px-2 py-0.5 sm:py-1 bg-muted rounded">
+                                      <div className="text-xs sm:text-sm font-medium">{user.applicationCount || 0}</div>
+                                      <div className="text-[10px] sm:text-xs text-muted-foreground">Total</div>
+                                    </div>
+                                    <div className="text-center px-1.5 sm:px-2 py-0.5 sm:py-1 bg-blue-500/10 rounded">
+                                      <div className="text-xs sm:text-sm font-medium text-blue-600">{user.activeApplications || 0}</div>
+                                      <div className="text-[10px] sm:text-xs text-muted-foreground">Active</div>
+                                    </div>
+                                    <div className="text-center px-1.5 sm:px-2 py-0.5 sm:py-1 bg-emerald-500/10 rounded">
+                                      <div className="text-xs sm:text-sm font-medium text-emerald-600">{user.fundedLoans || 0}</div>
+                                      <div className="text-[10px] sm:text-xs text-muted-foreground">Funded</div>
+                                    </div>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="hidden lg:table-cell text-xs sm:text-sm">
+                                  {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "-"}
+                                </TableCell>
+                                <TableCell>
+                                  <Select
+                                    value={user.role}
+                                    onValueChange={(role) => updateRoleMutation.mutate({ userId: user.id, role })}
+                                    disabled={user.id === currentUser.id}
+                                  >
+                                    <SelectTrigger className="w-[90px] sm:w-[120px] h-7 sm:h-9 text-xs sm:text-sm" data-testid={`select-role-${user.id}`}>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="borrower">Borrower</SelectItem>
+                                      <SelectItem value="staff">Staff</SelectItem>
+                                      <SelectItem value="admin">Admin</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
                     )}
                   </CardContent>
                 </Card>
@@ -562,11 +566,11 @@ export default function AdminDashboard() {
 
               <TabsContent value="invites" className="space-y-4">
                 <Card>
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
+                  <CardHeader className="p-3 sm:p-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div>
-                        <CardTitle>Staff Invitations</CardTitle>
-                        <CardDescription>Invite new team members</CardDescription>
+                        <CardTitle className="text-base sm:text-lg">Staff Invitations</CardTitle>
+                        <CardDescription className="text-xs sm:text-sm">Invite new team members</CardDescription>
                       </div>
                       <Dialog open={showInviteDialog} onOpenChange={(open) => {
                         setShowInviteDialog(open);
@@ -650,54 +654,56 @@ export default function AdminDashboard() {
                       </Dialog>
                     </div>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="p-0 sm:p-6 sm:pt-0">
                     {invites?.length === 0 ? (
-                      <div className="text-center py-12 text-muted-foreground">
+                      <div className="text-center py-12 text-muted-foreground text-sm">
                         No invitations sent yet
                       </div>
                     ) : (
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Email</TableHead>
-                            <TableHead>Role</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Expires</TableHead>
-                            <TableHead>Created</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {invites?.map((invite) => (
-                            <TableRow key={invite.id} data-testid={`row-invite-${invite.id}`}>
-                              <TableCell>{invite.email}</TableCell>
-                              <TableCell>
-                                <Badge variant="outline" className="capitalize">
-                                  {invite.role}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                <Badge
-                                  className={
-                                    invite.status === "pending"
-                                      ? "bg-yellow-500/10 text-yellow-600 border-yellow-500/30"
-                                      : invite.status === "accepted"
-                                      ? "bg-green-500/10 text-green-600 border-green-500/30"
-                                      : "bg-red-500/10 text-red-600 border-red-500/30"
-                                  }
-                                >
-                                  {invite.status}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                {new Date(invite.expiresAt).toLocaleDateString()}
-                              </TableCell>
-                              <TableCell>
-                                {new Date(invite.createdAt).toLocaleDateString()}
-                              </TableCell>
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="text-xs sm:text-sm whitespace-nowrap">Email</TableHead>
+                              <TableHead className="text-xs sm:text-sm whitespace-nowrap">Role</TableHead>
+                              <TableHead className="text-xs sm:text-sm whitespace-nowrap">Status</TableHead>
+                              <TableHead className="text-xs sm:text-sm whitespace-nowrap hidden sm:table-cell">Expires</TableHead>
+                              <TableHead className="text-xs sm:text-sm whitespace-nowrap hidden md:table-cell">Created</TableHead>
                             </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+                          </TableHeader>
+                          <TableBody>
+                            {invites?.map((invite) => (
+                              <TableRow key={invite.id} data-testid={`row-invite-${invite.id}`}>
+                                <TableCell className="text-xs sm:text-sm">{invite.email}</TableCell>
+                                <TableCell>
+                                  <Badge variant="outline" className="capitalize text-[10px] sm:text-xs">
+                                    {invite.role}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge
+                                    className={`text-[10px] sm:text-xs ${
+                                      invite.status === "pending"
+                                        ? "bg-yellow-500/10 text-yellow-600 border-yellow-500/30"
+                                        : invite.status === "accepted"
+                                        ? "bg-green-500/10 text-green-600 border-green-500/30"
+                                        : "bg-red-500/10 text-red-600 border-red-500/30"
+                                    }`}
+                                  >
+                                    {invite.status}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="hidden sm:table-cell text-xs sm:text-sm">
+                                  {new Date(invite.expiresAt).toLocaleDateString()}
+                                </TableCell>
+                                <TableCell className="hidden md:table-cell text-xs sm:text-sm">
+                                  {new Date(invite.createdAt).toLocaleDateString()}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
                     )}
                   </CardContent>
                 </Card>

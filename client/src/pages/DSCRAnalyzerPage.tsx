@@ -496,17 +496,17 @@ export default function DSCRAnalyzerPage() {
     <div className="min-h-screen bg-background">
       <PortalHeader user={user} />
 
-      <main className="max-w-7xl mx-auto px-6 py-6">
-        <div className="mb-6 flex items-start justify-between gap-4">
-          <div className="flex items-center gap-3">
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
+        <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-3">
             {applicationId && (
               <Link href={`/portal/application/${applicationId}`}>
                 <Button variant="ghost" size="icon" data-testid="button-back-to-application">
-                  <ArrowLeft className="h-5 w-5" />
+                  <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
                 </Button>
               </Link>
             )}
-            <h1 className="text-2xl font-bold" data-testid="text-page-title">
+            <h1 className="text-lg sm:text-2xl font-bold" data-testid="text-page-title">
               DSCR Loan Analyzer
             </h1>
           </div>
@@ -519,43 +519,43 @@ export default function DSCRAnalyzerPage() {
           />
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Left Column - Inputs */}
           <div className="lg:col-span-2 space-y-4">
             {/* Property & Transaction Type - Condensed */}
             <Card>
-              <CardContent className="pt-4 space-y-4">
+              <CardContent className="pt-3 sm:pt-4 space-y-3 sm:space-y-4">
                 {/* Property Type - Single Row */}
-                <div className="flex items-center gap-3">
-                  <Label className="w-24 shrink-0 text-sm">Property</Label>
-                  <div className="flex gap-1.5 flex-1">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                  <Label className="sm:w-24 shrink-0 text-xs sm:text-sm">Property</Label>
+                  <div className="flex gap-1 sm:gap-1.5 flex-1 overflow-x-auto pb-1">
                     {propertyTypes.map((type) => (
                       <button
                         key={type.id}
                         onClick={() => setPropertyType(type.id)}
-                        className={`flex-1 py-2 px-2 rounded-md border transition-all flex flex-col items-center gap-1 ${
+                        className={`flex-1 min-w-[48px] sm:min-w-0 py-1.5 sm:py-2 px-1.5 sm:px-2 rounded-md border transition-all flex flex-col items-center gap-0.5 sm:gap-1 ${
                           propertyType === type.id
                             ? "border-primary bg-primary/10 text-primary"
                             : "border-border hover:border-primary/50"
                         }`}
                         data-testid={`button-property-type-${type.id}`}
                       >
-                        <PropertyTypeIcon type={type.icon} className="w-5 h-5" />
-                        <span className="text-[10px] font-medium">{type.label}</span>
+                        <PropertyTypeIcon type={type.icon} className="w-4 h-4 sm:w-5 sm:h-5" />
+                        <span className="text-[8px] sm:text-[10px] font-medium">{type.label}</span>
                       </button>
                     ))}
                   </div>
                 </div>
 
                 {/* Transaction Type - Single Row */}
-                <div className="flex items-center gap-3">
-                  <Label className="w-24 shrink-0 text-sm">Transaction</Label>
-                  <div className="flex gap-1.5 flex-1">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                  <Label className="sm:w-24 shrink-0 text-xs sm:text-sm">Transaction</Label>
+                  <div className="flex gap-1 sm:gap-1.5 flex-1">
                     {transactionTypes.map((type) => (
                       <button
                         key={type.id}
                         onClick={() => setTransactionType(type.id)}
-                        className={`flex-1 py-2 px-3 rounded-md border text-xs font-medium transition-all ${
+                        className={`flex-1 py-1.5 sm:py-2 px-2 sm:px-3 rounded-md border text-[10px] sm:text-xs font-medium transition-all ${
                           transactionType === type.id
                             ? "border-primary bg-primary/10 text-primary"
                             : "border-border hover:border-primary/50"
@@ -569,24 +569,25 @@ export default function DSCRAnalyzerPage() {
                 </div>
 
                 {/* Rental Type - Single Row */}
-                <div className="flex items-center gap-3">
-                  <Label className="w-24 shrink-0 text-sm">Rental Type</Label>
-                  <div className="flex gap-1.5 flex-1">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                  <Label className="sm:w-24 shrink-0 text-xs sm:text-sm">Rental Type</Label>
+                  <div className="flex gap-1 sm:gap-1.5 flex-1">
                     {rentalTypes.map((type) => {
                       const Icon = type.icon;
                       return (
                         <button
                           key={type.id}
                           onClick={() => setRentalType(type.id)}
-                          className={`flex-1 py-2 px-3 rounded-md border text-xs font-medium transition-all flex items-center justify-center gap-2 ${
+                          className={`flex-1 py-1.5 sm:py-2 px-2 sm:px-3 rounded-md border text-[10px] sm:text-xs font-medium transition-all flex items-center justify-center gap-1 sm:gap-2 ${
                             rentalType === type.id
                               ? "border-primary bg-primary/10 text-primary"
                               : "border-border hover:border-primary/50"
                           }`}
                           data-testid={`button-rental-type-${type.id}`}
                         >
-                          <Icon className="h-3.5 w-3.5" />
-                          {type.label}
+                          <Icon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                          <span className="hidden xs:inline sm:inline">{type.label}</span>
+                          <span className="xs:hidden">{type.id === "long_term" ? "LTR" : "STR"}</span>
                         </button>
                       );
                     })}
@@ -594,14 +595,14 @@ export default function DSCRAnalyzerPage() {
                 </div>
 
                 {/* Prepayment Penalty - Single Row */}
-                <div className="flex items-center gap-3">
-                  <Label className="w-24 shrink-0 text-sm">Prepay</Label>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                  <Label className="sm:w-24 shrink-0 text-xs sm:text-sm">Prepay</Label>
                   <div className="flex gap-1 flex-1 flex-wrap">
                     {prepaymentOptions.map((option) => (
                       <button
                         key={option.id}
                         onClick={() => setPrepaymentPenalty(option.id)}
-                        className={`py-1.5 px-2.5 rounded-md border text-xs font-medium transition-all ${
+                        className={`py-1 sm:py-1.5 px-2 sm:px-2.5 rounded-md border text-[10px] sm:text-xs font-medium transition-all ${
                           prepaymentPenalty === option.id
                             ? "border-primary bg-primary/10 text-primary"
                             : "border-border hover:border-primary/50"

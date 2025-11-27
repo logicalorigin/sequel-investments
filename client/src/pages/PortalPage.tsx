@@ -189,77 +189,77 @@ export default function PortalPage() {
     <div className="min-h-screen bg-background">
       <PortalHeader user={user} />
 
-      <main className="max-w-7xl mx-auto px-6 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2" data-testid="text-portal-title">
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-8">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-1 sm:mb-2" data-testid="text-portal-title">
             Welcome back, {user?.firstName || "Investor"}
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-sm sm:text-base text-muted-foreground">
             Manage your loan applications, closed loans, and analyze new investment opportunities.
           </p>
         </div>
 
         {/* Deal Status Summary Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10" data-testid="deal-status-summary">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4 mb-6 sm:mb-10" data-testid="deal-status-summary">
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-blue-500/20">
-                  <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <CardContent className="p-2 sm:p-4">
+              <div className="flex flex-col sm:flex-row items-center sm:items-center gap-1 sm:gap-3 text-center sm:text-left">
+                <div className="p-1.5 sm:p-2 rounded-lg bg-blue-500/20">
+                  <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-blue-700 dark:text-blue-300" data-testid="text-active-count">
+                  <p className="text-lg sm:text-2xl font-bold text-blue-700 dark:text-blue-300" data-testid="text-active-count">
                     {applications?.filter(a => ["submitted", "in_review"].includes(a.status)).length || 0}
                   </p>
-                  <p className="text-xs text-blue-600/80 dark:text-blue-400/80">Active Applications</p>
+                  <p className="text-[10px] sm:text-xs text-blue-600/80 dark:text-blue-400/80">Active</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-950 dark:to-yellow-900 border-yellow-200 dark:border-yellow-800">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-yellow-500/20">
-                  <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+            <CardContent className="p-2 sm:p-4">
+              <div className="flex flex-col sm:flex-row items-center sm:items-center gap-1 sm:gap-3 text-center sm:text-left">
+                <div className="p-1.5 sm:p-2 rounded-lg bg-yellow-500/20">
+                  <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-600 dark:text-yellow-400" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-yellow-700 dark:text-yellow-300" data-testid="text-pending-count">
+                  <p className="text-lg sm:text-2xl font-bold text-yellow-700 dark:text-yellow-300" data-testid="text-pending-count">
                     {applications?.filter(a => a.status === "draft").length || 0}
                   </p>
-                  <p className="text-xs text-yellow-600/80 dark:text-yellow-400/80">Pending Drafts</p>
+                  <p className="text-[10px] sm:text-xs text-yellow-600/80 dark:text-yellow-400/80">Drafts</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 border-green-200 dark:border-green-800">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-green-500/20">
-                  <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
+            <CardContent className="p-2 sm:p-4">
+              <div className="flex flex-col sm:flex-row items-center sm:items-center gap-1 sm:gap-3 text-center sm:text-left">
+                <div className="p-1.5 sm:p-2 rounded-lg bg-green-500/20">
+                  <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-green-600 dark:text-green-400" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-green-700 dark:text-green-300" data-testid="text-funded-count">
+                  <p className="text-lg sm:text-2xl font-bold text-green-700 dark:text-green-300" data-testid="text-funded-count">
                     {servicedLoans?.length || 0}
                   </p>
-                  <p className="text-xs text-green-600/80 dark:text-green-400/80">Funded Loans</p>
+                  <p className="text-[10px] sm:text-xs text-green-600/80 dark:text-green-400/80">Funded</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-primary/10 to-primary/20 border-primary/30">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-primary/20">
-                  <TrendingUp className="h-5 w-5 text-primary" />
+            <CardContent className="p-2 sm:p-4">
+              <div className="flex flex-col sm:flex-row items-center sm:items-center gap-1 sm:gap-3 text-center sm:text-left">
+                <div className="p-1.5 sm:p-2 rounded-lg bg-primary/20">
+                  <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-primary" data-testid="text-total-volume">
+                  <p className="text-sm sm:text-2xl font-bold text-primary" data-testid="text-total-volume">
                     {formatCurrency(servicedLoans?.reduce((sum, loan) => sum + loan.originalLoanAmount, 0) || 0)}
                   </p>
-                  <p className="text-xs text-primary/80">Total Funded</p>
+                  <p className="text-[10px] sm:text-xs text-primary/80">Total</p>
                 </div>
               </div>
             </CardContent>
@@ -267,55 +267,55 @@ export default function PortalPage() {
         </div>
 
         {/* Analyze a New Deal Section */}
-        <div className="mb-10">
-          <h2 className="text-xl font-bold mb-4">Analyze a New Deal</h2>
-          <p className="text-muted-foreground mb-4">
+        <div className="mb-6 sm:mb-10">
+          <h2 className="text-lg sm:text-xl font-bold mb-2 sm:mb-4">Analyze a New Deal</h2>
+          <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
             Select a loan type to begin analyzing your next investment opportunity.
           </p>
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6">
             <Card className="hover-elevate cursor-pointer" onClick={() => setLocation("/portal/dscr-analyzer")} data-testid="card-analyze-dscr">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Home className="h-5 w-5 text-primary" />
+              <CardHeader className="p-3 sm:p-6 pb-2 sm:pb-2">
+                <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+                  <Home className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                   DSCR Loan
                 </CardTitle>
-                <CardDescription>Long-term rental property financing</CardDescription>
+                <CardDescription className="text-xs sm:text-sm">Long-term rental property financing</CardDescription>
               </CardHeader>
-              <CardContent>
-                <Button variant="outline" size="sm" className="w-full">
-                  <Calculator className="h-4 w-4 mr-2" />
+              <CardContent className="p-3 sm:p-6 pt-2 sm:pt-2">
+                <Button variant="outline" size="sm" className="w-full h-8 text-xs sm:text-sm">
+                  <Calculator className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                   Analyze
                 </Button>
               </CardContent>
             </Card>
 
             <Card className="hover-elevate cursor-pointer" onClick={() => setLocation("/portal/fixflip-analyzer")} data-testid="card-analyze-fixflip">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-primary" />
+              <CardHeader className="p-3 sm:p-6 pb-2 sm:pb-2">
+                <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+                  <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                   Fix & Flip
                 </CardTitle>
-                <CardDescription>Short-term renovation financing</CardDescription>
+                <CardDescription className="text-xs sm:text-sm">Short-term renovation financing</CardDescription>
               </CardHeader>
-              <CardContent>
-                <Button variant="outline" size="sm" className="w-full">
-                  <Calculator className="h-4 w-4 mr-2" />
+              <CardContent className="p-3 sm:p-6 pt-2 sm:pt-2">
+                <Button variant="outline" size="sm" className="w-full h-8 text-xs sm:text-sm">
+                  <Calculator className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                   Analyze
                 </Button>
               </CardContent>
             </Card>
 
             <Card className="hover-elevate cursor-pointer" onClick={() => setLocation("/portal/construction-analyzer")} data-testid="card-analyze-construction">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Building2 className="h-5 w-5 text-primary" />
+              <CardHeader className="p-3 sm:p-6 pb-2 sm:pb-2">
+                <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+                  <Building2 className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                   New Construction
                 </CardTitle>
-                <CardDescription>Ground-up development financing</CardDescription>
+                <CardDescription className="text-xs sm:text-sm">Ground-up development financing</CardDescription>
               </CardHeader>
-              <CardContent>
-                <Button variant="outline" size="sm" className="w-full">
-                  <Calculator className="h-4 w-4 mr-2" />
+              <CardContent className="p-3 sm:p-6 pt-2 sm:pt-2">
+                <Button variant="outline" size="sm" className="w-full h-8 text-xs sm:text-sm">
+                  <Calculator className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                   Analyze
                 </Button>
               </CardContent>
@@ -324,51 +324,51 @@ export default function PortalPage() {
         </div>
 
         {/* Closed Loans Section */}
-        <div className="mb-10">
-          <h2 className="text-xl font-bold mb-4">Closed Loans</h2>
+        <div className="mb-6 sm:mb-10">
+          <h2 className="text-lg sm:text-xl font-bold mb-2 sm:mb-4">Closed Loans</h2>
           
           {loansLoading ? (
-            <div className="animate-pulse space-y-4">
+            <div className="animate-pulse space-y-3 sm:space-y-4">
               {[1, 2].map(i => (
-                <div key={i} className="h-24 bg-muted rounded-lg" />
+                <div key={i} className="h-20 sm:h-24 bg-muted rounded-lg" />
               ))}
             </div>
           ) : servicedLoans && servicedLoans.length > 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {servicedLoans.map((loan) => (
                 <Link key={loan.id} href={`/portal/loan/${loan.id}`}>
                   <Card className="hover-elevate cursor-pointer" data-testid={`card-loan-${loan.id}`}>
-                    <CardContent className="py-4">
-                      <div className="flex items-center justify-between gap-4 flex-wrap">
-                        <div className="flex items-center gap-4">
-                          <div className="p-2 rounded-lg bg-primary/10">
-                            <Banknote className="h-5 w-5 text-primary" />
+                    <CardContent className="py-3 sm:py-4 px-3 sm:px-6">
+                      <div className="flex items-center justify-between gap-2 sm:gap-4 flex-wrap">
+                        <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
+                          <div className="p-1.5 sm:p-2 rounded-lg bg-primary/10 shrink-0">
+                            <Banknote className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                           </div>
-                          <div>
-                            <p className="font-semibold">{loan.propertyAddress}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {loan.loanType} • Loan #{loan.loanNumber}
+                          <div className="min-w-0">
+                            <p className="font-semibold text-sm sm:text-base truncate">{loan.propertyAddress}</p>
+                            <p className="text-xs sm:text-sm text-muted-foreground">
+                              {loan.loanType} • #{loan.loanNumber}
                             </p>
                           </div>
                         </div>
                         
-                        <div className="flex items-center gap-6">
+                        <div className="flex items-center gap-2 sm:gap-6">
                           <div className="text-right hidden sm:block">
-                            <p className="text-sm text-muted-foreground">Current Balance</p>
-                            <p className="font-semibold">{formatCurrency(loan.currentBalance)}</p>
+                            <p className="text-xs sm:text-sm text-muted-foreground">Balance</p>
+                            <p className="font-semibold text-sm sm:text-base">{formatCurrency(loan.currentBalance)}</p>
                           </div>
                           <div className="text-right hidden md:block">
-                            <p className="text-sm text-muted-foreground">Monthly Payment</p>
-                            <p className="font-semibold">{formatCurrency(loan.monthlyPayment)}</p>
+                            <p className="text-xs sm:text-sm text-muted-foreground">Monthly</p>
+                            <p className="font-semibold text-sm sm:text-base">{formatCurrency(loan.monthlyPayment)}</p>
                           </div>
                           <div className="text-right hidden lg:block">
-                            <p className="text-sm text-muted-foreground">Next Payment</p>
-                            <p className="font-medium">{formatDate(loan.nextPaymentDate)}</p>
+                            <p className="text-xs sm:text-sm text-muted-foreground">Next Payment</p>
+                            <p className="font-medium text-sm sm:text-base">{formatDate(loan.nextPaymentDate)}</p>
                           </div>
-                          <Badge className={loanStatusColors[loan.loanStatus]}>
+                          <Badge className={`${loanStatusColors[loan.loanStatus]} text-[10px] sm:text-xs`}>
                             {loanStatusLabels[loan.loanStatus]}
                           </Badge>
-                          <ArrowRight className="h-5 w-5 text-muted-foreground" />
+                          <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground shrink-0" />
                         </div>
                       </div>
                     </CardContent>
@@ -378,10 +378,10 @@ export default function PortalPage() {
             </div>
           ) : (
             <Card>
-              <CardContent className="py-12 text-center">
-                <Banknote className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="font-semibold mb-2">No closed loans yet</h3>
-                <p className="text-muted-foreground mb-4">
+              <CardContent className="py-8 sm:py-12 text-center px-3 sm:px-6">
+                <Banknote className="h-10 w-10 sm:h-12 sm:w-12 mx-auto mb-3 sm:mb-4 text-muted-foreground" />
+                <h3 className="font-semibold mb-1 sm:mb-2 text-sm sm:text-base">No closed loans yet</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
                   Once your loan closes, you'll be able to view payment details, make payments, and access your loan documents here.
                 </p>
               </CardContent>
@@ -391,57 +391,57 @@ export default function PortalPage() {
 
         {/* Your Previous Applications Section */}
         <div>
-          <h2 className="text-xl font-bold mb-4">Your Previous Applications</h2>
+          <h2 className="text-lg sm:text-xl font-bold mb-2 sm:mb-4">Your Previous Applications</h2>
           
           {appsLoading ? (
-            <div className="animate-pulse space-y-4">
+            <div className="animate-pulse space-y-3 sm:space-y-4">
               {[1, 2].map(i => (
-                <div key={i} className="h-24 bg-muted rounded-lg" />
+                <div key={i} className="h-20 sm:h-24 bg-muted rounded-lg" />
               ))}
             </div>
           ) : applications && applications.length > 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {applications.map((app) => (
                 <Card key={app.id} className="hover-elevate" data-testid={`card-application-${app.id}`}>
-                  <CardContent className="py-4">
-                    <div className="flex items-center justify-between gap-4 flex-wrap">
-                      <Link href={`/portal/application/${app.id}`} className="flex items-center gap-4 flex-1 cursor-pointer">
-                        <div className="p-2 rounded-lg bg-primary/10">
+                  <CardContent className="py-3 sm:py-4 px-3 sm:px-6">
+                    <div className="flex items-center justify-between gap-2 sm:gap-4 flex-wrap">
+                      <Link href={`/portal/application/${app.id}`} className="flex items-center gap-2 sm:gap-4 flex-1 cursor-pointer min-w-0">
+                        <div className="p-1.5 sm:p-2 rounded-lg bg-primary/10 shrink-0">
                           {app.loanType === "DSCR" ? (
-                            <Home className="h-5 w-5 text-primary" />
+                            <Home className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                           ) : app.loanType === "Fix & Flip" ? (
-                            <FileText className="h-5 w-5 text-primary" />
+                            <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                           ) : (
-                            <Building2 className="h-5 w-5 text-primary" />
+                            <Building2 className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                           )}
                         </div>
-                        <div>
-                          <p className="font-semibold">{app.loanType} Loan</p>
-                          <p className="text-sm text-muted-foreground">
+                        <div className="min-w-0">
+                          <p className="font-semibold text-sm sm:text-base">{app.loanType} Loan</p>
+                          <p className="text-xs sm:text-sm text-muted-foreground truncate">
                             {app.propertyAddress || "Property address not set"}
                           </p>
                         </div>
                       </Link>
                       
-                      <div className="flex items-center gap-3">
-                        <Badge className={statusColors[app.status]}>
+                      <div className="flex items-center gap-1.5 sm:gap-3">
+                        <Badge className={`${statusColors[app.status]} text-[10px] sm:text-xs`}>
                           {statusLabels[app.status]}
                         </Badge>
-                        <div className="text-sm text-muted-foreground hidden sm:block">
-                          <Clock className="h-4 w-4 inline mr-1" />
+                        <div className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
+                          <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 inline mr-1" />
                           {new Date(app.createdAt).toLocaleDateString()}
                         </div>
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={(e) => handleDeleteClick(e, app)}
-                          className="text-muted-foreground hover:text-destructive"
+                          className="text-muted-foreground hover:text-destructive h-7 w-7 sm:h-9 sm:w-9"
                           data-testid={`button-delete-application-${app.id}`}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                         </Button>
                         <Link href={`/portal/application/${app.id}`}>
-                          <ArrowRight className="h-5 w-5 text-muted-foreground cursor-pointer" />
+                          <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground cursor-pointer" />
                         </Link>
                       </div>
                     </div>
@@ -451,10 +451,10 @@ export default function PortalPage() {
             </div>
           ) : (
             <Card>
-              <CardContent className="py-12 text-center">
-                <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="font-semibold mb-2">No applications yet</h3>
-                <p className="text-muted-foreground mb-4">
+              <CardContent className="py-8 sm:py-12 text-center px-3 sm:px-6">
+                <FileText className="h-10 w-10 sm:h-12 sm:w-12 mx-auto mb-3 sm:mb-4 text-muted-foreground" />
+                <h3 className="font-semibold mb-1 sm:mb-2 text-sm sm:text-base">No applications yet</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
                   Start by analyzing a new deal above to begin your application process.
                 </p>
               </CardContent>
