@@ -221,7 +221,7 @@ export default function ArticlePage() {
         <GeometricPattern 
           variant="bubbles" 
           className="text-primary-foreground" 
-          opacity={0.2}
+          opacity={0.15}
         />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 text-center">
           <h2 className="text-2xl sm:text-3xl font-bold text-primary-foreground mb-4">

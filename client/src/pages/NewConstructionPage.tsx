@@ -381,7 +381,7 @@ export default function NewConstructionPage() {
         <GeometricPattern 
           variant="rings" 
           className="text-primary-foreground" 
-          opacity={0.2}
+          opacity={0.15}
         />
         <div className="relative max-w-7xl mx-auto px-6 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-primary-foreground mb-4">

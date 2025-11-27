@@ -699,7 +699,7 @@ export default function HomePage() {
         <GeometricPattern 
           variant="circles" 
           className="text-primary-foreground" 
-          opacity={0.2}
+          opacity={0.15}
         />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6">
           <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-center">
