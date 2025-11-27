@@ -197,84 +197,84 @@ export function RecentlyFundedCarousel({
   };
 
   return (
-    <section className="py-16 bg-muted/30">
-      <div className="max-w-7xl mx-auto px-6">
-        <div className="text-center mb-10">
-          <h2 className="text-3xl font-bold mb-2">{title}</h2>
-          <p className="text-muted-foreground">{subtitle}</p>
+    <section className="py-10 sm:py-16 bg-muted/30">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6">
+        <div className="text-center mb-6 sm:mb-10">
+          <h2 className="text-2xl sm:text-3xl font-bold mb-2">{title}</h2>
+          <p className="text-sm sm:text-base text-muted-foreground">{subtitle}</p>
         </div>
 
         <div className="relative">
           {/* Cards Container */}
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {getVisibleDeals().map((deal, index) => (
               <Card 
                 key={`${deal.id}-${currentIndex}-${index}`}
                 className="overflow-hidden hover-elevate transition-all duration-300"
                 data-testid={`card-funded-deal-${deal.id}`}
               >
-                <div className="relative h-48 overflow-hidden">
+                <div className="relative h-40 sm:h-48 overflow-hidden">
                   <img 
                     src={deal.image} 
                     alt={`${deal.location}, ${deal.state}`}
                     className="w-full h-full object-cover"
                   />
                   <Badge 
-                    className={`absolute top-3 left-3 ${getLoanTypeBadgeColor(deal.loanType)}`}
+                    className={`absolute top-2 sm:top-3 left-2 sm:left-3 text-[10px] sm:text-xs ${getLoanTypeBadgeColor(deal.loanType)}`}
                   >
                     {deal.loanType}
                   </Badge>
                   <Badge 
                     variant="secondary"
-                    className="absolute top-3 right-3 bg-background/90 backdrop-blur-sm"
+                    className="absolute top-2 sm:top-3 right-2 sm:right-3 text-[10px] sm:text-xs bg-background/90 backdrop-blur-sm"
                   >
                     {deal.propertyType}
                   </Badge>
                 </div>
-                <CardContent className="p-4">
+                <CardContent className="p-3 sm:p-4">
                   <div className="flex items-center gap-1 text-muted-foreground mb-2">
-                    <MapPin className="h-4 w-4" />
-                    <span className="text-sm font-medium">{deal.location}, {deal.state}</span>
+                    <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+                    <span className="text-xs sm:text-sm font-medium">{deal.location}, {deal.state}</span>
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div className="flex items-center gap-1.5">
-                      <DollarSign className="h-4 w-4 text-primary" />
-                      <div>
-                        <p className="text-xs text-muted-foreground">Loan Amount</p>
-                        <p className="font-semibold">{formatCurrency(deal.loanAmount)}</p>
+                  <div className="grid grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
+                    <div className="flex items-center gap-1 sm:gap-1.5">
+                      <DollarSign className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-[10px] sm:text-xs text-muted-foreground">Loan Amount</p>
+                        <p className="font-semibold truncate">{formatCurrency(deal.loanAmount)}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <Percent className="h-4 w-4 text-green-600" />
+                    <div className="flex items-center gap-1 sm:gap-1.5">
+                      <Percent className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-600 shrink-0" />
                       <div>
-                        <p className="text-xs text-muted-foreground">Rate</p>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground">Rate</p>
                         <p className="font-semibold">{deal.rate.toFixed(3)}%</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1 sm:gap-1.5">
                       {deal.ltv ? (
                         <>
-                          <Percent className="h-4 w-4 text-blue-600" />
+                          <Percent className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600 shrink-0" />
                           <div>
-                            <p className="text-xs text-muted-foreground">LTV</p>
+                            <p className="text-[10px] sm:text-xs text-muted-foreground">LTV</p>
                             <p className="font-semibold">{deal.ltv}%</p>
                           </div>
                         </>
                       ) : (
                         <>
-                          <Percent className="h-4 w-4 text-orange-600" />
+                          <Percent className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-orange-600 shrink-0" />
                           <div>
-                            <p className="text-xs text-muted-foreground">LTC</p>
+                            <p className="text-[10px] sm:text-xs text-muted-foreground">LTC</p>
                             <p className="font-semibold">{deal.ltc}%</p>
                           </div>
                         </>
                       )}
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <Clock className="h-4 w-4 text-purple-600" />
+                    <div className="flex items-center gap-1 sm:gap-1.5">
+                      <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-purple-600 shrink-0" />
                       <div>
-                        <p className="text-xs text-muted-foreground">Closed In</p>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground">Closed In</p>
                         <p className="font-semibold">{deal.closeTime}</p>
                       </div>
                     </div>
@@ -286,7 +286,7 @@ export function RecentlyFundedCarousel({
 
         </div>
 
-        <div className="text-center mt-8">
+        <div className="text-center mt-6 sm:mt-8">
           <Link href="/fundings">
             <Button variant="outline" data-testid="button-view-all-fundings">
               View All Funded Deals
