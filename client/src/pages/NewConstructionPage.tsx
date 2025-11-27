@@ -7,6 +7,8 @@ import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { TeaserConstructionCalculator } from "@/components/TeaserConstructionCalculator";
 import { RecentlyFundedCarousel } from "@/components/RecentlyFundedCarousel";
+import { RatesTermsSection, type RateTermItem, type BenefitItem } from "@/components/RatesTermsSection";
+import { ResourcesSection, type ResourceItem } from "@/components/ResourcesSection";
 import {
   Accordion,
   AccordionContent,
@@ -26,6 +28,39 @@ import {
 import constructionImage from "@assets/stock_images/new_construction_hom_ee055247.jpg";
 import { useToast } from "@/hooks/use-toast";
 
+const ratesTermsItems: RateTermItem[] = [
+  { label: "Rates as low as", value: "9.90%*", icon: "percent" },
+  { label: "Loans from", value: "$150K to $3M", icon: "dollar" },
+  { label: "Up to", value: "90%", sublabel: "loan-to-cost", icon: "building" },
+  { label: "Up to", value: "75%", sublabel: "of completed value", icon: "home" },
+  { label: "Term options", value: "9-24 months", sublabel: "w/ extension options", icon: "calendar" },
+  { label: "Draw turnaround", value: "48 hours", icon: "clock" },
+];
+
+const ratesTermsBenefits: BenefitItem[] = [
+  { text: "No Income Verification" },
+  { text: "In-House Servicing" },
+  { text: "Multi-Home Developments" },
+];
+
+const resourcesItems: ResourceItem[] = [
+  {
+    type: "Guide",
+    title: "Ground-Up Construction: Complete Financing Guide for Builders",
+    link: "/resources/construction-financing-guide",
+  },
+  {
+    type: "Article",
+    title: "How to Calculate Your Construction Loan Budget and Timeline",
+    link: "/resources/construction-budget-planning",
+  },
+  {
+    type: "Calculator",
+    title: "Construction Loan Analyzer: Plan Your Build Project",
+    link: "/portal/construction-analyzer",
+  },
+];
+
 export default function NewConstructionPage() {
   const { toast } = useToast();
 
@@ -40,6 +75,7 @@ export default function NewConstructionPage() {
     <div className="min-h-screen bg-background">
       <Navigation />
 
+      {/* Hero Section */}
       <section className="relative pt-8 sm:pt-12 pb-12 sm:pb-20 overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-center"
@@ -84,6 +120,25 @@ export default function NewConstructionPage() {
         </div>
       </section>
 
+      {/* Kiavi-style Rates & Terms Section */}
+      <RatesTermsSection
+        sectionLabel="Rates & Terms"
+        title="Construction Loan Rates + Terms"
+        description="We structure financing based on your project, not just the borrower—so you can break ground with confidence."
+        items={ratesTermsItems}
+        benefits={ratesTermsBenefits}
+        ctaText="See Your Rate"
+        ctaLink="/get-quote"
+      />
+
+      {/* Recently Funded Carousel - Moved Higher */}
+      <RecentlyFundedCarousel 
+        loanType="New Construction" 
+        title="Recently Funded Construction Projects"
+        subtitle="See real ground-up builds we've financed"
+      />
+
+      {/* Main Content Section */}
       <section className="py-12 sm:py-20 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
@@ -304,14 +359,18 @@ export default function NewConstructionPage() {
           </div>
         </div>
       </section>
-      
-      {/* Recently Funded Carousel */}
-      <RecentlyFundedCarousel 
-        loanType="New Construction" 
-        title="Recently Funded Construction Projects"
-        subtitle="See real ground-up builds we've financed"
+
+      {/* Resources Section */}
+      <ResourcesSection
+        sectionLabel="Resources"
+        title="Build smarter with our construction financing guides"
+        description="Have questions about construction loans or planning your next build project? We offer resources to help you stay informed and make confident decisions."
+        resources={resourcesItems}
+        viewMoreLink="/resources"
+        viewMoreText="View More"
       />
 
+      {/* CTA Section */}
       <section className="py-16 bg-primary">
         <div className="max-w-7xl mx-auto px-6 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-primary-foreground mb-4">
