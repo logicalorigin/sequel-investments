@@ -34,7 +34,7 @@ export default function WhereWeLendPage() {
         <GeometricPattern 
           variant="grid" 
           className="text-primary-foreground" 
-          opacity={0.08}
+          opacity={0.12}
           strokeColor="currentColor"
         />
         <div className="relative max-w-7xl mx-auto px-6">

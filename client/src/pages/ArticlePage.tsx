@@ -221,7 +221,7 @@ export default function ArticlePage() {
         <GeometricPattern 
           variant="buildings" 
           className="text-primary-foreground" 
-          opacity={0.1}
+          opacity={0.15}
           strokeColor="currentColor"
         />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 text-center">
