@@ -219,31 +219,33 @@ export default function HomePage() {
                 </div>
               </div>
               
-              {/* Mobile: Compact overlay card inside image */}
-              <div className="sm:hidden absolute bottom-8 left-2 right-2 bg-card/95 backdrop-blur-sm rounded-lg shadow-lg p-2.5 border" data-testid="card-funded-mobile">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-[10px] leading-tight">Funded</p>
-                      <p className="text-[9px] text-muted-foreground">{activeSlide.loanType}</p>
-                    </div>
+              {/* Mobile: Compact card in bottom right corner */}
+              <div className="sm:hidden absolute bottom-8 right-2 bg-card/95 backdrop-blur-sm rounded-lg shadow-lg p-2 border max-w-[160px]" data-testid="card-funded-mobile">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <div className="w-6 h-6 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
+                    <CheckCircle2 className="h-3 w-3 text-green-500" />
                   </div>
-                  <div className="flex gap-3 text-[10px]">
-                    <div className="text-right">
-                      <p className="text-muted-foreground">Amount</p>
-                      <p className="font-semibold">{activeSlide.loanAmount}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-muted-foreground">Rate</p>
-                      <p className="font-semibold text-primary">{activeSlide.rate}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-muted-foreground">Closed</p>
-                      <p className="font-semibold text-green-600">{activeSlide.closedIn}</p>
-                    </div>
+                  <div>
+                    <p className="font-semibold text-[10px] leading-tight">Funded</p>
+                    <p className="text-[9px] text-muted-foreground">{activeSlide.loanType}</p>
+                  </div>
+                </div>
+                <div className="space-y-0.5 text-[10px]">
+                  <div className="flex justify-between gap-2">
+                    <span className="text-muted-foreground">Location</span>
+                    <span className="font-semibold">{activeSlide.location}</span>
+                  </div>
+                  <div className="flex justify-between gap-2">
+                    <span className="text-muted-foreground">Amount</span>
+                    <span className="font-semibold">{activeSlide.loanAmount}</span>
+                  </div>
+                  <div className="flex justify-between gap-2">
+                    <span className="text-muted-foreground">Rate</span>
+                    <span className="font-semibold text-primary">{activeSlide.rate}</span>
+                  </div>
+                  <div className="flex justify-between gap-2">
+                    <span className="text-muted-foreground">Closed</span>
+                    <span className="font-semibold text-green-600">{activeSlide.closedIn}</span>
                   </div>
                 </div>
               </div>
