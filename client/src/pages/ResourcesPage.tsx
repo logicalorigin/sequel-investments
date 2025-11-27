@@ -42,7 +42,7 @@ export default function ResourcesPage() {
         <GeometricPattern 
           variant="circles" 
           className="text-primary-foreground" 
-          opacity={0.2}
+          opacity={0.12}
         />
         
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6">
