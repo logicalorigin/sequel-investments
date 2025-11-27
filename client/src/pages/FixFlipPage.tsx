@@ -46,18 +46,18 @@ const ratesTermsBenefits: BenefitItem[] = [
 const resourcesItems: ResourceItem[] = [
   {
     type: "Guide",
-    title: "Flipping Houses 101: Tips and Strategies for Success",
-    link: "/resources/flipping-houses-101",
+    title: "The Ins and Outs of Your Scope of Work",
+    link: "/resources/scope-of-work-guide",
   },
   {
     type: "Article",
-    title: "6 Things to Do Before Submitting Your First Fix-and-Flip Loan",
-    link: "/resources/fix-flip-loan-checklist",
+    title: "Top Renovations to Maximize Profits for Real Estate Investors",
+    link: "/resources/top-renovations-to-maximize-profits",
   },
   {
     type: "Calculator",
     title: "Fix & Flip Deal Analyzer: Calculate Your ROI Before You Buy",
-    link: "/portal/fix-flip-analyzer",
+    link: "/portal/fixflip-analyzer",
   },
 ];
 
