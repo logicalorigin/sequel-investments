@@ -7,7 +7,6 @@ import { Footer } from "@/components/Footer";
 import USMap from "@/components/USMap";
 import { statesData, getEligibleStates, type StateData } from "@shared/schema";
 import { MapPin, Check, X } from "lucide-react";
-import { GeometricPattern } from "@/components/GeometricPattern";
 
 export default function WhereWeLendPage() {
   const eligibleStates = getEligibleStates();
@@ -30,19 +29,13 @@ export default function WhereWeLendPage() {
     <div className="min-h-screen bg-background">
       <Navigation />
 
-      <section className="relative pt-12 pb-20 overflow-hidden bg-primary">
-        <GeometricPattern 
-          variant="grid" 
-          className="text-primary-foreground" 
-          opacity={0.12}
-          strokeColor="currentColor"
-        />
-        <div className="relative max-w-7xl mx-auto px-6">
+      <section className="relative pt-12 pb-20 overflow-hidden bg-card">
+        <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-12">
-            <h1 className="text-4xl md:text-5xl font-bold mb-6 text-primary-foreground" data-testid="text-page-title">
+            <h1 className="text-4xl md:text-5xl font-bold mb-6" data-testid="text-page-title">
               Where We Lend
             </h1>
-            <p className="text-xl text-primary-foreground/80 max-w-3xl mx-auto">
+            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
               Secured Asset Funding is a nationwide private mortgage lender serving real estate investors across 48 states and Washington D.C. 
               Our innovative financing solutions help investors of all experience levels achieve their investment goals.
             </p>
