@@ -258,23 +258,23 @@ export default function GetQuotePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       <header className="border-b border-white/10 bg-black/20 backdrop-blur-sm">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
           <Link href="/" data-testid="link-logo-home">
             <div className="flex items-center gap-2 cursor-pointer">
-              <img src={logoIcon} alt="SAF" className="h-10 w-10 object-contain brightness-0 invert" />
-              <span className="font-bold text-xl text-white hidden sm:inline">Secured Asset Funding</span>
+              <img src={logoIcon} alt="SAF" className="h-8 w-8 sm:h-10 sm:w-10 object-contain brightness-0 invert" />
+              <span className="font-bold text-base sm:text-xl text-white hidden sm:inline">Secured Asset Funding</span>
             </div>
           </Link>
           <Link href="/" data-testid="link-close">
-            <Button variant="ghost" className="text-white/70 hover:text-white">
+            <Button variant="ghost" className="text-white/70 hover:text-white h-8 sm:h-9 text-sm">
               Close
             </Button>
           </Link>
         </div>
       </header>
 
-      <div className="max-w-6xl mx-auto px-6 py-8">
-        <div className="flex justify-center mb-12 overflow-x-auto pb-4">
+      <div className="max-w-6xl mx-auto px-3 sm:px-6 py-4 sm:py-8">
+        <div className="flex justify-center mb-6 sm:mb-12 overflow-x-auto pb-2 sm:pb-4">
           <div className="flex items-center gap-0 min-w-max">
             {steps.map((s, index) => {
               const Icon = s.icon;
@@ -284,24 +284,24 @@ export default function GetQuotePage() {
               return (
                 <div key={s.number} className="flex items-center">
                   <div className="flex flex-col items-center">
-                    <div className="text-xs text-white/50 mb-2">Step {s.number}</div>
+                    <div className="text-[10px] sm:text-xs text-white/50 mb-1 sm:mb-2">Step {s.number}</div>
                     <div
-                      className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
+                      className={`w-8 h-8 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-all ${
                         isCompleted
                           ? "bg-[#e55c2b] text-white"
                           : isActive
-                          ? "bg-[#e55c2b] text-white ring-4 ring-[#e55c2b]/30"
+                          ? "bg-[#e55c2b] text-white ring-2 sm:ring-4 ring-[#e55c2b]/30"
                           : "bg-white/10 text-white/40"
                       }`}
                     >
-                      {isCompleted ? <Check className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
+                      {isCompleted ? <Check className="h-3.5 w-3.5 sm:h-5 sm:w-5" /> : <Icon className="h-3.5 w-3.5 sm:h-5 sm:w-5" />}
                     </div>
-                    <div className={`text-xs mt-2 font-medium ${isActive || isCompleted ? "text-white" : "text-white/40"}`}>
+                    <div className={`text-[10px] sm:text-xs mt-1 sm:mt-2 font-medium ${isActive || isCompleted ? "text-white" : "text-white/40"}`}>
                       {s.label}
                     </div>
                   </div>
                   {index < steps.length - 1 && (
-                    <div className={`w-16 h-0.5 mx-2 mt-[-12px] ${step > s.number ? "bg-[#e55c2b]" : "bg-white/10"}`} />
+                    <div className={`w-6 sm:w-16 h-0.5 mx-1 sm:mx-2 mt-[-12px] ${step > s.number ? "bg-[#e55c2b]" : "bg-white/10"}`} />
                   )}
                 </div>
               );
@@ -311,13 +311,13 @@ export default function GetQuotePage() {
 
         <div className="max-w-4xl mx-auto">
           {step === 1 && (
-            <div className="space-y-6">
-              <div className="text-center mb-8">
-                <h1 className="text-3xl font-bold text-white mb-2">Loan Product</h1>
-                <p className="text-white/60">Choose your loan product</p>
+            <div className="space-y-4 sm:space-y-6">
+              <div className="text-center mb-4 sm:mb-8">
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-1 sm:mb-2">Loan Product</h1>
+                <p className="text-sm sm:text-base text-white/60">Choose your loan product</p>
               </div>
 
-              <div className="grid md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6">
                 {loanProducts.map((product) => {
                   const Icon = product.icon;
                   const isSelected = formData.loanType === product.id;
@@ -325,7 +325,7 @@ export default function GetQuotePage() {
                   return (
                     <div
                       key={product.id}
-                      className={`relative bg-white/5 backdrop-blur-sm rounded-2xl p-6 cursor-pointer transition-all border-2 flex flex-col min-h-[380px] ${
+                      className={`relative bg-white/5 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 cursor-pointer transition-all border-2 flex flex-col min-h-[280px] sm:min-h-[380px] ${
                         isSelected
                           ? "border-[#e55c2b] bg-[#e55c2b]/10"
                           : "border-transparent hover:border-white/20 hover:bg-white/10"
@@ -333,25 +333,25 @@ export default function GetQuotePage() {
                       onClick={() => handleLoanTypeSelect(product.id)}
                       data-testid={`option-loan-${product.id}`}
                     >
-                      <div className="text-center mb-6">
-                        <div className="w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-4 bg-[#e55c2b]/20">
-                          <Icon className="h-8 w-8 text-[#e55c2b]" />
+                      <div className="text-center mb-3 sm:mb-6">
+                        <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full mx-auto flex items-center justify-center mb-2 sm:mb-4 bg-[#e55c2b]/20">
+                          <Icon className="h-6 w-6 sm:h-8 sm:w-8 text-[#e55c2b]" />
                         </div>
-                        <h3 className="text-xl font-bold text-white">{product.title}</h3>
-                        <p className="text-white/60 text-sm">{product.subtitle}</p>
+                        <h3 className="text-lg sm:text-xl font-bold text-white">{product.title}</h3>
+                        <p className="text-white/60 text-xs sm:text-sm">{product.subtitle}</p>
                       </div>
                       
-                      <ul className="space-y-2 flex-1">
+                      <ul className="space-y-1.5 sm:space-y-2 flex-1">
                         {product.features.map((feature, idx) => (
-                          <li key={idx} className="flex items-start gap-2 text-sm text-white/80">
-                            <CheckCircle2 className="h-4 w-4 mt-0.5 flex-shrink-0 text-[#e55c2b]" />
+                          <li key={idx} className="flex items-start gap-1.5 sm:gap-2 text-xs sm:text-sm text-white/80">
+                            <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 mt-0.5 flex-shrink-0 text-[#e55c2b]" />
                             <span>{feature}</span>
                           </li>
                         ))}
                       </ul>
 
                       <Button
-                        className={`w-full mt-6 ${
+                        className={`w-full mt-3 sm:mt-6 h-9 sm:h-10 text-sm ${
                           isSelected
                             ? "bg-[#e55c2b] hover:bg-[#d44d1f] text-white"
                             : "bg-white/10 hover:bg-white/20 text-white"
@@ -368,40 +368,40 @@ export default function GetQuotePage() {
                 })}
               </div>
 
-              <div className="flex justify-end pt-6">
+              <div className="flex justify-end pt-4 sm:pt-6">
                 <Button
                   onClick={handleNextStep}
                   disabled={!formData.loanType}
-                  className="bg-[#e55c2b] hover:bg-[#d44d1f] text-white px-8"
+                  className="bg-[#e55c2b] hover:bg-[#d44d1f] text-white px-6 sm:px-8 h-9 sm:h-10 text-sm"
                   data-testid="button-next"
                 >
                   Save & Next
-                  <ArrowRight className="ml-2 h-4 w-4" />
+                  <ArrowRight className="ml-1.5 sm:ml-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </Button>
               </div>
             </div>
           )}
 
           {step === 2 && (
-            <div className="space-y-6">
-              <div className="text-center mb-8">
-                <h1 className="text-3xl font-bold text-white mb-2">Deal Intro</h1>
-                <p className="text-white/60">Tell us about your deal</p>
+            <div className="space-y-4 sm:space-y-6">
+              <div className="text-center mb-4 sm:mb-8">
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-1 sm:mb-2">Deal Intro</h1>
+                <p className="text-sm sm:text-base text-white/60">Tell us about your deal</p>
               </div>
 
-              <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 space-y-6">
-                <div className="space-y-3">
-                  <Label className="text-white">What is the purpose of this loan? *</Label>
+              <div className="bg-white/5 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-8 space-y-4 sm:space-y-6">
+                <div className="space-y-2 sm:space-y-3">
+                  <Label className="text-white text-sm sm:text-base">What is the purpose of this loan? *</Label>
                   <RadioGroup
                     value={formData.loanPurpose}
                     onValueChange={(value) => setFormData({ ...formData, loanPurpose: value })}
-                    className="grid grid-cols-3 gap-3"
+                    className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3"
                   >
                     {formData.loanType === "dscr" 
                       ? ["Purchase", "Cash-Out", "Rate & Term"].map((option) => (
                           <div
                             key={option}
-                            className={`flex items-center space-x-3 p-4 rounded-lg border cursor-pointer transition-all ${
+                            className={`flex items-center space-x-2 sm:space-x-3 p-3 sm:p-4 rounded-lg border cursor-pointer transition-all ${
                               formData.loanPurpose === option
                                 ? "border-[#e55c2b] bg-[#e55c2b]/10"
                                 : "border-white/10 hover:border-white/20"
@@ -409,13 +409,13 @@ export default function GetQuotePage() {
                             onClick={() => setFormData({ ...formData, loanPurpose: option })}
                           >
                             <RadioGroupItem value={option} id={option} className="border-white/40" />
-                            <Label htmlFor={option} className="text-white cursor-pointer">{option}</Label>
+                            <Label htmlFor={option} className="text-white cursor-pointer text-sm sm:text-base">{option}</Label>
                           </div>
                         ))
                       : ["Purchase", "Refinance"].map((option) => (
                           <div
                             key={option}
-                            className={`flex items-center space-x-3 p-4 rounded-lg border cursor-pointer transition-all ${
+                            className={`flex items-center space-x-2 sm:space-x-3 p-3 sm:p-4 rounded-lg border cursor-pointer transition-all ${
                               formData.loanPurpose === option
                                 ? "border-[#e55c2b] bg-[#e55c2b]/10"
                                 : "border-white/10 hover:border-white/20"
@@ -423,24 +423,24 @@ export default function GetQuotePage() {
                             onClick={() => setFormData({ ...formData, loanPurpose: option })}
                           >
                             <RadioGroupItem value={option} id={option} className="border-white/40" />
-                            <Label htmlFor={option} className="text-white cursor-pointer">{option}</Label>
+                            <Label htmlFor={option} className="text-white cursor-pointer text-sm sm:text-base">{option}</Label>
                           </div>
                         ))
                     }
                   </RadioGroup>
                 </div>
 
-                <div className="space-y-3">
-                  <Label className="text-white">Have you identified a property? *</Label>
+                <div className="space-y-2 sm:space-y-3">
+                  <Label className="text-white text-sm sm:text-base">Have you identified a property? *</Label>
                   <RadioGroup
                     value={formData.propertyIdentified}
                     onValueChange={(value) => setFormData({ ...formData, propertyIdentified: value })}
-                    className="grid grid-cols-2 gap-3"
+                    className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3"
                   >
                     {["Yes, I have a property", "No, still looking"].map((option) => (
                       <div
                         key={option}
-                        className={`flex items-center space-x-3 p-4 rounded-lg border cursor-pointer transition-all ${
+                        className={`flex items-center space-x-2 sm:space-x-3 p-3 sm:p-4 rounded-lg border cursor-pointer transition-all ${
                           formData.propertyIdentified === option
                             ? "border-[#e55c2b] bg-[#e55c2b]/10"
                             : "border-white/10 hover:border-white/20"
@@ -448,41 +448,41 @@ export default function GetQuotePage() {
                         onClick={() => setFormData({ ...formData, propertyIdentified: option })}
                       >
                         <RadioGroupItem value={option} id={option} className="border-white/40" />
-                        <Label htmlFor={option} className="text-white cursor-pointer">{option}</Label>
+                        <Label htmlFor={option} className="text-white cursor-pointer text-sm sm:text-base">{option}</Label>
                       </div>
                     ))}
                   </RadioGroup>
                 </div>
 
-                <div className="space-y-3">
-                  <Label className="text-white">Desired Close Date</Label>
+                <div className="space-y-2 sm:space-y-3">
+                  <Label className="text-white text-sm sm:text-base">Desired Close Date</Label>
                   <Input
                     type="date"
                     value={formData.desiredCloseDate}
                     onChange={(e) => setFormData({ ...formData, desiredCloseDate: e.target.value })}
-                    className="bg-white/5 border-white/10 text-white [color-scheme:dark]"
+                    className="bg-white/5 border-white/10 text-white [color-scheme:dark] h-9 sm:h-10 text-sm sm:text-base"
                     data-testid="input-close-date"
                   />
                 </div>
               </div>
 
-              <div className="flex justify-between pt-6">
+              <div className="flex justify-between pt-4 sm:pt-6 gap-3">
                 <Button
                   variant="outline"
                   onClick={handlePrevStep}
-                  className="border-white/20 text-white hover:bg-white/10"
+                  className="border-white/20 text-white hover:bg-white/10 h-9 sm:h-10 text-sm"
                   data-testid="button-back"
                 >
-                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  <ArrowLeft className="mr-1 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   Back
                 </Button>
                 <Button
                   onClick={handleNextStep}
-                  className="bg-[#e55c2b] hover:bg-[#d44d1f] text-white px-8"
+                  className="bg-[#e55c2b] hover:bg-[#d44d1f] text-white px-6 sm:px-8 h-9 sm:h-10 text-sm"
                   data-testid="button-next"
                 >
                   Save & Next
-                  <ArrowRight className="ml-2 h-4 w-4" />
+                  <ArrowRight className="ml-1 sm:ml-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </Button>
               </div>
             </div>

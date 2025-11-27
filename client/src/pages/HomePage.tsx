@@ -104,78 +104,78 @@ export default function HomePage() {
     <div className="min-h-screen bg-background">
       <Navigation />
 
-      <section className="relative min-h-[85vh] pt-12 pb-16 overflow-hidden bg-background">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid lg:grid-cols-[0.4fr_0.6fr] gap-12 lg:gap-8 items-center min-h-[70vh]">
-            <div className="space-y-8">
-              <div className="flex items-center gap-3">
+      <section className="relative pt-8 pb-12 md:pt-12 md:pb-16 overflow-hidden bg-background">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="grid lg:grid-cols-[0.4fr_0.6fr] gap-8 lg:gap-8 items-center">
+            <div className="space-y-6 md:space-y-8 order-1">
+              <div className="flex flex-wrap items-center gap-3">
                 <div className="flex -space-x-2">
-                  <img src={testimonial1} alt="Investor" className="w-10 h-10 rounded-full border-2 border-background object-cover" />
-                  <img src={testimonial2} alt="Investor" className="w-10 h-10 rounded-full border-2 border-background object-cover" />
-                  <img src={testimonial3} alt="Investor" className="w-10 h-10 rounded-full border-2 border-background object-cover" />
+                  <img src={testimonial1} alt="Investor" className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 border-background object-cover" />
+                  <img src={testimonial2} alt="Investor" className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 border-background object-cover" />
+                  <img src={testimonial3} alt="Investor" className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 border-background object-cover" />
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="flex">
                     {[1,2,3,4,5].map((i) => (
-                      <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                      <Star key={i} className="w-3 h-3 sm:w-4 sm:h-4 fill-yellow-400 text-yellow-400" />
                     ))}
                   </div>
-                  <span className="text-sm text-muted-foreground">Trusted by 1,500+ investors</span>
+                  <span className="text-xs sm:text-sm text-muted-foreground">Trusted by 1,500+ investors</span>
                 </div>
               </div>
 
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight" data-testid="text-hero-title">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight" data-testid="text-hero-title">
                 Funding Solutions.
                 <br />
                 <span className="block mt-2 text-primary">For Investors. By Investors.</span>
               </h1>
 
-              <p className="text-lg md:text-xl text-muted-foreground max-w-lg">
+              <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-lg">
                 DSCR, Fix & Flip, and Construction loans — fast, flexible financing with no tax returns required.
               </p>
 
               <div className="flex flex-col sm:flex-row items-start gap-4">
                 <Link href="/get-quote">
-                  <Button size="lg" className="text-lg" data-testid="button-hero-apply">
+                  <Button size="lg" className="text-base sm:text-lg w-full sm:w-auto" data-testid="button-hero-apply">
                     Apply Now
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </Link>
               </div>
 
-              <div className="flex flex-wrap items-center gap-4 sm:gap-6 pt-4">
+              <div className="flex flex-wrap items-center gap-3 sm:gap-4 md:gap-6 pt-2 md:pt-4">
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-primary" />
-                  <span className="text-sm font-medium">$500M+ Funded</span>
+                  <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                  <span className="text-xs sm:text-sm font-medium">$500M+ Funded</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-primary" />
-                  <span className="text-sm font-medium">48 States + DC</span>
+                  <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                  <span className="text-xs sm:text-sm font-medium">48 States + DC</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-primary" />
-                  <span className="text-sm font-medium">48hr Closings</span>
+                  <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                  <span className="text-xs sm:text-sm font-medium">48hr Closings</span>
                 </div>
               </div>
             </div>
 
-            <div className="relative lg:pl-8">
-              <div className="relative rounded-2xl overflow-hidden shadow-2xl">
+            <div className="relative order-2 lg:pl-8">
+              <div className="relative rounded-xl sm:rounded-2xl overflow-hidden shadow-xl sm:shadow-2xl">
                 {heroSlides.map((slide, index) => (
                   <img 
                     key={slide.id}
                     src={slide.image} 
                     alt={slide.loanType}
-                    className={`w-full h-[500px] object-cover absolute inset-0 transition-opacity duration-700 ${
+                    className={`w-full h-[280px] sm:h-[350px] md:h-[400px] lg:h-[500px] object-cover absolute inset-0 transition-opacity duration-700 ${
                       index === currentSlide ? "opacity-100" : "opacity-0"
                     }`}
                   />
                 ))}
-                <div className="w-full h-[500px]" />
+                <div className="w-full h-[280px] sm:h-[350px] md:h-[400px] lg:h-[500px]" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
               </div>
 
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+              <div className="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
                 {heroSlides.map((slide, index) => (
                   <button
                     key={slide.id}
@@ -188,30 +188,30 @@ export default function HomePage() {
                 ))}
               </div>
               
-              <div className="absolute -bottom-6 -right-6 bg-card rounded-xl shadow-xl p-5 border max-w-[280px]">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center">
-                    <CheckCircle2 className="h-5 w-5 text-green-500" />
+              <div className="hidden sm:block absolute -bottom-4 -right-2 sm:-bottom-6 sm:-right-6 bg-card rounded-lg sm:rounded-xl shadow-lg sm:shadow-xl p-3 sm:p-5 border max-w-[220px] sm:max-w-[280px]">
+                <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-green-500/10 flex items-center justify-center">
+                    <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" />
                   </div>
                   <div>
-                    <p className="font-semibold text-sm">Funded</p>
-                    <p className="text-xs text-muted-foreground">{activeSlide.loanType}</p>
+                    <p className="font-semibold text-xs sm:text-sm">Funded</p>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">{activeSlide.loanType}</p>
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between gap-4 text-sm">
+                <div className="space-y-1 sm:space-y-2">
+                  <div className="flex justify-between gap-2 sm:gap-4 text-xs sm:text-sm">
                     <span className="text-muted-foreground">Location</span>
                     <span className="font-semibold">{activeSlide.location}</span>
                   </div>
-                  <div className="flex justify-between gap-4 text-sm">
+                  <div className="flex justify-between gap-2 sm:gap-4 text-xs sm:text-sm">
                     <span className="text-muted-foreground">Loan Amount</span>
                     <span className="font-semibold">{activeSlide.loanAmount}</span>
                   </div>
-                  <div className="flex justify-between text-sm">
+                  <div className="flex justify-between text-xs sm:text-sm">
                     <span className="text-muted-foreground">Interest Rate</span>
                     <span className="font-semibold text-primary">{activeSlide.rate}</span>
                   </div>
-                  <div className="flex justify-between text-sm">
+                  <div className="flex justify-between text-xs sm:text-sm">
                     <span className="text-muted-foreground">Closed In</span>
                     <span className="font-semibold text-green-600">{activeSlide.closedIn}</span>
                   </div>
@@ -222,39 +222,39 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="py-12 bg-card border-b">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+      <section className="py-8 sm:py-12 bg-card border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-8">
             <div className="text-center" data-testid="stat-funded">
-              <p className="text-3xl md:text-4xl font-bold text-primary">$500M+</p>
-              <p className="text-muted-foreground mt-1">Loans Funded</p>
+              <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-primary">$500M+</p>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1">Loans Funded</p>
             </div>
             <div className="text-center" data-testid="stat-loans">
-              <p className="text-3xl md:text-4xl font-bold text-primary">1,500+</p>
-              <p className="text-muted-foreground mt-1">Investors Served</p>
+              <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-primary">1,500+</p>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1">Investors Served</p>
             </div>
             <div className="text-center" data-testid="stat-closing">
-              <p className="text-3xl md:text-4xl font-bold text-primary">48 hrs</p>
-              <p className="text-muted-foreground mt-1">Fastest Closing</p>
+              <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-primary">48 hrs</p>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1">Fastest Closing</p>
             </div>
             <div className="text-center" data-testid="stat-states">
-              <p className="text-3xl md:text-4xl font-bold text-primary">48 States</p>
-              <p className="text-muted-foreground mt-1">+ DC Licensed</p>
+              <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-primary">48 States</p>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1">+ DC Licensed</p>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="py-24 bg-background">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Our Loan Products</h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+      <section className="py-12 sm:py-16 md:py-24 bg-background">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-8 sm:mb-12 md:mb-16">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">Our Loan Products</h2>
+            <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
               Flexible financing solutions for every stage of your investment journey
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
             <Card className="overflow-hidden hover-elevate active-elevate-2 transition-all" data-testid="card-product-dscr">
               <div className="aspect-video overflow-hidden">
                 <img 
@@ -387,34 +387,34 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="py-24 bg-card" data-testid="section-where-we-lend">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Where We Lend</h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+      <section className="py-12 sm:py-16 md:py-24 bg-card" data-testid="section-where-we-lend">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-8 sm:mb-12">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">Where We Lend</h2>
+            <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
               Secured Asset Funding is a nationwide private lender serving real estate investors across 48 states + DC. 
               Click on a state to explore our loan programs in your area.
             </p>
           </div>
 
-          <div className="max-w-4xl mx-auto mb-12">
+          <div className="max-w-4xl mx-auto mb-8 sm:mb-12 overflow-x-auto">
             <USMap onStateClick={handleStateClick} />
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 sm:gap-3">
             {eligibleStates.slice(0, 12).map((state) => (
               <Link key={state.slug} href={`/states/${state.slug}`}>
-                <div className="text-center p-3 rounded-lg border bg-background hover-elevate transition-all cursor-pointer" data-testid={`state-link-${state.slug}`}>
-                  <p className="font-semibold text-primary">{state.abbreviation}</p>
-                  <p className="text-xs text-muted-foreground">{state.name}</p>
+                <div className="text-center p-2 sm:p-3 rounded-lg border bg-background hover-elevate transition-all cursor-pointer" data-testid={`state-link-${state.slug}`}>
+                  <p className="font-semibold text-primary text-sm sm:text-base">{state.abbreviation}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">{state.name}</p>
                 </div>
               </Link>
             ))}
           </div>
 
-          <div className="text-center mt-8">
+          <div className="text-center mt-6 sm:mt-8">
             <Link href="/where-we-lend">
-              <Button variant="outline" size="lg" data-testid="button-view-all-states">
+              <Button variant="outline" size="default" className="sm:text-base" data-testid="button-view-all-states">
                 <MapPin className="mr-2 h-4 w-4" />
                 View All States
               </Button>
@@ -423,95 +423,95 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="py-24 bg-background">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Why Choose Secured Asset Funding</h2>
-            <p className="text-xl text-muted-foreground">
+      <section className="py-12 sm:py-16 md:py-24 bg-background">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-8 sm:mb-12 md:mb-16">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">Why Choose Secured Asset Funding</h2>
+            <p className="text-base sm:text-lg md:text-xl text-muted-foreground">
               What makes us the trusted choice for real estate investors
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <div className="flex gap-4" data-testid="benefit-speed">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+            <div className="flex gap-3 sm:gap-4" data-testid="benefit-speed">
               <div className="flex-shrink-0">
-                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Zap className="h-6 w-6 text-primary" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Zap className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                 </div>
               </div>
               <div>
-                <h3 className="font-semibold text-lg mb-2">Speed to Close</h3>
-                <p className="text-muted-foreground">
+                <h3 className="font-semibold text-base sm:text-lg mb-1 sm:mb-2">Speed to Close</h3>
+                <p className="text-sm sm:text-base text-muted-foreground">
                   Our digital platform automates manual tasks so you can close in as fast as 48 hours, not weeks.
                 </p>
               </div>
             </div>
 
-            <div className="flex gap-4" data-testid="benefit-platform">
+            <div className="flex gap-3 sm:gap-4" data-testid="benefit-platform">
               <div className="flex-shrink-0">
-                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Target className="h-6 w-6 text-primary" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Target className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                 </div>
               </div>
               <div>
-                <h3 className="font-semibold text-lg mb-2">Easy Process</h3>
-                <p className="text-muted-foreground">
+                <h3 className="font-semibold text-base sm:text-lg mb-1 sm:mb-2">Easy Process</h3>
+                <p className="text-sm sm:text-base text-muted-foreground">
                   We qualify the property, not the W2. No tax returns or extensive income verification required.
                 </p>
               </div>
             </div>
 
-            <div className="flex gap-4" data-testid="benefit-pricing">
+            <div className="flex gap-3 sm:gap-4" data-testid="benefit-pricing">
               <div className="flex-shrink-0">
-                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <DollarSign className="h-6 w-6 text-primary" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <DollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                 </div>
               </div>
               <div>
-                <h3 className="font-semibold text-lg mb-2">Competitive Pricing</h3>
-                <p className="text-muted-foreground">
+                <h3 className="font-semibold text-base sm:text-lg mb-1 sm:mb-2">Competitive Pricing</h3>
+                <p className="text-sm sm:text-base text-muted-foreground">
                   We assess each property's unique factors to provide pricing tailored to your specific deal.
                 </p>
               </div>
             </div>
 
-            <div className="flex gap-4" data-testid="benefit-hassle">
+            <div className="flex gap-3 sm:gap-4" data-testid="benefit-hassle">
               <div className="flex-shrink-0">
-                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Shield className="h-6 w-6 text-primary" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Shield className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                 </div>
               </div>
               <div>
-                <h3 className="font-semibold text-lg mb-2">Hassle-Free</h3>
-                <p className="text-muted-foreground">
+                <h3 className="font-semibold text-base sm:text-lg mb-1 sm:mb-2">Hassle-Free</h3>
+                <p className="text-sm sm:text-base text-muted-foreground">
                   In-house valuation and servicing teams eliminate paperwork and third-party delays.
                 </p>
               </div>
             </div>
 
-            <div className="flex gap-4" data-testid="benefit-support">
+            <div className="flex gap-3 sm:gap-4" data-testid="benefit-support">
               <div className="flex-shrink-0">
-                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Headphones className="h-6 w-6 text-primary" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Headphones className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                 </div>
               </div>
               <div>
-                <h3 className="font-semibold text-lg mb-2">Dedicated Support</h3>
-                <p className="text-muted-foreground">
+                <h3 className="font-semibold text-base sm:text-lg mb-1 sm:mb-2">Dedicated Support</h3>
+                <p className="text-sm sm:text-base text-muted-foreground">
                   Our team of experts guides you from application to closing with personalized attention.
                 </p>
               </div>
             </div>
 
-            <div className="flex gap-4" data-testid="benefit-trusted">
+            <div className="flex gap-3 sm:gap-4" data-testid="benefit-trusted">
               <div className="flex-shrink-0">
-                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Users className="h-6 w-6 text-primary" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Users className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                 </div>
               </div>
               <div>
-                <h3 className="font-semibold text-lg mb-2">Trusted by 1,500+</h3>
-                <p className="text-muted-foreground">
+                <h3 className="font-semibold text-base sm:text-lg mb-1 sm:mb-2">Trusted by 1,500+</h3>
+                <p className="text-sm sm:text-base text-muted-foreground">
                   Real estate investors nationwide trust us to fund their projects reliably.
                 </p>
               </div>
@@ -520,16 +520,16 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="py-24 bg-card">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">What Our Investors Say</h2>
-            <p className="text-xl text-muted-foreground">
+      <section className="py-12 sm:py-16 md:py-24 bg-card">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-8 sm:mb-12 md:mb-16">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">What Our Investors Say</h2>
+            <p className="text-base sm:text-lg md:text-xl text-muted-foreground">
               Real success stories from real estate investors
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
             <Card data-testid="card-testimonial-1">
               <CardContent className="pt-6">
                 <div className="flex gap-1 mb-4">
@@ -605,40 +605,40 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="py-24 bg-primary">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
+      <section className="py-12 sm:py-16 md:py-24 bg-primary">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-center">
             <div className="text-primary-foreground">
-              <h2 className="text-3xl md:text-4xl font-bold mb-6">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 sm:mb-6">
                 Ready to Scale Your Portfolio?
               </h2>
-              <p className="text-xl mb-8 opacity-90">
+              <p className="text-base sm:text-lg md:text-xl mb-6 sm:mb-8 opacity-90">
                 Get pre-qualified in minutes and receive a term sheet within 24 hours
               </p>
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <CheckCircle2 className="h-6 w-6" />
-                  <span className="text-lg">No obligation quote</span>
+              <div className="space-y-3 sm:space-y-4">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <CheckCircle2 className="h-5 w-5 sm:h-6 sm:w-6 flex-shrink-0" />
+                  <span className="text-sm sm:text-base md:text-lg">No obligation quote</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <CheckCircle2 className="h-6 w-6" />
-                  <span className="text-lg">Response within 24 hours</span>
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <CheckCircle2 className="h-5 w-5 sm:h-6 sm:w-6 flex-shrink-0" />
+                  <span className="text-sm sm:text-base md:text-lg">Response within 24 hours</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <CheckCircle2 className="h-6 w-6" />
-                  <span className="text-lg">Transparent rates & terms</span>
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <CheckCircle2 className="h-5 w-5 sm:h-6 sm:w-6 flex-shrink-0" />
+                  <span className="text-sm sm:text-base md:text-lg">Transparent rates & terms</span>
                 </div>
               </div>
             </div>
 
             <Card>
-              <CardHeader>
-                <CardTitle>Get Started Today</CardTitle>
-                <CardDescription>
+              <CardHeader className="p-4 sm:p-6">
+                <CardTitle className="text-lg sm:text-xl">Get Started Today</CardTitle>
+                <CardDescription className="text-sm">
                   Fill out this form and we'll be in touch shortly
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
                 <LeadForm onSubmitSuccess={handleFormSuccess} compact />
               </CardContent>
             </Card>
