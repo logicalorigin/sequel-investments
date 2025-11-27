@@ -7,6 +7,8 @@ import { Footer } from "@/components/Footer";
 import { LeadForm } from "@/components/LeadForm";
 import { TeaserDSCRCalculator } from "@/components/TeaserDSCRCalculator";
 import { RecentlyFundedCarousel } from "@/components/RecentlyFundedCarousel";
+import { RatesTermsSection, type RateTermItem, type BenefitItem } from "@/components/RatesTermsSection";
+import { ResourcesSection, type ResourceItem } from "@/components/ResourcesSection";
 import {
   Accordion,
   AccordionContent,
@@ -27,6 +29,39 @@ import {
 import dscrImage from "@assets/stock_images/luxury_modern_single_2639d1bd.jpg";
 import { useToast } from "@/hooks/use-toast";
 
+const ratesTermsItems: RateTermItem[] = [
+  { label: "Rates as low as", value: "5.75%*", icon: "percent" },
+  { label: "Loans from", value: "$100K to $3M", icon: "dollar" },
+  { label: "Up to", value: "80%", sublabel: "LTV purchase/refi", icon: "home" },
+  { label: "DSCR requirement", value: "No Minimum", sublabel: "we close below 1.0x", icon: "calculator" },
+  { label: "Term options", value: "30-Year Fixed", sublabel: "or 5/6 ARM available", icon: "calendar" },
+  { label: "No seasoning", value: "Cash-Out OK", sublabel: "BRRRR friendly", icon: "wallet" },
+];
+
+const ratesTermsBenefits: BenefitItem[] = [
+  { text: "No W2 or Tax Returns" },
+  { text: "No Income Verification" },
+  { text: "STR/Airbnb Friendly" },
+];
+
+const resourcesItems: ResourceItem[] = [
+  {
+    type: "Guide",
+    title: "DSCR Loans Explained: How to Qualify Without Income Docs",
+    link: "/resources/dscr-loans-explained",
+  },
+  {
+    type: "Article",
+    title: "BRRRR Strategy: How to Build a Rental Portfolio Fast",
+    link: "/resources/brrrr-strategy-guide",
+  },
+  {
+    type: "Calculator",
+    title: "DSCR Calculator: Analyze Your Rental Property Deal",
+    link: "/portal/dscr-analyzer",
+  },
+];
+
 export default function DSCRLoansPage() {
   const { toast } = useToast();
 
@@ -40,6 +75,8 @@ export default function DSCRLoansPage() {
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
+      
+      {/* Hero Section */}
       <section className="relative pt-8 sm:pt-12 pb-12 sm:pb-20 overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-center"
@@ -81,6 +118,26 @@ export default function DSCRLoansPage() {
           </div>
         </div>
       </section>
+
+      {/* Kiavi-style Rates & Terms Section */}
+      <RatesTermsSection
+        sectionLabel="Rates & Terms"
+        title="DSCR Loan Rates + Terms"
+        description="We qualify the property, not your personal income—so you can grow your rental portfolio with confidence."
+        items={ratesTermsItems}
+        benefits={ratesTermsBenefits}
+        ctaText="See Your Rate"
+        ctaLink="/get-quote"
+      />
+
+      {/* Recently Funded Carousel - Moved Higher */}
+      <RecentlyFundedCarousel 
+        loanType="DSCR" 
+        title="Recently Funded DSCR Loans"
+        subtitle="See real rental property deals we've closed for investors"
+      />
+
+      {/* Main Content Section */}
       <section className="py-12 sm:py-20 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
@@ -320,14 +377,18 @@ export default function DSCRLoansPage() {
           </div>
         </div>
       </section>
-      
-      {/* Recently Funded Carousel */}
-      <RecentlyFundedCarousel 
-        loanType="DSCR" 
-        title="Recently Funded DSCR Loans"
-        subtitle="See real rental property deals we've closed for investors"
+
+      {/* Resources Section */}
+      <ResourcesSection
+        sectionLabel="Resources"
+        title="Master DSCR loan financing"
+        description="Have questions about DSCR loans or growing your rental portfolio? We offer resources to help you stay informed and make confident decisions."
+        resources={resourcesItems}
+        viewMoreLink="/resources"
+        viewMoreText="View More"
       />
 
+      {/* CTA Section */}
       <section className="py-16 bg-primary">
         <div className="max-w-7xl mx-auto px-6 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-primary-foreground mb-4">
@@ -344,6 +405,7 @@ export default function DSCRLoansPage() {
           </Link>
         </div>
       </section>
+      
       <Footer />
     </div>
   );

@@ -7,6 +7,8 @@ import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { TeaserFixFlipCalculator } from "@/components/TeaserFixFlipCalculator";
 import { RecentlyFundedCarousel } from "@/components/RecentlyFundedCarousel";
+import { RatesTermsSection, type RateTermItem, type BenefitItem } from "@/components/RatesTermsSection";
+import { ResourcesSection, type ResourceItem } from "@/components/ResourcesSection";
 import {
   Accordion,
   AccordionContent,
@@ -26,6 +28,39 @@ import {
 import fixFlipImage from "@assets/stock_images/house_renovation_con_aaeb0f05.jpg";
 import { useToast } from "@/hooks/use-toast";
 
+const ratesTermsItems: RateTermItem[] = [
+  { label: "Rates as low as", value: "8.90%*", icon: "percent" },
+  { label: "Loans from", value: "$80K to $2M", icon: "dollar" },
+  { label: "Up to", value: "90%", sublabel: "of purchase price", icon: "home" },
+  { label: "Up to", value: "100%", sublabel: "of rehab cost", icon: "hammer" },
+  { label: "Term options", value: "6-24 months", sublabel: "w/ interest-only options", icon: "calendar" },
+  { label: "Close in as fast as", value: "48 hours", icon: "clock" },
+];
+
+const ratesTermsBenefits: BenefitItem[] = [
+  { text: "No Application Fee" },
+  { text: "No Appraisal Required" },
+  { text: "No Income Verification" },
+];
+
+const resourcesItems: ResourceItem[] = [
+  {
+    type: "Guide",
+    title: "Flipping Houses 101: Tips and Strategies for Success",
+    link: "/resources/flipping-houses-101",
+  },
+  {
+    type: "Article",
+    title: "6 Things to Do Before Submitting Your First Fix-and-Flip Loan",
+    link: "/resources/fix-flip-loan-checklist",
+  },
+  {
+    type: "Calculator",
+    title: "Fix & Flip Deal Analyzer: Calculate Your ROI Before You Buy",
+    link: "/portal/fix-flip-analyzer",
+  },
+];
+
 export default function FixFlipPage() {
   const { toast } = useToast();
 
@@ -39,6 +74,8 @@ export default function FixFlipPage() {
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
+      
+      {/* Hero Section */}
       <section className="relative pt-8 sm:pt-12 pb-12 sm:pb-20 overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-center"
@@ -82,6 +119,26 @@ export default function FixFlipPage() {
           </div>
         </div>
       </section>
+
+      {/* Kiavi-style Rates & Terms Section */}
+      <RatesTermsSection
+        sectionLabel="Rates & Terms"
+        title="Fix-and-Flip Rates + Terms"
+        description="We calculate financing terms based on the property, not just the borrower—so you can move forward with confidence."
+        items={ratesTermsItems}
+        benefits={ratesTermsBenefits}
+        ctaText="See Your Rate"
+        ctaLink="/get-quote"
+      />
+
+      {/* Recently Funded Carousel - Moved Higher */}
+      <RecentlyFundedCarousel 
+        loanType="Fix & Flip" 
+        title="Recently Funded Fix & Flip Projects"
+        subtitle="See real rehab deals we've closed for investors"
+      />
+
+      {/* Main Content Section */}
       <section className="py-12 sm:py-20 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
@@ -281,14 +338,18 @@ export default function FixFlipPage() {
           </div>
         </div>
       </section>
-      
-      {/* Recently Funded Carousel */}
-      <RecentlyFundedCarousel 
-        loanType="Fix & Flip" 
-        title="Recently Funded Fix & Flip Projects"
-        subtitle="See real rehab deals we've closed for investors"
+
+      {/* Resources Section */}
+      <ResourcesSection
+        sectionLabel="Resources"
+        title="Kickstart your fix-and-flip loan financing"
+        description="Have questions about fix-and-flip loans or growing your real estate investment strategy? We offer resources to help you stay informed and make confident decisions."
+        resources={resourcesItems}
+        viewMoreLink="/resources"
+        viewMoreText="View More"
       />
 
+      {/* CTA Section */}
       <section className="py-16 bg-primary">
         <div className="max-w-7xl mx-auto px-6 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-primary-foreground mb-4">
@@ -305,6 +366,7 @@ export default function FixFlipPage() {
           </Link>
         </div>
       </section>
+      
       <Footer />
     </div>
   );
