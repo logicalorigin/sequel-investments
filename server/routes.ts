@@ -1409,11 +1409,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get all users (admin only)
+  // Get all users with their portal info (admin only)
   app.get("/api/admin/users", isAuthenticated, isAdmin, async (req: any, res) => {
     try {
-      const users = await storage.getAllUsers();
-      return res.json(users);
+      const allUsers = await storage.getAllUsers();
+      const allApplications = await storage.getAllLoanApplications();
+      
+      // Enrich users with their application counts
+      const enrichedUsers = allUsers.map(user => {
+        const userApps = allApplications.filter(app => app.userId === user.id);
+        return {
+          ...user,
+          applicationCount: userApps.length,
+          activeApplications: userApps.filter(app => 
+            app.status !== 'funded' && app.status !== 'denied' && app.status !== 'withdrawn'
+          ).length,
+          fundedLoans: userApps.filter(app => app.status === 'funded').length,
+        };
+      });
+      
+      return res.json(enrichedUsers);
     } catch (error) {
       console.error("Error fetching users:", error);
       return res.status(500).json({ error: "Failed to fetch users" });
