@@ -34,6 +34,25 @@ I prefer simple language. I want iterative development. Ask before making major 
 - **USMap**: Interactive SVG map showing loan volume by state, with clickable states for detailed pages.
 - **RecentlyFundedCarousel**: Displays recent deals, filterable by loan type.
 - **Teaser Calculators**: Full-featured calculators on public product pages (DSCR, Fix & Flip, Construction).
+- **RatesTermsSection**: Kiavi-inspired visual cards displaying key loan metrics (rates, LTV, terms) with icons and benefit checkmarks.
+- **ResourcesSection**: Blog-style resource showcase with categorized cards (Guide, Webinar, Article, Calculator) linking to educational content.
+
+### Product Pages Structure (Kiavi-Inspired)
+
+All three product pages (DSCR, Fix & Flip, New Construction) follow a consistent layout:
+1. **Hero Section**: Badge, title, description, CTA button, and feature badges
+2. **Rates & Terms Section**: Visual metric cards with icons showing key loan parameters and benefit checkmarks
+3. **Recently Funded Carousel**: Recent deals for that loan type (moved higher for visibility)
+4. **Main Content**: Program highlights, loan terms table, eligible properties, calculator, FAQs, and lead capture form
+5. **Resources Section**: Blog-style cards linking to guides, articles, and calculators
+6. **CTA Section**: Final call-to-action with primary background
+
+### Loan Product Requirements
+
+- **FICO Requirement**: 660+ minimum across all loan products (DSCR, Fix & Flip, New Construction)
+- **Fix & Flip Terms**: Up to 90% of purchase price + 100% of rehab cost (not combined LTC)
+- **DSCR Terms**: No minimum DSCR requirement, rates from 5.75%, 30-year fixed terms
+- **Construction Terms**: Up to 90% LTC, 9-24 month terms, rates from 9.90%
 
 ### Borrower Portal (ESC-Inspired)
 
