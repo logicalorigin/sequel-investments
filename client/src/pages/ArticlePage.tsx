@@ -219,10 +219,9 @@ export default function ArticlePage() {
       {/* CTA Section */}
       <section className="py-16 bg-primary relative overflow-hidden">
         <GeometricPattern 
-          variant="buildings" 
+          variant="bubbles" 
           className="text-primary-foreground" 
-          opacity={0.15}
-          strokeColor="currentColor"
+          opacity={0.2}
         />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 text-center">
           <h2 className="text-2xl sm:text-3xl font-bold text-primary-foreground mb-4">

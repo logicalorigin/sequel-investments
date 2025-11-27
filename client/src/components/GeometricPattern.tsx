@@ -1,213 +1,252 @@
 interface GeometricPatternProps {
-  variant?: "buildings" | "grid" | "minimal" | "construction" | "abstract";
+  variant?: "circles" | "bubbles" | "orbs" | "dots" | "rings";
   className?: string;
   opacity?: number;
-  strokeColor?: string;
+  animated?: boolean;
 }
 
 export function GeometricPattern({ 
-  variant = "buildings", 
+  variant = "circles", 
   className = "",
   opacity = 0.15,
-  strokeColor = "currentColor"
+  animated = true
 }: GeometricPatternProps) {
   
-  if (variant === "buildings") {
+  if (variant === "circles") {
     return (
-      <svg 
-        className={`absolute inset-0 w-full h-full pointer-events-none ${className}`}
-        viewBox="0 0 800 400" 
-        preserveAspectRatio="xMaxYMid slice"
+      <div 
+        className={`absolute inset-0 w-full h-full pointer-events-none overflow-hidden ${className}`}
         style={{ opacity }}
       >
-        <g stroke={strokeColor} strokeWidth="1.5" fill="none">
-          {/* Building 1 - Tall parallelogram */}
-          <path d="M520 380 L520 120 L560 80 L560 340 Z" />
-          <path d="M520 120 L560 80" />
-          
-          {/* Building 2 - Medium */}
-          <path d="M580 380 L580 160 L620 120 L620 340 Z" />
-          <path d="M580 160 L620 120" />
-          
-          {/* Building 3 - Short */}
-          <path d="M640 380 L640 200 L680 160 L680 340 Z" />
-          <path d="M640 200 L680 160" />
-          
-          {/* Building 4 - Tallest */}
-          <path d="M700 380 L700 80 L740 40 L740 340 Z" />
-          <path d="M700 80 L740 40" />
-          
-          {/* Building 5 - Medium tall */}
-          <path d="M760 380 L760 140 L800 100 L800 340 Z" />
-          <path d="M760 140 L800 100" />
-        </g>
-      </svg>
+        <svg 
+          className="absolute w-full h-full"
+          viewBox="0 0 800 400" 
+          preserveAspectRatio="xMaxYMid slice"
+        >
+          <defs>
+            <linearGradient id="circleGradient1" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="currentColor" stopOpacity="0.3" />
+              <stop offset="100%" stopColor="currentColor" stopOpacity="0.1" />
+            </linearGradient>
+          </defs>
+          <g fill="none" stroke="currentColor" strokeWidth="1.5">
+            <circle cx="650" cy="120" r="80" className={animated ? "animate-pulse-slow" : ""} />
+            <circle cx="720" cy="200" r="120" className={animated ? "animate-pulse-slower" : ""} />
+            <circle cx="580" cy="280" r="60" className={animated ? "animate-pulse-slow" : ""} />
+            <circle cx="760" cy="320" r="40" className={animated ? "animate-pulse-slower" : ""} />
+            <circle cx="500" cy="150" r="30" className={animated ? "animate-pulse-slow" : ""} />
+          </g>
+          <g fill="url(#circleGradient1)">
+            <circle cx="680" cy="160" r="50" className={animated ? "animate-float" : ""} />
+            <circle cx="750" cy="280" r="35" className={animated ? "animate-float-delayed" : ""} />
+          </g>
+        </svg>
+      </div>
     );
   }
 
-  if (variant === "grid") {
+  if (variant === "bubbles") {
     return (
-      <svg 
-        className={`absolute inset-0 w-full h-full pointer-events-none ${className}`}
-        viewBox="0 0 800 400" 
-        preserveAspectRatio="xMaxYMid slice"
+      <div 
+        className={`absolute inset-0 w-full h-full pointer-events-none overflow-hidden ${className}`}
         style={{ opacity }}
       >
-        <defs>
-          <pattern id="gridPattern" width="60" height="60" patternUnits="userSpaceOnUse">
-            <path 
-              d="M 60 0 L 0 0 0 60" 
-              fill="none" 
-              stroke={strokeColor} 
-              strokeWidth="0.5"
-            />
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#gridPattern)" />
-        
-        <g stroke={strokeColor} strokeWidth="1.5" fill="none">
-          {/* Accent squares */}
-          <rect x="600" y="80" width="80" height="80" transform="rotate(15 640 120)" />
-          <rect x="680" y="180" width="60" height="60" transform="rotate(-10 710 210)" />
-          <rect x="720" y="60" width="50" height="50" transform="rotate(25 745 85)" />
-        </g>
-      </svg>
+        <svg 
+          className="absolute w-full h-full"
+          viewBox="0 0 800 400" 
+          preserveAspectRatio="xMidYMid slice"
+        >
+          <defs>
+            <radialGradient id="bubbleGradient" cx="30%" cy="30%" r="70%">
+              <stop offset="0%" stopColor="currentColor" stopOpacity="0.2" />
+              <stop offset="100%" stopColor="currentColor" stopOpacity="0.05" />
+            </radialGradient>
+          </defs>
+          <g fill="url(#bubbleGradient)">
+            <circle cx="100" cy="80" r="60" className={animated ? "animate-float" : ""} />
+            <circle cx="200" cy="300" r="45" className={animated ? "animate-float-delayed" : ""} />
+            <circle cx="350" cy="150" r="35" className={animated ? "animate-float" : ""} />
+            <circle cx="500" cy="350" r="50" className={animated ? "animate-float-delayed" : ""} />
+            <circle cx="650" cy="100" r="70" className={animated ? "animate-float" : ""} />
+            <circle cx="720" cy="280" r="55" className={animated ? "animate-float-delayed" : ""} />
+            <circle cx="780" cy="180" r="40" className={animated ? "animate-float" : ""} />
+          </g>
+          <g fill="none" stroke="currentColor" strokeWidth="1" opacity="0.3">
+            <circle cx="150" cy="200" r="25" className={animated ? "animate-pulse-slow" : ""} />
+            <circle cx="450" cy="80" r="20" className={animated ? "animate-pulse-slower" : ""} />
+            <circle cx="600" cy="320" r="30" className={animated ? "animate-pulse-slow" : ""} />
+          </g>
+        </svg>
+      </div>
     );
   }
 
-  if (variant === "minimal") {
+  if (variant === "orbs") {
     return (
-      <svg 
-        className={`absolute inset-0 w-full h-full pointer-events-none ${className}`}
-        viewBox="0 0 800 400" 
-        preserveAspectRatio="xMaxYMid slice"
+      <div 
+        className={`absolute inset-0 w-full h-full pointer-events-none overflow-hidden ${className}`}
         style={{ opacity }}
       >
-        <g stroke={strokeColor} strokeWidth="1.5" fill="none">
-          {/* Simple angular lines */}
-          <path d="M600 350 L650 50" />
-          <path d="M650 380 L700 80" />
-          <path d="M700 360 L750 60" />
-          <path d="M750 340 L800 40" />
-          
-          {/* Connecting angles */}
-          <path d="M600 350 L650 320 L650 380" />
-          <path d="M700 80 L750 100" />
-        </g>
-      </svg>
+        <div className={`absolute -top-20 -right-20 w-80 h-80 rounded-full bg-current opacity-20 blur-3xl ${animated ? "animate-pulse-slow" : ""}`} />
+        <div className={`absolute top-1/2 -right-10 w-60 h-60 rounded-full bg-current opacity-15 blur-2xl ${animated ? "animate-float" : ""}`} />
+        <div className={`absolute -bottom-10 right-1/4 w-40 h-40 rounded-full bg-current opacity-25 blur-xl ${animated ? "animate-float-delayed" : ""}`} />
+        <div className={`absolute top-1/4 right-1/3 w-32 h-32 rounded-full bg-current opacity-10 blur-lg ${animated ? "animate-pulse-slower" : ""}`} />
+      </div>
     );
   }
 
-  if (variant === "construction") {
+  if (variant === "dots") {
     return (
-      <svg 
-        className={`absolute inset-0 w-full h-full pointer-events-none ${className}`}
-        viewBox="0 0 800 400" 
-        preserveAspectRatio="xMaxYMid slice"
+      <div 
+        className={`absolute inset-0 w-full h-full pointer-events-none overflow-hidden ${className}`}
         style={{ opacity }}
       >
-        <g stroke={strokeColor} strokeWidth="1.5" fill="none">
-          {/* Crane structure */}
-          <path d="M680 380 L680 60 L780 60" />
-          <path d="M680 60 L660 80" />
-          <path d="M680 100 L750 100" />
-          <path d="M720 60 L720 100" />
-          <path d="M750 60 L750 200" />
-          <path d="M745 180 L755 180 L750 200 Z" />
-          
-          {/* Building frame */}
-          <path d="M540 380 L540 180 L600 180 L600 380" />
-          <path d="M540 220 L600 220" />
-          <path d="M540 260 L600 260" />
-          <path d="M540 300 L600 300" />
-          <path d="M540 340 L600 340" />
-          <path d="M570 180 L570 380" />
-          
-          {/* Scaffolding */}
-          <path d="M620 380 L620 240 L660 240 L660 380" />
-          <path d="M620 280 L660 280" />
-          <path d="M620 320 L660 320" />
-          <path d="M620 360 L660 360" />
-        </g>
-      </svg>
+        <svg 
+          className="absolute w-full h-full"
+          viewBox="0 0 800 400" 
+          preserveAspectRatio="xMidYMid slice"
+        >
+          <defs>
+            <pattern id="dotPattern" width="40" height="40" patternUnits="userSpaceOnUse">
+              <circle cx="20" cy="20" r="2" fill="currentColor" opacity="0.4" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#dotPattern)" />
+          <g fill="currentColor">
+            <circle cx="600" cy="100" r="8" className={animated ? "animate-pulse-slow" : ""} />
+            <circle cx="700" cy="200" r="6" className={animated ? "animate-pulse-slower" : ""} />
+            <circle cx="650" cy="300" r="10" className={animated ? "animate-pulse-slow" : ""} />
+            <circle cx="750" cy="150" r="5" className={animated ? "animate-pulse-slower" : ""} />
+          </g>
+        </svg>
+      </div>
     );
   }
 
-  if (variant === "abstract") {
+  if (variant === "rings") {
     return (
-      <svg 
-        className={`absolute inset-0 w-full h-full pointer-events-none ${className}`}
-        viewBox="0 0 800 400" 
-        preserveAspectRatio="xMaxYMid slice"
+      <div 
+        className={`absolute inset-0 w-full h-full pointer-events-none overflow-hidden ${className}`}
         style={{ opacity }}
       >
-        <g stroke={strokeColor} strokeWidth="1.5" fill="none">
-          {/* Overlapping rectangles */}
-          <rect x="550" y="100" width="100" height="150" transform="skewX(-10)" />
-          <rect x="620" y="80" width="80" height="180" transform="skewX(-10)" />
-          <rect x="680" y="120" width="90" height="140" transform="skewX(-10)" />
-          
-          {/* Accent lines */}
-          <path d="M500 300 L550 250 L600 280" />
-          <path d="M720 300 L780 260" />
-          
-          {/* Small decorative elements */}
-          <circle cx="540" cy="80" r="15" />
-          <circle cx="760" cy="320" r="10" />
-        </g>
-      </svg>
+        <svg 
+          className="absolute w-full h-full"
+          viewBox="0 0 800 400" 
+          preserveAspectRatio="xMaxYMid slice"
+        >
+          <g fill="none" stroke="currentColor">
+            <circle cx="700" cy="200" r="150" strokeWidth="1" className={animated ? "animate-spin-slow" : ""} style={{ transformOrigin: "700px 200px" }} />
+            <circle cx="700" cy="200" r="120" strokeWidth="1.5" strokeDasharray="10 5" className={animated ? "animate-spin-slower" : ""} style={{ transformOrigin: "700px 200px" }} />
+            <circle cx="700" cy="200" r="90" strokeWidth="2" className={animated ? "animate-spin-slow" : ""} style={{ transformOrigin: "700px 200px" }} />
+            <circle cx="700" cy="200" r="60" strokeWidth="1" strokeDasharray="5 10" className={animated ? "animate-spin-slower" : ""} style={{ transformOrigin: "700px 200px" }} />
+            <circle cx="700" cy="200" r="30" strokeWidth="2" fill="currentColor" fillOpacity="0.1" />
+          </g>
+          <g fill="none" stroke="currentColor" strokeWidth="1" opacity="0.5">
+            <circle cx="200" cy="100" r="50" className={animated ? "animate-pulse-slow" : ""} />
+            <circle cx="200" cy="100" r="35" className={animated ? "animate-pulse-slower" : ""} />
+            <circle cx="150" cy="300" r="40" className={animated ? "animate-pulse-slow" : ""} />
+          </g>
+        </svg>
+      </div>
     );
   }
 
   return null;
 }
 
-export function GeometricAccent({ 
+export function FloatingCircles({
   className = "",
-  size = "md"
-}: { 
+  count = 5,
+  minSize = 20,
+  maxSize = 80
+}: {
   className?: string;
-  size?: "sm" | "md" | "lg";
+  count?: number;
+  minSize?: number;
+  maxSize?: number;
 }) {
-  const sizeClasses = {
-    sm: "w-24 h-24",
-    md: "w-40 h-40", 
-    lg: "w-64 h-64"
-  };
+  const circles = Array.from({ length: count }, (_, i) => ({
+    id: i,
+    size: minSize + Math.random() * (maxSize - minSize),
+    x: Math.random() * 100,
+    y: Math.random() * 100,
+    delay: Math.random() * 2
+  }));
 
   return (
-    <svg 
-      className={`${sizeClasses[size]} ${className}`}
-      viewBox="0 0 100 100"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1"
-    >
-      <path d="M20 90 L20 30 L40 10 L40 70 Z" opacity="0.3" />
-      <path d="M45 90 L45 40 L65 20 L65 70 Z" opacity="0.2" />
-      <path d="M70 90 L70 50 L90 30 L90 70 Z" opacity="0.15" />
-    </svg>
+    <div className={`absolute inset-0 pointer-events-none overflow-hidden ${className}`}>
+      {circles.map((circle) => (
+        <div
+          key={circle.id}
+          className="absolute rounded-full bg-current opacity-10 animate-float"
+          style={{
+            width: circle.size,
+            height: circle.size,
+            left: `${circle.x}%`,
+            top: `${circle.y}%`,
+            animationDelay: `${circle.delay}s`
+          }}
+        />
+      ))}
+    </div>
   );
 }
 
-export function GeometricDivider({
+export function AnimatedDots({
   className = ""
 }: {
   className?: string;
 }) {
   return (
-    <svg 
-      className={`w-full h-8 ${className}`}
-      viewBox="0 0 800 32"
-      preserveAspectRatio="none"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1"
-      opacity="0.2"
-    >
-      <path d="M0 16 L800 16" />
-      <path d="M380 8 L400 16 L420 8" />
-      <path d="M380 24 L400 16 L420 24" />
-    </svg>
+    <div className={`flex gap-1 ${className}`}>
+      <div className="w-2 h-2 rounded-full bg-current animate-bounce" style={{ animationDelay: "0ms" }} />
+      <div className="w-2 h-2 rounded-full bg-current animate-bounce" style={{ animationDelay: "150ms" }} />
+      <div className="w-2 h-2 rounded-full bg-current animate-bounce" style={{ animationDelay: "300ms" }} />
+    </div>
+  );
+}
+
+export function PulsingCircle({
+  className = "",
+  size = "md"
+}: {
+  className?: string;
+  size?: "sm" | "md" | "lg";
+}) {
+  const sizeClasses = {
+    sm: "w-8 h-8",
+    md: "w-12 h-12",
+    lg: "w-16 h-16"
+  };
+
+  return (
+    <div className={`relative ${sizeClasses[size]} ${className}`}>
+      <div className="absolute inset-0 rounded-full bg-current opacity-20 animate-ping" />
+      <div className="absolute inset-2 rounded-full bg-current opacity-40" />
+    </div>
+  );
+}
+
+export function CircleAccent({
+  className = "",
+  position = "right"
+}: {
+  className?: string;
+  position?: "left" | "right" | "center";
+}) {
+  const positionClasses = {
+    left: "-left-20",
+    right: "-right-20",
+    center: "left-1/2 -translate-x-1/2"
+  };
+
+  return (
+    <div className={`absolute ${positionClasses[position]} top-1/2 -translate-y-1/2 pointer-events-none ${className}`}>
+      <div className="relative">
+        <div className="w-64 h-64 rounded-full border border-current opacity-10 animate-pulse-slow" />
+        <div className="absolute inset-8 rounded-full border border-current opacity-15 animate-pulse-slower" />
+        <div className="absolute inset-16 rounded-full bg-current opacity-5" />
+      </div>
+    </div>
   );
 }

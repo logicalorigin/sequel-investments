@@ -40,10 +40,9 @@ export default function ResourcesPage() {
       {/* Hero Section */}
       <section className="relative py-16 sm:py-24 bg-primary overflow-hidden">
         <GeometricPattern 
-          variant="buildings" 
+          variant="circles" 
           className="text-primary-foreground" 
-          opacity={0.15}
-          strokeColor="currentColor"
+          opacity={0.2}
         />
         
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6">
