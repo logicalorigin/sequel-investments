@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import {
   X,
   Home,
@@ -29,8 +30,21 @@ import {
   Wallet,
   FileText,
   Lightbulb,
+  Loader2,
+  Navigation,
 } from "lucide-react";
 import type { MarketDetail, STRFriendliness } from "@/data/marketDetails";
+
+interface NearbyUniversity {
+  name: string;
+  type: "public" | "private" | "community";
+  enrollment: number;
+  placeId?: string;
+  rating?: number;
+  userRatingsTotal?: number;
+  vicinity?: string;
+  distanceMiles: number;
+}
 
 interface MarketDetailDrawerProps {
   market: MarketDetail | null;
@@ -324,63 +338,103 @@ function DemographicsTab({ market }: { market: MarketDetail }) {
 }
 
 function UniversitiesTab({ market }: { market: MarketDetail }) {
-  if (market.universities.length === 0) {
+  const { data, isLoading, error } = useQuery<{ universities: NearbyUniversity[]; totalResults: number; searchRadius: string }>({
+    queryKey: ['/api/universities/nearby', market.lat, market.lng],
+    queryFn: async () => {
+      const response = await fetch(`/api/universities/nearby?lat=${market.lat}&lng=${market.lng}`);
+      if (!response.ok) throw new Error('Failed to fetch universities');
+      return response.json();
+    },
+    staleTime: 1000 * 60 * 30, // Cache for 30 minutes
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-8">
+        <Loader2 className="h-8 w-8 animate-spin text-primary mb-3" />
+        <p className="text-sm text-muted-foreground">Finding universities within 25 miles...</p>
+      </div>
+    );
+  }
+
+  if (error) {
     return (
       <div className="text-center py-8">
-        <GraduationCap className="h-12 w-12 mx-auto text-muted-foreground/30 mb-3" />
-        <p className="text-muted-foreground">No major universities in this market</p>
+        <AlertCircle className="h-12 w-12 mx-auto text-red-500/50 mb-3" />
+        <p className="text-muted-foreground">Unable to load university data</p>
         <p className="text-sm text-muted-foreground mt-1">
-          Check surrounding areas for student housing opportunities
+          Please try again later
         </p>
       </div>
     );
   }
 
-  const totalEnrollment = market.universities.reduce((sum, u) => sum + u.enrollment, 0);
+  const universities = data?.universities || [];
+
+  if (universities.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <GraduationCap className="h-12 w-12 mx-auto text-muted-foreground/30 mb-3" />
+        <p className="text-muted-foreground">No universities found within 25 miles</p>
+        <p className="text-sm text-muted-foreground mt-1">
+          This market may have limited student housing opportunities
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
       <div className="bg-purple-500/5 rounded-lg p-3 border border-purple-500/20">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs text-muted-foreground">Total Student Population</p>
-            <p className="text-2xl font-bold">{formatNumber(totalEnrollment)}</p>
+            <p className="text-xs text-muted-foreground">Universities Within 25 Miles</p>
+            <p className="text-2xl font-bold">{universities.length}</p>
           </div>
           <Badge variant="outline" className="bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/30">
-            {market.universities.length} Institutions
+            <Navigation className="h-3 w-3 mr-1" />
+            25 mi radius
           </Badge>
         </div>
       </div>
 
       <div className="space-y-2">
-        {market.universities.map((university, i) => (
+        {universities.map((university, i) => (
           <div 
-            key={i} 
-            className="bg-muted/30 rounded-lg p-3 flex items-center justify-between gap-3"
+            key={university.placeId || i} 
+            className="bg-muted/30 rounded-lg p-3"
           >
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <h4 className="font-medium text-sm truncate">{university.name}</h4>
-                <Badge variant="outline" className="text-xs shrink-0">
-                  {university.type}
-                </Badge>
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h4 className="font-medium text-sm">{university.name}</h4>
+                  <Badge variant="outline" className="text-xs shrink-0">
+                    {university.type}
+                  </Badge>
+                </div>
+                {university.vicinity && (
+                  <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                    <MapPin className="h-3 w-3" />
+                    {university.vicinity}
+                  </p>
+                )}
+                <div className="flex items-center gap-3 mt-1.5">
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Navigation className="h-3 w-3" />
+                    {university.distanceMiles} mi away
+                  </span>
+                  {university.rating && (
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Star className="h-3 w-3 text-amber-500" />
+                      {university.rating.toFixed(1)}
+                      {university.userRatingsTotal && (
+                        <span className="text-muted-foreground/70">({university.userRatingsTotal})</span>
+                      )}
+                    </span>
+                  )}
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {formatNumber(university.enrollment)} students enrolled
-              </p>
             </div>
-            {university.url && (
-              <a 
-                href={university.url} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="shrink-0"
-              >
-                <Button size="icon" variant="ghost" className="h-8 w-8">
-                  <ExternalLink className="h-4 w-4" />
-                </Button>
-              </a>
-            )}
           </div>
         ))}
       </div>
@@ -391,7 +445,7 @@ function UniversitiesTab({ market }: { market: MarketDetail }) {
           Student Housing Opportunity
         </h4>
         <p className="text-sm text-muted-foreground">
-          With {formatNumber(totalEnrollment)} students, {market.name} offers strong potential for 
+          With {universities.length} {universities.length === 1 ? 'university' : 'universities'} nearby, {market.name} offers potential for 
           student housing investments. Consider properties within walking distance of campus or 
           along public transit routes. Multi-bedroom configurations typically yield higher returns 
           in college markets.
