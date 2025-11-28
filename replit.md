@@ -64,7 +64,7 @@ All three product pages (DSCR, Fix & Flip, New Construction) follow a consistent
 - **Analyzer Rate Structure**: 
   - Fix & Flip: 8.9% base rate reserved for 3+ deals AND 720+ FICO. Rate adjustments:
     - Credit score: +0% for 720+, +0.5% for 700-719, +1.0% for 680-699, +1.5% below 680
-    - Experience: +1.5% for 0 deals, +1.0% for 1-2 deals, +0% for 3+ deals
+    - Experience: +1.0% for 0 deals, +0.5% for 1-2 deals, +0% for 3+ deals
   - Construction: State-based base rate (8.9% for California, 9.9% for non-California), same credit score adjustments
   - Origination Points: Linear scale from 2.0% at base rate to 0.0% at 12.9% rate (both analyzers)
 - **Profile Page**: User profile management, password, investment preferences, notification settings, connected entities, and account overview.
