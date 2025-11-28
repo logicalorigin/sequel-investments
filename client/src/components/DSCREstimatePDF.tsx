@@ -81,7 +81,7 @@ export const DSCREstimatePDF = forwardRef<HTMLDivElement, DSCREstimatePDFProps>(
           <div className="text-right text-xs text-gray-600">
             <p>www.securedassetfunding.com</p>
             <p>info@securedassetfunding.com</p>
-            <p>(888) 555-FUND</p>
+            <p>(888) 725-3863</p>
           </div>
         </div>
 
@@ -225,7 +225,7 @@ export const DSCREstimatePDF = forwardRef<HTMLDivElement, DSCREstimatePDFProps>(
             pre-approval, or guarantee of terms. Actual loan terms, rates, and eligibility are subject to credit approval, property 
             appraisal, and underwriting review. Interest rates and loan programs are subject to change without notice. Secured Asset 
             Funding reserves the right to modify or discontinue any loan program at any time. Contact a loan specialist for current 
-            rates and personalized loan options. NMLS #XXXXXX
+            rates and personalized loan options. NMLS #2394066
           </p>
         </div>
 
