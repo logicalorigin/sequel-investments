@@ -34,8 +34,8 @@ const propertyTypes = [
 ];
 
 const experienceLevels = [
-  { id: "0", label: "0 Deals", rateAdj: 1.5 },
-  { id: "1", label: "1-2 Deals", rateAdj: 1.0 },
+  { id: "0", label: "0 Deals", rateAdj: 1.0 },
+  { id: "1", label: "1-2 Deals", rateAdj: 0.5 },
   { id: "3-5", label: "3-5 Deals", rateAdj: 0 },
   { id: "6-10", label: "6-10 Deals", rateAdj: 0 },
   { id: "10+", label: "10+ Deals", rateAdj: 0 },
