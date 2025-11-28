@@ -1443,6 +1443,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get individual borrower profile with detailed info (staff and admin)
+  app.get("/api/admin/borrowers/:id", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const user = await storage.getUser(id);
+      
+      if (!user) {
+        return res.status(404).json({ error: "Borrower not found" });
+      }
+      
+      if (user.role !== "borrower") {
+        return res.status(400).json({ error: "User is not a borrower" });
+      }
+      
+      const allApplications = await storage.getAllLoanApplications();
+      const userApps = allApplications.filter(app => app.userId === id);
+      
+      // Enrich applications with additional details
+      const enrichedApps = userApps.map(app => ({
+        ...app,
+        borrowerName: `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email,
+        borrowerEmail: user.email,
+      }));
+      
+      const enrichedBorrower = {
+        ...user,
+        applicationCount: userApps.length,
+        activeApplications: userApps.filter(app => 
+          app.status !== 'funded' && app.status !== 'denied' && app.status !== 'withdrawn'
+        ).length,
+        fundedLoans: userApps.filter(app => app.status === 'funded').length,
+        totalLoanVolume: userApps
+          .filter(app => app.status === 'funded')
+          .reduce((sum, app) => sum + (app.loanAmount || 0), 0),
+        applications: enrichedApps,
+      };
+      
+      return res.json(enrichedBorrower);
+    } catch (error) {
+      console.error("Error fetching borrower:", error);
+      return res.status(500).json({ error: "Failed to fetch borrower" });
+    }
+  });
+
   // Get all users with their portal info (admin only)
   app.get("/api/admin/users", isAuthenticated, isAdmin, async (req: any, res) => {
     try {
