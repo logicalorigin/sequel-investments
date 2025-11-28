@@ -89,6 +89,17 @@ Homepage displays: $500M+ Loans Funded, 1,500+ Investors Served, 48hrs Fastest C
 
 Dedicated state pages (`/states/{state-slug}`) feature a Recent Fundings Dashboard, Market Data Widgets, a Mini DSCR Calculator, and state-specific investor testimonials.
 
+**Interactive State Market Maps**: 
+- Google Maps integration with @vis.gl/react-google-maps showing the state geography
+- **State boundary masking**: Areas outside the state are faded/masked to focus attention on the state
+- **Adaptive mask colors**: Light mask for roadmap/terrain views, darker mask for satellite/hybrid views  
+- **Teal state border**: Visible boundary line around the state perimeter
+- **Metro market markers**: Numbered circle markers for top investment markets
+- **Market detail drawer**: Tabbed interface with Real Estate stats, Demographics, Universities, and STR Friendliness
+- **Synchronized selection**: Hovering/clicking markers syncs with market cards list
+- **Mobile bottom sheet**: Responsive drawer that appears as bottom sheet on mobile devices
+- **Supported states**: California, Texas, Florida, New York, Arizona, Colorado, Georgia, Nevada, North Carolina, Tennessee, Washington, Oregon, Virginia, Massachusetts
+
 ### Property Search Feature
 
 - **Property Search Page** (`/property-search`): Dedicated page for searching investment properties with Google Maps integration.

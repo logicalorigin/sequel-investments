@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { Map, useMap, Marker, useMapsLibrary } from "@vis.gl/react-google-maps";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useGoogleMapsApiKey } from "@/components/GoogleMapsProvider";
 import type { MarketDetail } from "@/data/marketDetails";
+import { getStateBoundary, createMaskPolygon } from "@/data/stateBoundaries";
 
 type MapType = "roadmap" | "satellite" | "hybrid" | "terrain";
 
@@ -202,6 +203,97 @@ function MapControls({
   );
 }
 
+function StateMask({ 
+  stateSlug, 
+  mapType 
+}: { 
+  stateSlug: string;
+  mapType: MapType;
+}) {
+  const map = useMap();
+  const mapsLib = useMapsLibrary("maps");
+  const [polygon, setPolygon] = useState<google.maps.Polygon | null>(null);
+
+  useEffect(() => {
+    if (!map || !mapsLib) return;
+
+    const boundary = getStateBoundary(stateSlug);
+    if (!boundary) return;
+
+    const maskPaths = createMaskPolygon(boundary);
+    
+    const isDarkMap = mapType === "satellite" || mapType === "hybrid";
+    const maskColor = isDarkMap ? "#1a1a2e" : "#f8fafc";
+    const maskOpacity = isDarkMap ? 0.85 : 0.92;
+
+    const newPolygon = new mapsLib.Polygon({
+      paths: maskPaths,
+      strokeColor: isDarkMap ? "#334155" : "#94a3b8",
+      strokeOpacity: 0.6,
+      strokeWeight: 2,
+      fillColor: maskColor,
+      fillOpacity: maskOpacity,
+      map: map,
+      clickable: false,
+      zIndex: 1,
+    });
+
+    setPolygon(newPolygon);
+
+    return () => {
+      newPolygon.setMap(null);
+    };
+  }, [map, mapsLib, stateSlug, mapType]);
+
+  useEffect(() => {
+    if (!polygon) return;
+    
+    const isDarkMap = mapType === "satellite" || mapType === "hybrid";
+    const maskColor = isDarkMap ? "#1a1a2e" : "#f8fafc";
+    const maskOpacity = isDarkMap ? 0.85 : 0.92;
+
+    polygon.setOptions({
+      fillColor: maskColor,
+      fillOpacity: maskOpacity,
+      strokeColor: isDarkMap ? "#334155" : "#94a3b8",
+    });
+  }, [polygon, mapType]);
+
+  return null;
+}
+
+function StateBorder({ 
+  stateSlug 
+}: { 
+  stateSlug: string;
+}) {
+  const map = useMap();
+  const mapsLib = useMapsLibrary("maps");
+
+  useEffect(() => {
+    if (!map || !mapsLib) return;
+
+    const boundary = getStateBoundary(stateSlug);
+    if (!boundary) return;
+
+    const borderPolyline = new mapsLib.Polyline({
+      path: boundary.coordinates,
+      strokeColor: "#0d9488",
+      strokeOpacity: 0.9,
+      strokeWeight: 3,
+      map: map,
+      clickable: false,
+      zIndex: 2,
+    });
+
+    return () => {
+      borderPolyline.setMap(null);
+    };
+  }, [map, mapsLib, stateSlug]);
+
+  return null;
+}
+
 function MapContent({ 
   markets, 
   selectedMarket, 
@@ -209,6 +301,8 @@ function MapContent({
   onMarkerClick,
   onMarkerHover,
   stateBounds,
+  stateSlug,
+  mapType,
 }: {
   markets: MarketDetail[];
   selectedMarket: MarketDetail | null;
@@ -216,6 +310,8 @@ function MapContent({
   onMarkerClick: (market: MarketDetail) => void;
   onMarkerHover: (market: MarketDetail | null) => void;
   stateBounds: StateBounds;
+  stateSlug: string;
+  mapType: MapType;
 }) {
   const map = useMap();
 
@@ -236,6 +332,8 @@ function MapContent({
 
   return (
     <>
+      <StateMask stateSlug={stateSlug} mapType={mapType} />
+      <StateBorder stateSlug={stateSlug} />
       {markets.map((market) => (
         <RankMarker
           key={market.id}
@@ -353,6 +451,8 @@ export function StateMarketMap({
           onMarkerClick={onMarkerClick}
           onMarkerHover={onMarkerHover}
           stateBounds={stateBounds}
+          stateSlug={stateSlug}
+          mapType={mapType}
         />
       </Map>
 
