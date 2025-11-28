@@ -35,6 +35,7 @@ export function getSession() {
     cookie: {
       httpOnly: true,
       secure: true,
+      sameSite: "lax",
       maxAge: sessionTtl,
     },
   });
@@ -129,6 +130,23 @@ export async function setupAuth(app: Express) {
     passport.authenticate(`replitauth:${req.hostname}`, {
       successReturnToOrRedirect: "/portal",
       failureRedirect: "/api/login",
+    }, (err: any, user: any, info: any) => {
+      if (err) {
+        console.error("OAuth callback error:", err);
+        return res.redirect("/api/login");
+      }
+      if (!user) {
+        console.error("OAuth callback: No user returned", info);
+        return res.redirect("/api/login");
+      }
+      req.logIn(user, (loginErr) => {
+        if (loginErr) {
+          console.error("OAuth login error:", loginErr);
+          return res.redirect("/api/login");
+        }
+        console.log("OAuth login successful for user:", user.claims?.email || user.claims?.sub);
+        return res.redirect("/portal");
+      });
     })(req, res, next);
   });
 
