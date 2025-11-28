@@ -1,5 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import express from "express";
+import path from "path";
 import { storage } from "./storage";
 import { 
   insertLeadSchema, 
@@ -24,6 +26,8 @@ import crypto from "crypto";
 import { getMarketData, refreshAllMarketData, getMarketDataStatus, getPropertyValue, getPropertyLookup } from "./services/marketDataService";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Serve state map SVGs statically
+  app.use('/state_maps', express.static(path.join(process.cwd(), 'attached_assets/state_maps')));
   // Set up authentication
   await setupAuth(app);
   
