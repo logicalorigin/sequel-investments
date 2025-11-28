@@ -44,7 +44,6 @@ import JoinPage from "@/pages/JoinPage";
 import StaffLoginPage from "@/pages/StaffLoginPage";
 import ResourcesPage from "@/pages/ResourcesPage";
 import ArticlePage from "@/pages/ArticlePage";
-import PropertySearchPage from "@/pages/PropertySearchPage";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -80,7 +79,6 @@ function Router() {
       <Route path="/join/:token" component={JoinPage} />
       <Route path="/resources" component={ResourcesPage} />
       <Route path="/resources/:slug" component={ArticlePage} />
-      <Route path="/property-search" component={PropertySearchPage} />
       <Route component={NotFound} />
     </Switch>
   );
