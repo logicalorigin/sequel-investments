@@ -2000,6 +2000,95 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Universities nearby search using Google Places API
+  app.get("/api/universities/nearby", async (req, res) => {
+    try {
+      const { lat, lng, radius = 40234 } = req.query; // Default 25 miles = 40234 meters
+      
+      if (!lat || !lng) {
+        return res.status(400).json({ error: "lat and lng are required" });
+      }
+
+      const apiKey = process.env.VITE_GOOGLE_MAPS_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ error: "Google Maps API key not configured" });
+      }
+
+      const url = new URL("https://maps.googleapis.com/maps/api/place/nearbysearch/json");
+      url.searchParams.set("location", `${lat},${lng}`);
+      url.searchParams.set("radius", String(radius));
+      url.searchParams.set("type", "university");
+      url.searchParams.set("key", apiKey);
+
+      const response = await fetch(url.toString());
+      const data = await response.json();
+
+      if (data.status !== "OK" && data.status !== "ZERO_RESULTS") {
+        console.error("Google Places API error:", data.status, data.error_message);
+        return res.status(500).json({ error: "Failed to fetch universities", details: data.error_message });
+      }
+
+      // Transform results to our University format
+      const universities = (data.results || []).map((place: any) => {
+        // Determine university type based on name patterns
+        let type: "public" | "private" | "community" = "public";
+        const nameLower = place.name.toLowerCase();
+        if (nameLower.includes("community college") || nameLower.includes("community") && nameLower.includes("college")) {
+          type = "community";
+        } else if (
+          nameLower.includes("private") || 
+          nameLower.includes("christian") || 
+          nameLower.includes("catholic") ||
+          nameLower.includes("baptist") ||
+          nameLower.includes("methodist") ||
+          nameLower.includes("loyola") ||
+          nameLower.includes("saint") ||
+          nameLower.includes("st.") ||
+          !nameLower.includes("state") && !nameLower.includes("california") && !nameLower.includes("university of")
+        ) {
+          type = "private";
+        }
+
+        // Calculate distance from the market center
+        const placeLocation = place.geometry?.location;
+        let distanceMiles = 0;
+        if (placeLocation) {
+          const R = 3959; // Earth radius in miles
+          const dLat = (placeLocation.lat - parseFloat(lat as string)) * Math.PI / 180;
+          const dLng = (placeLocation.lng - parseFloat(lng as string)) * Math.PI / 180;
+          const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                    Math.cos(parseFloat(lat as string) * Math.PI / 180) * Math.cos(placeLocation.lat * Math.PI / 180) *
+                    Math.sin(dLng/2) * Math.sin(dLng/2);
+          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+          distanceMiles = R * c;
+        }
+
+        return {
+          name: place.name,
+          type,
+          enrollment: 0, // Google Places doesn't provide enrollment data
+          placeId: place.place_id,
+          rating: place.rating,
+          userRatingsTotal: place.user_ratings_total,
+          vicinity: place.vicinity,
+          distanceMiles: Math.round(distanceMiles * 10) / 10,
+        };
+      });
+
+      // Sort by distance
+      universities.sort((a: any, b: any) => a.distanceMiles - b.distanceMiles);
+
+      return res.json({ 
+        universities,
+        totalResults: universities.length,
+        searchRadius: `${Math.round(Number(radius) / 1609.34)} miles`
+      });
+    } catch (error) {
+      console.error("Error fetching nearby universities:", error);
+      return res.status(500).json({ error: "Failed to fetch universities" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
