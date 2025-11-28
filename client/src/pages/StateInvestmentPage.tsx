@@ -34,6 +34,7 @@ import newConstruction from "@assets/stock_images/new_construction_hom_ee055247.
 import rentalProperty from "@assets/stock_images/residential_investme_a188ab28.jpg";
 import suburbanHome from "@assets/stock_images/suburban_single_fami_544678ca.jpg";
 import multiFamilyHome from "@assets/stock_images/multi-family_apartme_e7cec58d.jpg";
+import { TopMarketsSection } from "@/components/TopMarketsSection";
 
 const fundingImages = [luxuryHome, renovationHome, newConstruction, rentalProperty, suburbanHome, multiFamilyHome];
 import { useToast } from "@/hooks/use-toast";
@@ -499,6 +500,17 @@ export default function StateInvestmentPage() {
               </CardContent>
             </Card>
           </div>
+        </div>
+      </section>
+
+      {/* Top Markets Section */}
+      <section className="bg-background">
+        <div className="max-w-7xl mx-auto px-6">
+          <TopMarketsSection 
+            stateSlug={state.slug} 
+            stateName={state.name}
+            loanVolume={state.loanVolume}
+          />
         </div>
       </section>
 

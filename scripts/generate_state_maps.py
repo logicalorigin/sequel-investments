@@ -5,7 +5,6 @@ Uses geopandas with US Census state boundaries.
 """
 
 import geopandas as gpd
-import svgwrite
 from shapely.geometry import Point, Polygon, MultiPolygon
 from shapely.affinity import translate, scale
 import json
