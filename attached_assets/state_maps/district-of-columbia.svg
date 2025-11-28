@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" class="state-outline-svg">
+  <path d="M 0.00 118.04 L 100.40 40.00 L 149.46 78.27 L 268.24 170.95 L 178.85 241.13 L 102.97 300.00 L 102.89 236.72 L 102.85 202.50 L 37.69 156.47 L 0.00 118.04 Z" fill="none" stroke="currentColor" stroke-width="2" opacity="0.8" class="state-boundary" transform="translate(45.88, -0.00)"/>
+  <circle cx="151.53" cy="152.65" r="12.0" fill="currentColor" opacity="0.2" class="metro-pulse rank-1"/>
+  <circle cx="151.53" cy="152.65" r="8.0" fill="currentColor" opacity="0.9" class="metro-dot rank-1" data-city="Washington" data-rank="1"/>
+</svg>

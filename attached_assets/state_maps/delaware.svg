@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" class="state-outline-svg">
+  <path d="M 2.77 61.91 L 6.62 55.21 L 13.40 48.78 L 23.55 43.33 L 36.39 40.86 L 36.72 40.80 L 39.14 40.33 L 40.86 40.00 L 57.57 41.87 L 69.96 46.98 L 61.65 53.74 L 58.24 63.26 L 52.23 68.67 L 47.47 75.96 L 42.92 79.21 L 45.82 85.55 L 51.67 88.92 L 48.87 96.92 L 48.79 103.88 L 36.62 107.43 L 40.60 114.97 L 49.99 124.53 L 53.00 127.80 L 59.80 135.22 L 71.21 147.60 L 73.76 161.90 L 71.38 172.13 L 73.48 186.33 L 83.85 193.44 L 90.27 206.98 L 91.03 208.60 L 90.75 213.44 L 104.24 226.35 L 117.92 236.47 L 126.47 237.82 L 130.94 235.16 L 134.25 254.02 L 137.59 284.03 L 138.54 299.95 L 112.97 300.00 L 83.78 299.73 L 57.93 299.50 L 17.77 298.29 L 16.52 282.82 L 16.26 279.44 L 15.18 265.48 L 15.18 265.47 L 12.27 229.05 L 7.57 170.37 L 6.02 150.97 L 5.27 141.59 L 4.06 126.47 L 4.06 126.44 L 0.00 61.91 L 2.77 61.91 Z" fill="none" stroke="currentColor" stroke-width="2" opacity="0.8" class="state-boundary" transform="translate(110.73, -0.00)"/>
+  <circle cx="157.33" cy="58.75" r="12.0" fill="currentColor" opacity="0.2" class="metro-pulse rank-1"/>
+  <circle cx="157.33" cy="58.75" r="8.0" fill="currentColor" opacity="0.9" class="metro-dot rank-1" data-city="Wilmington" data-rank="1"/>
+  <circle cx="160.22" cy="167.55" r="10.8" fill="currentColor" opacity="0.2" class="metro-pulse rank-2"/>
+  <circle cx="160.22" cy="167.55" r="6.8" fill="currentColor" opacity="0.9" class="metro-dot rank-2" data-city="Dover" data-rank="2"/>
+  <circle cx="118.02" cy="69.12" r="9.6" fill="currentColor" opacity="0.2" class="metro-pulse rank-3"/>
+  <circle cx="118.02" cy="69.12" r="5.6" fill="currentColor" opacity="0.9" class="metro-dot rank-3" data-city="Newark" data-rank="3"/>
+</svg>
