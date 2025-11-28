@@ -25,7 +25,17 @@ import {
   Quote,
   Calculator,
   RefreshCw,
+  MapPin,
 } from "lucide-react";
+
+import luxuryHome from "@assets/stock_images/luxury_modern_single_2639d1bd.jpg";
+import renovationHome from "@assets/stock_images/house_renovation_con_aaeb0f05.jpg";
+import newConstruction from "@assets/stock_images/new_construction_hom_ee055247.jpg";
+import rentalProperty from "@assets/stock_images/residential_investme_a188ab28.jpg";
+import suburbanHome from "@assets/stock_images/suburban_single_fami_544678ca.jpg";
+import multiFamilyHome from "@assets/stock_images/multi-family_apartme_e7cec58d.jpg";
+
+const fundingImages = [luxuryHome, renovationHome, newConstruction, rentalProperty, suburbanHome, multiFamilyHome];
 import { useToast } from "@/hooks/use-toast";
 
 function formatLoanVolume(volume: number): string {
@@ -52,6 +62,7 @@ interface RecentFunding {
   rate: number;
   ltv: number;
   daysAgo: number;
+  image: string;
 }
 
 function generateRecentFundings(state: StateData): RecentFunding[] {
@@ -90,6 +101,7 @@ function generateRecentFundings(state: StateData): RecentFunding[] {
       rate: Math.round(rate * 100) / 100,
       ltv,
       daysAgo: (i * 3) + 1,
+      image: fundingImages[i % fundingImages.length],
     });
   }
   
@@ -488,20 +500,33 @@ export default function StateInvestmentPage() {
           
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {recentFundings.map((funding) => (
-              <Card key={funding.id} className="hover-elevate" data-testid={`card-funding-${funding.id}`}>
-                <CardContent className="pt-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium mb-1 ${
-                        funding.loanType === "DSCR" ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300" :
-                        funding.loanType === "Fix & Flip" ? "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300" :
-                        "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-                      }`}>
-                        {funding.loanType}
-                      </span>
-                      <p className="font-medium">{funding.city}, {state.abbreviation}</p>
-                    </div>
-                    <span className="text-xs text-muted-foreground">{funding.daysAgo}d ago</span>
+              <Card key={funding.id} className="overflow-hidden hover-elevate" data-testid={`card-funding-${funding.id}`}>
+                <div className="relative h-40 overflow-hidden">
+                  <img 
+                    src={funding.image} 
+                    alt={`${funding.city}, ${state.abbreviation}`}
+                    className="w-full h-full object-cover"
+                  />
+                  <Badge 
+                    className={`absolute top-2 left-2 text-xs ${
+                      funding.loanType === "DSCR" ? "bg-blue-500/90 text-white border-blue-500/30" :
+                      funding.loanType === "Fix & Flip" ? "bg-amber-500/90 text-white border-amber-500/30" :
+                      "bg-green-500/90 text-white border-green-500/30"
+                    }`}
+                  >
+                    {funding.loanType}
+                  </Badge>
+                  <Badge 
+                    variant="secondary"
+                    className="absolute top-2 right-2 text-xs bg-background/90 backdrop-blur-sm"
+                  >
+                    {funding.daysAgo}d ago
+                  </Badge>
+                </div>
+                <CardContent className="pt-3 pb-4">
+                  <div className="flex items-center gap-1 text-muted-foreground mb-2">
+                    <MapPin className="h-3.5 w-3.5 shrink-0" />
+                    <span className="text-sm font-medium">{funding.city}, {state.abbreviation}</span>
                   </div>
                   <div className="grid grid-cols-3 gap-2 text-sm">
                     <div>

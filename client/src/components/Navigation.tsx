@@ -92,16 +92,6 @@ export function Navigation() {
               </span>
             </Link>
 
-            <Link href="/property-search" data-testid="link-nav-property-search">
-              <span
-                className={`text-sm font-medium transition-colors cursor-pointer ${
-                  location === "/property-search" ? "text-primary" : "text-foreground/80 hover:text-foreground"
-                }`}
-              >
-                Property Search
-              </span>
-            </Link>
-
             <Link href="/resources" data-testid="link-nav-resources">
               <span
                 className={`text-sm font-medium transition-colors cursor-pointer ${
@@ -190,17 +180,6 @@ export function Navigation() {
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Where We Lend
-              </div>
-            </Link>
-
-            <Link href="/property-search" data-testid="link-mobile-property-search">
-              <div
-                className={`block py-2 text-base font-medium ${
-                  location === "/property-search" ? "text-primary" : "text-foreground"
-                }`}
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Property Search
               </div>
             </Link>
 
