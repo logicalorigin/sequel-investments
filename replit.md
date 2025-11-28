@@ -99,9 +99,17 @@ Dedicated state pages (`/states/{state-slug}`) feature a Recent Fundings Dashboa
   - "Analyze Deal" button linking to deal analyzers
 - **Circle-Based Geometric Patterns**: Modern decorative patterns with CSS animations across all pages using mint/teal accent colors with subtle opacity (0.08-0.15 range).
 - **PropertyMapPreview Component**: Zillow/Redfin-inspired satellite map preview integrated into all three deal analyzers (DSCR, Fix & Flip, Construction). Features include:
+  - Property marker anchored to actual lat/lng coordinates (green pin)
+  - Nearby amenities layers using Google Places API with color-coded markers:
+    - Grocery stores (orange)
+    - Transit stations (blue)
+    - Schools (purple)
+    - Restaurants (red)
+    - Medical facilities (pink)
+  - Layer toggle panel with loading state management to prevent spam clicks
   - Satellite/Hybrid/Roadmap map type toggle
+  - Zoom controls and fullscreen mode
   - Estimated property value display with source attribution (RentCast or Estimated)
-  - Google Maps integration with automatic coordinate capture from address selection
   - Responsive design with loading states
 - **Unified Address Autocomplete**: All analyzer pages use Google Places Autocomplete (via AddressAutocomplete component) with automatic property data fetching through RentCast API integration.
 
