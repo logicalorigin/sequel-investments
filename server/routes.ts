@@ -1411,6 +1411,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all borrowers with their portal info (staff and admin)
+  app.get("/api/admin/borrowers", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const allUsers = await storage.getAllUsers();
+      const allApplications = await storage.getAllLoanApplications();
+      
+      // Filter to borrowers only and enrich with application counts
+      const enrichedBorrowers = allUsers
+        .filter(user => user.role === "borrower")
+        .map(user => {
+          const userApps = allApplications.filter(app => app.userId === user.id);
+          return {
+            ...user,
+            applicationCount: userApps.length,
+            activeApplications: userApps.filter(app => 
+              app.status !== 'funded' && app.status !== 'denied' && app.status !== 'withdrawn'
+            ).length,
+            fundedLoans: userApps.filter(app => app.status === 'funded').length,
+          };
+        });
+      
+      return res.json(enrichedBorrowers);
+    } catch (error) {
+      console.error("Error fetching borrowers:", error);
+      return res.status(500).json({ error: "Failed to fetch borrowers" });
+    }
+  });
+
   // Get all users with their portal info (admin only)
   app.get("/api/admin/users", isAuthenticated, isAdmin, async (req: any, res) => {
     try {

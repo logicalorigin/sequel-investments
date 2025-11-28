@@ -185,6 +185,11 @@ export default function AdminDashboard() {
     enabled: currentUser?.role === "admin",
   });
 
+  const { data: borrowersList, isLoading: borrowersLoading } = useQuery<EnrichedUser[]>({
+    queryKey: ["/api/admin/borrowers"],
+    enabled: currentUser?.role === "staff" || currentUser?.role === "admin",
+  });
+
   const { data: invites } = useQuery<StaffInvite[]>({
     queryKey: ["/api/admin/invites"],
     enabled: currentUser?.role === "admin",
@@ -446,7 +451,7 @@ export default function AdminDashboard() {
 
   const loanTypes = Array.from(new Set(applications?.map((app) => app.loanType) || []));
 
-  const borrowers = users?.filter(u => u.role === "borrower") || [];
+  const borrowers = borrowersList || [];
   const staffMembers = users?.filter(u => u.role === "staff" || u.role === "admin") || [];
 
   const filteredBorrowers = borrowers.filter((user) => {
@@ -464,7 +469,7 @@ export default function AdminDashboard() {
     return matchesSearch;
   });
 
-  const selectedBorrower = selectedBorrowerId ? users?.find(u => u.id === selectedBorrowerId) : null;
+  const selectedBorrower = selectedBorrowerId ? borrowersList?.find(u => u.id === selectedBorrowerId) : null;
   const borrowerApplications = selectedBorrowerId ? applications?.filter(a => a.userId === selectedBorrowerId) : [];
 
   const stats = {
@@ -866,7 +871,7 @@ export default function AdminDashboard() {
                     </div>
                   </CardHeader>
                   <CardContent className="p-0">
-                    {usersLoading ? (
+                    {borrowersLoading ? (
                       <div className="flex items-center justify-center py-12">
                         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                       </div>
