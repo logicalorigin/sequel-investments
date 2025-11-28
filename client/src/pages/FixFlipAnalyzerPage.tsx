@@ -34,8 +34,8 @@ const propertyTypes = [
 ];
 
 const experienceLevels = [
-  { id: "0", label: "0 Deals", rateAdj: 0 },
-  { id: "1", label: "1-2 Deals", rateAdj: 0 },
+  { id: "0", label: "0 Deals", rateAdj: 1.5 },
+  { id: "1", label: "1-2 Deals", rateAdj: 1.0 },
   { id: "3-5", label: "3-5 Deals", rateAdj: 0 },
   { id: "6-10", label: "6-10 Deals", rateAdj: 0 },
   { id: "10+", label: "10+ Deals", rateAdj: 0 },
@@ -204,8 +204,8 @@ export default function FixFlipAnalyzerPage() {
   const maxLtc = 90;
   const baseRate = 8.9;
 
-  // Calculate interest rate based on FICO
-  // 3+ deals with 720 FICO = 8.9% base rate
+  // Calculate interest rate based on FICO and experience
+  // 8.9% base rate reserved for 3+ deals AND 720+ FICO
   const calculatedRate = useMemo(() => {
     let rate = baseRate;
     
@@ -216,10 +216,14 @@ export default function FixFlipAnalyzerPage() {
     else if (score >= 680) rate += 1.0;
     else rate += 1.5;
     
-    // Experience is captured for data intake only, no rate adjustment
+    // Experience adjustment (0-2 deals = higher rate)
+    const expLevel = experienceLevels.find(l => l.id === experience);
+    if (expLevel) {
+      rate += expLevel.rateAdj;
+    }
     
     return Math.max(baseRate, Math.min(12.9, rate));
-  }, [creditScore]);
+  }, [creditScore, experience]);
 
   // Origination points: 2.0% at base rate, sliding to 0% at 12.9% rate
   const originationPoints = useMemo(() => {
