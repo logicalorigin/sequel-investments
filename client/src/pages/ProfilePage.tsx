@@ -78,9 +78,7 @@ export default function ProfilePage() {
   });
 
   const [newEntity, setNewEntity] = useState("");
-  const [entities, setEntities] = useState<{ id: string; name: string; type: string }[]>([
-    { id: "1", name: "Sample Investment LLC", type: "LLC" },
-  ]);
+  const [entities, setEntities] = useState<{ id: string; name: string; type: string }[]>([]);
 
   const loanTypes = ["DSCR", "Fix & Flip", "New Construction", "Bridge Loan"];
   const markets = ["California", "Texas", "Florida", "Arizona", "Nevada", "Georgia", "Colorado", "North Carolina"];
