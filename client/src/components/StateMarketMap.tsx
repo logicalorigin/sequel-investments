@@ -298,11 +298,29 @@ export function StateMarketMap({
 
   if (!apiKey) {
     return (
-      <div className={`relative aspect-[4/3] flex items-center justify-center bg-muted/30 rounded-lg ${className}`}>
-        <div className="text-center text-muted-foreground">
+      <div className={`relative aspect-[4/3] flex items-center justify-center bg-muted/30 rounded-lg border border-dashed ${className}`}>
+        <div className="text-center text-muted-foreground p-6">
           <MapPin className="h-12 w-12 mx-auto mb-3 opacity-30" />
           <p className="font-medium">{stateName}</p>
-          <p className="text-sm mt-1">Map unavailable</p>
+          <p className="text-sm mt-1 mb-4">Interactive map unavailable</p>
+          <div className="flex flex-wrap gap-2 justify-center">
+            {markets.slice(0, 5).map((market) => (
+              <Badge
+                key={market.id}
+                variant={selectedMarket?.id === market.id ? "default" : hoveredMarket?.id === market.id ? "secondary" : "outline"}
+                className="cursor-pointer transition-all"
+                onClick={() => onMarkerClick(market)}
+                data-testid={`badge-market-fallback-${market.id}`}
+              >
+                <span className={`w-2 h-2 rounded-full mr-1.5 ${
+                  market.rank === 1 ? 'bg-primary' : 
+                  market.rank === 2 ? 'bg-primary/80' : 
+                  'bg-primary/60'
+                }`} />
+                {market.name}
+              </Badge>
+            ))}
+          </div>
         </div>
       </div>
     );
