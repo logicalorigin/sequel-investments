@@ -1617,9 +1617,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   // Public: Get visible funded deals (for homepage/carousels)
+  // Optional query params: ?state=CA&loanType=DSCR&limit=10
   app.get("/api/funded-deals", async (req, res) => {
     try {
-      const deals = await storage.getFundedDeals(true);
+      const { state, loanType, limit } = req.query;
+      let deals = await storage.getFundedDeals(true);
+      
+      // Filter by state if provided
+      if (state && typeof state === 'string') {
+        deals = deals.filter(d => d.state?.toUpperCase() === state.toUpperCase());
+      }
+      
+      // Filter by loan type if provided
+      if (loanType && typeof loanType === 'string') {
+        deals = deals.filter(d => d.loanType?.toLowerCase() === loanType.toLowerCase());
+      }
+      
+      // Limit results if specified
+      if (limit && !isNaN(Number(limit))) {
+        deals = deals.slice(0, Number(limit));
+      }
+      
       return res.json(deals);
     } catch (error) {
       console.error("Error fetching funded deals:", error);

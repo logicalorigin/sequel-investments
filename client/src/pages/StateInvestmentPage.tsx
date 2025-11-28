@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { LeadForm } from "@/components/LeadForm";
-import { getStateBySlug, type StateData, type MarketDataResponse } from "@shared/schema";
+import { getStateBySlug, type StateData, type MarketDataResponse, type FundedDeal } from "@shared/schema";
 import { 
   Home, 
   TrendingUp, 
@@ -361,12 +361,39 @@ export default function StateInvestmentPage() {
     },
   ];
 
-  const recentFundings = generateRecentFundings(state);
   const testimonials = getTestimonials(state);
   
   const { data: marketData, isLoading: isLoadingMarket } = useQuery<MarketDataResponse>({
     queryKey: ['/api/market-data', state.slug],
   });
+  
+  // Fetch real funded deals from database for this state
+  const { data: dbFundedDeals } = useQuery<FundedDeal[]>({
+    queryKey: ['/api/funded-deals', state.abbreviation],
+    queryFn: async () => {
+      const response = await fetch(`/api/funded-deals?state=${state.abbreviation}&limit=6`);
+      if (!response.ok) throw new Error("Failed to fetch funded deals");
+      return response.json();
+    },
+  });
+  
+  // Map database deals to display format, or use generated fallback data
+  const recentFundings: RecentFunding[] = useMemo(() => {
+    if (dbFundedDeals && dbFundedDeals.length > 0) {
+      return dbFundedDeals.map((deal, index) => ({
+        id: deal.id,
+        loanType: (deal.loanType === "New Construction" ? "Construction" : deal.loanType) as "DSCR" | "Fix & Flip" | "Construction",
+        city: deal.location,
+        amount: deal.loanAmount,
+        rate: parseFloat(deal.rate),
+        ltv: deal.ltv || deal.ltc || 75,
+        daysAgo: Math.floor((Date.now() - new Date(deal.createdAt).getTime()) / (1000 * 60 * 60 * 24)) || 1,
+        image: deal.imageUrl || fundingImages[index % fundingImages.length],
+      }));
+    }
+    // Fallback to generated data if no database deals available
+    return generateRecentFundings(state);
+  }, [dbFundedDeals, state]);
   
   const displayMarketData = marketData || getFallbackMarketData(state);
 
