@@ -1083,7 +1083,7 @@ export default function ApplicationDetailPage() {
                     </div>
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Phone className="h-4 w-4" />
-                      <span>{application.accountExecutivePhone || "XXX-XXX-XXXX"}</span>
+                      <span>{application.accountExecutivePhone || "Not assigned"}</span>
                     </div>
                   </div>
                 </div>
@@ -1099,7 +1099,7 @@ export default function ApplicationDetailPage() {
                     </div>
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Phone className="h-4 w-4" />
-                      <span>{application.processorPhone || "XXX-XXX-XXXX"}</span>
+                      <span>{application.processorPhone || "Not assigned"}</span>
                     </div>
                   </div>
                 </div>
