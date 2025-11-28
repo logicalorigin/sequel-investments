@@ -807,16 +807,13 @@ export default function AdminDashboard() {
                             </TableCell>
                             <TableCell>
                               <div>
-                                <button 
-                                  className="font-medium text-xs sm:text-sm text-primary hover:underline text-left"
-                                  onClick={() => {
-                                    setSelectedBorrowerId(app.userId);
-                                    setActiveTab("borrowers");
-                                  }}
+                                <Link 
+                                  href={`/admin/borrower/${app.userId}`}
+                                  className="font-medium text-xs sm:text-sm text-primary hover:underline"
                                   data-testid={`link-borrower-${app.userId}`}
                                 >
                                   {app.borrowerName}
-                                </button>
+                                </Link>
                                 <p className="text-[10px] sm:text-xs text-muted-foreground hidden sm:block">{app.borrowerEmail}</p>
                               </div>
                             </TableCell>
