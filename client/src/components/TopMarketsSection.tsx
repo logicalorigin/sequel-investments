@@ -24,6 +24,22 @@ import {
   type MarketDetail 
 } from "@/data/marketDetails";
 
+function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia(query);
+    if (media.matches !== matches) {
+      setMatches(media.matches);
+    }
+    const listener = () => setMatches(media.matches);
+    media.addEventListener("change", listener);
+    return () => media.removeEventListener("change", listener);
+  }, [matches, query]);
+
+  return matches;
+}
+
 interface Metro {
   name: string;
   lat: number;
@@ -155,6 +171,7 @@ export function TopMarketsSection({ stateSlug, stateName }: TopMarketsSectionPro
   const [isLoading, setIsLoading] = useState(true);
   const [hoveredMarket, setHoveredMarket] = useState<MarketDetail | null>(null);
   const [selectedMarket, setSelectedMarket] = useState<MarketDetail | null>(null);
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
 
   const marketsWithDetails = useMemo(() => {
     const enrichedMarkets = getMarketDetails(stateSlug);
@@ -195,20 +212,23 @@ export function TopMarketsSection({ stateSlug, stateName }: TopMarketsSectionPro
 
   const handleMarkerClick = (market: MarketDetail) => {
     setSelectedMarket(selectedMarket?.id === market.id ? null : market);
+    setHoveredMarket(null);
   };
 
   const handleMarkerHover = (market: MarketDetail | null) => {
-    if (!selectedMarket) {
+    if (!selectedMarket && isDesktop) {
       setHoveredMarket(market);
     }
   };
 
   const handleCardClick = (market: MarketDetail) => {
     setSelectedMarket(selectedMarket?.id === market.id ? null : market);
+    setHoveredMarket(null);
   };
 
   const handleCloseDrawer = () => {
     setSelectedMarket(null);
+    setHoveredMarket(null);
   };
 
   if (!isLoading && marketsWithDetails.length === 0) {
@@ -270,8 +290,8 @@ export function TopMarketsSection({ stateSlug, stateName }: TopMarketsSectionPro
             </CardContent>
           </Card>
 
-          <div className={`transition-all duration-300 ${selectedMarket ? 'lg:col-span-1' : ''}`}>
-            {selectedMarket ? (
+          <div className={`transition-all duration-300 ${selectedMarket && isDesktop ? 'lg:col-span-1' : ''}`}>
+            {selectedMarket && isDesktop ? (
               <div className="h-[500px] lg:h-[600px] rounded-lg overflow-hidden border">
                 <MarketDetailDrawer
                   market={selectedMarket}
@@ -307,10 +327,10 @@ export function TopMarketsSection({ stateSlug, stateName }: TopMarketsSectionPro
           </div>
         </div>
 
-        {selectedMarket && (
+        {selectedMarket && isDesktop && (
           <div className="hidden lg:block mt-6">
             <div className="space-y-3">
-              {marketsWithDetails.filter(m => m.id !== selectedMarket.id).map((market, index) => (
+              {marketsWithDetails.filter(m => m.id !== selectedMarket.id).map((market) => (
                 <MarketCard
                   key={market.id}
                   market={market}
@@ -332,6 +352,32 @@ export function TopMarketsSection({ stateSlug, stateName }: TopMarketsSectionPro
               </div>
             </div>
           </div>
+        )}
+
+        {selectedMarket && !isDesktop && (
+          <>
+            <div 
+              className="fixed inset-0 bg-black/50 z-40 animate-in fade-in duration-200"
+              onClick={handleCloseDrawer}
+            />
+            <div 
+              className="fixed inset-x-0 bottom-0 z-50 bg-background rounded-t-xl shadow-2xl animate-in slide-in-from-bottom duration-300 max-h-[85vh] flex flex-col"
+              data-testid="mobile-market-drawer"
+            >
+              <div className="flex justify-center pt-2 pb-1">
+                <div className="w-12 h-1.5 rounded-full bg-muted-foreground/20" />
+              </div>
+              <div className="flex-1 overflow-hidden">
+                <MarketDetailDrawer
+                  market={selectedMarket}
+                  stateName={stateName}
+                  onClose={handleCloseDrawer}
+                  isOpen={!!selectedMarket}
+                  isMobile={true}
+                />
+              </div>
+            </div>
+          </>
         )}
       </div>
     </section>

@@ -37,6 +37,7 @@ interface MarketDetailDrawerProps {
   stateName: string;
   onClose: () => void;
   isOpen: boolean;
+  isMobile?: boolean;
 }
 
 type TabId = "overview" | "demographics" | "universities" | "str";
@@ -514,17 +515,17 @@ function STRTab({ market }: { market: MarketDetail }) {
   );
 }
 
-export function MarketDetailDrawer({ market, stateName, onClose, isOpen }: MarketDetailDrawerProps) {
+export function MarketDetailDrawer({ market, stateName, onClose, isOpen, isMobile = false }: MarketDetailDrawerProps) {
   const [activeTab, setActiveTab] = useState<TabId>("overview");
 
   if (!market || !isOpen) return null;
 
   return (
     <div 
-      className="bg-card border-l shadow-xl flex flex-col h-full animate-in slide-in-from-right duration-300"
+      className={`bg-card flex flex-col h-full ${isMobile ? 'rounded-t-xl' : 'border-l shadow-xl animate-in slide-in-from-right duration-300'}`}
       data-testid="market-detail-drawer"
     >
-      <div className="flex items-center justify-between p-4 border-b bg-muted/30">
+      <div className={`flex items-center justify-between border-b bg-muted/30 ${isMobile ? 'p-3' : 'p-4'}`}>
         <div className="flex items-center gap-3 min-w-0">
           <Badge variant="outline" className="h-8 w-8 p-0 justify-center text-sm font-bold shrink-0">
             {market.rank}
