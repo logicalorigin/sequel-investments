@@ -413,13 +413,14 @@ export default function StateInvestmentPage() {
               {isLoadingMarket && (
                 <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />
               )}
-              <Badge 
-                variant={displayMarketData.source === "rentcast" ? "default" : displayMarketData.source === "zillow" ? "secondary" : "outline"}
-                className="text-xs"
-              >
-                {displayMarketData.source === "rentcast" ? "RentCast" : 
-                 displayMarketData.source === "zillow" ? "Zillow" : "Estimated"}
-              </Badge>
+              {(displayMarketData.source === "rentcast" || displayMarketData.source === "zillow") && (
+                <Badge 
+                  variant={displayMarketData.source === "rentcast" ? "default" : "secondary"}
+                  className="text-xs"
+                >
+                  {displayMarketData.source === "rentcast" ? "RentCast" : "Zillow"}
+                </Badge>
+              )}
             </div>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4">
