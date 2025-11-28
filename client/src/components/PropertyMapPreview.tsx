@@ -1,5 +1,6 @@
-import { useState, useCallback } from "react";
-import { Map, useMap } from "@vis.gl/react-google-maps";
+/// <reference types="google.maps" />
+import { useState, useCallback, useEffect, useRef } from "react";
+import { Map, useMap, Marker, useMapsLibrary } from "@vis.gl/react-google-maps";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { 
@@ -11,9 +12,17 @@ import {
   Maximize2,
   Minimize2,
   ZoomIn,
-  ZoomOut
+  ZoomOut,
+  Home,
+  ShoppingCart,
+  Train,
+  GraduationCap,
+  Utensils,
+  Building2
 } from "lucide-react";
 import { useGoogleMapsApiKey } from "@/components/GoogleMapsProvider";
+
+type PlaceType = "grocery" | "transit" | "school" | "restaurant" | "hospital";
 
 interface PropertyMapPreviewProps {
   latitude: number;
@@ -90,21 +99,109 @@ function MapControls({
   );
 }
 
-function CenterPinOverlay() {
+interface NearbyPlace {
+  name: string;
+  location: { lat: number; lng: number };
+  type: PlaceType;
+  rating?: number;
+  distance?: string;
+}
+
+function PropertyMarker({ latitude, longitude }: { latitude: number; longitude: number }) {
+  const coreLib = useMapsLibrary("core");
+  
+  if (!coreLib) {
+    return null;
+  }
+
   return (
-    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-      <div className="relative">
-        <div 
-          className="w-6 h-6 bg-primary rounded-full border-3 border-white shadow-lg"
-          style={{ 
-            boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
-            border: "3px solid white"
-          }}
-        />
-        <div 
-          className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-black/30 rounded-full blur-sm"
-        />
-      </div>
+    <Marker
+      position={{ lat: latitude, lng: longitude }}
+      title="Subject Property"
+      icon={{
+        path: "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z",
+        fillColor: "#16a34a",
+        fillOpacity: 1,
+        strokeColor: "#ffffff",
+        strokeWeight: 2,
+        scale: 1.8,
+        anchor: new coreLib.Point(12, 22),
+      }}
+    />
+  );
+}
+
+function NearbyPlaceMarker({ place }: { place: NearbyPlace }) {
+  const coreLib = useMapsLibrary("core");
+  
+  const getMarkerColor = (type: PlaceType) => {
+    switch (type) {
+      case "grocery": return "#f97316";
+      case "transit": return "#3b82f6";
+      case "school": return "#8b5cf6";
+      case "restaurant": return "#ef4444";
+      case "hospital": return "#ec4899";
+      default: return "#6b7280";
+    }
+  };
+
+  if (!coreLib) {
+    return null;
+  }
+
+  return (
+    <Marker
+      position={place.location}
+      title={`${place.name}${place.rating ? ` (${place.rating}★)` : ""}`}
+      icon={{
+        path: coreLib.SymbolPath.CIRCLE,
+        fillColor: getMarkerColor(place.type),
+        fillOpacity: 0.9,
+        strokeColor: "#ffffff",
+        strokeWeight: 2,
+        scale: 8,
+      }}
+    />
+  );
+}
+
+function LayerTogglePanel({ 
+  activeLayers, 
+  onToggleLayer,
+  isLoading
+}: { 
+  activeLayers: Set<PlaceType>;
+  onToggleLayer: (layer: PlaceType) => void;
+  isLoading: boolean;
+}) {
+  const layers: { type: PlaceType; icon: typeof ShoppingCart; label: string }[] = [
+    { type: "grocery", icon: ShoppingCart, label: "Grocery" },
+    { type: "transit", icon: Train, label: "Transit" },
+    { type: "school", icon: GraduationCap, label: "Schools" },
+    { type: "restaurant", icon: Utensils, label: "Dining" },
+    { type: "hospital", icon: Building2, label: "Medical" },
+  ];
+
+  return (
+    <div className="absolute bottom-3 left-3 z-10 flex flex-wrap gap-1">
+      {layers.map(({ type, icon: Icon, label }) => (
+        <Button
+          key={type}
+          size="sm"
+          variant={activeLayers.has(type) ? "default" : "secondary"}
+          className={`h-7 px-2 text-xs shadow-md ${
+            activeLayers.has(type) 
+              ? "bg-primary text-primary-foreground" 
+              : "bg-white/90 hover:bg-white"
+          }`}
+          onClick={() => onToggleLayer(type)}
+          disabled={isLoading}
+          data-testid={`button-toggle-${type}`}
+        >
+          <Icon className="h-3 w-3 mr-1" />
+          {label}
+        </Button>
+      ))}
     </div>
   );
 }
@@ -164,6 +261,93 @@ function MapControlsWithHook({
   );
 }
 
+function useNearbyPlaces(
+  latitude: number, 
+  longitude: number, 
+  activeLayers: Set<PlaceType>
+) {
+  const [places, setPlaces] = useState<NearbyPlace[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const placesLib = useMapsLibrary("places");
+  const map = useMap();
+
+  useEffect(() => {
+    if (!placesLib || !map || activeLayers.size === 0) {
+      setPlaces([]);
+      setIsLoading(false);
+      return;
+    }
+
+    const searchPlaces = async () => {
+      setIsLoading(true);
+      const allPlaces: NearbyPlace[] = [];
+      
+      const typeMapping: Record<PlaceType, string[]> = {
+        grocery: ["grocery_or_supermarket", "supermarket"],
+        transit: ["transit_station", "subway_station", "bus_station"],
+        school: ["school", "primary_school", "secondary_school"],
+        restaurant: ["restaurant", "cafe"],
+        hospital: ["hospital", "pharmacy", "doctor"],
+      };
+
+      const service = new placesLib.PlacesService(map);
+      const layersArray = Array.from(activeLayers);
+      
+      for (let i = 0; i < layersArray.length; i++) {
+        const layer = layersArray[i];
+        const types = typeMapping[layer];
+        const type = types[0];
+        
+        try {
+          const results = await new Promise<google.maps.places.PlaceResult[]>((resolve) => {
+            service.nearbySearch(
+              {
+                location: { lat: latitude, lng: longitude },
+                radius: 1500,
+                type: type,
+              },
+              (
+                searchResults: google.maps.places.PlaceResult[] | null, 
+                status: google.maps.places.PlacesServiceStatus
+              ) => {
+                if (status === placesLib.PlacesServiceStatus.OK && searchResults) {
+                  resolve(searchResults.slice(0, 5));
+                } else {
+                  resolve([]);
+                }
+              }
+            );
+          });
+
+          for (let j = 0; j < results.length; j++) {
+            const result = results[j];
+            if (result.geometry?.location) {
+              allPlaces.push({
+                name: result.name || "Unknown",
+                location: {
+                  lat: result.geometry.location.lat(),
+                  lng: result.geometry.location.lng(),
+                },
+                type: layer,
+                rating: result.rating,
+              });
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching nearby places:", error);
+        }
+      }
+      
+      setPlaces(allPlaces);
+      setIsLoading(false);
+    };
+
+    searchPlaces();
+  }, [placesLib, map, latitude, longitude, activeLayers]);
+
+  return { places, isLoading };
+}
+
 function PropertyMapView({ 
   latitude, 
   longitude, 
@@ -175,6 +359,31 @@ function PropertyMapView({
   isFullscreen: boolean;
   onToggleFullscreen: () => void;
 }) {
+  const [activeLayers, setActiveLayers] = useState<Set<PlaceType>>(new Set());
+  const [isLoadingPlaces, setIsLoadingPlaces] = useState(false);
+  const isLoadingRef = useRef(false);
+  
+  const toggleLayer = useCallback((layer: PlaceType) => {
+    if (isLoadingRef.current) {
+      return;
+    }
+    
+    setActiveLayers((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(layer)) {
+        newSet.delete(layer);
+      } else {
+        newSet.add(layer);
+      }
+      return newSet;
+    });
+  }, []);
+
+  const handleLoadingChange = useCallback((loading: boolean) => {
+    isLoadingRef.current = loading;
+    setIsLoadingPlaces(loading);
+  }, []);
+
   const containerClasses = isFullscreen 
     ? "fixed inset-0 z-50 bg-background" 
     : "relative w-full h-64 rounded-lg overflow-hidden";
@@ -194,13 +403,56 @@ function PropertyMapView({
         fullscreenControl={false}
         clickableIcons={false}
       >
-        <CenterPinOverlay />
+        <PropertyMarker latitude={latitude} longitude={longitude} />
+        <NearbyPlacesLayer 
+          latitude={latitude} 
+          longitude={longitude} 
+          activeLayers={activeLayers}
+          onLoadingChange={handleLoadingChange}
+        />
         <MapControlsWithHook 
           isFullscreen={isFullscreen}
           onToggleFullscreen={onToggleFullscreen}
         />
+        <LayerTogglePanel 
+          activeLayers={activeLayers} 
+          onToggleLayer={toggleLayer}
+          isLoading={isLoadingPlaces}
+        />
       </Map>
     </div>
+  );
+}
+
+function NearbyPlacesLayer({ 
+  latitude, 
+  longitude, 
+  activeLayers,
+  onLoadingChange
+}: { 
+  latitude: number; 
+  longitude: number; 
+  activeLayers: Set<PlaceType>;
+  onLoadingChange: (loading: boolean) => void;
+}) {
+  const { places, isLoading } = useNearbyPlaces(latitude, longitude, activeLayers);
+  
+  useEffect(() => {
+    onLoadingChange(isLoading);
+  }, [isLoading, onLoadingChange]);
+  
+  useEffect(() => {
+    return () => {
+      onLoadingChange(false);
+    };
+  }, [onLoadingChange]);
+  
+  return (
+    <>
+      {places.map((place, index) => (
+        <NearbyPlaceMarker key={`${place.type}-${index}`} place={place} />
+      ))}
+    </>
   );
 }
 
