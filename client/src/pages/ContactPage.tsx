@@ -58,11 +58,11 @@ export default function ContactPage() {
                 </CardHeader>
                 <CardContent>
                   <a 
-                    href="tel:+18005551234" 
+                    href="tel:+18887253863" 
                     className="text-lg font-semibold text-primary hover:underline"
                     data-testid="link-phone"
                   >
-                    (800) 555-1234
+                    (888) 725-3863
                   </a>
                   <p className="text-sm text-muted-foreground mt-2">
                     Monday - Friday: 8am - 8pm EST<br />
