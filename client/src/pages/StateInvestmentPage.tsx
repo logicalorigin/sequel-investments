@@ -418,8 +418,7 @@ export default function StateInvestmentPage() {
                 className="text-xs"
               >
                 {displayMarketData.source === "rentcast" ? "RentCast" : 
-                 displayMarketData.source === "zillow" ? "Zillow" : 
-                 displayMarketData.isCached ? "Cached" : "Estimated"}
+                 displayMarketData.source === "zillow" ? "Zillow" : "Estimated"}
               </Badge>
             </div>
           </div>
