@@ -34,6 +34,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { 
   Users, 
   FileText, 
@@ -62,10 +70,9 @@ import {
   Search,
   User,
   Briefcase,
-  Phone,
   Calendar,
-  TrendingUp,
   ChevronRight,
+  ChevronDown,
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -112,7 +119,7 @@ const stageLabels: Record<string, string> = {
   closed: "Closed",
 };
 
-type AdminTab = "applications" | "borrowers" | "funded" | "staff" | "settings";
+type AdminTab = "applications" | "borrowers" | "recently-funded" | "staff";
 type FundedViewStyle = "list" | "cards";
 
 function formatCurrency(value: number): string {
@@ -141,7 +148,6 @@ export default function AdminDashboard() {
   const [loanTypeFilter, setLoanTypeFilter] = useState<string>("all");
   const [borrowerSearch, setBorrowerSearch] = useState("");
   const [borrowerRoleFilter, setBorrowerRoleFilter] = useState<string>("all");
-  const [selectedBorrowerId, setSelectedBorrowerId] = useState<string | null>(null);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<"staff" | "admin">("staff");
   const [showInviteDialog, setShowInviteDialog] = useState(false);
@@ -469,8 +475,6 @@ export default function AdminDashboard() {
     return matchesSearch;
   });
 
-  const selectedBorrower = selectedBorrowerId ? borrowersList?.find(u => u.id === selectedBorrowerId) : null;
-  const borrowerApplications = selectedBorrowerId ? applications?.filter(a => a.userId === selectedBorrowerId) : [];
 
   const stats = {
     total: applications?.length || 0,
@@ -545,13 +549,55 @@ export default function AdminDashboard() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-1 sm:gap-2">
-            <Badge variant="outline" className="capitalize text-xs">
-              {currentUser.role}
-            </Badge>
-            <span className="text-xs sm:text-sm text-muted-foreground hidden sm:inline">
-              {currentUser.firstName} {currentUser.lastName}
-            </span>
+          <div className="flex items-center gap-2 sm:gap-3">
+            {currentUser.role === "admin" && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-8 gap-1" data-testid="button-settings-dropdown">
+                    <Settings className="h-4 w-4" />
+                    <span className="hidden sm:inline text-xs">Settings</span>
+                    <ChevronDown className="h-3 w-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>Admin Settings</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    onClick={() => setActiveTab("staff")}
+                    data-testid="dropdown-staff"
+                  >
+                    <Shield className="h-4 w-4 mr-2" />
+                    Staff Management
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => setShowWebhookDialog(true)}
+                    data-testid="dropdown-webhooks"
+                  >
+                    <Webhook className="h-4 w-4 mr-2" />
+                    Webhooks
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel className="text-[10px] text-muted-foreground">All Accounts</DropdownMenuLabel>
+                  <DropdownMenuItem 
+                    onClick={() => {
+                      setActiveTab("staff");
+                    }}
+                    data-testid="dropdown-users"
+                  >
+                    <Users className="h-4 w-4 mr-2" />
+                    User Management
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            <div className="flex items-center gap-1.5 pl-2 border-l">
+              <Badge variant="outline" className="capitalize text-xs">
+                {currentUser.role}
+              </Badge>
+              <span className="text-xs sm:text-sm text-muted-foreground hidden sm:inline">
+                {currentUser.firstName} {currentUser.lastName}
+              </span>
+            </div>
           </div>
         </div>
       </header>
@@ -596,8 +642,8 @@ export default function AdminDashboard() {
           </Card>
 
           <Card 
-            className={`cursor-pointer transition-all hover-elevate ${activeTab === "funded" ? "ring-2 ring-emerald-500" : ""}`}
-            onClick={() => setActiveTab("funded")}
+            className={`cursor-pointer transition-all hover-elevate ${activeTab === "recently-funded" ? "ring-2 ring-emerald-500" : ""}`}
+            onClick={() => setActiveTab("recently-funded")}
             data-testid="stat-card-funded"
           >
             <CardContent className="p-2 sm:p-4">
@@ -607,7 +653,7 @@ export default function AdminDashboard() {
                 </div>
                 <div>
                   <p className="text-lg sm:text-2xl font-bold">{stats.totalDeals}</p>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground">Funded</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Recently Funded</p>
                 </div>
               </div>
             </CardContent>
@@ -670,7 +716,7 @@ export default function AdminDashboard() {
 
         {/* Tabbed Navigation */}
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as AdminTab)} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-flex">
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-4 lg:w-auto lg:inline-flex">
             <TabsTrigger value="applications" className="gap-1 sm:gap-2" data-testid="tab-applications">
               <FileText className="h-4 w-4" />
               <span className="hidden sm:inline">Applications</span>
@@ -679,21 +725,15 @@ export default function AdminDashboard() {
               <Users className="h-4 w-4" />
               <span className="hidden sm:inline">Borrowers</span>
             </TabsTrigger>
-            <TabsTrigger value="funded" className="gap-1 sm:gap-2" data-testid="tab-funded">
+            <TabsTrigger value="recently-funded" className="gap-1 sm:gap-2" data-testid="tab-recently-funded">
               <DollarSign className="h-4 w-4" />
-              <span className="hidden sm:inline">Funded</span>
+              <span className="hidden sm:inline">Recently Funded</span>
             </TabsTrigger>
             {currentUser.role === "admin" && (
-              <>
-                <TabsTrigger value="staff" className="gap-1 sm:gap-2" data-testid="tab-staff">
-                  <UserPlus className="h-4 w-4" />
-                  <span className="hidden sm:inline">Staff</span>
-                </TabsTrigger>
-                <TabsTrigger value="settings" className="gap-1 sm:gap-2" data-testid="tab-settings">
-                  <Settings className="h-4 w-4" />
-                  <span className="hidden sm:inline">Settings</span>
-                </TabsTrigger>
-              </>
+              <TabsTrigger value="staff" className="gap-1 sm:gap-2" data-testid="tab-staff">
+                <UserPlus className="h-4 w-4" />
+                <span className="hidden sm:inline">Staff</span>
+              </TabsTrigger>
             )}
           </TabsList>
 
@@ -834,9 +874,9 @@ export default function AdminDashboard() {
 
           {/* Borrowers Tab */}
           <TabsContent value="borrowers" className="space-y-4">
-            <div className="grid lg:grid-cols-3 gap-4">
+            <div className="grid gap-4">
               {/* Borrower List */}
-              <div className={selectedBorrowerId ? "lg:col-span-1" : "lg:col-span-3"}>
+              <div>
                 <Card>
                   <CardHeader className="p-3 sm:p-6">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -883,33 +923,36 @@ export default function AdminDashboard() {
                       <ScrollArea className="h-[400px] lg:h-[500px]">
                         <div className="divide-y">
                           {filteredBorrowers.map((user) => (
-                            <button
+                            <Link
                               key={user.id}
-                              className={`w-full p-3 sm:p-4 text-left hover-elevate flex items-center gap-3 ${selectedBorrowerId === user.id ? "bg-accent" : ""}`}
-                              onClick={() => setSelectedBorrowerId(user.id)}
-                              data-testid={`borrower-row-${user.id}`}
+                              href={`/admin/borrower/${user.id}`}
                             >
-                              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                                <User className="h-5 w-5 text-primary" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium text-sm truncate">
-                                  {user.firstName} {user.lastName}
-                                </p>
-                                <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                              </div>
-                              <div className="flex flex-col items-end gap-1">
-                                <div className="flex gap-1">
-                                  <Badge variant="outline" className="text-[10px]">{user.applicationCount || 0} apps</Badge>
-                                  {(user.fundedLoans || 0) > 0 && (
-                                    <Badge className="text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
-                                      {user.fundedLoans} funded
-                                    </Badge>
-                                  )}
+                              <div
+                                className="w-full p-3 sm:p-4 text-left hover-elevate flex items-center gap-3"
+                                data-testid={`borrower-row-${user.id}`}
+                              >
+                                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                                  <User className="h-5 w-5 text-primary" />
                                 </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-sm truncate">
+                                    {user.firstName} {user.lastName}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                                </div>
+                                <div className="flex flex-col items-end gap-1">
+                                  <div className="flex gap-1">
+                                    <Badge variant="outline" className="text-[10px]">{user.applicationCount || 0} apps</Badge>
+                                    {(user.fundedLoans || 0) > 0 && (
+                                      <Badge className="text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
+                                        {user.fundedLoans} funded
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+                                <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
                               </div>
-                              <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                            </button>
+                            </Link>
                           ))}
                         </div>
                       </ScrollArea>
@@ -917,120 +960,16 @@ export default function AdminDashboard() {
                   </CardContent>
                 </Card>
               </div>
-
-              {/* Borrower Detail Panel */}
-              {selectedBorrowerId && selectedBorrower && (
-                <div className="lg:col-span-2 space-y-4">
-                  <Card>
-                    <CardHeader className="p-4 sm:p-6">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center">
-                            <User className="h-7 w-7 text-primary" />
-                          </div>
-                          <div>
-                            <CardTitle className="text-xl">
-                              {selectedBorrower.firstName} {selectedBorrower.lastName}
-                            </CardTitle>
-                            <CardDescription className="flex items-center gap-2 mt-1">
-                              <Mail className="h-3.5 w-3.5" />
-                              {selectedBorrower.email}
-                            </CardDescription>
-                          </div>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setSelectedBorrowerId(null)}
-                          className="h-8 w-8"
-                          data-testid="button-close-detail"
-                        >
-                          <ArrowLeft className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="p-4 sm:p-6 pt-0">
-                      <div className="grid grid-cols-3 gap-4 mb-6">
-                        <div className="bg-muted/50 rounded-lg p-3 text-center">
-                          <p className="text-2xl font-bold">{selectedBorrower.applicationCount || 0}</p>
-                          <p className="text-xs text-muted-foreground">Total Apps</p>
-                        </div>
-                        <div className="bg-muted/50 rounded-lg p-3 text-center">
-                          <p className="text-2xl font-bold">{selectedBorrower.activeApplications || 0}</p>
-                          <p className="text-xs text-muted-foreground">Active</p>
-                        </div>
-                        <div className="bg-emerald-500/10 rounded-lg p-3 text-center">
-                          <p className="text-2xl font-bold text-emerald-600">{selectedBorrower.fundedLoans || 0}</p>
-                          <p className="text-xs text-muted-foreground">Funded</p>
-                        </div>
-                      </div>
-                      <div className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Calendar className="h-3.5 w-3.5" />
-                        Member since {selectedBorrower.createdAt ? formatDate(selectedBorrower.createdAt) : "N/A"}
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Borrower's Applications */}
-                  <Card>
-                    <CardHeader className="p-4 sm:p-6">
-                      <CardTitle className="text-base flex items-center gap-2">
-                        <FileText className="h-4 w-4" />
-                        Applications ({borrowerApplications?.length || 0})
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                      {borrowerApplications?.length === 0 ? (
-                        <div className="text-center py-8 text-muted-foreground text-sm">
-                          No applications yet
-                        </div>
-                      ) : (
-                        <div className="divide-y">
-                          {borrowerApplications?.map((app) => (
-                            <Link key={app.id} href={`/admin/application/${app.id}`}>
-                              <div className="p-4 hover-elevate cursor-pointer" data-testid={`borrower-app-${app.id}`}>
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-3">
-                                    <div className="flex flex-col">
-                                      <span className="font-mono text-xs text-muted-foreground">
-                                        {app.id.slice(0, 8).toUpperCase()}
-                                      </span>
-                                      <span className="font-medium text-sm">{app.loanType}</span>
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <div className="text-right">
-                                      <p className="font-medium text-sm">
-                                        {app.loanAmount ? formatCurrency(app.loanAmount) : "-"}
-                                      </p>
-                                      <p className="text-xs text-muted-foreground">
-                                        {app.propertyCity}, {app.propertyState}
-                                      </p>
-                                    </div>
-                                    <Badge className={`${statusColors[app.status]} text-[10px]`}>
-                                      {statusLabels[app.status]}
-                                    </Badge>
-                                  </div>
-                                </div>
-                              </div>
-                            </Link>
-                          ))}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
             </div>
           </TabsContent>
 
-          {/* Funded Deals Tab */}
-          <TabsContent value="funded" className="space-y-4">
+          {/* Recently Funded Tab */}
+          <TabsContent value="recently-funded" className="space-y-4">
             <Card>
               <CardHeader className="p-3 sm:p-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
-                    <CardTitle className="text-base sm:text-lg">Recently Funded Deals</CardTitle>
+                    <CardTitle className="text-base sm:text-lg">Recently Funded</CardTitle>
                     <CardDescription className="text-xs sm:text-sm">Manage deals displayed on the homepage and state pages</CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
@@ -1346,6 +1285,64 @@ export default function AdminDashboard() {
           {/* Staff Tab (Admin Only) */}
           {currentUser.role === "admin" && (
             <TabsContent value="staff" className="space-y-4">
+              {/* All Accounts */}
+              <Card>
+                <CardHeader className="p-4 sm:p-6">
+                  <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    All Accounts
+                  </CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">
+                    Manage user roles and permissions
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-0">
+                  {usersLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : (
+                    <ScrollArea className="h-[300px]">
+                      <div className="divide-y">
+                        {users?.map((user) => (
+                          <div key={user.id} className="p-3 flex items-center justify-between" data-testid={`user-row-${user.id}`}>
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                              <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0">
+                                {user.role === "admin" ? (
+                                  <Shield className="h-4 w-4 text-primary" />
+                                ) : user.role === "staff" ? (
+                                  <Briefcase className="h-4 w-4 text-blue-500" />
+                                ) : (
+                                  <User className="h-4 w-4 text-muted-foreground" />
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-sm font-medium truncate">{user.firstName} {user.lastName}</p>
+                                <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                              </div>
+                            </div>
+                            <Select
+                              value={user.role}
+                              onValueChange={(role) => updateRoleMutation.mutate({ userId: user.id, role })}
+                              disabled={user.id === currentUser.id}
+                            >
+                              <SelectTrigger className="w-[90px] h-7 text-xs shrink-0" data-testid={`select-user-role-${user.id}`}>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="borrower">Borrower</SelectItem>
+                                <SelectItem value="staff">Staff</SelectItem>
+                                <SelectItem value="admin">Admin</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  )}
+                </CardContent>
+              </Card>
+
               <div className="grid lg:grid-cols-2 gap-4">
                 {/* Staff Members */}
                 <Card>
@@ -1530,208 +1527,65 @@ export default function AdminDashboard() {
             </TabsContent>
           )}
 
-          {/* Settings Tab (Admin Only) */}
-          {currentUser.role === "admin" && (
-            <TabsContent value="settings" className="space-y-4">
-              <div className="grid lg:grid-cols-2 gap-4">
-                {/* All Accounts */}
-                <Card>
-                  <CardHeader className="p-4 sm:p-6">
-                    <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                      <Users className="h-5 w-5" />
-                      All Accounts
-                    </CardTitle>
-                    <CardDescription className="text-xs sm:text-sm">
-                      Manage user roles and permissions
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    {usersLoading ? (
-                      <div className="flex items-center justify-center py-8">
-                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                      </div>
-                    ) : (
-                      <ScrollArea className="h-[300px]">
-                        <div className="divide-y">
-                          {users?.map((user) => (
-                            <div key={user.id} className="p-3 flex items-center justify-between" data-testid={`user-row-${user.id}`}>
-                              <div className="flex items-center gap-3 min-w-0 flex-1">
-                                <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0">
-                                  {user.role === "admin" ? (
-                                    <Shield className="h-4 w-4 text-primary" />
-                                  ) : user.role === "staff" ? (
-                                    <Briefcase className="h-4 w-4 text-blue-500" />
-                                  ) : (
-                                    <User className="h-4 w-4 text-muted-foreground" />
-                                  )}
-                                </div>
-                                <div className="min-w-0">
-                                  <p className="text-sm font-medium truncate">{user.firstName} {user.lastName}</p>
-                                  <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                                </div>
-                              </div>
-                              <Select
-                                value={user.role}
-                                onValueChange={(role) => updateRoleMutation.mutate({ userId: user.id, role })}
-                                disabled={user.id === currentUser.id}
-                              >
-                                <SelectTrigger className="w-[90px] h-7 text-xs shrink-0" data-testid={`select-user-role-${user.id}`}>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="borrower">Borrower</SelectItem>
-                                  <SelectItem value="staff">Staff</SelectItem>
-                                  <SelectItem value="admin">Admin</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          ))}
-                        </div>
-                      </ScrollArea>
-                    )}
-                  </CardContent>
-                </Card>
+        </Tabs>
+      </main>
 
-                {/* Webhooks */}
-                <Card>
-                  <CardHeader className="p-4 sm:p-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                          <Webhook className="h-5 w-5" />
-                          Webhooks
-                        </CardTitle>
-                        <CardDescription className="text-xs sm:text-sm">
-                          CRM/LOS integrations
-                        </CardDescription>
-                      </div>
-                      <Dialog open={showWebhookDialog} onOpenChange={(open) => {
-                        setShowWebhookDialog(open);
-                        if (!open) {
-                          setNewWebhookSecret(null);
-                          setWebhookForm({
-                            name: "",
-                            targetUrl: "",
-                            subscribedEvents: ["fundedDeal.created", "fundedDeal.updated", "fundedDeal.deleted"],
-                          });
-                        }
-                      }}>
-                        <DialogTrigger asChild>
-                          <Button size="sm" data-testid="button-add-webhook">
-                            <Plus className="h-3.5 w-3.5 mr-1" />
-                            Add
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-lg">
-                          <DialogHeader>
-                            <DialogTitle>Add Webhook Endpoint</DialogTitle>
-                            <DialogDescription>
-                              Configure a new webhook to receive real-time updates
-                            </DialogDescription>
-                          </DialogHeader>
-                          {newWebhookSecret ? (
-                            <div className="space-y-4">
-                              <div className="p-4 bg-green-500/10 rounded-lg border border-green-500/30">
-                                <p className="text-sm text-green-700 font-medium mb-2">Webhook Created!</p>
-                                <p className="text-xs text-muted-foreground mb-2">
-                                  Save this secret - it won't be shown again:
-                                </p>
-                                <div className="flex items-center gap-2">
-                                  <Input value={newWebhookSecret} readOnly className="font-mono text-xs" />
-                                  <Button size="icon" variant="outline" onClick={() => copyToClipboard(newWebhookSecret)}>
-                                    <Copy className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </div>
-                              <Button className="w-full" onClick={() => {
-                                setShowWebhookDialog(false);
-                                setNewWebhookSecret(null);
-                              }}>
-                                Done
-                              </Button>
-                            </div>
-                          ) : (
-                            <>
-                              <div className="space-y-4">
-                                <div className="space-y-2">
-                                  <Label>Endpoint Name</Label>
-                                  <Input
-                                    placeholder="LendFlowPro Production"
-                                    value={webhookForm.name}
-                                    onChange={(e) => setWebhookForm({ ...webhookForm, name: e.target.value })}
-                                    data-testid="input-webhook-name"
-                                  />
-                                </div>
-                                <div className="space-y-2">
-                                  <Label>Webhook URL</Label>
-                                  <Input
-                                    placeholder="https://api.lendflowpro.com/webhooks/saf"
-                                    value={webhookForm.targetUrl}
-                                    onChange={(e) => setWebhookForm({ ...webhookForm, targetUrl: e.target.value })}
-                                    data-testid="input-webhook-url"
-                                  />
-                                </div>
-                                <div className="space-y-2">
-                                  <Label className="text-sm">Subscribed Events</Label>
-                                  <div className="space-y-2">
-                                    {["fundedDeal.created", "fundedDeal.updated", "fundedDeal.deleted"].map((event) => (
-                                      <div key={event} className="flex items-center gap-2">
-                                        <Checkbox
-                                          id={event}
-                                          checked={webhookForm.subscribedEvents.includes(event)}
-                                          onCheckedChange={(checked) => {
-                                            if (checked) {
-                                              setWebhookForm({
-                                                ...webhookForm,
-                                                subscribedEvents: [...webhookForm.subscribedEvents, event],
-                                              });
-                                            } else {
-                                              setWebhookForm({
-                                                ...webhookForm,
-                                                subscribedEvents: webhookForm.subscribedEvents.filter((e) => e !== event),
-                                              });
-                                            }
-                                          }}
-                                        />
-                                        <Label htmlFor={event} className="text-sm font-normal">
-                                          {event}
-                                        </Label>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              </div>
-                              <DialogFooter>
-                                <Button
-                                  onClick={handleWebhookSubmit}
-                                  disabled={!webhookForm.name || !webhookForm.targetUrl || createWebhookMutation.isPending}
-                                  data-testid="button-create-webhook"
-                                >
-                                  {createWebhookMutation.isPending && (
-                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                  )}
-                                  Create Endpoint
-                                </Button>
-                              </DialogFooter>
-                            </>
-                          )}
-                        </DialogContent>
-                      </Dialog>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    {webhooksLoading ? (
-                      <div className="flex items-center justify-center py-8">
-                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                      </div>
-                    ) : webhookEndpoints?.length === 0 ? (
-                      <div className="text-center py-8 text-muted-foreground text-sm">
-                        No webhook endpoints configured
-                      </div>
-                    ) : (
-                      <div className="divide-y">
-                        {webhookEndpoints?.map((endpoint) => (
-                          <div key={endpoint.id} className="p-4 flex items-center justify-between" data-testid={`webhook-row-${endpoint.id}`}>
+      {/* Webhook Dialog (Admin Only) */}
+      {currentUser.role === "admin" && (
+        <Dialog open={showWebhookDialog} onOpenChange={(open) => {
+          setShowWebhookDialog(open);
+          if (!open) {
+            setNewWebhookSecret(null);
+            setWebhookForm({
+              name: "",
+              targetUrl: "",
+              subscribedEvents: ["fundedDeal.created", "fundedDeal.updated", "fundedDeal.deleted"],
+            });
+          }
+        }}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Webhook className="h-5 w-5" />
+                Webhook Endpoints
+              </DialogTitle>
+              <DialogDescription>
+                Configure webhooks for CRM/LOS integrations
+              </DialogDescription>
+            </DialogHeader>
+            {newWebhookSecret ? (
+              <div className="space-y-4">
+                <div className="p-4 bg-green-500/10 rounded-lg border border-green-500/30">
+                  <p className="text-sm text-green-700 font-medium mb-2">Webhook Created!</p>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Save this secret - it won't be shown again:
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Input value={newWebhookSecret} readOnly className="font-mono text-xs" />
+                    <Button size="icon" variant="outline" onClick={() => copyToClipboard(newWebhookSecret)}>
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                <Button className="w-full" onClick={() => {
+                  setShowWebhookDialog(false);
+                  setNewWebhookSecret(null);
+                }}>
+                  Done
+                </Button>
+              </div>
+            ) : (
+              <>
+                {webhooksLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : (
+                  <>
+                    {webhookEndpoints && webhookEndpoints.length > 0 && (
+                      <div className="border rounded-lg divide-y max-h-[200px] overflow-y-auto mb-4">
+                        {webhookEndpoints.map((endpoint) => (
+                          <div key={endpoint.id} className="p-3 flex items-center justify-between" data-testid={`webhook-row-${endpoint.id}`}>
                             <div className="min-w-0 flex-1">
                               <p className="text-sm font-medium">{endpoint.name}</p>
                               <p className="text-xs text-muted-foreground truncate max-w-[200px]">{endpoint.targetUrl}</p>
@@ -1764,13 +1618,75 @@ export default function AdminDashboard() {
                         ))}
                       </div>
                     )}
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-          )}
-        </Tabs>
-      </main>
+                    <div className="space-y-4 border-t pt-4">
+                      <p className="text-sm font-medium">Add New Endpoint</p>
+                      <div className="space-y-2">
+                        <Label>Endpoint Name</Label>
+                        <Input
+                          placeholder="LendFlowPro Production"
+                          value={webhookForm.name}
+                          onChange={(e) => setWebhookForm({ ...webhookForm, name: e.target.value })}
+                          data-testid="input-webhook-name"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Webhook URL</Label>
+                        <Input
+                          placeholder="https://api.lendflowpro.com/webhooks/saf"
+                          value={webhookForm.targetUrl}
+                          onChange={(e) => setWebhookForm({ ...webhookForm, targetUrl: e.target.value })}
+                          data-testid="input-webhook-url"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm">Subscribed Events</Label>
+                        <div className="space-y-2">
+                          {["fundedDeal.created", "fundedDeal.updated", "fundedDeal.deleted"].map((event) => (
+                            <div key={event} className="flex items-center gap-2">
+                              <Checkbox
+                                id={event}
+                                checked={webhookForm.subscribedEvents.includes(event)}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    setWebhookForm({
+                                      ...webhookForm,
+                                      subscribedEvents: [...webhookForm.subscribedEvents, event],
+                                    });
+                                  } else {
+                                    setWebhookForm({
+                                      ...webhookForm,
+                                      subscribedEvents: webhookForm.subscribedEvents.filter((e) => e !== event),
+                                    });
+                                  }
+                                }}
+                              />
+                              <Label htmlFor={event} className="text-sm font-normal">
+                                {event}
+                              </Label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button
+                        onClick={handleWebhookSubmit}
+                        disabled={!webhookForm.name || !webhookForm.targetUrl || createWebhookMutation.isPending}
+                        data-testid="button-create-webhook"
+                      >
+                        {createWebhookMutation.isPending && (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        )}
+                        Create Endpoint
+                      </Button>
+                    </DialogFooter>
+                  </>
+                )}
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
