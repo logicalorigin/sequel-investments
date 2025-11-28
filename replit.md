@@ -62,7 +62,9 @@ All three product pages (DSCR, Fix & Flip, New Construction) follow a consistent
 - **Analyzer-to-Application Data Persistence**: Scenario data from analyzers (DSCR, Fix & Flip, Construction) is saved with Draft applications, allowing for round-trip editing and data restoration.
 - **Investment Analysis Page**: Comprehensive deal calculator with property, cost, and loan inputs, providing ROI, profit margin, and LTV/LTC. Includes specific DSCR calculator features for rental deals and Construction Calculator features (e.g., "Land is Owned" checkbox, state-based rates).
 - **Analyzer Rate Structure**: 
-  - Fix & Flip: 8.9% fixed base rate, credit score adjustments (+0% for 720+, +0.5% for 700-719, +1.0% for 680-699, +1.5% below 680)
+  - Fix & Flip: 8.9% base rate reserved for 3+ deals AND 720+ FICO. Rate adjustments:
+    - Credit score: +0% for 720+, +0.5% for 700-719, +1.0% for 680-699, +1.5% below 680
+    - Experience: +1.5% for 0 deals, +1.0% for 1-2 deals, +0% for 3+ deals
   - Construction: State-based base rate (8.9% for California, 9.9% for non-California), same credit score adjustments
   - Origination Points: Linear scale from 2.0% at base rate to 0.0% at 12.9% rate (both analyzers)
 - **Profile Page**: User profile management, password, investment preferences, notification settings, connected entities, and account overview.
