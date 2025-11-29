@@ -600,7 +600,7 @@ export default function FixFlipAnalyzerPage() {
               </CardContent>
             </Card>
 
-            {/* Borrower Profile - FICO & Experience */}
+            {/* Borrower Profile - FICO, Experience & LTC */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Card>
                 <CardContent className="pt-3 sm:pt-4 space-y-4">
@@ -642,6 +642,38 @@ export default function FixFlipAnalyzerPage() {
                       ))}
                     </div>
                   </div>
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <Label className="text-xs sm:text-sm">Loan-to-Cost (LTC)</Label>
+                      <div className="flex items-center gap-1">
+                        <Input
+                          type="number"
+                          value={ltcSlider[0]}
+                          onChange={(e) => {
+                            const val = Math.min(parseInt(e.target.value) || 0, maxLtc);
+                            setLtcSlider([val]);
+                          }}
+                          className="w-12 sm:w-14 h-7 text-center text-xs sm:text-sm"
+                          max={maxLtc}
+                          data-testid="input-ltc"
+                        />
+                        <span className="text-xs sm:text-sm font-medium text-primary">%</span>
+                      </div>
+                    </div>
+                    <Slider
+                      value={ltcSlider}
+                      onValueChange={handleLtcSliderChange}
+                      min={0}
+                      max={maxLtc}
+                      step={5}
+                      className="w-full"
+                      data-testid="slider-ltc"
+                    />
+                    <div className="flex justify-between text-[10px] text-muted-foreground mt-0.5">
+                      <span>0%</span>
+                      <span>{maxLtc}% Max</span>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -674,44 +706,6 @@ export default function FixFlipAnalyzerPage() {
                 </CardContent>
               </Card>
             </div>
-
-            {/* Financing Details */}
-            <Card>
-              <CardContent className="pt-3 sm:pt-4">
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <Label className="text-xs sm:text-sm">Loan-to-Cost (LTC)</Label>
-                    <div className="flex items-center gap-1">
-                      <Input
-                        type="number"
-                        value={ltcSlider[0]}
-                        onChange={(e) => {
-                          const val = Math.min(parseInt(e.target.value) || 0, maxLtc);
-                          setLtcSlider([val]);
-                        }}
-                        className="w-12 sm:w-14 h-7 text-center text-xs sm:text-sm"
-                        max={maxLtc}
-                        data-testid="input-ltc"
-                      />
-                      <span className="text-xs sm:text-sm font-medium text-primary">%</span>
-                    </div>
-                  </div>
-                  <Slider
-                    value={ltcSlider}
-                    onValueChange={handleLtcSliderChange}
-                    min={0}
-                    max={maxLtc}
-                    step={5}
-                    className="w-full"
-                    data-testid="slider-ltc"
-                  />
-                  <div className="flex justify-between text-[10px] text-muted-foreground mt-0.5">
-                    <span>0%</span>
-                    <span>{maxLtc}% Max</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
 
           </div>
 
