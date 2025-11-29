@@ -522,22 +522,11 @@ export default function DSCRAnalyzerPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <PortalHeader user={user} />
-
-      <main className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
-        <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
-          <div className="flex items-center gap-2 sm:gap-3">
-            {applicationId && (
-              <Link href={`/portal/application/${applicationId}`}>
-                <Button variant="ghost" size="icon" data-testid="button-back-to-application">
-                  <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
-                </Button>
-              </Link>
-            )}
-            <h1 className="text-lg sm:text-2xl font-bold" data-testid="text-page-title">
-              DSCR Loan Analyzer
-            </h1>
-          </div>
+      <PortalHeader 
+        user={user} 
+        title="DSCR Loan Analyzer"
+        backHref={applicationId ? `/portal/application/${applicationId}` : undefined}
+        titleExtra={
           <ScenarioManager
             analyzerType="dscr"
             currentData={getCurrentScenarioData()}
@@ -545,8 +534,10 @@ export default function DSCRAnalyzerPage() {
             resultsData={results}
             userName={user?.firstName || user?.email || undefined}
           />
-        </div>
+        }
+      />
 
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Left Column - Inputs (order-last on mobile so results appears first) */}
           <div className="lg:col-span-2 space-y-4 order-last lg:order-first">

@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LogOut, User, Calculator, ChevronDown, Home, Hammer, HardHat, Bell, Check, FileText, AlertCircle, Users, DollarSign, X } from "lucide-react";
+import { LogOut, User, Calculator, ChevronDown, Home, Hammer, HardHat, Bell, Check, FileText, AlertCircle, Users, DollarSign, X, ArrowLeft } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,6 +29,9 @@ interface PortalHeaderProps {
     email?: string | null;
     profileImageUrl?: string | null;
   } | null | undefined;
+  title?: string;
+  titleExtra?: React.ReactNode;
+  backHref?: string;
 }
 
 const getNotificationIcon = (type: string) => {
@@ -49,7 +52,7 @@ const getNotificationIcon = (type: string) => {
   }
 };
 
-export function PortalHeader({ user }: PortalHeaderProps) {
+export function PortalHeader({ user, title, titleExtra, backHref }: PortalHeaderProps) {
   const [location] = useLocation();
 
   const getInitials = (firstName?: string | null, lastName?: string | null) => {
@@ -99,18 +102,40 @@ export function PortalHeader({ user }: PortalHeaderProps) {
 
   return (
     <header className="border-b bg-card sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
-        <Link href="/">
-          <div className="flex items-center cursor-pointer hover-elevate active-elevate-2 px-2 py-1 rounded-md -ml-2">
-            <img 
-              src={logoIcon} 
-              alt="Secured Asset Funding" 
-              className="h-12 w-auto object-contain"
-            />
-          </div>
-        </Link>
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 flex items-center justify-between gap-2 sm:gap-4">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+          <Link href="/">
+            <div className="flex items-center cursor-pointer hover-elevate active-elevate-2 px-1 py-1 rounded-md -ml-1 shrink-0">
+              <img 
+                src={logoIcon} 
+                alt="Secured Asset Funding" 
+                className="h-10 sm:h-12 w-auto object-contain"
+              />
+            </div>
+          </Link>
+          
+          {title && (
+            <div className="flex items-center gap-2 min-w-0">
+              {backHref && (
+                <Link href={backHref}>
+                  <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8" data-testid="button-back">
+                    <ArrowLeft className="h-4 w-4" />
+                  </Button>
+                </Link>
+              )}
+              <h1 className="text-sm sm:text-lg font-bold truncate" data-testid="text-page-title">
+                {title}
+              </h1>
+              {titleExtra && (
+                <div className="hidden sm:block shrink-0">
+                  {titleExtra}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
         
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4 shrink-0">
           <Link href="/portal">
             <Button 
               variant="ghost" 
