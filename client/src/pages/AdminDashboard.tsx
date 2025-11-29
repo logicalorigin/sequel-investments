@@ -215,6 +215,7 @@ export default function AdminDashboard() {
     state: "",
     propertyType: "Single Family",
     loanType: "DSCR",
+    loanSubtype: "",
     loanAmount: "",
     rate: "",
     ltv: "",
@@ -223,6 +224,12 @@ export default function AdminDashboard() {
     imageUrl: "",
     isVisible: true,
   });
+  
+  const loanSubtypeOptions: Record<string, string[]> = {
+    "DSCR": ["Long-term Rental", "Short-term Rental", "DSCR No Ratio", "Portfolio", "Mixed Use"],
+    "Fix & Flip": ["Bridge to Sale", "Bridge to Rent", "Fix & Flip", "Light Rehab", "Heavy Rehab"],
+    "New Construction": ["Ground Up", "ADU/Conversion", "Spec Build", "Pre-Sold"],
+  };
   
   const [showWebhookDialog, setShowWebhookDialog] = useState(false);
   const [webhookForm, setWebhookForm] = useState({
@@ -386,6 +393,7 @@ export default function AdminDashboard() {
       state: "",
       propertyType: "Single Family",
       loanType: "DSCR",
+      loanSubtype: "",
       loanAmount: "",
       rate: "",
       ltv: "",
@@ -403,6 +411,7 @@ export default function AdminDashboard() {
       state: deal.state,
       propertyType: deal.propertyType,
       loanType: deal.loanType,
+      loanSubtype: deal.loanSubtype || "",
       loanAmount: deal.loanAmount.toString(),
       rate: deal.rate,
       ltv: deal.ltv?.toString() || "",
@@ -420,6 +429,7 @@ export default function AdminDashboard() {
       state: dealForm.state,
       propertyType: dealForm.propertyType,
       loanType: dealForm.loanType,
+      loanSubtype: dealForm.loanSubtype || null,
       loanAmount: parseInt(dealForm.loanAmount),
       rate: dealForm.rate,
       ltv: dealForm.ltv ? parseInt(dealForm.ltv) : null,
@@ -1099,7 +1109,7 @@ export default function AdminDashboard() {
                           </div>
                           <div className="space-y-2">
                             <Label>Loan Type</Label>
-                            <Select value={dealForm.loanType} onValueChange={(v) => setDealForm({ ...dealForm, loanType: v, ltv: "", ltc: "" })}>
+                            <Select value={dealForm.loanType} onValueChange={(v) => setDealForm({ ...dealForm, loanType: v, loanSubtype: "", ltv: "", ltc: "" })}>
                               <SelectTrigger data-testid="select-loan-type">
                                 <SelectValue />
                               </SelectTrigger>
@@ -1110,6 +1120,26 @@ export default function AdminDashboard() {
                               </SelectContent>
                             </Select>
                           </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Loan Subtype (from LendFlowPro)</Label>
+                          <Select 
+                            value={dealForm.loanSubtype} 
+                            onValueChange={(v) => setDealForm({ ...dealForm, loanSubtype: v })}
+                          >
+                            <SelectTrigger data-testid="select-loan-subtype">
+                              <SelectValue placeholder="Select subtype (optional)" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="">None</SelectItem>
+                              {loanSubtypeOptions[dealForm.loanType]?.map((subtype) => (
+                                <SelectItem key={subtype} value={subtype}>{subtype}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-muted-foreground">
+                            Categorizes the loan for display (e.g., DSCR: Long-term Rental, Bridge: Bridge to Sale)
+                          </p>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
@@ -1205,9 +1235,16 @@ export default function AdminDashboard() {
                               <Building2 className="h-12 w-12 text-muted-foreground/50" />
                             </div>
                           )}
-                          <Badge className={`absolute top-2 left-2 text-xs ${deal.loanType === "DSCR" ? "bg-blue-500" : deal.loanType === "Fix & Flip" ? "bg-amber-500" : "bg-green-500"}`}>
-                            {deal.loanType}
-                          </Badge>
+                          <div className="absolute top-2 left-2 flex flex-col gap-1">
+                            <Badge className={`text-xs ${deal.loanType === "DSCR" ? "bg-blue-500" : deal.loanType === "Fix & Flip" ? "bg-amber-500" : "bg-green-500"}`}>
+                              {deal.loanType}
+                            </Badge>
+                            {deal.loanSubtype && (
+                              <Badge variant="secondary" className="text-[10px]">
+                                {deal.loanSubtype}
+                              </Badge>
+                            )}
+                          </div>
                           {!deal.isVisible && (
                             <Badge variant="secondary" className="absolute top-2 right-2 text-xs">
                               <EyeOff className="h-3 w-3 mr-1" />
@@ -1301,7 +1338,12 @@ export default function AdminDashboard() {
                               </div>
                             </TableCell>
                             <TableCell className="py-2">
-                              <Badge variant="outline" className="text-[10px]">{deal.loanType}</Badge>
+                              <div className="flex flex-col gap-0.5">
+                                <Badge variant="outline" className="text-[10px]">{deal.loanType}</Badge>
+                                {deal.loanSubtype && (
+                                  <span className="text-[10px] text-muted-foreground">{deal.loanSubtype}</span>
+                                )}
+                              </div>
                             </TableCell>
                             <TableCell className="py-2 hidden sm:table-cell text-sm">
                               {formatCurrency(deal.loanAmount)}

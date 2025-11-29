@@ -20,6 +20,7 @@ interface FundedDeal {
   location: string;
   state: string;
   loanType: "DSCR" | "Fix & Flip" | "New Construction";
+  loanSubtype?: string;
   loanAmount: number;
   rate: number;
   ltv?: number;
@@ -159,6 +160,7 @@ function mapDbDealToDisplay(deal: DbFundedDeal, index: number): FundedDeal {
     location: deal.location,
     state: deal.state,
     loanType: deal.loanType as "DSCR" | "Fix & Flip" | "New Construction",
+    loanSubtype: deal.loanSubtype || undefined,
     loanAmount: deal.loanAmount,
     rate: rateNum,
     ltv: deal.ltv || undefined,
@@ -282,11 +284,18 @@ export function RecentlyFundedCarousel({
                       alt={`${deal.location}, ${deal.state}`}
                       className="w-full h-full object-cover"
                     />
-                    <Badge 
-                      className={`absolute top-2 sm:top-3 left-2 sm:left-3 text-[10px] sm:text-xs ${getLoanTypeBadgeColor(deal.loanType)}`}
-                    >
-                      {deal.loanType}
-                    </Badge>
+                    <div className="absolute top-2 sm:top-3 left-2 sm:left-3 flex flex-col gap-1">
+                      <Badge 
+                        className={`text-[10px] sm:text-xs ${getLoanTypeBadgeColor(deal.loanType)}`}
+                      >
+                        {deal.loanType}
+                      </Badge>
+                      {deal.loanSubtype && (
+                        <Badge variant="secondary" className="text-[9px] sm:text-[10px] bg-background/80 backdrop-blur-sm">
+                          {deal.loanSubtype}
+                        </Badge>
+                      )}
+                    </div>
                     <Badge 
                       variant="secondary"
                       className="absolute top-2 sm:top-3 right-2 sm:right-3 text-[10px] sm:text-xs bg-background/90 backdrop-blur-sm"
