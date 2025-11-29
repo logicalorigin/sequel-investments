@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -73,6 +72,7 @@ import {
   Calendar,
   ChevronRight,
   ChevronDown,
+  ChevronLeft,
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -119,8 +119,10 @@ const stageLabels: Record<string, string> = {
   closed: "Closed",
 };
 
-type AdminTab = "applications" | "borrowers" | "recently-funded" | "staff";
+type AdminSection = "applications" | "borrowers" | "recently-funded" | "staff";
 type FundedViewStyle = "list" | "cards";
+
+const ITEMS_PER_PAGE = 10;
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat("en-US", {
@@ -139,10 +141,60 @@ function formatDate(dateString: string | Date): string {
   });
 }
 
+function Pagination({ 
+  currentPage, 
+  totalPages, 
+  onPageChange,
+  totalItems,
+  itemsPerPage,
+}: { 
+  currentPage: number; 
+  totalPages: number; 
+  onPageChange: (page: number) => void;
+  totalItems: number;
+  itemsPerPage: number;
+}) {
+  const startItem = (currentPage - 1) * itemsPerPage + 1;
+  const endItem = Math.min(currentPage * itemsPerPage, totalItems);
+
+  return (
+    <div className="flex items-center justify-between px-4 py-3 border-t">
+      <p className="text-xs text-muted-foreground">
+        Showing {startItem}-{endItem} of {totalItems}
+      </p>
+      <div className="flex items-center gap-1">
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-8 w-8"
+          disabled={currentPage === 1}
+          onClick={() => onPageChange(currentPage - 1)}
+          data-testid="button-prev-page"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <span className="text-sm px-2 min-w-[80px] text-center">
+          Page {currentPage} of {totalPages}
+        </span>
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-8 w-8"
+          disabled={currentPage === totalPages}
+          onClick={() => onPageChange(currentPage + 1)}
+          data-testid="button-next-page"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<AdminTab>("applications");
+  const [activeSection, setActiveSection] = useState<AdminSection>("applications");
   const [fundedViewStyle, setFundedViewStyle] = useState<FundedViewStyle>("list");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [loanTypeFilter, setLoanTypeFilter] = useState<string>("all");
@@ -152,6 +204,11 @@ export default function AdminDashboard() {
   const [inviteRole, setInviteRole] = useState<"staff" | "admin">("staff");
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [newInviteLink, setNewInviteLink] = useState<string | null>(null);
+  
+  const [applicationsPage, setApplicationsPage] = useState(1);
+  const [borrowersPage, setBorrowersPage] = useState(1);
+  const [fundedPage, setFundedPage] = useState(1);
+  const [staffPage, setStaffPage] = useState(1);
   
   const [showDealDialog, setShowDealDialog] = useState(false);
   const [editingDeal, setEditingDeal] = useState<FundedDeal | null>(null);
@@ -453,7 +510,7 @@ export default function AdminDashboard() {
     if (statusFilter !== "all" && app.status !== statusFilter) return false;
     if (loanTypeFilter !== "all" && app.loanType !== loanTypeFilter) return false;
     return true;
-  });
+  }) || [];
 
   const loanTypes = Array.from(new Set(applications?.map((app) => app.loanType) || []));
 
@@ -474,7 +531,6 @@ export default function AdminDashboard() {
     }
     return matchesSearch;
   });
-
 
   const stats = {
     total: applications?.length || 0,
@@ -532,6 +588,30 @@ export default function AdminDashboard() {
     );
   };
 
+  const applicationsTotalPages = Math.ceil(filteredApplications.length / ITEMS_PER_PAGE);
+  const paginatedApplications = filteredApplications.slice(
+    (applicationsPage - 1) * ITEMS_PER_PAGE,
+    applicationsPage * ITEMS_PER_PAGE
+  );
+
+  const borrowersTotalPages = Math.ceil(filteredBorrowers.length / ITEMS_PER_PAGE);
+  const paginatedBorrowers = filteredBorrowers.slice(
+    (borrowersPage - 1) * ITEMS_PER_PAGE,
+    borrowersPage * ITEMS_PER_PAGE
+  );
+
+  const fundedTotalPages = Math.ceil((fundedDeals?.length || 0) / ITEMS_PER_PAGE);
+  const paginatedDeals = fundedDeals?.slice(
+    (fundedPage - 1) * ITEMS_PER_PAGE,
+    fundedPage * ITEMS_PER_PAGE
+  ) || [];
+
+  const staffTotalPages = Math.ceil(staffMembers.length / ITEMS_PER_PAGE);
+  const paginatedStaff = staffMembers.slice(
+    (staffPage - 1) * ITEMS_PER_PAGE,
+    staffPage * ITEMS_PER_PAGE
+  );
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card sticky top-0 z-50">
@@ -563,7 +643,7 @@ export default function AdminDashboard() {
                   <DropdownMenuLabel>Admin Settings</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem 
-                    onClick={() => setActiveTab("staff")}
+                    onClick={() => setActiveSection("staff")}
                     data-testid="dropdown-staff"
                   >
                     <Shield className="h-4 w-4 mr-2" />
@@ -579,9 +659,7 @@ export default function AdminDashboard() {
                   <DropdownMenuSeparator />
                   <DropdownMenuLabel className="text-[10px] text-muted-foreground">All Accounts</DropdownMenuLabel>
                   <DropdownMenuItem 
-                    onClick={() => {
-                      setActiveTab("staff");
-                    }}
+                    onClick={() => setActiveSection("staff")}
                     data-testid="dropdown-users"
                   >
                     <Users className="h-4 w-4 mr-2" />
@@ -603,57 +681,21 @@ export default function AdminDashboard() {
       </header>
 
       <main className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
-        {/* Stats Overview */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-3 mb-4 sm:mb-6">
+        {/* Stats Overview - Applications, In Review, Pending, Approved */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-6">
           <Card 
-            className={`cursor-pointer transition-all hover-elevate ${activeTab === "applications" ? "ring-2 ring-primary" : ""}`}
-            onClick={() => setActiveTab("applications")}
+            className="cursor-pointer transition-all hover-elevate"
+            onClick={() => { setActiveSection("applications"); setStatusFilter("all"); setApplicationsPage(1); }}
             data-testid="stat-card-applications"
           >
-            <CardContent className="p-2 sm:p-4">
-              <div className="flex flex-col items-center gap-1 text-center">
-                <div className="p-1.5 sm:p-2 bg-primary/10 rounded-lg">
-                  <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg shrink-0">
+                  <FileText className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-lg sm:text-2xl font-bold">{stats.total}</p>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground">Applications</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card 
-            className={`cursor-pointer transition-all hover-elevate ${activeTab === "borrowers" ? "ring-2 ring-blue-500" : ""}`}
-            onClick={() => setActiveTab("borrowers")}
-            data-testid="stat-card-borrowers"
-          >
-            <CardContent className="p-2 sm:p-4">
-              <div className="flex flex-col items-center gap-1 text-center">
-                <div className="p-1.5 sm:p-2 bg-blue-500/10 rounded-lg">
-                  <Users className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-lg sm:text-2xl font-bold">{stats.totalBorrowers}</p>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground">Borrowers</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card 
-            className={`cursor-pointer transition-all hover-elevate ${activeTab === "recently-funded" ? "ring-2 ring-emerald-500" : ""}`}
-            onClick={() => setActiveTab("recently-funded")}
-            data-testid="stat-card-funded"
-          >
-            <CardContent className="p-2 sm:p-4">
-              <div className="flex flex-col items-center gap-1 text-center">
-                <div className="p-1.5 sm:p-2 bg-emerald-500/10 rounded-lg">
-                  <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600" />
-                </div>
-                <div>
-                  <p className="text-lg sm:text-2xl font-bold">{stats.totalDeals}</p>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground">Recently Funded</p>
+                  <p className="text-2xl sm:text-3xl font-bold">{stats.total}</p>
+                  <p className="text-xs text-muted-foreground">Applications</p>
                 </div>
               </div>
             </CardContent>
@@ -661,201 +703,194 @@ export default function AdminDashboard() {
 
           <Card 
             className="cursor-pointer transition-all hover-elevate"
-            onClick={() => { setActiveTab("applications"); setStatusFilter("submitted"); }}
-            data-testid="stat-card-submitted"
-          >
-            <CardContent className="p-2 sm:p-4">
-              <div className="flex flex-col items-center gap-1 text-center">
-                <div className="p-1.5 sm:p-2 bg-yellow-500/10 rounded-lg">
-                  <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-600" />
-                </div>
-                <div>
-                  <p className="text-lg sm:text-2xl font-bold">{stats.submitted}</p>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground">Pending</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card 
-            className="cursor-pointer transition-all hover-elevate hidden sm:block"
-            onClick={() => { setActiveTab("applications"); setStatusFilter("in_review"); }}
+            onClick={() => { setActiveSection("applications"); setStatusFilter("in_review"); setApplicationsPage(1); }}
             data-testid="stat-card-in-review"
           >
-            <CardContent className="p-2 sm:p-4">
-              <div className="flex flex-col items-center gap-1 text-center">
-                <div className="p-1.5 sm:p-2 bg-orange-500/10 rounded-lg">
-                  <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600" />
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-yellow-500/10 rounded-lg shrink-0">
+                  <AlertCircle className="h-5 w-5 text-yellow-600" />
                 </div>
                 <div>
-                  <p className="text-lg sm:text-2xl font-bold">{stats.inReview}</p>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground">In Review</p>
+                  <p className="text-2xl sm:text-3xl font-bold">{stats.inReview}</p>
+                  <p className="text-xs text-muted-foreground">In Review</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card 
-            className="cursor-pointer transition-all hover-elevate hidden lg:block"
-            onClick={() => { setActiveTab("applications"); setStatusFilter("approved"); }}
-            data-testid="stat-card-approved"
+            className="cursor-pointer transition-all hover-elevate"
+            onClick={() => { setActiveSection("applications"); setStatusFilter("submitted"); setApplicationsPage(1); }}
+            data-testid="stat-card-pending"
           >
-            <CardContent className="p-2 sm:p-4">
-              <div className="flex flex-col items-center gap-1 text-center">
-                <div className="p-1.5 sm:p-2 bg-green-500/10 rounded-lg">
-                  <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-500/10 rounded-lg shrink-0">
+                  <Clock className="h-5 w-5 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-lg sm:text-2xl font-bold">{stats.approved}</p>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground">Approved</p>
+                  <p className="text-2xl sm:text-3xl font-bold">{stats.submitted}</p>
+                  <p className="text-xs text-muted-foreground">Pending</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card 
+            className="cursor-pointer transition-all hover-elevate"
+            onClick={() => { setActiveSection("applications"); setStatusFilter("approved"); setApplicationsPage(1); }}
+            data-testid="stat-card-approved"
+          >
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-green-500/10 rounded-lg shrink-0">
+                  <CheckCircle2 className="h-5 w-5 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-2xl sm:text-3xl font-bold">{stats.approved}</p>
+                  <p className="text-xs text-muted-foreground">Approved</p>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Tabbed Navigation */}
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as AdminTab)} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-4 lg:w-auto lg:inline-flex">
-            <TabsTrigger value="applications" className="gap-1 sm:gap-2" data-testid="tab-applications">
-              <FileText className="h-4 w-4" />
-              <span className="hidden sm:inline">Applications</span>
-            </TabsTrigger>
-            <TabsTrigger value="borrowers" className="gap-1 sm:gap-2" data-testid="tab-borrowers">
-              <Users className="h-4 w-4" />
-              <span className="hidden sm:inline">Borrowers</span>
-            </TabsTrigger>
-            <TabsTrigger value="recently-funded" className="gap-1 sm:gap-2" data-testid="tab-recently-funded">
-              <DollarSign className="h-4 w-4" />
-              <span className="hidden sm:inline">Recently Funded</span>
-            </TabsTrigger>
-            {currentUser.role === "admin" && (
-              <TabsTrigger value="staff" className="gap-1 sm:gap-2" data-testid="tab-staff">
-                <UserPlus className="h-4 w-4" />
-                <span className="hidden sm:inline">Staff</span>
-              </TabsTrigger>
-            )}
-          </TabsList>
+        {/* Section Navigation */}
+        <div className="flex flex-wrap gap-2 mb-6">
+          <Button
+            variant={activeSection === "applications" ? "default" : "outline"}
+            size="sm"
+            onClick={() => { setActiveSection("applications"); setApplicationsPage(1); }}
+            data-testid="nav-applications"
+          >
+            <FileText className="h-4 w-4 mr-2" />
+            Applications
+          </Button>
+          <Button
+            variant={activeSection === "borrowers" ? "default" : "outline"}
+            size="sm"
+            onClick={() => { setActiveSection("borrowers"); setBorrowersPage(1); }}
+            data-testid="nav-borrowers"
+          >
+            <Users className="h-4 w-4 mr-2" />
+            Borrowers ({stats.totalBorrowers})
+          </Button>
+          <Button
+            variant={activeSection === "recently-funded" ? "default" : "outline"}
+            size="sm"
+            onClick={() => { setActiveSection("recently-funded"); setFundedPage(1); }}
+            data-testid="nav-recently-funded"
+          >
+            <DollarSign className="h-4 w-4 mr-2" />
+            Recently Funded ({stats.totalDeals})
+          </Button>
+          {currentUser.role === "admin" && (
+            <Button
+              variant={activeSection === "staff" ? "default" : "outline"}
+              size="sm"
+              onClick={() => { setActiveSection("staff"); setStaffPage(1); }}
+              data-testid="nav-staff"
+            >
+              <Shield className="h-4 w-4 mr-2" />
+              Staff ({staffMembers.length})
+            </Button>
+          )}
+        </div>
 
-          {/* Applications Tab */}
-          <TabsContent value="applications" className="space-y-4">
-            <Card>
-              <CardHeader className="p-3 sm:p-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-                  <div>
-                    <CardTitle className="text-base sm:text-lg">Loan Applications</CardTitle>
-                    <CardDescription className="text-xs sm:text-sm">View and manage all loan applications</CardDescription>
-                  </div>
-                  <div className="flex gap-2">
-                    <Select value={statusFilter} onValueChange={setStatusFilter}>
-                      <SelectTrigger className="w-[110px] sm:w-[140px] h-8 sm:h-9 text-xs sm:text-sm" data-testid="select-status-filter">
-                        <SelectValue placeholder="Status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Status</SelectItem>
-                        <SelectItem value="draft">Draft</SelectItem>
-                        <SelectItem value="submitted">Submitted</SelectItem>
-                        <SelectItem value="in_review">In Review</SelectItem>
-                        <SelectItem value="approved">Approved</SelectItem>
-                        <SelectItem value="funded">Funded</SelectItem>
-                        <SelectItem value="denied">Denied</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Select value={loanTypeFilter} onValueChange={setLoanTypeFilter}>
-                      <SelectTrigger className="w-[110px] sm:w-[160px] h-8 sm:h-9 text-xs sm:text-sm" data-testid="select-type-filter">
-                        <SelectValue placeholder="Loan Type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Types</SelectItem>
-                        {loanTypes.map((type) => (
-                          <SelectItem key={type} value={type}>{type}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+        {/* Applications Section */}
+        {activeSection === "applications" && (
+          <Card>
+            <CardHeader className="p-3 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+                <div>
+                  <CardTitle className="text-base sm:text-lg">Loan Applications</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">View and manage all loan applications</CardDescription>
                 </div>
-              </CardHeader>
-              <CardContent className="p-0 sm:p-6 sm:pt-0">
-                {appsLoading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                  </div>
-                ) : filteredApplications?.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    No applications found
-                  </div>
-                ) : (
+                <div className="flex gap-2">
+                  <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setApplicationsPage(1); }}>
+                    <SelectTrigger className="w-[110px] h-8 text-xs" data-testid="select-status-filter">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="draft">Draft</SelectItem>
+                      <SelectItem value="submitted">Submitted</SelectItem>
+                      <SelectItem value="in_review">In Review</SelectItem>
+                      <SelectItem value="approved">Approved</SelectItem>
+                      <SelectItem value="funded">Funded</SelectItem>
+                      <SelectItem value="denied">Denied</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={loanTypeFilter} onValueChange={(v) => { setLoanTypeFilter(v); setApplicationsPage(1); }}>
+                    <SelectTrigger className="w-[120px] h-8 text-xs" data-testid="select-type-filter">
+                      <SelectValue placeholder="Loan Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Types</SelectItem>
+                      {loanTypes.map((type) => (
+                        <SelectItem key={type} value={type}>{type}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              {appsLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : filteredApplications.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground text-sm">
+                  No applications found
+                </div>
+              ) : (
+                <>
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="text-xs sm:text-sm whitespace-nowrap">Loan ID</TableHead>
-                          <TableHead className="text-xs sm:text-sm whitespace-nowrap">Borrower</TableHead>
-                          <TableHead className="text-xs sm:text-sm whitespace-nowrap">Type</TableHead>
-                          <TableHead className="text-xs sm:text-sm whitespace-nowrap hidden md:table-cell">Property</TableHead>
-                          <TableHead className="text-xs sm:text-sm whitespace-nowrap">Amount</TableHead>
-                          <TableHead className="text-xs sm:text-sm whitespace-nowrap">Status</TableHead>
-                          <TableHead className="text-xs sm:text-sm whitespace-nowrap hidden lg:table-cell">Stage</TableHead>
-                          <TableHead className="text-xs sm:text-sm whitespace-nowrap">Actions</TableHead>
+                          <TableHead className="text-xs">Borrower</TableHead>
+                          <TableHead className="text-xs hidden sm:table-cell">Loan Type</TableHead>
+                          <TableHead className="text-xs hidden md:table-cell">Amount</TableHead>
+                          <TableHead className="text-xs">Status</TableHead>
+                          <TableHead className="text-xs hidden lg:table-cell">Stage</TableHead>
+                          <TableHead className="text-xs hidden lg:table-cell">Date</TableHead>
+                          <TableHead className="text-xs text-right">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredApplications?.map((app) => (
-                          <TableRow key={app.id} data-testid={`row-app-${app.id}`}>
-                            <TableCell className="font-mono text-xs sm:text-sm">
-                              {app.id.slice(0, 8).toUpperCase()}
-                            </TableCell>
-                            <TableCell>
+                        {paginatedApplications.map((app) => (
+                          <TableRow key={app.id} data-testid={`app-row-${app.id}`}>
+                            <TableCell className="py-2">
                               <div>
-                                <Link 
-                                  href={`/admin/borrower/${app.userId}`}
-                                  className="font-medium text-xs sm:text-sm text-primary hover:underline"
-                                  data-testid={`link-borrower-${app.userId}`}
-                                >
-                                  {app.borrowerName}
-                                </Link>
-                                <p className="text-[10px] sm:text-xs text-muted-foreground hidden sm:block">{app.borrowerEmail}</p>
+                                <p className="font-medium text-sm">{app.borrowerName}</p>
+                                <p className="text-[10px] text-muted-foreground hidden sm:block">{app.borrowerEmail}</p>
                               </div>
                             </TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className="text-[10px] sm:text-xs">{app.loanType}</Badge>
+                            <TableCell className="py-2 hidden sm:table-cell">
+                              <Badge variant="outline" className="text-[10px]">{app.loanType}</Badge>
                             </TableCell>
-                            <TableCell className="hidden md:table-cell">
-                              <div className="max-w-[200px] truncate text-xs sm:text-sm">
-                                {app.propertyAddress || app.propertyCity ? (
-                                  <>
-                                    {app.propertyAddress && <span>{app.propertyAddress}, </span>}
-                                    {app.propertyCity}, {app.propertyState}
-                                  </>
-                                ) : (
-                                  <span className="text-muted-foreground">No address</span>
-                                )}
-                              </div>
+                            <TableCell className="py-2 hidden md:table-cell text-sm">
+                              {app.loanAmount ? formatCurrency(app.loanAmount) : "—"}
                             </TableCell>
-                            <TableCell className="text-xs sm:text-sm">
-                              {app.loanAmount ? (
-                                formatCurrency(app.loanAmount)
-                              ) : app.purchasePrice ? (
-                                formatCurrency(app.purchasePrice)
-                              ) : (
-                                <span className="text-muted-foreground">-</span>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              <Badge className={`${statusColors[app.status]} text-[10px] sm:text-xs`}>
+                            <TableCell className="py-2">
+                              <Badge className={`text-[10px] ${statusColors[app.status]}`}>
                                 {statusLabels[app.status]}
                               </Badge>
                             </TableCell>
-                            <TableCell className="hidden lg:table-cell">
-                              <span className="text-xs sm:text-sm">
-                                {app.processingStage ? stageLabels[app.processingStage] : "-"}
-                              </span>
+                            <TableCell className="py-2 hidden lg:table-cell">
+                              <span className="text-xs text-muted-foreground">{app.processingStage ? stageLabels[app.processingStage] : "—"}</span>
                             </TableCell>
-                            <TableCell>
-                              <Link href={`/admin/application/${app.id}`}>
-                                <Button size="sm" variant="outline" className="h-7 sm:h-8 text-xs sm:text-sm px-2 sm:px-3" data-testid={`button-view-${app.id}`}>
-                                  <ExternalLink className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                            <TableCell className="py-2 hidden lg:table-cell">
+                              <span className="text-xs text-muted-foreground">{formatDate(app.createdAt)}</span>
+                            </TableCell>
+                            <TableCell className="py-2 text-right">
+                              <Link href={`/admin/applications/${app.id}`}>
+                                <Button size="sm" variant="ghost" className="h-7 text-xs" data-testid={`button-view-app-${app.id}`}>
                                   View
+                                  <ChevronRight className="h-3 w-3 ml-1" />
                                 </Button>
                               </Link>
                             </TableCell>
@@ -864,285 +899,297 @@ export default function AdminDashboard() {
                       </TableBody>
                     </Table>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+                  {applicationsTotalPages > 1 && (
+                    <Pagination
+                      currentPage={applicationsPage}
+                      totalPages={applicationsTotalPages}
+                      onPageChange={setApplicationsPage}
+                      totalItems={filteredApplications.length}
+                      itemsPerPage={ITEMS_PER_PAGE}
+                    />
+                  )}
+                </>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
-          {/* Borrowers Tab */}
-          <TabsContent value="borrowers" className="space-y-4">
-            <div className="grid gap-4">
-              {/* Borrower List */}
-              <div>
-                <Card>
-                  <CardHeader className="p-3 sm:p-6">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <div>
-                        <CardTitle className="text-base sm:text-lg">Borrower Profiles</CardTitle>
-                        <CardDescription className="text-xs sm:text-sm">
-                          {filteredBorrowers.length} borrower{filteredBorrowers.length !== 1 ? "s" : ""}
-                        </CardDescription>
-                      </div>
-                    </div>
-                    <div className="flex gap-2 mt-3">
-                      <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          placeholder="Search by name or email..."
-                          value={borrowerSearch}
-                          onChange={(e) => setBorrowerSearch(e.target.value)}
-                          className="pl-9 h-8 sm:h-9 text-xs sm:text-sm"
-                          data-testid="input-borrower-search"
-                        />
-                      </div>
-                      <Select value={borrowerRoleFilter} onValueChange={setBorrowerRoleFilter}>
-                        <SelectTrigger className="w-[100px] sm:w-[120px] h-8 sm:h-9 text-xs sm:text-sm" data-testid="select-borrower-filter">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All</SelectItem>
-                          <SelectItem value="active">Active</SelectItem>
-                          <SelectItem value="funded">Funded</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    {borrowersLoading ? (
-                      <div className="flex items-center justify-center py-12">
-                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                      </div>
-                    ) : filteredBorrowers.length === 0 ? (
-                      <div className="text-center py-12 text-muted-foreground text-sm">
-                        No borrowers found
-                      </div>
-                    ) : (
-                      <ScrollArea className="h-[400px] lg:h-[500px]">
-                        <div className="divide-y">
-                          {filteredBorrowers.map((user) => (
-                            <Link
-                              key={user.id}
-                              href={`/admin/borrower/${user.id}`}
-                            >
-                              <div
-                                className="w-full p-3 sm:p-4 text-left hover-elevate flex items-center gap-3"
-                                data-testid={`borrower-row-${user.id}`}
-                              >
-                                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                                  <User className="h-5 w-5 text-primary" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-medium text-sm truncate">
-                                    {user.firstName} {user.lastName}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                                </div>
-                                <div className="flex flex-col items-end gap-1">
-                                  <div className="flex gap-1">
-                                    <Badge variant="outline" className="text-[10px]">{user.applicationCount || 0} apps</Badge>
-                                    {(user.fundedLoans || 0) > 0 && (
-                                      <Badge className="text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
-                                        {user.fundedLoans} funded
-                                      </Badge>
-                                    )}
-                                  </div>
-                                </div>
-                                <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                              </div>
-                            </Link>
-                          ))}
-                        </div>
-                      </ScrollArea>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          </TabsContent>
-
-          {/* Recently Funded Tab */}
-          <TabsContent value="recently-funded" className="space-y-4">
-            <Card>
-              <CardHeader className="p-3 sm:p-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    <CardTitle className="text-base sm:text-lg">Recently Funded</CardTitle>
-                    <CardDescription className="text-xs sm:text-sm">Manage deals displayed on the homepage and state pages</CardDescription>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center bg-muted rounded-lg p-1">
-                      <Button
-                        variant={fundedViewStyle === "list" ? "secondary" : "ghost"}
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={() => setFundedViewStyle("list")}
-                        data-testid="button-view-list"
-                      >
-                        <List className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant={fundedViewStyle === "cards" ? "secondary" : "ghost"}
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={() => setFundedViewStyle("cards")}
-                        data-testid="button-view-cards"
-                      >
-                        <LayoutGrid className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <Dialog open={showDealDialog} onOpenChange={(open) => {
-                      setShowDealDialog(open);
-                      if (!open) {
-                        setEditingDeal(null);
-                        resetDealForm();
-                      }
-                    }}>
-                      <DialogTrigger asChild>
-                        <Button data-testid="button-add-deal">
-                          <Plus className="h-4 w-4 mr-2" />
-                          Add Deal
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-                        <DialogHeader>
-                          <DialogTitle>{editingDeal ? "Edit Funded Deal" : "Add Funded Deal"}</DialogTitle>
-                          <DialogDescription>
-                            {editingDeal ? "Update the deal information" : "Add a new funded deal to showcase"}
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="grid gap-4 py-4">
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label>Location</Label>
-                              <Input
-                                placeholder="Los Angeles, CA"
-                                value={dealForm.location}
-                                onChange={(e) => setDealForm({ ...dealForm, location: e.target.value })}
-                                data-testid="input-deal-location"
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label>State</Label>
-                              <Input
-                                placeholder="CA"
-                                maxLength={2}
-                                value={dealForm.state}
-                                onChange={(e) => setDealForm({ ...dealForm, state: e.target.value.toUpperCase() })}
-                                data-testid="input-deal-state"
-                              />
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label>Property Type</Label>
-                              <Select value={dealForm.propertyType} onValueChange={(v) => setDealForm({ ...dealForm, propertyType: v })}>
-                                <SelectTrigger data-testid="select-property-type">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="Single Family">Single Family</SelectItem>
-                                  <SelectItem value="Multi-Family">Multi-Family</SelectItem>
-                                  <SelectItem value="Mixed Use">Mixed Use</SelectItem>
-                                  <SelectItem value="Commercial">Commercial</SelectItem>
-                                  <SelectItem value="Townhouse">Townhouse</SelectItem>
-                                  <SelectItem value="Condo">Condo</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            <div className="space-y-2">
-                              <Label>Loan Type</Label>
-                              <Select value={dealForm.loanType} onValueChange={(v) => setDealForm({ ...dealForm, loanType: v, ltv: "", ltc: "" })}>
-                                <SelectTrigger data-testid="select-loan-type">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="DSCR">DSCR</SelectItem>
-                                  <SelectItem value="Fix & Flip">Fix & Flip</SelectItem>
-                                  <SelectItem value="New Construction">New Construction</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label>Loan Amount ($)</Label>
-                              <Input
-                                type="number"
-                                placeholder="500000"
-                                value={dealForm.loanAmount}
-                                onChange={(e) => setDealForm({ ...dealForm, loanAmount: e.target.value })}
-                                data-testid="input-loan-amount"
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label>Rate (%)</Label>
-                              <Input
-                                placeholder="7.25%"
-                                value={dealForm.rate}
-                                onChange={(e) => setDealForm({ ...dealForm, rate: e.target.value })}
-                                data-testid="input-rate"
-                              />
-                            </div>
-                          </div>
-                          
-                          {renderDynamicDealFields()}
-
-                          <div className="space-y-2">
-                            <Label>Close Time</Label>
-                            <Input
-                              placeholder="30 days"
-                              value={dealForm.closeTime}
-                              onChange={(e) => setDealForm({ ...dealForm, closeTime: e.target.value })}
-                              data-testid="input-close-time"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Image URL (optional)</Label>
-                            <Input
-                              placeholder="https://..."
-                              value={dealForm.imageUrl}
-                              onChange={(e) => setDealForm({ ...dealForm, imageUrl: e.target.value })}
-                              data-testid="input-image-url"
-                            />
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Switch
-                              checked={dealForm.isVisible}
-                              onCheckedChange={(checked) => setDealForm({ ...dealForm, isVisible: checked })}
-                              data-testid="switch-visible"
-                            />
-                            <Label>Visible on website</Label>
-                          </div>
-                        </div>
-                        <DialogFooter>
-                          <Button
-                            onClick={handleDealSubmit}
-                            disabled={!dealForm.location || !dealForm.state || !dealForm.loanAmount || !dealForm.rate || createDealMutation.isPending || updateDealMutation.isPending}
-                            data-testid="button-submit-deal"
-                          >
-                            {(createDealMutation.isPending || updateDealMutation.isPending) && (
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            )}
-                            {editingDeal ? "Update Deal" : "Add Deal"}
-                          </Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
+        {/* Borrowers Section */}
+        {activeSection === "borrowers" && (
+          <Card>
+            <CardHeader className="p-3 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <CardTitle className="text-base sm:text-lg">Borrowers</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">
+                    {stats.activeBorrowers} active, {stats.totalBorrowers} total
+                  </CardDescription>
                 </div>
-              </CardHeader>
-              <CardContent className="p-3 sm:p-6 sm:pt-0">
-                {dealsLoading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                <div className="flex gap-2">
+                  <div className="relative">
+                    <Search className="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      placeholder="Search..."
+                      className="pl-8 h-8 w-[150px] text-xs"
+                      value={borrowerSearch}
+                      onChange={(e) => { setBorrowerSearch(e.target.value); setBorrowersPage(1); }}
+                      data-testid="input-borrower-search"
+                    />
                   </div>
-                ) : fundedDeals?.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground text-sm">
-                    No funded deals yet. Add your first deal to showcase on the website.
+                  <Select value={borrowerRoleFilter} onValueChange={(v) => { setBorrowerRoleFilter(v); setBorrowersPage(1); }}>
+                    <SelectTrigger className="w-[100px] h-8 text-xs" data-testid="select-borrower-filter">
+                      <SelectValue placeholder="Filter" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="funded">Funded</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              {borrowersLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : filteredBorrowers.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground text-sm">
+                  No borrowers found
+                </div>
+              ) : (
+                <>
+                  <div className="divide-y">
+                    {paginatedBorrowers.map((user) => (
+                      <Link key={user.id} href={`/admin/borrowers/${user.id}`}>
+                        <div 
+                          className="p-3 sm:p-4 flex items-center gap-3 hover-elevate cursor-pointer" 
+                          data-testid={`borrower-row-${user.id}`}
+                        >
+                          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                            <User className="h-5 w-5 text-primary" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">
+                              {user.firstName} {user.lastName}
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                          </div>
+                          <div className="flex flex-col items-end gap-1">
+                            <div className="flex gap-1">
+                              <Badge variant="outline" className="text-[10px]">{user.applicationCount || 0} apps</Badge>
+                              {(user.fundedLoans || 0) > 0 && (
+                                <Badge className="text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
+                                  {user.fundedLoans} funded
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                        </div>
+                      </Link>
+                    ))}
                   </div>
-                ) : fundedViewStyle === "cards" ? (
+                  {borrowersTotalPages > 1 && (
+                    <Pagination
+                      currentPage={borrowersPage}
+                      totalPages={borrowersTotalPages}
+                      onPageChange={setBorrowersPage}
+                      totalItems={filteredBorrowers.length}
+                      itemsPerPage={ITEMS_PER_PAGE}
+                    />
+                  )}
+                </>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Recently Funded Section */}
+        {activeSection === "recently-funded" && (
+          <Card>
+            <CardHeader className="p-3 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <CardTitle className="text-base sm:text-lg">Recently Funded</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">Manage deals displayed on the homepage and state pages</CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center bg-muted rounded-lg p-1">
+                    <Button
+                      variant={fundedViewStyle === "list" ? "secondary" : "ghost"}
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => setFundedViewStyle("list")}
+                      data-testid="button-view-list"
+                    >
+                      <List className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant={fundedViewStyle === "cards" ? "secondary" : "ghost"}
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => setFundedViewStyle("cards")}
+                      data-testid="button-view-cards"
+                    >
+                      <LayoutGrid className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <Dialog open={showDealDialog} onOpenChange={(open) => {
+                    setShowDealDialog(open);
+                    if (!open) {
+                      setEditingDeal(null);
+                      resetDealForm();
+                    }
+                  }}>
+                    <DialogTrigger asChild>
+                      <Button size="sm" data-testid="button-add-deal">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Deal
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle>{editingDeal ? "Edit Funded Deal" : "Add Funded Deal"}</DialogTitle>
+                        <DialogDescription>
+                          {editingDeal ? "Update the deal information" : "Add a new funded deal to showcase"}
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Location</Label>
+                            <Input
+                              placeholder="Los Angeles, CA"
+                              value={dealForm.location}
+                              onChange={(e) => setDealForm({ ...dealForm, location: e.target.value })}
+                              data-testid="input-deal-location"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>State</Label>
+                            <Input
+                              placeholder="CA"
+                              maxLength={2}
+                              value={dealForm.state}
+                              onChange={(e) => setDealForm({ ...dealForm, state: e.target.value.toUpperCase() })}
+                              data-testid="input-deal-state"
+                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Property Type</Label>
+                            <Select value={dealForm.propertyType} onValueChange={(v) => setDealForm({ ...dealForm, propertyType: v })}>
+                              <SelectTrigger data-testid="select-property-type">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Single Family">Single Family</SelectItem>
+                                <SelectItem value="Multi-Family">Multi-Family</SelectItem>
+                                <SelectItem value="Mixed Use">Mixed Use</SelectItem>
+                                <SelectItem value="Commercial">Commercial</SelectItem>
+                                <SelectItem value="Townhouse">Townhouse</SelectItem>
+                                <SelectItem value="Condo">Condo</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Loan Type</Label>
+                            <Select value={dealForm.loanType} onValueChange={(v) => setDealForm({ ...dealForm, loanType: v, ltv: "", ltc: "" })}>
+                              <SelectTrigger data-testid="select-loan-type">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="DSCR">DSCR</SelectItem>
+                                <SelectItem value="Fix & Flip">Fix & Flip</SelectItem>
+                                <SelectItem value="New Construction">New Construction</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Loan Amount ($)</Label>
+                            <Input
+                              type="number"
+                              placeholder="500000"
+                              value={dealForm.loanAmount}
+                              onChange={(e) => setDealForm({ ...dealForm, loanAmount: e.target.value })}
+                              data-testid="input-loan-amount"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Rate (%)</Label>
+                            <Input
+                              placeholder="7.25%"
+                              value={dealForm.rate}
+                              onChange={(e) => setDealForm({ ...dealForm, rate: e.target.value })}
+                              data-testid="input-rate"
+                            />
+                          </div>
+                        </div>
+                        
+                        {renderDynamicDealFields()}
+
+                        <div className="space-y-2">
+                          <Label>Close Time</Label>
+                          <Input
+                            placeholder="30 days"
+                            value={dealForm.closeTime}
+                            onChange={(e) => setDealForm({ ...dealForm, closeTime: e.target.value })}
+                            data-testid="input-close-time"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Image URL (optional)</Label>
+                          <Input
+                            placeholder="https://..."
+                            value={dealForm.imageUrl}
+                            onChange={(e) => setDealForm({ ...dealForm, imageUrl: e.target.value })}
+                            data-testid="input-image-url"
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={dealForm.isVisible}
+                            onCheckedChange={(checked) => setDealForm({ ...dealForm, isVisible: checked })}
+                            data-testid="switch-visible"
+                          />
+                          <Label>Visible on website</Label>
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button
+                          onClick={handleDealSubmit}
+                          disabled={!dealForm.location || !dealForm.state || !dealForm.loanAmount || !dealForm.rate || createDealMutation.isPending || updateDealMutation.isPending}
+                          data-testid="button-submit-deal"
+                        >
+                          {(createDealMutation.isPending || updateDealMutation.isPending) && (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          )}
+                          {editingDeal ? "Update Deal" : "Add Deal"}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-3 sm:p-6 sm:pt-0">
+              {dealsLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : fundedDeals?.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground text-sm">
+                  No funded deals yet. Add your first deal to showcase on the website.
+                </div>
+              ) : fundedViewStyle === "cards" ? (
+                <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {fundedDeals?.map((deal) => (
+                    {paginatedDeals.map((deal) => (
                       <Card key={deal.id} className="overflow-hidden" data-testid={`card-deal-${deal.id}`}>
                         <div className="aspect-video relative bg-muted">
                           {deal.imageUrl ? (
@@ -1186,65 +1233,95 @@ export default function AdminDashboard() {
                             </div>
                           </div>
                           <div className="flex gap-2">
-                            <Button size="sm" variant="outline" className="flex-1" onClick={() => openEditDeal(deal)}>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="flex-1 h-7 text-xs"
+                              onClick={() => openEditDeal(deal)}
+                              data-testid={`button-edit-deal-${deal.id}`}
+                            >
                               <Edit className="h-3 w-3 mr-1" />
                               Edit
                             </Button>
-                            <Button 
-                              size="sm" 
+                            <Button
+                              size="icon"
                               variant="ghost"
-                              className="text-destructive"
+                              className="h-7 w-7"
                               onClick={() => {
                                 if (confirm("Are you sure you want to delete this deal?")) {
                                   deleteDealMutation.mutate(deal.id);
                                 }
                               }}
+                              data-testid={`button-delete-deal-${deal.id}`}
                             >
-                              <Trash2 className="h-3 w-3" />
+                              <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                           </div>
                         </CardContent>
                       </Card>
                     ))}
                   </div>
-                ) : (
+                  {fundedTotalPages > 1 && (
+                    <div className="mt-4">
+                      <Pagination
+                        currentPage={fundedPage}
+                        totalPages={fundedTotalPages}
+                        onPageChange={setFundedPage}
+                        totalItems={fundedDeals?.length || 0}
+                        itemsPerPage={ITEMS_PER_PAGE}
+                      />
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="text-xs sm:text-sm whitespace-nowrap">Location</TableHead>
-                          <TableHead className="text-xs sm:text-sm whitespace-nowrap">Type</TableHead>
-                          <TableHead className="text-xs sm:text-sm whitespace-nowrap">Amount</TableHead>
-                          <TableHead className="text-xs sm:text-sm whitespace-nowrap hidden sm:table-cell">Rate</TableHead>
-                          <TableHead className="text-xs sm:text-sm whitespace-nowrap hidden md:table-cell">LTV/LTC</TableHead>
-                          <TableHead className="text-xs sm:text-sm whitespace-nowrap">Status</TableHead>
-                          <TableHead className="text-xs sm:text-sm whitespace-nowrap">Actions</TableHead>
+                          <TableHead className="text-xs">Location</TableHead>
+                          <TableHead className="text-xs">Type</TableHead>
+                          <TableHead className="text-xs hidden sm:table-cell">Amount</TableHead>
+                          <TableHead className="text-xs hidden md:table-cell">Rate</TableHead>
+                          <TableHead className="text-xs hidden lg:table-cell">LTV/LTC</TableHead>
+                          <TableHead className="text-xs hidden lg:table-cell">Close</TableHead>
+                          <TableHead className="text-xs">Visible</TableHead>
+                          <TableHead className="text-xs text-right">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {fundedDeals?.map((deal) => (
-                          <TableRow key={deal.id} data-testid={`row-deal-${deal.id}`}>
-                            <TableCell>
+                        {paginatedDeals.map((deal) => (
+                          <TableRow key={deal.id} data-testid={`deal-row-${deal.id}`}>
+                            <TableCell className="py-2">
                               <div className="flex items-center gap-2">
-                                <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                                <span className="text-xs sm:text-sm">{deal.location}, {deal.state}</span>
+                                <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                <span className="text-sm font-medium">{deal.location}, {deal.state}</span>
                               </div>
                             </TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className="text-[10px] sm:text-xs">{deal.loanType}</Badge>
+                            <TableCell className="py-2">
+                              <Badge variant="outline" className="text-[10px]">{deal.loanType}</Badge>
                             </TableCell>
-                            <TableCell className="text-xs sm:text-sm font-medium">
+                            <TableCell className="py-2 hidden sm:table-cell text-sm">
                               {formatCurrency(deal.loanAmount)}
                             </TableCell>
-                            <TableCell className="hidden sm:table-cell text-xs sm:text-sm">{deal.rate}</TableCell>
-                            <TableCell className="hidden md:table-cell text-xs sm:text-sm">{deal.ltv || deal.ltc}%</TableCell>
-                            <TableCell>
-                              <Badge className={`text-[10px] sm:text-xs ${deal.isVisible ? "bg-green-500/10 text-green-600 border-green-500/30" : "bg-gray-500/10 text-gray-600 border-gray-500/30"}`}>
-                                {deal.isVisible ? "Visible" : "Hidden"}
-                              </Badge>
+                            <TableCell className="py-2 hidden md:table-cell text-sm">
+                              {deal.rate}
                             </TableCell>
-                            <TableCell>
-                              <div className="flex gap-1">
+                            <TableCell className="py-2 hidden lg:table-cell text-sm">
+                              {deal.ltv ? `${deal.ltv}% LTV` : `${deal.ltc}% LTC`}
+                            </TableCell>
+                            <TableCell className="py-2 hidden lg:table-cell text-sm text-muted-foreground">
+                              {deal.closeTime}
+                            </TableCell>
+                            <TableCell className="py-2">
+                              {deal.isVisible ? (
+                                <Eye className="h-4 w-4 text-green-600" />
+                              ) : (
+                                <EyeOff className="h-4 w-4 text-muted-foreground" />
+                              )}
+                            </TableCell>
+                            <TableCell className="py-2 text-right">
+                              <div className="flex items-center justify-end gap-1">
                                 <Button
                                   size="icon"
                                   variant="ghost"
@@ -1274,23 +1351,92 @@ export default function AdminDashboard() {
                       </TableBody>
                     </Table>
                   </div>
+                  {fundedTotalPages > 1 && (
+                    <Pagination
+                      currentPage={fundedPage}
+                      totalPages={fundedTotalPages}
+                      onPageChange={setFundedPage}
+                      totalItems={fundedDeals?.length || 0}
+                      itemsPerPage={ITEMS_PER_PAGE}
+                    />
+                  )}
+                </>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Staff Section (Admin Only) */}
+        {activeSection === "staff" && currentUser.role === "admin" && (
+          <div className="space-y-6">
+            {/* All Accounts */}
+            <Card>
+              <CardHeader className="p-4 sm:p-6">
+                <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  All Accounts
+                </CardTitle>
+                <CardDescription className="text-xs sm:text-sm">
+                  Manage user roles and permissions
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                {usersLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : (
+                  <ScrollArea className="h-[300px]">
+                    <div className="divide-y">
+                      {users?.map((user) => (
+                        <div key={user.id} className="p-3 flex items-center justify-between" data-testid={`user-row-${user.id}`}>
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0">
+                              {user.role === "admin" ? (
+                                <Shield className="h-4 w-4 text-primary" />
+                              ) : user.role === "staff" ? (
+                                <Briefcase className="h-4 w-4 text-blue-500" />
+                              ) : (
+                                <User className="h-4 w-4 text-muted-foreground" />
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium truncate">{user.firstName} {user.lastName}</p>
+                              <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                            </div>
+                          </div>
+                          <Select
+                            value={user.role}
+                            onValueChange={(role) => updateRoleMutation.mutate({ userId: user.id, role })}
+                            disabled={user.id === currentUser.id}
+                          >
+                            <SelectTrigger className="w-[90px] h-7 text-xs shrink-0" data-testid={`select-user-role-${user.id}`}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="borrower">Borrower</SelectItem>
+                              <SelectItem value="staff">Staff</SelectItem>
+                              <SelectItem value="admin">Admin</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
 
-          {/* Staff Tab (Admin Only) */}
-          {currentUser.role === "admin" && (
-            <TabsContent value="staff" className="space-y-4">
-              {/* All Accounts */}
+            <div className="grid lg:grid-cols-2 gap-4">
+              {/* Staff Members */}
               <Card>
                 <CardHeader className="p-4 sm:p-6">
                   <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                    <Users className="h-5 w-5" />
-                    All Accounts
+                    <Shield className="h-5 w-5" />
+                    Staff Members
                   </CardTitle>
                   <CardDescription className="text-xs sm:text-sm">
-                    Manage user roles and permissions
+                    {staffMembers.length} staff member{staffMembers.length !== 1 ? "s" : ""}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-0">
@@ -1299,67 +1445,9 @@ export default function AdminDashboard() {
                       <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                     </div>
                   ) : (
-                    <ScrollArea className="h-[300px]">
+                    <>
                       <div className="divide-y">
-                        {users?.map((user) => (
-                          <div key={user.id} className="p-3 flex items-center justify-between" data-testid={`user-row-${user.id}`}>
-                            <div className="flex items-center gap-3 min-w-0 flex-1">
-                              <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0">
-                                {user.role === "admin" ? (
-                                  <Shield className="h-4 w-4 text-primary" />
-                                ) : user.role === "staff" ? (
-                                  <Briefcase className="h-4 w-4 text-blue-500" />
-                                ) : (
-                                  <User className="h-4 w-4 text-muted-foreground" />
-                                )}
-                              </div>
-                              <div className="min-w-0">
-                                <p className="text-sm font-medium truncate">{user.firstName} {user.lastName}</p>
-                                <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                              </div>
-                            </div>
-                            <Select
-                              value={user.role}
-                              onValueChange={(role) => updateRoleMutation.mutate({ userId: user.id, role })}
-                              disabled={user.id === currentUser.id}
-                            >
-                              <SelectTrigger className="w-[90px] h-7 text-xs shrink-0" data-testid={`select-user-role-${user.id}`}>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="borrower">Borrower</SelectItem>
-                                <SelectItem value="staff">Staff</SelectItem>
-                                <SelectItem value="admin">Admin</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        ))}
-                      </div>
-                    </ScrollArea>
-                  )}
-                </CardContent>
-              </Card>
-
-              <div className="grid lg:grid-cols-2 gap-4">
-                {/* Staff Members */}
-                <Card>
-                  <CardHeader className="p-4 sm:p-6">
-                    <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                      <Shield className="h-5 w-5" />
-                      Staff Members
-                    </CardTitle>
-                    <CardDescription className="text-xs sm:text-sm">
-                      {staffMembers.length} staff member{staffMembers.length !== 1 ? "s" : ""}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    {usersLoading ? (
-                      <div className="flex items-center justify-center py-8">
-                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                      </div>
-                    ) : (
-                      <div className="divide-y">
-                        {staffMembers.map((user) => (
+                        {paginatedStaff.map((user) => (
                           <div key={user.id} className="p-4 flex items-center justify-between" data-testid={`staff-row-${user.id}`}>
                             <div className="flex items-center gap-3">
                               <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -1386,145 +1474,153 @@ export default function AdminDashboard() {
                           </div>
                         ))}
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
+                      {staffTotalPages > 1 && (
+                        <Pagination
+                          currentPage={staffPage}
+                          totalPages={staffTotalPages}
+                          onPageChange={setStaffPage}
+                          totalItems={staffMembers.length}
+                          itemsPerPage={ITEMS_PER_PAGE}
+                        />
+                      )}
+                    </>
+                  )}
+                </CardContent>
+              </Card>
 
-                {/* Staff Invites */}
-                <Card>
-                  <CardHeader className="p-4 sm:p-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                          <UserPlus className="h-5 w-5" />
-                          Invitations
-                        </CardTitle>
-                        <CardDescription className="text-xs sm:text-sm">
-                          Invite new team members
-                        </CardDescription>
-                      </div>
-                      <Dialog open={showInviteDialog} onOpenChange={(open) => {
-                        setShowInviteDialog(open);
-                        if (!open) setNewInviteLink(null);
-                      }}>
-                        <DialogTrigger asChild>
-                          <Button size="sm" data-testid="button-new-invite">
-                            <Plus className="h-3.5 w-3.5 mr-1" />
-                            Invite
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Invite Team Member</DialogTitle>
-                            <DialogDescription>
-                              Send an invitation to join your team
-                            </DialogDescription>
-                          </DialogHeader>
-                          {newInviteLink ? (
-                            <div className="space-y-4">
-                              <div className="p-4 bg-green-500/10 rounded-lg border border-green-500/30">
-                                <p className="text-sm text-green-700 mb-2">Invitation created successfully!</p>
-                                <p className="text-xs text-muted-foreground mb-2">Share this link with the invitee:</p>
-                                <div className="flex items-center gap-2">
-                                  <Input value={newInviteLink} readOnly className="text-xs" />
-                                  <Button size="icon" variant="outline" onClick={() => copyToClipboard(newInviteLink)}>
-                                    <Copy className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </div>
-                              <Button className="w-full" onClick={() => {
-                                setShowInviteDialog(false);
-                                setNewInviteLink(null);
-                              }}>
-                                Done
-                              </Button>
-                            </div>
-                          ) : (
-                            <>
-                              <div className="space-y-4">
-                                <div className="space-y-2">
-                                  <Label>Email Address</Label>
-                                  <Input
-                                    type="email"
-                                    placeholder="colleague@company.com"
-                                    value={inviteEmail}
-                                    onChange={(e) => setInviteEmail(e.target.value)}
-                                    data-testid="input-invite-email"
-                                  />
-                                </div>
-                                <div className="space-y-2">
-                                  <Label>Role</Label>
-                                  <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as "staff" | "admin")}>
-                                    <SelectTrigger data-testid="select-invite-role">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="staff">Staff</SelectItem>
-                                      <SelectItem value="admin">Admin</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                              </div>
-                              <DialogFooter>
-                                <Button
-                                  onClick={() => createInviteMutation.mutate({ email: inviteEmail, role: inviteRole })}
-                                  disabled={!inviteEmail || createInviteMutation.isPending}
-                                  data-testid="button-send-invite"
-                                >
-                                  {createInviteMutation.isPending ? (
-                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                  ) : (
-                                    <Mail className="h-4 w-4 mr-2" />
-                                  )}
-                                  Send Invite
-                                </Button>
-                              </DialogFooter>
-                            </>
-                          )}
-                        </DialogContent>
-                      </Dialog>
+              {/* Staff Invites */}
+              <Card>
+                <CardHeader className="p-4 sm:p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                        <UserPlus className="h-5 w-5" />
+                        Invitations
+                      </CardTitle>
+                      <CardDescription className="text-xs sm:text-sm">
+                        Invite new team members
+                      </CardDescription>
                     </div>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    {invites?.length === 0 ? (
-                      <div className="text-center py-8 text-muted-foreground text-sm">
-                        No invitations sent yet
-                      </div>
-                    ) : (
-                      <div className="divide-y">
-                        {invites?.map((invite) => (
-                          <div key={invite.id} className="p-4 flex items-center justify-between" data-testid={`invite-row-${invite.id}`}>
-                            <div>
-                              <p className="text-sm font-medium">{invite.email}</p>
-                              <div className="flex items-center gap-2 mt-1">
-                                <Badge variant="outline" className="capitalize text-[10px]">{invite.role}</Badge>
-                                <span className="text-[10px] text-muted-foreground">
-                                  Expires {new Date(invite.expiresAt).toLocaleDateString()}
-                                </span>
+                    <Dialog open={showInviteDialog} onOpenChange={(open) => {
+                      setShowInviteDialog(open);
+                      if (!open) setNewInviteLink(null);
+                    }}>
+                      <DialogTrigger asChild>
+                        <Button size="sm" data-testid="button-new-invite">
+                          <Plus className="h-3.5 w-3.5 mr-1" />
+                          Invite
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Invite Team Member</DialogTitle>
+                          <DialogDescription>
+                            Send an invitation to join your team
+                          </DialogDescription>
+                        </DialogHeader>
+                        {newInviteLink ? (
+                          <div className="space-y-4">
+                            <div className="p-4 bg-green-500/10 rounded-lg border border-green-500/30">
+                              <p className="text-sm text-green-700 mb-2">Invitation created successfully!</p>
+                              <p className="text-xs text-muted-foreground mb-2">Share this link with the invitee:</p>
+                              <div className="flex items-center gap-2">
+                                <Input value={newInviteLink} readOnly className="text-xs" />
+                                <Button size="icon" variant="outline" onClick={() => copyToClipboard(newInviteLink)}>
+                                  <Copy className="h-4 w-4" />
+                                </Button>
                               </div>
                             </div>
-                            <Badge
-                              className={`text-[10px] ${
-                                invite.status === "pending"
-                                  ? "bg-yellow-500/10 text-yellow-600 border-yellow-500/30"
-                                  : invite.status === "accepted"
-                                  ? "bg-green-500/10 text-green-600 border-green-500/30"
-                                  : "bg-red-500/10 text-red-600 border-red-500/30"
-                              }`}
-                            >
-                              {invite.status}
-                            </Badge>
+                            <Button className="w-full" onClick={() => {
+                              setShowInviteDialog(false);
+                              setNewInviteLink(null);
+                            }}>
+                              Done
+                            </Button>
                           </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-          )}
-
-        </Tabs>
+                        ) : (
+                          <>
+                            <div className="space-y-4">
+                              <div className="space-y-2">
+                                <Label>Email Address</Label>
+                                <Input
+                                  type="email"
+                                  placeholder="colleague@company.com"
+                                  value={inviteEmail}
+                                  onChange={(e) => setInviteEmail(e.target.value)}
+                                  data-testid="input-invite-email"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label>Role</Label>
+                                <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as "staff" | "admin")}>
+                                  <SelectTrigger data-testid="select-invite-role">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="staff">Staff</SelectItem>
+                                    <SelectItem value="admin">Admin</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
+                            <DialogFooter>
+                              <Button
+                                onClick={() => createInviteMutation.mutate({ email: inviteEmail, role: inviteRole })}
+                                disabled={!inviteEmail || createInviteMutation.isPending}
+                                data-testid="button-send-invite"
+                              >
+                                {createInviteMutation.isPending ? (
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                ) : (
+                                  <Mail className="h-4 w-4 mr-2" />
+                                )}
+                                Send Invite
+                              </Button>
+                            </DialogFooter>
+                          </>
+                        )}
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-0">
+                  {invites?.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground text-sm">
+                      No invitations sent yet
+                    </div>
+                  ) : (
+                    <div className="divide-y">
+                      {invites?.map((invite) => (
+                        <div key={invite.id} className="p-4 flex items-center justify-between" data-testid={`invite-row-${invite.id}`}>
+                          <div>
+                            <p className="text-sm font-medium">{invite.email}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Badge variant="outline" className="capitalize text-[10px]">{invite.role}</Badge>
+                              <span className="text-[10px] text-muted-foreground">
+                                Expires {new Date(invite.expiresAt).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </div>
+                          <Badge
+                            className={`text-[10px] ${
+                              invite.status === "pending"
+                                ? "bg-yellow-500/10 text-yellow-600 border-yellow-500/30"
+                                : invite.status === "accepted"
+                                ? "bg-green-500/10 text-green-600 border-green-500/30"
+                                : "bg-red-500/10 text-red-600 border-red-500/30"
+                            }`}
+                          >
+                            {invite.status}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        )}
       </main>
 
       {/* Webhook Dialog (Admin Only) */}
