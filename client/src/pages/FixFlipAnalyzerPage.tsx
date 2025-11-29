@@ -230,21 +230,6 @@ export default function FixFlipAnalyzerPage() {
     return Math.max(baseRate, Math.min(12.9, rate));
   }, [creditScore, experience]);
 
-  // Origination points: 1% for most qualified (lowest rate), 3% for least qualified (highest rate)
-  const originationPoints = useMemo(() => {
-    const minRate = baseRate;
-    const maxRate = 12.9;
-    const minPoints = 1.0; // Best borrowers get 1%
-    const maxPoints = 3.0; // Least qualified get 3%
-    
-    if (calculatedRate <= minRate) return minPoints;
-    if (calculatedRate >= maxRate) return maxPoints;
-    
-    const rateRange = maxRate - minRate;
-    const ratePosition = (calculatedRate - minRate) / rateRange;
-    return minPoints + (ratePosition * (maxPoints - minPoints));
-  }, [calculatedRate]);
-
   const getCurrentScenarioData = useCallback(() => ({
     propertyType,
     propertyAddress,
@@ -308,8 +293,23 @@ export default function FixFlipAnalyzerPage() {
     const purchaseLoanAmount = loanAmount - rehabFundingVal;
     const downPaymentVal = Math.max(0, purchasePriceVal - purchaseLoanAmount);
     
-    // Estimated closing costs (2% of loan amount)
-    const closingCostsVal = Math.round(loanAmount * 0.02);
+    // Origination points cost (based on rate)
+    const minRate = 8.9;
+    const maxRate = 12.9;
+    const minPoints = 0.0; // Best borrowers get 0 points
+    const maxPoints = 2.0; // Least qualified get 2%
+    let pointsPercent = minPoints;
+    if (rate >= maxRate) pointsPercent = maxPoints;
+    else if (rate > minRate) {
+      const rateRange = maxRate - minRate;
+      const ratePosition = (rate - minRate) / rateRange;
+      pointsPercent = minPoints + (ratePosition * (maxPoints - minPoints));
+    }
+    const originationPointsCost = Math.round(loanAmount * (pointsPercent / 100));
+    
+    // Estimated closing costs (2% of loan amount + origination points)
+    const baseClosingCosts = Math.round(loanAmount * 0.02);
+    const closingCostsVal = baseClosingCosts + originationPointsCost;
 
     const ltv = arvVal > 0 ? (loanAmount / arvVal) * 100 : 0;
     const ltc = totalCost > 0 ? (loanAmount / totalCost) * 100 : 0;
@@ -341,6 +341,9 @@ export default function FixFlipAnalyzerPage() {
       purchasePrice: purchasePriceVal,
       rehabBudget: rehabBudgetVal,
       closingCosts: closingCostsVal,
+      baseClosingCosts,
+      originationPointsCost,
+      originationPointsPercent: pointsPercent,
       holdingCosts,
       interestCost,
       downPayment: downPaymentVal,
@@ -689,7 +692,7 @@ export default function FixFlipAnalyzerPage() {
                     </div>
                     <div className="flex justify-between gap-2 pt-1.5 border-t mt-1.5">
                       <span className="text-muted-foreground">Origination Points:</span>
-                      <span className="font-semibold text-primary">{originationPoints.toFixed(2)}%</span>
+                      <span className="font-semibold text-primary">{results.originationPointsPercent.toFixed(2)}%</span>
                     </div>
                     <div className="text-[9px] sm:text-[10px] text-amber-600 pt-2 text-center">
                       Contact your rep for an accurate estimate
@@ -765,8 +768,12 @@ export default function FixFlipAnalyzerPage() {
                       <span className="font-medium">{formatCurrency(results.rehabBudget)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Closing:</span>
-                      <span className="font-medium">{formatCurrency(results.closingCosts)}</span>
+                      <span className="text-muted-foreground">Closing Costs:</span>
+                      <span className="font-medium">{formatCurrency(results.baseClosingCosts)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Orig. Points ({results.originationPointsPercent.toFixed(2)}%):</span>
+                      <span className="font-medium">{formatCurrency(results.originationPointsCost)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Holding:</span>

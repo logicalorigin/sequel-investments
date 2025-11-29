@@ -230,21 +230,6 @@ export default function ConstructionAnalyzerPage() {
     return Math.max(baseRate, Math.min(12.9, rate));
   }, [creditScore, baseRate]);
 
-  // Origination points: 1% for most qualified (lowest rate), 3% for least qualified (highest rate)
-  const originationPoints = useMemo(() => {
-    const minRate = baseRate;
-    const maxRate = 12.9;
-    const minPoints = 1.0; // Best borrowers get 1%
-    const maxPoints = 3.0; // Least qualified get 3%
-    
-    if (calculatedRate <= minRate) return minPoints;
-    if (calculatedRate >= maxRate) return maxPoints;
-    
-    const rateRange = maxRate - minRate;
-    const ratePosition = (calculatedRate - minRate) / rateRange;
-    return minPoints + (ratePosition * (maxPoints - minPoints));
-  }, [calculatedRate, baseRate]);
-
   const getCurrentScenarioData = useCallback(() => ({
     propertyType,
     propertyAddress,
@@ -343,16 +328,12 @@ export default function ConstructionAnalyzerPage() {
     const totalCost = landCostVal + constructionBudgetVal;
     const targetLtc = ltcSlider[0] / 100;
     
-    const closingCostsVal = Math.round(totalCost * 0.025);
-    
     let loanAmount: number;
     let downPaymentVal: number;
     let constructionFundingVal: number;
     let landLoanPortion: number;
     let constructionEquityVal: number;
     let landEquityVal: number;
-    
-    let cashInvested: number;
     
     if (landOwned) {
       constructionFundingVal = Math.round(constructionBudgetVal * targetLtc);
@@ -361,7 +342,6 @@ export default function ConstructionAnalyzerPage() {
       downPaymentVal = constructionEquityVal;
       loanAmount = constructionFundingVal;
       landEquityVal = landCostVal;
-      cashInvested = closingCostsVal + constructionEquityVal;
     } else {
       landLoanPortion = Math.round(landCostVal * targetLtc);
       constructionFundingVal = Math.round(constructionBudgetVal * targetLtc);
@@ -370,6 +350,31 @@ export default function ConstructionAnalyzerPage() {
       constructionEquityVal = constructionBudgetVal - constructionFundingVal;
       downPaymentVal = landDownPayment;
       landEquityVal = 0;
+    }
+    
+    // Origination points cost (based on rate, calculated on loan amount)
+    const minRate = 8.9;
+    const maxRate = 12.9;
+    const minPoints = 0.0; // Best borrowers get 0 points
+    const maxPoints = 2.0; // Least qualified get 2%
+    let pointsPercent = minPoints;
+    if (rate >= maxRate) pointsPercent = maxPoints;
+    else if (rate > minRate) {
+      const rateRange = maxRate - minRate;
+      const ratePosition = (rate - minRate) / rateRange;
+      pointsPercent = minPoints + (ratePosition * (maxPoints - minPoints));
+    }
+    const originationPointsCost = Math.round(loanAmount * (pointsPercent / 100));
+    
+    // Base closing costs (2.5% of total cost) + origination points
+    const baseClosingCosts = Math.round(totalCost * 0.025);
+    const closingCostsVal = baseClosingCosts + originationPointsCost;
+    
+    // Cash invested calculation
+    let cashInvested: number;
+    if (landOwned) {
+      cashInvested = closingCostsVal + constructionEquityVal;
+    } else {
       cashInvested = downPaymentVal + closingCostsVal + constructionEquityVal;
     }
     
@@ -406,6 +411,9 @@ export default function ConstructionAnalyzerPage() {
       landCost: landCostVal,
       constructionBudget: constructionBudgetVal,
       closingCosts: closingCostsVal,
+      baseClosingCosts,
+      originationPointsCost,
+      originationPointsPercent: pointsPercent,
       holdingCosts,
       interestCost,
       downPayment: downPaymentVal,
@@ -717,7 +725,7 @@ export default function ConstructionAnalyzerPage() {
                     </div>
                     <div className="flex justify-between gap-2 pt-1.5 border-t mt-1.5">
                       <span className="text-muted-foreground">Origination Points:</span>
-                      <span className="font-semibold text-primary">{originationPoints.toFixed(2)}%</span>
+                      <span className="font-semibold text-primary">{results.originationPointsPercent.toFixed(2)}%</span>
                     </div>
                     <div className="text-[9px] sm:text-[10px] text-muted-foreground pt-1 italic text-center">
                       Contact your rep for accurate estimate
@@ -793,8 +801,12 @@ export default function ConstructionAnalyzerPage() {
                       <span className="font-medium">{formatCurrency(results.constructionBudget)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Closing:</span>
-                      <span className="font-medium">{formatCurrency(results.closingCosts)}</span>
+                      <span className="text-muted-foreground">Closing Costs:</span>
+                      <span className="font-medium">{formatCurrency(results.baseClosingCosts)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Orig. Points ({results.originationPointsPercent.toFixed(2)}%):</span>
+                      <span className="font-medium">{formatCurrency(results.originationPointsCost)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Holding:</span>
