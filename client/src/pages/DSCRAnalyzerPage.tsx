@@ -782,7 +782,7 @@ export default function DSCRAnalyzerPage() {
                       onValueChange={handleLtvSliderChange}
                       min={0}
                       max={maxLtv}
-                      step={1}
+                      step={5}
                       className="w-full"
                       data-testid="slider-ltv"
                     />

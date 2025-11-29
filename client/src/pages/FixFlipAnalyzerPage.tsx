@@ -701,7 +701,7 @@ export default function FixFlipAnalyzerPage() {
                     onValueChange={handleLtcSliderChange}
                     min={0}
                     max={maxLtc}
-                    step={1}
+                    step={5}
                     className="w-full"
                     data-testid="slider-ltc"
                   />
