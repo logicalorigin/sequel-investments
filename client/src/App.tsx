@@ -37,6 +37,7 @@ import ProfilePage from "@/pages/ProfilePage";
 import STRCalculatorPage from "@/pages/STRCalculatorPage";
 import RecentFundingsPage from "@/pages/RecentFundingsPage";
 import PropertyDetailPage from "@/pages/PropertyDetailPage";
+import FundedDealDetailPage from "@/pages/FundedDealDetailPage";
 import LoginPage from "@/pages/LoginPage";
 import AdminDashboard from "@/pages/AdminDashboard";
 import AdminApplicationDetail from "@/pages/AdminApplicationDetail";
@@ -73,6 +74,7 @@ function Router() {
       <Route path="/str-calculator" component={STRCalculatorPage} />
       <Route path="/fundings" component={RecentFundingsPage} />
       <Route path="/fundings/:propertyId" component={PropertyDetailPage} />
+      <Route path="/funded-deals/:id" component={FundedDealDetailPage} />
       <Route path="/login" component={LoginPage} />
       <Route path="/admin/login" component={StaffLoginPage} />
       <Route path="/admin" component={AdminDashboard} />

@@ -269,79 +269,84 @@ export function RecentlyFundedCarousel({
         <div className="relative">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {getVisibleDeals().map((deal, index) => (
-              <Card 
+              <Link 
                 key={`${deal.id}-${currentIndex}-${index}`}
-                className="overflow-hidden hover-elevate transition-all duration-300"
-                data-testid={`card-funded-deal-${deal.id}`}
+                href={`/funded-deals/${deal.id}`}
+                data-testid={`link-funded-deal-${deal.id}`}
               >
-                <div className="relative h-40 sm:h-48 overflow-hidden">
-                  <img 
-                    src={deal.image} 
-                    alt={`${deal.location}, ${deal.state}`}
-                    className="w-full h-full object-cover"
-                  />
-                  <Badge 
-                    className={`absolute top-2 sm:top-3 left-2 sm:left-3 text-[10px] sm:text-xs ${getLoanTypeBadgeColor(deal.loanType)}`}
-                  >
-                    {deal.loanType}
-                  </Badge>
-                  <Badge 
-                    variant="secondary"
-                    className="absolute top-2 sm:top-3 right-2 sm:right-3 text-[10px] sm:text-xs bg-background/90 backdrop-blur-sm"
-                  >
-                    {deal.propertyType}
-                  </Badge>
-                </div>
-                <CardContent className="p-3 sm:p-4">
-                  <div className="flex items-center gap-1 text-muted-foreground mb-2">
-                    <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
-                    <span className="text-xs sm:text-sm font-medium">{deal.location}, {deal.state}</span>
+                <Card 
+                  className="overflow-hidden hover-elevate transition-all duration-300 cursor-pointer h-full"
+                  data-testid={`card-funded-deal-${deal.id}`}
+                >
+                  <div className="relative h-40 sm:h-48 overflow-hidden">
+                    <img 
+                      src={deal.image} 
+                      alt={`${deal.location}, ${deal.state}`}
+                      className="w-full h-full object-cover"
+                    />
+                    <Badge 
+                      className={`absolute top-2 sm:top-3 left-2 sm:left-3 text-[10px] sm:text-xs ${getLoanTypeBadgeColor(deal.loanType)}`}
+                    >
+                      {deal.loanType}
+                    </Badge>
+                    <Badge 
+                      variant="secondary"
+                      className="absolute top-2 sm:top-3 right-2 sm:right-3 text-[10px] sm:text-xs bg-background/90 backdrop-blur-sm"
+                    >
+                      {deal.propertyType}
+                    </Badge>
                   </div>
-                  
-                  <div className="grid grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
-                    <div className="flex items-center gap-1 sm:gap-1.5">
-                      <DollarSign className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary shrink-0" />
-                      <div className="min-w-0">
-                        <p className="text-[10px] sm:text-xs text-muted-foreground">Loan Amount</p>
-                        <p className="font-semibold truncate">{formatCurrency(deal.loanAmount)}</p>
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="flex items-center gap-1 text-muted-foreground mb-2">
+                      <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+                      <span className="text-xs sm:text-sm font-medium">{deal.location}, {deal.state}</span>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
+                      <div className="flex items-center gap-1 sm:gap-1.5">
+                        <DollarSign className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-[10px] sm:text-xs text-muted-foreground">Loan Amount</p>
+                          <p className="font-semibold truncate">{formatCurrency(deal.loanAmount)}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 sm:gap-1.5">
+                        <Percent className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-600 shrink-0" />
+                        <div>
+                          <p className="text-[10px] sm:text-xs text-muted-foreground">Rate</p>
+                          <p className="font-semibold">{deal.rate.toFixed(3)}%</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 sm:gap-1.5">
+                        {deal.ltv ? (
+                          <>
+                            <Percent className="h-3.5 w-3.5 sm:h-4 sm:4 text-blue-600 shrink-0" />
+                            <div>
+                              <p className="text-[10px] sm:text-xs text-muted-foreground">LTV</p>
+                              <p className="font-semibold">{deal.ltv}%</p>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <Percent className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-orange-600 shrink-0" />
+                            <div>
+                              <p className="text-[10px] sm:text-xs text-muted-foreground">LTC</p>
+                              <p className="font-semibold">{deal.ltc}%</p>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1 sm:gap-1.5">
+                        <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-purple-600 shrink-0" />
+                        <div>
+                          <p className="text-[10px] sm:text-xs text-muted-foreground">Closed In</p>
+                          <p className="font-semibold">{deal.closeTime}</p>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 sm:gap-1.5">
-                      <Percent className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-600 shrink-0" />
-                      <div>
-                        <p className="text-[10px] sm:text-xs text-muted-foreground">Rate</p>
-                        <p className="font-semibold">{deal.rate.toFixed(3)}%</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1 sm:gap-1.5">
-                      {deal.ltv ? (
-                        <>
-                          <Percent className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600 shrink-0" />
-                          <div>
-                            <p className="text-[10px] sm:text-xs text-muted-foreground">LTV</p>
-                            <p className="font-semibold">{deal.ltv}%</p>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <Percent className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-orange-600 shrink-0" />
-                          <div>
-                            <p className="text-[10px] sm:text-xs text-muted-foreground">LTC</p>
-                            <p className="font-semibold">{deal.ltc}%</p>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1 sm:gap-1.5">
-                      <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-purple-600 shrink-0" />
-                      <div>
-                        <p className="text-[10px] sm:text-xs text-muted-foreground">Closed In</p>
-                        <p className="font-semibold">{deal.closeTime}</p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </Link>
             ))}
           </div>
 
