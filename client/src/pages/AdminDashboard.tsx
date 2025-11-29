@@ -227,7 +227,7 @@ export default function AdminDashboard() {
   
   const loanSubtypeOptions: Record<string, string[]> = {
     "DSCR": ["Purchase", "Cash Out Refi", "Rate and Term Refi"],
-    "Fix & Flip": ["Fix and Flip", "New Construction", "Bridge to Sale"],
+    "Fix & Flip": ["Fix & Flip", "New Construction", "Bridge to Sale"],
     "New Construction": ["Ground Up", "ADU/Conversion", "Spec Build"],
   };
   

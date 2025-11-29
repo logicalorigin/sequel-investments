@@ -455,7 +455,8 @@ export default function ConstructionAnalyzerPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-          <div className="lg:col-span-2 space-y-4">
+          {/* Inputs column - order-last on mobile so results appears first */}
+          <div className="lg:col-span-2 space-y-4 order-last lg:order-first">
             {/* Property Type - Condensed Single Row */}
             <Card>
               <CardContent className="pt-3 sm:pt-4">
