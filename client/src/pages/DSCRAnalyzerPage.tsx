@@ -44,8 +44,8 @@ const transactionTypes = [
 ];
 
 const rentalTypes = [
-  { id: "long_term", label: "Long-Term", icon: Building2 },
-  { id: "short_term", label: "STR", icon: Sun },
+  { id: "long_term", label: "Long-Term Rental", icon: Building2 },
+  { id: "short_term", label: "Short-Term Rental", icon: Sun },
 ];
 
 const prepaymentOptions = [
@@ -609,11 +609,33 @@ export default function DSCRAnalyzerPage() {
                           data-testid={`button-rental-type-${type.id}`}
                         >
                           <Icon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                          <span className="hidden xs:inline sm:inline">{type.label}</span>
-                          <span className="xs:hidden">{type.id === "long_term" ? "LTR" : "STR"}</span>
+                          <span>{type.label}</span>
                         </button>
                       );
                     })}
+                  </div>
+                </div>
+
+                {/* Credit Score Slider */}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                  <Label className="sm:w-24 shrink-0 text-xs sm:text-sm">Credit Score</Label>
+                  <div className="flex-1 space-y-1">
+                    <div className="flex justify-end">
+                      <span className="text-sm font-bold text-primary">{creditScore[0]}</span>
+                    </div>
+                    <Slider
+                      value={creditScore}
+                      onValueChange={setCreditScore}
+                      min={660}
+                      max={800}
+                      step={5}
+                      className="w-full"
+                      data-testid="slider-credit-score"
+                    />
+                    <div className="flex justify-between text-[10px] text-muted-foreground">
+                      <span>660</span>
+                      <span>800</span>
+                    </div>
                   </div>
                 </div>
 
@@ -731,17 +753,35 @@ export default function DSCRAnalyzerPage() {
                     </div>
                   </div>
                   <div>
-                    <Label htmlFor="annualHOA" className="text-xs sm:text-sm">HOA</Label>
-                    <div className="relative mt-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                      <Input
-                        id="annualHOA"
-                        type="number"
-                        value={annualHOA}
-                        onChange={(e) => setAnnualHOA(e.target.value)}
-                        className="pl-7 h-9"
-                        data-testid="input-annual-hoa"
-                      />
+                    <Label className="text-xs sm:text-sm">HOA (Monthly / Annual)</Label>
+                    <div className="flex gap-2 mt-1">
+                      <div className="relative flex-1">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                        <Input
+                          id="monthlyHOA"
+                          type="number"
+                          value={Math.round(parseFloat(annualHOA || "0") / 12) || ""}
+                          onChange={(e) => {
+                            const monthly = parseFloat(e.target.value) || 0;
+                            setAnnualHOA((monthly * 12).toString());
+                          }}
+                          placeholder="Monthly"
+                          className="pl-7 h-9"
+                          data-testid="input-monthly-hoa"
+                        />
+                      </div>
+                      <div className="relative flex-1">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                        <Input
+                          id="annualHOA"
+                          type="number"
+                          value={annualHOA}
+                          onChange={(e) => setAnnualHOA(e.target.value)}
+                          placeholder="Annual"
+                          className="pl-7 h-9"
+                          data-testid="input-annual-hoa"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -799,26 +839,6 @@ export default function DSCRAnalyzerPage() {
                         className="pl-7 h-9"
                         data-testid="input-loan-amount"
                       />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between items-center mb-1">
-                      <Label className="text-sm">Credit Score</Label>
-                      <span className="text-sm font-bold text-primary">{creditScore[0]}</span>
-                    </div>
-                    <Slider
-                      value={creditScore}
-                      onValueChange={setCreditScore}
-                      min={660}
-                      max={800}
-                      step={5}
-                      className="w-full"
-                      data-testid="slider-credit-score"
-                    />
-                    <div className="flex justify-between text-[10px] text-muted-foreground mt-0.5">
-                      <span>660</span>
-                      <span>800</span>
                     </div>
                   </div>
                 </CardContent>
