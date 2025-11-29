@@ -734,28 +734,10 @@ export default function FixFlipAnalyzerPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 pb-3">
-                {/* ROI and Profit Margin */}
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="bg-background rounded-lg p-2">
-                    <p className="text-[10px] text-muted-foreground uppercase">ROI</p>
-                    <p className={`text-lg font-bold ${results.roi >= 20 ? "text-green-600" : results.roi >= 10 ? "text-yellow-600" : "text-red-600"}`} data-testid="result-roi">{results.roi.toFixed(1)}%</p>
-                  </div>
-                  <div className="bg-background rounded-lg p-2">
-                    <p className="text-[10px] text-muted-foreground uppercase">Profit Margin</p>
-                    <p className={`text-lg font-bold ${results.profitMargin >= 15 ? "text-green-600" : results.profitMargin >= 10 ? "text-yellow-600" : "text-red-600"}`} data-testid="result-profit-margin">{results.profitMargin.toFixed(1)}%</p>
-                  </div>
-                </div>
-
-                {/* Total Profit and Cash Invested */}
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="bg-background rounded-lg p-2">
-                    <p className="text-[10px] text-muted-foreground uppercase">Total Profit</p>
-                    <p className={`text-sm font-bold ${results.totalProfit >= 0 ? "text-green-600" : "text-red-600"}`} data-testid="result-total-profit">{formatCurrency(results.totalProfit)}</p>
-                  </div>
-                  <div className="bg-background rounded-lg p-2">
-                    <p className="text-[10px] text-muted-foreground uppercase">Cash Invested</p>
-                    <p className="text-sm font-semibold" data-testid="result-cash-invested">{formatCurrency(results.cashInvested)}</p>
-                  </div>
+                {/* ROI */}
+                <div className="bg-background rounded-lg p-2 text-center">
+                  <p className="text-[10px] text-muted-foreground uppercase">Return on Investment</p>
+                  <p className={`text-2xl font-bold ${results.roi >= 20 ? "text-green-600" : results.roi >= 10 ? "text-yellow-600" : "text-red-600"}`} data-testid="result-roi">{results.roi.toFixed(1)}%</p>
                 </div>
 
                 {/* Loan Details */}
@@ -770,21 +752,23 @@ export default function FixFlipAnalyzerPage() {
                   </div>
                 </div>
 
-                {/* LTC and LTV */}
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="bg-background rounded-lg p-2">
-                    <p className="text-[10px] text-muted-foreground uppercase">LTC</p>
-                    <p className={`text-sm font-bold ${results.ltc > 90 ? "text-red-600" : "text-green-600"}`} data-testid="result-ltc">{results.ltc.toFixed(1)}%</p>
-                  </div>
-                  <div className="bg-background rounded-lg p-2">
-                    <p className="text-[10px] text-muted-foreground uppercase">LTV (ARV)</p>
-                    <p className={`text-sm font-bold ${results.ltv > 70 ? "text-red-600" : results.ltv > 65 ? "text-yellow-600" : "text-green-600"}`} data-testid="result-ltv">{results.ltv.toFixed(1)}%</p>
+                {/* LTC / LTV Combined */}
+                <div className="bg-background rounded-lg p-2">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="text-[10px] text-muted-foreground uppercase">LTC</p>
+                      <p className={`text-sm font-bold ${results.ltc > 90 ? "text-red-600" : "text-green-600"}`} data-testid="result-ltc">{results.ltc.toFixed(1)}%</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] text-muted-foreground uppercase">LTV (ARV)</p>
+                      <p className={`text-sm font-bold ${results.ltv > 70 ? "text-red-600" : results.ltv > 65 ? "text-yellow-600" : "text-green-600"}`} data-testid="result-ltv">{results.ltv.toFixed(1)}%</p>
+                    </div>
                   </div>
                 </div>
 
-                {/* Cost Breakdown */}
+                {/* Deal Breakdown */}
                 <div className="bg-background rounded-lg p-2">
-                  <p className="text-[10px] text-muted-foreground uppercase mb-1">Cost Breakdown</p>
+                  <p className="text-[10px] text-muted-foreground uppercase mb-1">Deal Breakdown</p>
                   <div className="space-y-0.5 text-xs">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Purchase:</span>
@@ -807,8 +791,16 @@ export default function FixFlipAnalyzerPage() {
                       <span className="font-medium">{formatCurrency(results.interestCost)}</span>
                     </div>
                     <div className="flex justify-between pt-1 border-t font-semibold">
-                      <span>Total:</span>
+                      <span>Total Cost:</span>
                       <span>{formatCurrency(results.totalProjectCost)}</span>
+                    </div>
+                    <div className="flex justify-between text-green-600">
+                      <span className="font-medium">ARV (Sale):</span>
+                      <span className="font-medium">{formatCurrency(parseFloat(arv) || 0)}</span>
+                    </div>
+                    <div className={`flex justify-between pt-1 border-t font-bold ${results.totalProfit >= 0 ? "text-green-600" : "text-red-600"}`}>
+                      <span>Est. Profit:</span>
+                      <span data-testid="result-total-profit">{formatCurrency(results.totalProfit)}</span>
                     </div>
                   </div>
                 </div>
