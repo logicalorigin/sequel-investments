@@ -230,19 +230,19 @@ export default function FixFlipAnalyzerPage() {
     return Math.max(baseRate, Math.min(12.9, rate));
   }, [creditScore, experience]);
 
-  // Origination points: 2.0% at base rate, sliding to 0% at 12.9% rate
+  // Origination points: 1% for most qualified (lowest rate), 3% for least qualified (highest rate)
   const originationPoints = useMemo(() => {
     const minRate = baseRate;
     const maxRate = 12.9;
-    const maxPoints = 2.0;
-    const minPoints = 0.0;
+    const minPoints = 1.0; // Best borrowers get 1%
+    const maxPoints = 3.0; // Least qualified get 3%
     
-    if (calculatedRate >= maxRate) return minPoints;
-    if (calculatedRate <= minRate) return maxPoints;
+    if (calculatedRate <= minRate) return minPoints;
+    if (calculatedRate >= maxRate) return maxPoints;
     
     const rateRange = maxRate - minRate;
     const ratePosition = (calculatedRate - minRate) / rateRange;
-    return maxPoints - (ratePosition * (maxPoints - minPoints));
+    return minPoints + (ratePosition * (maxPoints - minPoints));
   }, [calculatedRate]);
 
   const getCurrentScenarioData = useCallback(() => ({
