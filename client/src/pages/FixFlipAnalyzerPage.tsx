@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { usePropertyAutofill } from "@/hooks/usePropertyAutofill";
@@ -203,6 +203,11 @@ export default function FixFlipAnalyzerPage() {
 
   const maxLtc = 90;
   const baseRate = 8.9;
+
+  const handleLtcSliderChange = useCallback((value: number[]) => {
+    const clampedValue = Math.max(0, Math.min(value[0], maxLtc));
+    setLtcSlider([clampedValue]);
+  }, [maxLtc]);
 
   // Calculate interest rate based on FICO and experience
   // 8.9% base rate reserved for 3+ deals AND 720+ FICO
@@ -693,7 +698,7 @@ export default function FixFlipAnalyzerPage() {
                   </div>
                   <Slider
                     value={ltcSlider}
-                    onValueChange={setLtcSlider}
+                    onValueChange={handleLtcSliderChange}
                     min={0}
                     max={maxLtc}
                     step={1}

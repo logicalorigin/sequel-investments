@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { usePropertyAutofill } from "@/hooks/usePropertyAutofill";
@@ -165,6 +165,7 @@ export default function DSCRAnalyzerPage() {
   const [ltvSlider, setLtvSlider] = useState([80]);
   const [prepaymentPenalty, setPrepaymentPenalty] = useState("5-4-3-2-1");
   const [dataLoaded, setDataLoaded] = useState(false);
+  const ltvSourceRef = useRef<"slider" | "input" | null>(null);
 
   const { fetchPropertyData, isLoading: isAutofilling } = usePropertyAutofill({
     onDataLoaded: (data) => {
@@ -272,21 +273,32 @@ export default function DSCRAnalyzerPage() {
   }, [linkedApplication, dataLoaded, handleLoadScenario, toast]);
 
   useEffect(() => {
+    if (ltvSourceRef.current === "input") {
+      ltvSourceRef.current = null;
+      return;
+    }
     const value = parseFloat(propertyValue) || 0;
     const newLoanAmount = Math.round(value * (ltvSlider[0] / 100));
     setRequestedLoanAmount(newLoanAmount.toString());
   }, [ltvSlider, propertyValue]);
 
-  useEffect(() => {
+  const handleLoanAmountChange = useCallback((newAmount: string) => {
+    setRequestedLoanAmount(newAmount);
     const value = parseFloat(propertyValue) || 0;
-    const loan = parseFloat(requestedLoanAmount) || 0;
+    const loan = parseFloat(newAmount) || 0;
     if (value > 0) {
       const newLtv = Math.round((loan / value) * 100);
-      if (newLtv !== ltvSlider[0] && newLtv >= 0 && newLtv <= 100) {
+      if (newLtv >= 0 && newLtv <= 100) {
+        ltvSourceRef.current = "input";
         setLtvSlider([Math.min(newLtv, maxLtv)]);
       }
     }
-  }, [requestedLoanAmount]);
+  }, [propertyValue, maxLtv]);
+
+  const handleLtvSliderChange = useCallback((value: number[]) => {
+    const clampedValue = Math.max(0, Math.min(value[0], maxLtv));
+    setLtvSlider([clampedValue]);
+  }, [maxLtv]);
 
   const createApplicationMutation = useMutation({
     mutationFn: async () => {
@@ -754,7 +766,8 @@ export default function DSCRAnalyzerPage() {
                           type="number"
                           value={ltvSlider[0]}
                           onChange={(e) => {
-                            const val = Math.min(parseInt(e.target.value) || 0, maxLtv);
+                            const val = Math.max(0, Math.min(parseInt(e.target.value) || 0, maxLtv));
+                            ltvSourceRef.current = "input";
                             setLtvSlider([val]);
                           }}
                           className="w-14 h-7 text-center text-sm"
@@ -766,7 +779,7 @@ export default function DSCRAnalyzerPage() {
                     </div>
                     <Slider
                       value={ltvSlider}
-                      onValueChange={setLtvSlider}
+                      onValueChange={handleLtvSliderChange}
                       min={0}
                       max={maxLtv}
                       step={1}
@@ -787,7 +800,7 @@ export default function DSCRAnalyzerPage() {
                         id="requestedLoanAmount"
                         type="number"
                         value={requestedLoanAmount}
-                        onChange={(e) => setRequestedLoanAmount(e.target.value)}
+                        onChange={(e) => handleLoanAmountChange(e.target.value)}
                         className="pl-7 h-9"
                         data-testid="input-loan-amount"
                       />
