@@ -783,6 +783,16 @@ export const insertStaffInviteSchema = createInsertSchema(staffInvites).omit({
 // ============================================
 export const loanTypeEnum = pgEnum("loan_type", ["DSCR", "Fix & Flip", "New Construction"]);
 
+// Loan subtypes for categorization from LendFlowPro API
+// DSCR subtypes: Long-term Rental, Short-term Rental, DSCR No Ratio, Portfolio
+// Bridge subtypes: Bridge to Sale, Bridge to Rent, Fix & Flip
+// Construction subtypes: Ground Up, Heavy Rehab, ADU/Conversion
+export const loanSubtypeMap = {
+  "DSCR": ["Long-term Rental", "Short-term Rental", "DSCR No Ratio", "Portfolio", "Mixed Use"],
+  "Fix & Flip": ["Bridge to Sale", "Bridge to Rent", "Fix & Flip", "Light Rehab", "Heavy Rehab"],
+  "New Construction": ["Ground Up", "ADU/Conversion", "Spec Build", "Pre-Sold"],
+} as const;
+
 export const fundedDeals = pgTable("funded_deals", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   
@@ -793,6 +803,7 @@ export const fundedDeals = pgTable("funded_deals", {
   
   // Loan Details
   loanType: text("loan_type").notNull(), // DSCR, Fix & Flip, New Construction
+  loanSubtype: text("loan_subtype"), // Subtype from LendFlowPro (e.g., "Long-term Rental", "Bridge to Sale")
   loanAmount: integer("loan_amount").notNull(),
   rate: text("rate").notNull(), // Interest rate as decimal string
   ltv: integer("ltv"), // Loan-to-Value percentage (for DSCR)
