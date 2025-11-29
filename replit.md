@@ -54,6 +54,18 @@ All three product pages (DSCR, Fix & Flip, New Construction) follow a consistent
 - **DSCR Terms**: No minimum DSCR requirement, rates from 5.75%, 30-year fixed terms
 - **Construction Terms**: Up to 90% LTC, 9-24 month terms, rates from 9.90%
 
+### Loan Subtypes
+
+- **DSCR**: Purchase, Cash Out Refi, Rate and Term Refi
+- **Bridge (Fix & Flip)**: Fix & Flip, New Construction, Bridge to Sale
+- **New Construction**: Ground Up, ADU/Conversion, Spec Build
+
+### Analyzer Results Panel
+
+All three deal analyzers (DSCR, Fix & Flip, Construction) feature a sticky results panel that scrolls with the user:
+- On desktop: Results appear in right column and stay sticky while scrolling inputs
+- On mobile: Results appear first at top of page and remain sticky as user scrolls through inputs below
+
 ### Borrower Portal (ESC-Inspired)
 
 - **Portal Navigation**: Portfolio, Investment Analysis (DSCR, Fix & Flip, Construction Analyzers).

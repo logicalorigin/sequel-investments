@@ -536,8 +536,8 @@ export default function DSCRAnalyzerPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-          {/* Left Column - Inputs */}
-          <div className="lg:col-span-2 space-y-4">
+          {/* Left Column - Inputs (order-last on mobile so results appears first) */}
+          <div className="lg:col-span-2 space-y-4 order-last lg:order-first">
             {/* Property & Transaction Type - Condensed */}
             <Card>
               <CardContent className="pt-3 sm:pt-4 space-y-3 sm:space-y-4">
