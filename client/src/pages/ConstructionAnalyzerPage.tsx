@@ -364,6 +364,8 @@ export default function ConstructionAnalyzerPage() {
       const ratePosition = (rate - minRate) / rateRange;
       pointsPercent = minPoints + (ratePosition * (maxPoints - minPoints));
     }
+    // Round to 0.5 increments
+    pointsPercent = Math.round(pointsPercent * 2) / 2;
     const originationPointsCost = Math.round(totalCost * (pointsPercent / 100));
     
     // Base closing costs (2.5% of total cost) + origination points - fixed regardless of LTC
