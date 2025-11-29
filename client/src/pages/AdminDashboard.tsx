@@ -76,7 +76,7 @@ import {
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import type { LoanApplication, User as UserType, StaffInvite, FundedDeal, WebhookEndpoint } from "@shared/schema";
 
 type EnrichedUser = UserType & {
@@ -119,7 +119,6 @@ const stageLabels: Record<string, string> = {
   closed: "Closed",
 };
 
-type AdminSection = "applications" | "borrowers" | "recently-funded" | "staff";
 type FundedViewStyle = "list" | "cards";
 
 const ITEMS_PER_PAGE = 10;
@@ -194,7 +193,6 @@ function Pagination({
 export default function AdminDashboard() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const [activeSection, setActiveSection] = useState<AdminSection>("applications");
   const [fundedViewStyle, setFundedViewStyle] = useState<FundedViewStyle>("list");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [loanTypeFilter, setLoanTypeFilter] = useState<string>("all");
@@ -233,6 +231,15 @@ export default function AdminDashboard() {
     subscribedEvents: ["fundedDeal.created", "fundedDeal.updated", "fundedDeal.deleted"] as string[],
   });
   const [newWebhookSecret, setNewWebhookSecret] = useState<string | null>(null);
+
+  const applicationsRef = useRef<HTMLElement>(null);
+  const borrowersRef = useRef<HTMLElement>(null);
+  const fundedRef = useRef<HTMLElement>(null);
+  const staffRef = useRef<HTMLElement>(null);
+
+  const scrollToSection = (ref: React.RefObject<HTMLElement | null>) => {
+    ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   const { data: currentUser } = useQuery<UserType>({
     queryKey: ["/api/auth/user"],
@@ -643,27 +650,11 @@ export default function AdminDashboard() {
                   <DropdownMenuLabel>Admin Settings</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem 
-                    onClick={() => setActiveSection("staff")}
-                    data-testid="dropdown-staff"
-                  >
-                    <Shield className="h-4 w-4 mr-2" />
-                    Staff Management
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
                     onClick={() => setShowWebhookDialog(true)}
                     data-testid="dropdown-webhooks"
                   >
                     <Webhook className="h-4 w-4 mr-2" />
                     Webhooks
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuLabel className="text-[10px] text-muted-foreground">All Accounts</DropdownMenuLabel>
-                  <DropdownMenuItem 
-                    onClick={() => setActiveSection("staff")}
-                    data-testid="dropdown-users"
-                  >
-                    <Users className="h-4 w-4 mr-2" />
-                    User Management
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -680,12 +671,66 @@ export default function AdminDashboard() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
-        {/* Stats Overview - Applications, In Review, Pending, Approved */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-6">
+      {/* Sticky Jump Navigation */}
+      <nav className="border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60 sticky top-[57px] sm:top-[65px] z-40">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6">
+          <div className="flex items-center gap-1 sm:gap-2 py-2 overflow-x-auto">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 text-xs shrink-0"
+              onClick={() => scrollToSection(applicationsRef)}
+              data-testid="jump-applications"
+            >
+              <FileText className="h-3.5 w-3.5 mr-1.5" />
+              Applications
+              <Badge variant="secondary" className="ml-1.5 text-[10px] h-4 px-1">{stats.total}</Badge>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 text-xs shrink-0"
+              onClick={() => scrollToSection(borrowersRef)}
+              data-testid="jump-borrowers"
+            >
+              <Users className="h-3.5 w-3.5 mr-1.5" />
+              Borrowers
+              <Badge variant="secondary" className="ml-1.5 text-[10px] h-4 px-1">{stats.totalBorrowers}</Badge>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 text-xs shrink-0"
+              onClick={() => scrollToSection(fundedRef)}
+              data-testid="jump-recently-funded"
+            >
+              <DollarSign className="h-3.5 w-3.5 mr-1.5" />
+              Recently Funded
+              <Badge variant="secondary" className="ml-1.5 text-[10px] h-4 px-1">{stats.totalDeals}</Badge>
+            </Button>
+            {currentUser.role === "admin" && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 text-xs shrink-0"
+                onClick={() => scrollToSection(staffRef)}
+                data-testid="jump-staff"
+              >
+                <Shield className="h-3.5 w-3.5 mr-1.5" />
+                Staff & Invites
+                <Badge variant="secondary" className="ml-1.5 text-[10px] h-4 px-1">{staffMembers.length}</Badge>
+              </Button>
+            )}
+          </div>
+        </div>
+      </nav>
+
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-8">
+        {/* Stats Overview */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
           <Card 
             className="cursor-pointer transition-all hover-elevate"
-            onClick={() => { setActiveSection("applications"); setStatusFilter("all"); setApplicationsPage(1); }}
+            onClick={() => { setStatusFilter("all"); setApplicationsPage(1); scrollToSection(applicationsRef); }}
             data-testid="stat-card-applications"
           >
             <CardContent className="p-3 sm:p-4">
@@ -703,7 +748,7 @@ export default function AdminDashboard() {
 
           <Card 
             className="cursor-pointer transition-all hover-elevate"
-            onClick={() => { setActiveSection("applications"); setStatusFilter("in_review"); setApplicationsPage(1); }}
+            onClick={() => { setStatusFilter("in_review"); setApplicationsPage(1); scrollToSection(applicationsRef); }}
             data-testid="stat-card-in-review"
           >
             <CardContent className="p-3 sm:p-4">
@@ -721,7 +766,7 @@ export default function AdminDashboard() {
 
           <Card 
             className="cursor-pointer transition-all hover-elevate"
-            onClick={() => { setActiveSection("applications"); setStatusFilter("submitted"); setApplicationsPage(1); }}
+            onClick={() => { setStatusFilter("submitted"); setApplicationsPage(1); scrollToSection(applicationsRef); }}
             data-testid="stat-card-pending"
           >
             <CardContent className="p-3 sm:p-4">
@@ -739,7 +784,7 @@ export default function AdminDashboard() {
 
           <Card 
             className="cursor-pointer transition-all hover-elevate"
-            onClick={() => { setActiveSection("applications"); setStatusFilter("approved"); setApplicationsPage(1); }}
+            onClick={() => { setStatusFilter("approved"); setApplicationsPage(1); scrollToSection(applicationsRef); }}
             data-testid="stat-card-approved"
           >
             <CardContent className="p-3 sm:p-4">
@@ -756,50 +801,8 @@ export default function AdminDashboard() {
           </Card>
         </div>
 
-        {/* Section Navigation */}
-        <div className="flex flex-wrap gap-2 mb-6">
-          <Button
-            variant={activeSection === "applications" ? "default" : "outline"}
-            size="sm"
-            onClick={() => { setActiveSection("applications"); setApplicationsPage(1); }}
-            data-testid="nav-applications"
-          >
-            <FileText className="h-4 w-4 mr-2" />
-            Applications
-          </Button>
-          <Button
-            variant={activeSection === "borrowers" ? "default" : "outline"}
-            size="sm"
-            onClick={() => { setActiveSection("borrowers"); setBorrowersPage(1); }}
-            data-testid="nav-borrowers"
-          >
-            <Users className="h-4 w-4 mr-2" />
-            Borrowers ({stats.totalBorrowers})
-          </Button>
-          <Button
-            variant={activeSection === "recently-funded" ? "default" : "outline"}
-            size="sm"
-            onClick={() => { setActiveSection("recently-funded"); setFundedPage(1); }}
-            data-testid="nav-recently-funded"
-          >
-            <DollarSign className="h-4 w-4 mr-2" />
-            Recently Funded ({stats.totalDeals})
-          </Button>
-          {currentUser.role === "admin" && (
-            <Button
-              variant={activeSection === "staff" ? "default" : "outline"}
-              size="sm"
-              onClick={() => { setActiveSection("staff"); setStaffPage(1); }}
-              data-testid="nav-staff"
-            >
-              <Shield className="h-4 w-4 mr-2" />
-              Staff ({staffMembers.length})
-            </Button>
-          )}
-        </div>
-
         {/* Applications Section */}
-        {activeSection === "applications" && (
+        <section ref={applicationsRef} id="applications" className="scroll-mt-32">
           <Card>
             <CardHeader className="p-3 sm:p-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
@@ -857,42 +860,41 @@ export default function AdminDashboard() {
                           <TableHead className="text-xs">Status</TableHead>
                           <TableHead className="text-xs hidden lg:table-cell">Stage</TableHead>
                           <TableHead className="text-xs hidden lg:table-cell">Date</TableHead>
-                          <TableHead className="text-xs text-right">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {paginatedApplications.map((app) => (
-                          <TableRow key={app.id} data-testid={`app-row-${app.id}`}>
-                            <TableCell className="py-2">
+                          <TableRow 
+                            key={app.id} 
+                            className="cursor-pointer hover-elevate"
+                            onClick={() => navigate(`/admin/application/${app.id}`)}
+                            data-testid={`row-app-${app.id}`}
+                          >
+                            <TableCell className="py-3">
                               <div>
                                 <p className="font-medium text-sm">{app.borrowerName}</p>
                                 <p className="text-[10px] text-muted-foreground hidden sm:block">{app.borrowerEmail}</p>
                               </div>
                             </TableCell>
-                            <TableCell className="py-2 hidden sm:table-cell">
+                            <TableCell className="py-3 hidden sm:table-cell">
                               <Badge variant="outline" className="text-[10px]">{app.loanType}</Badge>
                             </TableCell>
-                            <TableCell className="py-2 hidden md:table-cell text-sm">
+                            <TableCell className="py-3 hidden md:table-cell text-sm">
                               {app.loanAmount ? formatCurrency(app.loanAmount) : "—"}
                             </TableCell>
-                            <TableCell className="py-2">
+                            <TableCell className="py-3">
                               <Badge className={`text-[10px] ${statusColors[app.status]}`}>
                                 {statusLabels[app.status]}
                               </Badge>
                             </TableCell>
-                            <TableCell className="py-2 hidden lg:table-cell">
+                            <TableCell className="py-3 hidden lg:table-cell">
                               <span className="text-xs text-muted-foreground">{app.processingStage ? stageLabels[app.processingStage] : "—"}</span>
                             </TableCell>
-                            <TableCell className="py-2 hidden lg:table-cell">
-                              <span className="text-xs text-muted-foreground">{formatDate(app.createdAt)}</span>
-                            </TableCell>
-                            <TableCell className="py-2 text-right">
-                              <Link href={`/admin/applications/${app.id}`}>
-                                <Button size="sm" variant="ghost" className="h-7 text-xs" data-testid={`button-view-app-${app.id}`}>
-                                  View
-                                  <ChevronRight className="h-3 w-3 ml-1" />
-                                </Button>
-                              </Link>
+                            <TableCell className="py-3 hidden lg:table-cell">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs text-muted-foreground">{formatDate(app.createdAt)}</span>
+                                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                              </div>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -912,10 +914,10 @@ export default function AdminDashboard() {
               )}
             </CardContent>
           </Card>
-        )}
+        </section>
 
         {/* Borrowers Section */}
-        {activeSection === "borrowers" && (
+        <section ref={borrowersRef} id="borrowers" className="scroll-mt-32">
           <Card>
             <CardHeader className="p-3 sm:p-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -962,33 +964,33 @@ export default function AdminDashboard() {
                 <>
                   <div className="divide-y">
                     {paginatedBorrowers.map((user) => (
-                      <Link key={user.id} href={`/admin/borrowers/${user.id}`}>
-                        <div 
-                          className="p-3 sm:p-4 flex items-center gap-3 hover-elevate cursor-pointer" 
-                          data-testid={`borrower-row-${user.id}`}
-                        >
-                          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                            <User className="h-5 w-5 text-primary" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm truncate">
-                              {user.firstName} {user.lastName}
-                            </p>
-                            <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                          </div>
-                          <div className="flex flex-col items-end gap-1">
-                            <div className="flex gap-1">
-                              <Badge variant="outline" className="text-[10px]">{user.applicationCount || 0} apps</Badge>
-                              {(user.fundedLoans || 0) > 0 && (
-                                <Badge className="text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
-                                  {user.fundedLoans} funded
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-                          <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <div 
+                        key={user.id} 
+                        className="p-3 sm:p-4 flex items-center gap-3 hover-elevate cursor-pointer" 
+                        onClick={() => navigate(`/admin/borrower/${user.id}`)}
+                        data-testid={`row-borrower-${user.id}`}
+                      >
+                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                          <User className="h-5 w-5 text-primary" />
                         </div>
-                      </Link>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">
+                            {user.firstName} {user.lastName}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                        </div>
+                        <div className="flex flex-col items-end gap-1">
+                          <div className="flex gap-1">
+                            <Badge variant="outline" className="text-[10px]">{user.applicationCount || 0} apps</Badge>
+                            {(user.fundedLoans || 0) > 0 && (
+                              <Badge className="text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
+                                {user.fundedLoans} funded
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                      </div>
                     ))}
                   </div>
                   {borrowersTotalPages > 1 && (
@@ -1004,10 +1006,10 @@ export default function AdminDashboard() {
               )}
             </CardContent>
           </Card>
-        )}
+        </section>
 
         {/* Recently Funded Section */}
-        {activeSection === "recently-funded" && (
+        <section ref={fundedRef} id="recently-funded" className="scroll-mt-32">
           <Card>
             <CardHeader className="p-3 sm:p-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -1291,7 +1293,7 @@ export default function AdminDashboard() {
                       </TableHeader>
                       <TableBody>
                         {paginatedDeals.map((deal) => (
-                          <TableRow key={deal.id} data-testid={`deal-row-${deal.id}`}>
+                          <TableRow key={deal.id} data-testid={`row-deal-${deal.id}`}>
                             <TableCell className="py-2">
                               <div className="flex items-center gap-2">
                                 <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
@@ -1364,11 +1366,11 @@ export default function AdminDashboard() {
               )}
             </CardContent>
           </Card>
-        )}
+        </section>
 
         {/* Staff Section (Admin Only) */}
-        {activeSection === "staff" && currentUser.role === "admin" && (
-          <div className="space-y-6">
+        {currentUser.role === "admin" && (
+          <section ref={staffRef} id="staff" className="scroll-mt-32 space-y-6">
             {/* All Accounts */}
             <Card>
               <CardHeader className="p-4 sm:p-6">
@@ -1389,7 +1391,7 @@ export default function AdminDashboard() {
                   <ScrollArea className="h-[300px]">
                     <div className="divide-y">
                       {users?.map((user) => (
-                        <div key={user.id} className="p-3 flex items-center justify-between" data-testid={`user-row-${user.id}`}>
+                        <div key={user.id} className="p-3 flex items-center justify-between" data-testid={`row-user-${user.id}`}>
                           <div className="flex items-center gap-3 min-w-0 flex-1">
                             <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0">
                               {user.role === "admin" ? (
@@ -1448,7 +1450,7 @@ export default function AdminDashboard() {
                     <>
                       <div className="divide-y">
                         {paginatedStaff.map((user) => (
-                          <div key={user.id} className="p-4 flex items-center justify-between" data-testid={`staff-row-${user.id}`}>
+                          <div key={user.id} className="p-4 flex items-center justify-between" data-testid={`row-staff-${user.id}`}>
                             <div className="flex items-center gap-3">
                               <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
                                 <Shield className="h-5 w-5 text-primary" />
@@ -1591,7 +1593,7 @@ export default function AdminDashboard() {
                   ) : (
                     <div className="divide-y">
                       {invites?.map((invite) => (
-                        <div key={invite.id} className="p-4 flex items-center justify-between" data-testid={`invite-row-${invite.id}`}>
+                        <div key={invite.id} className="p-4 flex items-center justify-between" data-testid={`row-invite-${invite.id}`}>
                           <div>
                             <p className="text-sm font-medium">{invite.email}</p>
                             <div className="flex items-center gap-2 mt-1">
@@ -1619,7 +1621,7 @@ export default function AdminDashboard() {
                 </CardContent>
               </Card>
             </div>
-          </div>
+          </section>
         )}
       </main>
 
@@ -1678,7 +1680,7 @@ export default function AdminDashboard() {
                     {webhookEndpoints && webhookEndpoints.length > 0 && (
                       <div className="border rounded-lg divide-y max-h-[200px] overflow-y-auto mb-4">
                         {webhookEndpoints.map((endpoint) => (
-                          <div key={endpoint.id} className="p-3 flex items-center justify-between" data-testid={`webhook-row-${endpoint.id}`}>
+                          <div key={endpoint.id} className="p-3 flex items-center justify-between" data-testid={`row-webhook-${endpoint.id}`}>
                             <div className="min-w-0 flex-1">
                               <p className="text-sm font-medium">{endpoint.name}</p>
                               <p className="text-xs text-muted-foreground truncate max-w-[200px]">{endpoint.targetUrl}</p>
