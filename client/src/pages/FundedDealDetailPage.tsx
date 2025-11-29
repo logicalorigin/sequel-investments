@@ -20,12 +20,12 @@ import {
 } from "lucide-react";
 import type { FundedDeal } from "@shared/schema";
 
-import luxuryHome from "@assets/1746596813932_luxury-home-1.jpg";
-import renovationHome from "@assets/1746596814028_renovation-home.jpg";
-import newConstruction from "@assets/1746596814085_new-construction.jpg";
-import rentalProperty from "@assets/1746596814168_rental-property.jpg";
-import suburbanHome from "@assets/1746596813891_suburban-home.jpg";
-import multiFamilyHome from "@assets/1746596813990_multi-family-home.jpg";
+import luxuryHome from "@assets/stock_images/luxury_modern_single_2639d1bd.jpg";
+import renovationHome from "@assets/stock_images/house_renovation_con_aaeb0f05.jpg";
+import newConstruction from "@assets/stock_images/new_construction_hom_ee055247.jpg";
+import rentalProperty from "@assets/stock_images/residential_investme_a188ab28.jpg";
+import suburbanHome from "@assets/stock_images/suburban_single_fami_544678ca.jpg";
+import multiFamilyHome from "@assets/stock_images/multi-family_apartme_e7cec58d.jpg";
 
 const defaultImages = [luxuryHome, renovationHome, newConstruction, rentalProperty, suburbanHome, multiFamilyHome];
 

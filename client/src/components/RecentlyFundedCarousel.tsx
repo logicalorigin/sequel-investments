@@ -26,6 +26,7 @@ interface FundedDeal {
   ltc?: number;
   closeTime: string;
   propertyType: string;
+  isFromApi?: boolean;
 }
 
 const defaultImages = [luxuryHome, renovationHome, newConstruction, rentalProperty, suburbanHome, multiFamilyHome];
@@ -164,6 +165,7 @@ function mapDbDealToDisplay(deal: DbFundedDeal, index: number): FundedDeal {
     ltc: deal.ltc || undefined,
     closeTime: deal.closeTime,
     propertyType: deal.propertyType,
+    isFromApi: true,
   };
 }
 
@@ -268,14 +270,10 @@ export function RecentlyFundedCarousel({
 
         <div className="relative">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {getVisibleDeals().map((deal, index) => (
-              <Link 
-                key={`${deal.id}-${currentIndex}-${index}`}
-                href={`/funded-deals/${deal.id}`}
-                data-testid={`link-funded-deal-${deal.id}`}
-              >
+            {getVisibleDeals().map((deal, index) => {
+              const cardContent = (
                 <Card 
-                  className="overflow-hidden hover-elevate transition-all duration-300 cursor-pointer h-full"
+                  className={`overflow-hidden transition-all duration-300 h-full ${deal.isFromApi ? 'hover-elevate cursor-pointer' : ''}`}
                   data-testid={`card-funded-deal-${deal.id}`}
                 >
                   <div className="relative h-40 sm:h-48 overflow-hidden">
@@ -320,7 +318,7 @@ export function RecentlyFundedCarousel({
                       <div className="flex items-center gap-1 sm:gap-1.5">
                         {deal.ltv ? (
                           <>
-                            <Percent className="h-3.5 w-3.5 sm:h-4 sm:4 text-blue-600 shrink-0" />
+                            <Percent className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600 shrink-0" />
                             <div>
                               <p className="text-[10px] sm:text-xs text-muted-foreground">LTV</p>
                               <p className="font-semibold">{deal.ltv}%</p>
@@ -346,8 +344,22 @@ export function RecentlyFundedCarousel({
                     </div>
                   </CardContent>
                 </Card>
-              </Link>
-            ))}
+              );
+
+              return deal.isFromApi ? (
+                <Link 
+                  key={`${deal.id}-${currentIndex}-${index}`}
+                  href={`/funded-deals/${deal.id}`}
+                  data-testid={`link-funded-deal-${deal.id}`}
+                >
+                  {cardContent}
+                </Link>
+              ) : (
+                <div key={`${deal.id}-${currentIndex}-${index}`}>
+                  {cardContent}
+                </div>
+              );
+            })}
           </div>
 
         </div>
