@@ -44,8 +44,8 @@ const transactionTypes = [
 ];
 
 const rentalTypes = [
-  { id: "long_term", label: "Long-Term Rental", icon: Building2 },
-  { id: "short_term", label: "Short-Term (STR)", icon: Sun },
+  { id: "long_term", label: "Long-Term", icon: Building2 },
+  { id: "short_term", label: "STR", icon: Sun },
 ];
 
 const prepaymentOptions = [
@@ -891,119 +891,89 @@ export default function DSCRAnalyzerPage() {
               className="sticky top-4 border transition-colors bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20"
               data-testid="card-results"
             >
-              <CardHeader className="pb-2 pt-4">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-primary" />
+              <CardHeader className="pb-1.5 pt-3 px-3">
+                <CardTitle className="text-sm flex items-center gap-1.5">
+                  <TrendingUp className="h-3.5 w-3.5 text-primary" />
                   DSCR Results
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3 pb-4">
-                {/* Interest Rate and DSCR */}
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="bg-background rounded-lg p-2.5">
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">Interest Rate</p>
-                    <p className="text-lg font-bold text-green-600" data-testid="result-interest-rate">
-                      {results.calculatedRate.toFixed(3)}%
-                    </p>
+              <CardContent className="space-y-1.5 pb-3 px-3">
+                {/* Primary metrics row */}
+                <div className="grid grid-cols-4 gap-1.5">
+                  <div className="bg-background rounded p-1.5 text-center">
+                    <p className="text-[9px] text-muted-foreground uppercase">Rate</p>
+                    <p className="text-sm font-bold text-green-600" data-testid="result-interest-rate">{results.calculatedRate.toFixed(2)}%</p>
                   </div>
-                  <div className="bg-background rounded-lg p-2.5">
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">DSCR</p>
-                    <p className="text-lg font-bold text-green-600" data-testid="result-dscr">
-                      {results.dscrRatio.toFixed(2)}
-                    </p>
+                  <div className="bg-background rounded p-1.5 text-center">
+                    <p className="text-[9px] text-muted-foreground uppercase">DSCR</p>
+                    <p className="text-sm font-bold text-green-600" data-testid="result-dscr">{results.dscrRatio.toFixed(2)}</p>
                   </div>
-                </div>
-
-                {/* Loan Amount and LTV */}
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="bg-background rounded-lg p-2.5">
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">Loan Amount</p>
-                    <p className="text-sm font-semibold text-green-600" data-testid="result-loan-amount">
-                      {formatCurrency(results.loanAmount)}
-                    </p>
+                  <div className="bg-background rounded p-1.5 text-center">
+                    <p className="text-[9px] text-muted-foreground uppercase">LTV</p>
+                    <p className="text-sm font-bold text-green-600" data-testid="result-ltv">{results.ltv.toFixed(0)}%</p>
                   </div>
-                  <div className="bg-background rounded-lg p-2.5">
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">LTV</p>
-                    <p className="text-sm font-bold text-green-600" data-testid="result-ltv">
-                      {results.ltv.toFixed(1)}%
-                    </p>
+                  <div className="bg-background rounded p-1.5 text-center">
+                    <p className="text-[9px] text-muted-foreground uppercase">Loan</p>
+                    <p className="text-xs font-semibold text-green-600" data-testid="result-loan-amount">{formatCurrency(results.loanAmount)}</p>
                   </div>
                 </div>
 
                 {/* Cash to Close / Cash to Borrower */}
-                <div className="bg-background rounded-lg p-2.5">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">
-                    {transactionType === "purchase" ? "Estimated Cash to Close" : "Estimated Cash to Borrower"}
-                  </p>
-                  <p className="text-lg font-bold text-green-600" data-testid="result-cash">
+                <div className="bg-background rounded p-2 flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">
+                    {transactionType === "purchase" ? "Cash to Close" : "Cash to Borrower"}
+                  </span>
+                  <span className="text-base font-bold text-green-600" data-testid="result-cash">
                     {formatCurrency(transactionType === "purchase" ? results.cashToClose : results.cashToBorrower)}
-                  </p>
+                  </span>
                 </div>
 
-                {/* Monthly Breakdown */}
-                <div className="bg-background rounded-lg p-2.5">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1.5">Monthly Breakdown</p>
-                  <div className="space-y-1 text-xs">
+                {/* Monthly Breakdown - Condensed */}
+                <div className="bg-background rounded p-2">
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px]">
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Rent Income:</span>
-                      <span className="font-medium text-green-600" data-testid="result-monthly-rent">
-                        {formatCurrency(results.monthlyRent)}
-                      </span>
+                      <span className="text-muted-foreground">Rent:</span>
+                      <span className="font-medium text-green-600" data-testid="result-monthly-rent">{formatCurrency(results.monthlyRent)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">P&I:</span>
-                      <span className="font-medium text-green-600" data-testid="result-monthly-pi">
-                        {formatCurrency(results.monthlyPI)}
-                      </span>
+                      <span className="font-medium" data-testid="result-monthly-pi">{formatCurrency(results.monthlyPI)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Taxes/Ins/HOA:</span>
-                      <span className="font-medium text-green-600" data-testid="result-monthly-tia">
-                        {formatCurrency(results.monthlyTIA)}
-                      </span>
+                      <span className="text-muted-foreground">TIA:</span>
+                      <span className="font-medium" data-testid="result-monthly-tia">{formatCurrency(results.monthlyTIA)}</span>
                     </div>
-                    <div className="flex justify-between pt-1 border-t">
-                      <span className="font-medium">Total PITIA:</span>
-                      <span className="font-bold text-green-600" data-testid="result-monthly-pitia">
-                        {formatCurrency(results.monthlyPITIA)}
-                      </span>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">PITIA:</span>
+                      <span className="font-medium" data-testid="result-monthly-pitia">{formatCurrency(results.monthlyPITIA)}</span>
                     </div>
-                    <div className="flex justify-between pt-1 border-t">
-                      <span className="font-medium">Cash Flow:</span>
-                      <span className="font-bold text-green-600" data-testid="result-monthly-cashflow">
-                        {formatCurrency(results.monthlyCashFlow)}
-                      </span>
-                    </div>
+                  </div>
+                  <div className="flex justify-between pt-1 mt-1 border-t text-xs">
+                    <span className="font-medium">Monthly Cash Flow:</span>
+                    <span className="font-bold text-green-600" data-testid="result-monthly-cashflow">{formatCurrency(results.monthlyCashFlow)}</span>
                   </div>
                 </div>
 
                 {/* Qualification Status */}
-                <div className="p-2.5 rounded-lg border text-xs bg-green-500/10 border-green-500/20">
-                  <span className="font-semibold text-green-600">
+                <div className="p-1.5 rounded border text-[11px] bg-green-500/10 border-green-500/20 text-center">
+                  <span className="font-medium text-green-600">
                     {results.dscrRatio >= 1.15 
-                      ? "Excellent! Strong cash flow coverage." 
+                      ? "Excellent! Strong cash flow." 
                       : results.dscrRatio >= 1.0 
-                      ? "Good! DSCR qualifies for best rates."
+                      ? "Good DSCR - best rates."
                       : results.dscrRatio >= 0.75 
-                      ? "We have options for this scenario."
-                      : "Contact us to discuss alternatives."}
+                      ? "Options available."
+                      : "Contact us."}
                   </span>
                 </div>
 
                 <Button 
-                  className="w-full"
+                  className="w-full h-8 text-sm"
                   onClick={() => createApplicationMutation.mutate()}
                   disabled={createApplicationMutation.isPending}
                   data-testid="button-get-term-sheet"
                 >
-                  {createApplicationMutation.isPending ? (
-                    "Creating Application..."
-                  ) : (
-                    <>
-                      <FileText className="h-4 w-4 mr-2" />
-                      Get Term Sheet
-                    </>
-                  )}
+                  {createApplicationMutation.isPending ? "Creating..." : <><FileText className="h-3.5 w-3.5 mr-1.5" />Get Term Sheet</>}
                 </Button>
               </CardContent>
             </Card>
