@@ -1721,6 +1721,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Public: Get single funded deal by ID
+  app.get("/api/funded-deals/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deal = await storage.getFundedDeal(id);
+      
+      if (!deal) {
+        return res.status(404).json({ error: "Funded deal not found" });
+      }
+      
+      // Only return visible deals to public
+      if (!deal.isVisible) {
+        return res.status(404).json({ error: "Funded deal not found" });
+      }
+      
+      return res.json(deal);
+    } catch (error) {
+      console.error("Error fetching funded deal:", error);
+      return res.status(500).json({ error: "Failed to fetch funded deal" });
+    }
+  });
+
   // Admin/Staff: Get all funded deals (including hidden)
   app.get("/api/admin/funded-deals", isAuthenticated, isStaff, async (req: any, res) => {
     try {
