@@ -226,9 +226,9 @@ export default function AdminDashboard() {
   });
   
   const loanSubtypeOptions: Record<string, string[]> = {
-    "DSCR": ["Long-term Rental", "Short-term Rental", "DSCR No Ratio", "Portfolio", "Mixed Use"],
-    "Fix & Flip": ["Bridge to Sale", "Bridge to Rent", "Fix & Flip", "Light Rehab", "Heavy Rehab"],
-    "New Construction": ["Ground Up", "ADU/Conversion", "Spec Build", "Pre-Sold"],
+    "DSCR": ["Purchase", "Cash Out Refi", "Rate and Term Refi"],
+    "Fix & Flip": ["Fix and Flip", "New Construction", "Bridge to Sale"],
+    "New Construction": ["Ground Up", "ADU/Conversion", "Spec Build"],
   };
   
   const [showWebhookDialog, setShowWebhookDialog] = useState(false);
