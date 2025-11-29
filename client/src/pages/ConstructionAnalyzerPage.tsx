@@ -384,7 +384,8 @@ export default function ConstructionAnalyzerPage() {
 
     const totalProjectCost = landCostVal + constructionBudgetVal + closingCostsVal + holdingCosts + interestCost;
     
-    const totalCapitalDeployed = cashInvested + landEquityVal;
+    // Cash on Cash = all actual cash out of pocket (base cash + land equity + holding + interest)
+    const totalCapitalDeployed = cashInvested + landEquityVal + holdingCosts + interestCost;
     
     const totalProfit = arvVal - totalProjectCost;
     const roi = totalCapitalDeployed > 0 ? (totalProfit / totalCapitalDeployed) * 100 : 0;
