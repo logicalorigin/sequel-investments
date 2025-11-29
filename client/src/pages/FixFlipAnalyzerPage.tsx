@@ -323,7 +323,8 @@ export default function FixFlipAnalyzerPage() {
     const interestCost = (loanAmount * (rate / 100)) * (holdMonths / 12);
 
     const totalProjectCost = purchasePriceVal + rehabBudgetVal + closingCostsVal + holdingCosts + interestCost;
-    const cashInvested = downPaymentVal + closingCostsVal + (rehabBudgetVal - rehabFundingVal);
+    // Cash on Cash = all actual cash out of pocket (down payment + closing + rehab equity + holding + interest)
+    const cashInvested = downPaymentVal + closingCostsVal + (rehabBudgetVal - rehabFundingVal) + holdingCosts + interestCost;
     const totalProfit = arvVal - totalProjectCost;
     const roi = cashInvested > 0 ? (totalProfit / cashInvested) * 100 : 0;
     const profitMargin = arvVal > 0 ? (totalProfit / arvVal) * 100 : 0;
