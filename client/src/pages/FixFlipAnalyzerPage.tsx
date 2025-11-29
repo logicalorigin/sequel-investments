@@ -727,60 +727,65 @@ export default function FixFlipAnalyzerPage() {
               }`}
               data-testid="card-results"
             >
-              <CardHeader className="pb-1.5 pt-3 px-3">
-                <CardTitle className="text-sm flex items-center gap-1.5">
-                  <TrendingUp className="h-3.5 w-3.5 text-primary" />
+              <CardHeader className="pb-2 pt-3">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-primary" />
                   Deal Analysis
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-1.5 pb-3 px-3">
-                {/* Primary metrics row */}
-                <div className="grid grid-cols-4 gap-1.5">
-                  <div className="bg-background rounded p-1.5 text-center">
-                    <p className="text-[9px] text-muted-foreground uppercase">ROI</p>
-                    <p className={`text-sm font-bold ${results.roi >= 20 ? "text-green-600" : results.roi >= 10 ? "text-yellow-600" : "text-red-600"}`} data-testid="result-roi">{results.roi.toFixed(0)}%</p>
+              <CardContent className="space-y-2 pb-3">
+                {/* ROI and Profit Margin */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-background rounded-lg p-2">
+                    <p className="text-[10px] text-muted-foreground uppercase">ROI</p>
+                    <p className={`text-lg font-bold ${results.roi >= 20 ? "text-green-600" : results.roi >= 10 ? "text-yellow-600" : "text-red-600"}`} data-testid="result-roi">{results.roi.toFixed(1)}%</p>
                   </div>
-                  <div className="bg-background rounded p-1.5 text-center">
-                    <p className="text-[9px] text-muted-foreground uppercase">Margin</p>
-                    <p className={`text-sm font-bold ${results.profitMargin >= 15 ? "text-green-600" : results.profitMargin >= 10 ? "text-yellow-600" : "text-red-600"}`} data-testid="result-profit-margin">{results.profitMargin.toFixed(0)}%</p>
-                  </div>
-                  <div className="bg-background rounded p-1.5 text-center">
-                    <p className="text-[9px] text-muted-foreground uppercase">LTC</p>
-                    <p className={`text-sm font-bold ${results.ltc > 90 ? "text-red-600" : "text-green-600"}`} data-testid="result-ltc">{results.ltc.toFixed(0)}%</p>
-                  </div>
-                  <div className="bg-background rounded p-1.5 text-center">
-                    <p className="text-[9px] text-muted-foreground uppercase">Rate</p>
-                    <p className="text-sm font-bold text-primary" data-testid="result-interest-rate">{calculatedRate.toFixed(2)}%</p>
+                  <div className="bg-background rounded-lg p-2">
+                    <p className="text-[10px] text-muted-foreground uppercase">Profit Margin</p>
+                    <p className={`text-lg font-bold ${results.profitMargin >= 15 ? "text-green-600" : results.profitMargin >= 10 ? "text-yellow-600" : "text-red-600"}`} data-testid="result-profit-margin">{results.profitMargin.toFixed(1)}%</p>
                   </div>
                 </div>
 
-                {/* Profit and Cash */}
-                <div className="grid grid-cols-2 gap-1.5">
-                  <div className="bg-background rounded p-2 flex justify-between items-center">
-                    <span className="text-[10px] text-muted-foreground uppercase">Profit</span>
-                    <span className={`text-sm font-bold ${results.totalProfit >= 0 ? "text-green-600" : "text-red-600"}`} data-testid="result-total-profit">{formatCurrency(results.totalProfit)}</span>
+                {/* Total Profit and Cash Invested */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-background rounded-lg p-2">
+                    <p className="text-[10px] text-muted-foreground uppercase">Total Profit</p>
+                    <p className={`text-sm font-bold ${results.totalProfit >= 0 ? "text-green-600" : "text-red-600"}`} data-testid="result-total-profit">{formatCurrency(results.totalProfit)}</p>
                   </div>
-                  <div className="bg-background rounded p-2 flex justify-between items-center">
-                    <span className="text-[10px] text-muted-foreground uppercase">Cash In</span>
-                    <span className="text-sm font-semibold" data-testid="result-cash-invested">{formatCurrency(results.cashInvested)}</span>
-                  </div>
-                </div>
-
-                {/* Loan & LTV row */}
-                <div className="grid grid-cols-2 gap-1.5">
-                  <div className="bg-background rounded p-2 flex justify-between items-center">
-                    <span className="text-[10px] text-muted-foreground uppercase">Loan</span>
-                    <span className="text-xs font-semibold" data-testid="result-loan-amount">{formatCurrency(results.loanAmount)}</span>
-                  </div>
-                  <div className="bg-background rounded p-2 flex justify-between items-center">
-                    <span className="text-[10px] text-muted-foreground uppercase">LTV (ARV)</span>
-                    <span className={`text-sm font-bold ${results.ltv > 70 ? "text-red-600" : results.ltv > 65 ? "text-yellow-600" : "text-green-600"}`} data-testid="result-ltv">{results.ltv.toFixed(0)}%</span>
+                  <div className="bg-background rounded-lg p-2">
+                    <p className="text-[10px] text-muted-foreground uppercase">Cash Invested</p>
+                    <p className="text-sm font-semibold" data-testid="result-cash-invested">{formatCurrency(results.cashInvested)}</p>
                   </div>
                 </div>
 
-                {/* Cost Breakdown - Condensed */}
-                <div className="bg-background rounded p-2">
-                  <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px]">
+                {/* Loan Details */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-background rounded-lg p-2">
+                    <p className="text-[10px] text-muted-foreground uppercase">Loan Amount</p>
+                    <p className="text-sm font-semibold" data-testid="result-loan-amount">{formatCurrency(results.loanAmount)}</p>
+                  </div>
+                  <div className="bg-background rounded-lg p-2">
+                    <p className="text-[10px] text-muted-foreground uppercase">Interest Rate</p>
+                    <p className="text-sm font-bold text-primary" data-testid="result-interest-rate">{calculatedRate.toFixed(3)}%</p>
+                  </div>
+                </div>
+
+                {/* LTC and LTV */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-background rounded-lg p-2">
+                    <p className="text-[10px] text-muted-foreground uppercase">LTC</p>
+                    <p className={`text-sm font-bold ${results.ltc > 90 ? "text-red-600" : "text-green-600"}`} data-testid="result-ltc">{results.ltc.toFixed(1)}%</p>
+                  </div>
+                  <div className="bg-background rounded-lg p-2">
+                    <p className="text-[10px] text-muted-foreground uppercase">LTV (ARV)</p>
+                    <p className={`text-sm font-bold ${results.ltv > 70 ? "text-red-600" : results.ltv > 65 ? "text-yellow-600" : "text-green-600"}`} data-testid="result-ltv">{results.ltv.toFixed(1)}%</p>
+                  </div>
+                </div>
+
+                {/* Cost Breakdown */}
+                <div className="bg-background rounded-lg p-2">
+                  <p className="text-[10px] text-muted-foreground uppercase mb-1">Cost Breakdown</p>
+                  <div className="space-y-0.5 text-xs">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Purchase:</span>
                       <span className="font-medium">{formatCurrency(results.purchasePrice)}</span>
@@ -801,7 +806,7 @@ export default function FixFlipAnalyzerPage() {
                       <span className="text-muted-foreground">Interest:</span>
                       <span className="font-medium">{formatCurrency(results.interestCost)}</span>
                     </div>
-                    <div className="flex justify-between font-semibold">
+                    <div className="flex justify-between pt-1 border-t font-semibold">
                       <span>Total:</span>
                       <span>{formatCurrency(results.totalProjectCost)}</span>
                     </div>
@@ -809,16 +814,16 @@ export default function FixFlipAnalyzerPage() {
                 </div>
 
                 {/* Qualification Status */}
-                <div className={`p-1.5 rounded border text-[11px] text-center ${
+                <div className={`p-2 rounded-lg border text-xs ${
                   results.roi >= 20 ? "bg-green-500/10 border-green-500/20" : results.roi >= 10 ? "bg-yellow-500/10 border-yellow-500/20" : "bg-red-500/10 border-red-500/20"
                 }`}>
-                  <span className={`font-medium ${results.roi >= 20 ? "text-green-600" : results.roi >= 10 ? "text-yellow-600" : "text-red-600"}`}>
-                    {results.roi >= 30 ? "Excellent! Strong profit." : results.roi >= 20 ? "Good deal! Solid returns." : results.roi >= 10 ? "Marginal - review costs." : "Consider renegotiating."}
+                  <span className={`font-semibold ${results.roi >= 20 ? "text-green-600" : results.roi >= 10 ? "text-yellow-600" : "text-red-600"}`}>
+                    {results.roi >= 30 ? "Excellent deal! Strong profit potential." : results.roi >= 20 ? "Good deal! Solid returns expected." : results.roi >= 10 ? "Marginal - review costs carefully." : "Consider renegotiating terms."}
                   </span>
                 </div>
 
                 <Button 
-                  className="w-full h-8 text-sm"
+                  className="w-full"
                   onClick={() => createApplicationMutation.mutate()}
                   disabled={createApplicationMutation.isPending}
                   data-testid="button-get-term-sheet"
