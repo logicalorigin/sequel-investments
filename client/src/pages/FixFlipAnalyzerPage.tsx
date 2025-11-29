@@ -293,7 +293,7 @@ export default function FixFlipAnalyzerPage() {
     const purchaseLoanAmount = loanAmount - rehabFundingVal;
     const downPaymentVal = Math.max(0, purchasePriceVal - purchaseLoanAmount);
     
-    // Origination points cost (based on rate)
+    // Origination points cost (based on rate, calculated on total cost - fixed regardless of LTC)
     const minRate = 8.9;
     const maxRate = 12.9;
     const minPoints = 0.0; // Best borrowers get 0 points
@@ -305,10 +305,10 @@ export default function FixFlipAnalyzerPage() {
       const ratePosition = (rate - minRate) / rateRange;
       pointsPercent = minPoints + (ratePosition * (maxPoints - minPoints));
     }
-    const originationPointsCost = Math.round(loanAmount * (pointsPercent / 100));
+    const originationPointsCost = Math.round(totalCost * (pointsPercent / 100));
     
-    // Estimated closing costs (2% of loan amount + origination points)
-    const baseClosingCosts = Math.round(loanAmount * 0.02);
+    // Estimated closing costs (2% of total cost + origination points) - fixed regardless of LTC
+    const baseClosingCosts = Math.round(totalCost * 0.02);
     const closingCostsVal = baseClosingCosts + originationPointsCost;
 
     const ltv = arvVal > 0 ? (loanAmount / arvVal) * 100 : 0;

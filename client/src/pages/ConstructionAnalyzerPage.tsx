@@ -352,7 +352,7 @@ export default function ConstructionAnalyzerPage() {
       landEquityVal = 0;
     }
     
-    // Origination points cost (based on rate, calculated on loan amount)
+    // Origination points cost (based on rate, calculated on total cost - fixed regardless of LTC)
     const minRate = 8.9;
     const maxRate = 12.9;
     const minPoints = 0.0; // Best borrowers get 0 points
@@ -364,9 +364,9 @@ export default function ConstructionAnalyzerPage() {
       const ratePosition = (rate - minRate) / rateRange;
       pointsPercent = minPoints + (ratePosition * (maxPoints - minPoints));
     }
-    const originationPointsCost = Math.round(loanAmount * (pointsPercent / 100));
+    const originationPointsCost = Math.round(totalCost * (pointsPercent / 100));
     
-    // Base closing costs (2.5% of total cost) + origination points
+    // Base closing costs (2.5% of total cost) + origination points - fixed regardless of LTC
     const baseClosingCosts = Math.round(totalCost * 0.025);
     const closingCostsVal = baseClosingCosts + originationPointsCost;
     
