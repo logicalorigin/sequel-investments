@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { usePropertyAutofill } from "@/hooks/usePropertyAutofill";
@@ -209,6 +209,11 @@ export default function ConstructionAnalyzerPage() {
   }, [fetchPropertyData]);
 
   const maxLtc = 90;
+
+  const handleLtcSliderChange = useCallback((value: number[]) => {
+    const clampedValue = Math.max(0, Math.min(value[0], maxLtc));
+    setLtcSlider([clampedValue]);
+  }, [maxLtc]);
 
   const isCaliforniaProperty = propertyState === "CA";
   const baseRate = isCaliforniaProperty ? 8.9 : 9.9;
@@ -720,7 +725,7 @@ export default function ConstructionAnalyzerPage() {
                   </div>
                   <Slider
                     value={ltcSlider}
-                    onValueChange={setLtcSlider}
+                    onValueChange={handleLtcSliderChange}
                     min={0}
                     max={maxLtc}
                     step={1}
