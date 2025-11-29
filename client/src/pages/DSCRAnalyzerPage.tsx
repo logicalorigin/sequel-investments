@@ -425,9 +425,13 @@ export default function DSCRAnalyzerPage() {
     const cashToClose = transactionType === "purchase" 
       ? downPayment + estimatedClosingCosts 
       : 0;
-    const cashToBorrower = transactionType !== "purchase" 
-      ? loanAmount - estimatedClosingCosts 
-      : 0;
+    // Rate & Term refinance: max $2,000 cash to borrower
+    let cashToBorrower = 0;
+    if (transactionType === "cash_out") {
+      cashToBorrower = loanAmount - estimatedClosingCosts;
+    } else if (transactionType === "rate_term") {
+      cashToBorrower = Math.min(2000, loanAmount - estimatedClosingCosts);
+    }
 
     return {
       ltv,
@@ -917,6 +921,7 @@ export default function DSCRAnalyzerPage() {
                 <div className="bg-background rounded-lg p-2">
                   <p className="text-[10px] text-muted-foreground uppercase">
                     {transactionType === "purchase" ? "Cash to Close" : "Cash to Borrower"}
+                    {transactionType === "rate_term" && <span className="text-amber-600 ml-1">(Max $2,000)</span>}
                   </p>
                   <p className="text-lg font-bold text-green-600" data-testid="result-cash">
                     {formatCurrency(transactionType === "purchase" ? results.cashToClose : results.cashToBorrower)}
