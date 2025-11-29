@@ -78,12 +78,14 @@ export async function setupStaffAuth(app: Express) {
 
 export async function createAdminUser(username: string, password: string) {
   const existingUser = await storage.getUserByUsername(username);
+  const hashedPassword = await bcrypt.hash(password, 10);
+  
   if (existingUser) {
-    console.log("Admin user already exists");
+    // Update the password for existing admin user to ensure credentials are correct
+    await storage.updateUserPassword(existingUser.id, hashedPassword);
+    console.log("Admin user password reset");
     return existingUser;
   }
-  
-  const hashedPassword = await bcrypt.hash(password, 10);
   
   const adminUser = await storage.createLocalUser({
     username,

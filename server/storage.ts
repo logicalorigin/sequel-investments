@@ -71,6 +71,7 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createLocalUser(user: { username: string; password: string; email: string; firstName: string; lastName: string; role: "borrower" | "staff" | "admin" }): Promise<User>;
+  updateUserPassword(userId: string, hashedPassword: string): Promise<void>;
   
   // Lead operations
   createLead(lead: InsertLead): Promise<Lead>;
@@ -247,6 +248,10 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     return user;
+  }
+
+  async updateUserPassword(userId: string, hashedPassword: string): Promise<void> {
+    await db.update(users).set({ password: hashedPassword }).where(eq(users.id, userId));
   }
 
   // Lead operations
