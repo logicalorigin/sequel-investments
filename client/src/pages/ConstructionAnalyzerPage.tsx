@@ -384,11 +384,11 @@ export default function ConstructionAnalyzerPage() {
 
     const totalProjectCost = landCostVal + constructionBudgetVal + closingCostsVal + holdingCosts + interestCost;
     
-    // Cash on Cash = all actual cash out of pocket (base cash + land equity + holding + interest)
     const totalCapitalDeployed = cashInvested + landEquityVal + holdingCosts + interestCost;
     
     const totalProfit = arvVal - totalProjectCost;
-    const roi = totalCapitalDeployed > 0 ? (totalProfit / totalCapitalDeployed) * 100 : 0;
+    // ROI = Profit / Total Cost - reflects deal quality independent of leverage
+    const roi = totalProjectCost > 0 ? (totalProfit / totalProjectCost) * 100 : 0;
     const profitMargin = arvVal > 0 ? (totalProfit / arvVal) * 100 : 0;
 
     const ltc = totalCost > 0 ? (loanAmount / totalCost) * 100 : 0;
@@ -733,9 +733,9 @@ export default function ConstructionAnalyzerPage() {
           <div>
             <Card 
               className={`sticky top-4 border transition-colors ${
-                results.roi >= 25 
+                results.roi >= 15 
                   ? "bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20"
-                  : results.roi >= 15
+                  : results.roi >= 10
                   ? "bg-gradient-to-br from-yellow-500/10 to-yellow-500/5 border-yellow-500/20"
                   : "bg-gradient-to-br from-red-500/10 to-red-500/5 border-red-500/20"
               }`}
@@ -748,10 +748,10 @@ export default function ConstructionAnalyzerPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 pb-3">
-                {/* Cash on Cash Return */}
+                {/* Return on Investment */}
                 <div className="bg-background rounded-lg p-2 text-center">
-                  <p className="text-[10px] text-muted-foreground uppercase">Cash on Cash Return</p>
-                  <p className={`text-2xl font-bold ${results.roi >= 25 ? "text-green-600" : results.roi >= 15 ? "text-yellow-600" : "text-red-600"}`} data-testid="result-roi">{results.roi.toFixed(1)}%</p>
+                  <p className="text-[10px] text-muted-foreground uppercase">Return on Investment</p>
+                  <p className={`text-2xl font-bold ${results.roi >= 15 ? "text-green-600" : results.roi >= 10 ? "text-yellow-600" : "text-red-600"}`} data-testid="result-roi">{results.roi.toFixed(1)}%</p>
                 </div>
 
                 {/* Loan Details */}
@@ -821,10 +821,10 @@ export default function ConstructionAnalyzerPage() {
 
                 {/* Qualification Status */}
                 <div className={`p-2 rounded-lg border text-xs ${
-                  results.roi >= 25 ? "bg-green-500/10 border-green-500/20" : results.roi >= 15 ? "bg-yellow-500/10 border-yellow-500/20" : "bg-red-500/10 border-red-500/20"
+                  results.roi >= 15 ? "bg-green-500/10 border-green-500/20" : results.roi >= 10 ? "bg-yellow-500/10 border-yellow-500/20" : "bg-red-500/10 border-red-500/20"
                 }`}>
-                  <span className={`font-semibold ${results.roi >= 25 ? "text-green-600" : results.roi >= 15 ? "text-yellow-600" : "text-red-600"}`}>
-                    {results.roi >= 35 ? "Excellent deal! Strong profit potential." : results.roi >= 25 ? "Good deal! Solid returns expected." : results.roi >= 15 ? "Marginal - review costs carefully." : "Consider renegotiating terms."}
+                  <span className={`font-semibold ${results.roi >= 15 ? "text-green-600" : results.roi >= 10 ? "text-yellow-600" : "text-red-600"}`}>
+                    {results.roi >= 20 ? "Excellent deal! Strong profit potential." : results.roi >= 15 ? "Good deal! Solid returns expected." : results.roi >= 10 ? "Marginal - review costs carefully." : "Consider renegotiating terms."}
                   </span>
                 </div>
 
