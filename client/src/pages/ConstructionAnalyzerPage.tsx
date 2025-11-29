@@ -725,7 +725,7 @@ export default function ConstructionAnalyzerPage() {
                     </div>
                     <div className="flex justify-between gap-2 pt-1.5 border-t mt-1.5">
                       <span className="text-muted-foreground">Origination Points:</span>
-                      <span className="font-semibold text-primary">{results.originationPointsPercent.toFixed(2)}%</span>
+                      <span className="font-semibold text-primary">{results.originationPointsPercent.toFixed(1)}%</span>
                     </div>
                     <div className="text-[9px] sm:text-[10px] text-muted-foreground pt-1 italic text-center">
                       Contact your rep for accurate estimate
@@ -805,7 +805,7 @@ export default function ConstructionAnalyzerPage() {
                       <span className="font-medium">{formatCurrency(results.baseClosingCosts)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Orig. Points ({results.originationPointsPercent.toFixed(2)}%):</span>
+                      <span className="text-muted-foreground">Orig. Points ({results.originationPointsPercent.toFixed(1)}%):</span>
                       <span className="font-medium">{formatCurrency(results.originationPointsCost)}</span>
                     </div>
                     <div className="flex justify-between">
