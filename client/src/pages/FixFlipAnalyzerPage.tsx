@@ -296,8 +296,8 @@ export default function FixFlipAnalyzerPage() {
     // Origination points cost (based on rate, calculated on total cost - fixed regardless of LTC)
     const minRate = 8.9;
     const maxRate = 12.9;
-    const minPoints = 0.0; // Best borrowers get 0 points
-    const maxPoints = 2.0; // Least qualified get 2%
+    const minPoints = 1.0; // Best borrowers get 1%
+    const maxPoints = 2.5; // Least qualified get 2.5%
     let pointsPercent = minPoints;
     if (rate >= maxRate) pointsPercent = maxPoints;
     else if (rate > minRate) {
