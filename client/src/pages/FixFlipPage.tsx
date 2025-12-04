@@ -146,7 +146,69 @@ export default function FixFlipPage() {
         ctaLink="/get-quote"
       />
 
-      {/* Recently Funded Carousel - Moved Higher */}
+      {/* Where We Lend Section - Above Recently Funded */}
+      <section className="py-12 sm:py-16 md:py-24 bg-card" data-testid="section-where-we-lend">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+            {/* Map on left - as large as possible */}
+            <div className="order-2 lg:order-1 overflow-visible">
+              <div className="w-full overflow-visible">
+                <USMap onStateClick={handleStateClick} />
+              </div>
+            </div>
+
+            {/* Text on right */}
+            <div className="order-1 lg:order-2 text-center lg:text-left">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 sm:mb-6">
+                <span className="text-foreground">Where Are You </span>
+                <span className="inline-block border-b-2 border-foreground pb-0.5">
+                  <span 
+                    className="inline-block overflow-hidden align-bottom"
+                    style={{ height: '1.15em' }}
+                  >
+                    <span 
+                      className="flex flex-col"
+                      style={{ 
+                        animation: 'wordTickerDown 12s ease-in-out infinite',
+                      }}
+                    >
+                      <span className="block text-primary leading-tight">Investing?</span>
+                      <span className="block text-primary leading-tight">Flipping?</span>
+                      <span className="block text-primary leading-tight">Building?</span>
+                      <span className="block text-primary leading-tight">Investing?</span>
+                    </span>
+                  </span>
+                </span>
+              </h2>
+              <p className="text-base sm:text-lg md:text-xl text-muted-foreground mb-6 sm:mb-8 max-w-lg mx-auto lg:mx-0">
+                We offer Fix & Flip loans in 48 states + DC. Click on a state to explore our rehab loan programs in your area.
+              </p>
+
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 sm:gap-3 mb-6">
+                {eligibleStates.slice(0, 8).map((state) => (
+                  <Link key={state.slug} href={`/states/${state.slug}`}>
+                    <div className="text-center p-2 sm:p-3 rounded-lg border bg-background hover-elevate transition-all cursor-pointer" data-testid={`state-link-${state.slug}`}>
+                      <p className="font-semibold text-primary text-sm sm:text-base">{state.abbreviation}</p>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">{state.name}</p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+
+              <div className="text-center lg:text-left">
+                <Link href="/where-we-lend">
+                  <Button variant="outline" size="default" className="sm:text-base" data-testid="button-view-all-states">
+                    <MapPin className="mr-2 h-4 w-4" />
+                    View All States
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Recently Funded Carousel */}
       <RecentlyFundedCarousel 
         loanType="Fix & Flip" 
         title="Recently Funded Fix & Flip Projects"
@@ -363,68 +425,6 @@ export default function FixFlipPage() {
         viewMoreLink="/resources"
         viewMoreText="View More"
       />
-
-      {/* Where We Lend Section */}
-      <section className="py-12 sm:py-16 md:py-24 bg-card" data-testid="section-where-we-lend">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-            {/* Map on left - as large as possible */}
-            <div className="order-2 lg:order-1 overflow-visible">
-              <div className="w-full overflow-visible">
-                <USMap onStateClick={handleStateClick} />
-              </div>
-            </div>
-
-            {/* Text on right */}
-            <div className="order-1 lg:order-2 text-center lg:text-left">
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 sm:mb-6">
-                <span className="text-foreground">Where Are You </span>
-                <span className="inline-block border-b-2 border-foreground pb-0.5">
-                  <span 
-                    className="inline-block overflow-hidden align-bottom"
-                    style={{ height: '1.15em' }}
-                  >
-                    <span 
-                      className="flex flex-col"
-                      style={{ 
-                        animation: 'wordTickerDown 12s ease-in-out infinite',
-                      }}
-                    >
-                      <span className="block text-primary leading-tight">Investing?</span>
-                      <span className="block text-primary leading-tight">Flipping?</span>
-                      <span className="block text-primary leading-tight">Building?</span>
-                      <span className="block text-primary leading-tight">Investing?</span>
-                    </span>
-                  </span>
-                </span>
-              </h2>
-              <p className="text-base sm:text-lg md:text-xl text-muted-foreground mb-6 sm:mb-8 max-w-lg mx-auto lg:mx-0">
-                We offer Fix & Flip loans in 48 states + DC. Click on a state to explore our rehab loan programs in your area.
-              </p>
-
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 sm:gap-3 mb-6">
-                {eligibleStates.slice(0, 8).map((state) => (
-                  <Link key={state.slug} href={`/states/${state.slug}`}>
-                    <div className="text-center p-2 sm:p-3 rounded-lg border bg-background hover-elevate transition-all cursor-pointer" data-testid={`state-link-${state.slug}`}>
-                      <p className="font-semibold text-primary text-sm sm:text-base">{state.abbreviation}</p>
-                      <p className="text-[10px] sm:text-xs text-muted-foreground">{state.name}</p>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-
-              <div className="text-center lg:text-left">
-                <Link href="/where-we-lend">
-                  <Button variant="outline" size="default" className="sm:text-base" data-testid="button-view-all-states">
-                    <MapPin className="mr-2 h-4 w-4" />
-                    View All States
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* CTA Section */}
       <section className="py-16 bg-primary relative overflow-hidden">
