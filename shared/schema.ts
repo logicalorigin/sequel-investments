@@ -1000,9 +1000,7 @@ export const brokerApplications = pgTable("broker_applications", {
   yearsExperience: integer("years_experience"),
   monthlyLoanVolume: text("monthly_loan_volume"), // e.g., "1-5", "6-10", "11-20", "20+"
   loanTypesInterested: text("loan_types_interested").array(), // ["dscr", "bridge", "construction"]
-  
-  // Program Tier Requested
-  programTier: brokerProgramTierEnum("program_tier").default("partner"),
+  lendingStates: text("lending_states").array(), // States where broker originates loans
   
   // How did you hear about us
   referralSource: text("referral_source"),
