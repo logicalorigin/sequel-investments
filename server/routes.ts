@@ -2,6 +2,8 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import express from "express";
 import path from "path";
+import passport from "passport";
+import bcrypt from "bcryptjs";
 import { storage } from "./storage";
 import { 
   insertLeadSchema, 
@@ -16,6 +18,7 @@ import {
   insertFundedDealSchema,
   insertWebhookEndpointSchema,
   getStateBySlug,
+  type UserRole,
 } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { setupAuth, isAuthenticated } from "./replitAuth";
@@ -2108,6 +2111,705 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching nearby universities:", error);
       return res.status(500).json({ error: "Failed to fetch universities" });
+    }
+  });
+
+  // ============================================
+  // BROKER PORTAL ROUTES
+  // ============================================
+  
+  // Middleware to check if user is a broker
+  const isBroker = async (req: any, res: any, next: any) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== "broker") {
+        return res.status(403).json({ error: "Broker access required" });
+      }
+      
+      // Get broker profile
+      const brokerProfile = await storage.getBrokerProfileByUserId(userId);
+      if (!brokerProfile) {
+        return res.status(403).json({ error: "Broker profile not found" });
+      }
+      
+      req.brokerUser = user;
+      req.brokerProfile = brokerProfile;
+      next();
+    } catch (error) {
+      console.error("Error checking broker status:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  };
+
+  // Broker login route
+  app.post("/api/broker/login", async (req, res, next) => {
+    passport.authenticate("local", (err: any, user: any, info: any) => {
+      if (err) {
+        return res.status(500).json({ error: "Authentication error" });
+      }
+      if (!user) {
+        return res.status(401).json({ error: info?.message || "Invalid credentials" });
+      }
+      
+      req.login(user, (loginErr) => {
+        if (loginErr) {
+          return res.status(500).json({ error: "Login error" });
+        }
+        return res.json({ success: true, message: "Logged in successfully" });
+      });
+    })(req, res, next);
+  });
+
+  // Get broker profile
+  app.get("/api/broker/profile", isAuthenticated, isBroker, async (req: any, res) => {
+    try {
+      const branding = await storage.getBrokerBranding(req.brokerProfile.id);
+      return res.json({
+        ...req.brokerProfile,
+        branding,
+        user: {
+          id: req.brokerUser.id,
+          email: req.brokerUser.email,
+          firstName: req.brokerUser.firstName,
+          lastName: req.brokerUser.lastName,
+        },
+      });
+    } catch (error) {
+      console.error("Error fetching broker profile:", error);
+      return res.status(500).json({ error: "Failed to fetch profile" });
+    }
+  });
+
+  // Update broker profile
+  app.patch("/api/broker/profile", isAuthenticated, isBroker, async (req: any, res) => {
+    try {
+      const updated = await storage.updateBrokerProfile(req.brokerProfile.id, req.body);
+      return res.json(updated);
+    } catch (error) {
+      console.error("Error updating broker profile:", error);
+      return res.status(500).json({ error: "Failed to update profile" });
+    }
+  });
+
+  // Get broker branding
+  app.get("/api/broker/branding", isAuthenticated, isBroker, async (req: any, res) => {
+    try {
+      let branding = await storage.getBrokerBranding(req.brokerProfile.id);
+      if (!branding) {
+        // Create default branding if not exists
+        branding = await storage.createBrokerBranding({
+          brokerProfileId: req.brokerProfile.id,
+        });
+      }
+      return res.json(branding);
+    } catch (error) {
+      console.error("Error fetching broker branding:", error);
+      return res.status(500).json({ error: "Failed to fetch branding" });
+    }
+  });
+
+  // Update broker branding
+  app.patch("/api/broker/branding", isAuthenticated, isBroker, async (req: any, res) => {
+    try {
+      let branding = await storage.getBrokerBranding(req.brokerProfile.id);
+      if (!branding) {
+        branding = await storage.createBrokerBranding({
+          brokerProfileId: req.brokerProfile.id,
+          ...req.body,
+        });
+      } else {
+        branding = await storage.updateBrokerBranding(branding.id, req.body);
+      }
+      return res.json(branding);
+    } catch (error) {
+      console.error("Error updating broker branding:", error);
+      return res.status(500).json({ error: "Failed to update branding" });
+    }
+  });
+
+  // Get broker's borrowers
+  app.get("/api/broker/borrowers", isAuthenticated, isBroker, async (req: any, res) => {
+    try {
+      const borrowers = await storage.getBrokerBorrowers(req.brokerProfile.id);
+      
+      // Enrich with application counts
+      const allApps = await storage.getLoanApplicationsByBroker(req.brokerProfile.id);
+      const enrichedBorrowers = borrowers.map((rel) => {
+        const borrowerApps = allApps.filter((app) => app.userId === rel.borrowerId);
+        return {
+          ...rel,
+          applicationCount: borrowerApps.length,
+          activeApplications: borrowerApps.filter((app) => 
+            app.status !== 'funded' && app.status !== 'denied' && app.status !== 'withdrawn'
+          ).length,
+          fundedLoans: borrowerApps.filter((app) => app.status === 'funded').length,
+        };
+      });
+      
+      return res.json(enrichedBorrowers);
+    } catch (error) {
+      console.error("Error fetching broker borrowers:", error);
+      return res.status(500).json({ error: "Failed to fetch borrowers" });
+    }
+  });
+
+  // Get broker's deals/applications
+  app.get("/api/broker/deals", isAuthenticated, isBroker, async (req: any, res) => {
+    try {
+      const applications = await storage.getLoanApplicationsByBroker(req.brokerProfile.id);
+      
+      // Enrich with borrower info
+      const enrichedApps = await Promise.all(
+        applications.map(async (app) => {
+          const user = await storage.getUser(app.userId);
+          return {
+            ...app,
+            borrowerName: user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email : "Unknown",
+            borrowerEmail: user?.email,
+          };
+        })
+      );
+      
+      return res.json(enrichedApps);
+    } catch (error) {
+      console.error("Error fetching broker deals:", error);
+      return res.status(500).json({ error: "Failed to fetch deals" });
+    }
+  });
+
+  // Get single deal
+  app.get("/api/broker/deals/:id", isAuthenticated, isBroker, async (req: any, res) => {
+    try {
+      const application = await storage.getLoanApplication(req.params.id);
+      if (!application) {
+        return res.status(404).json({ error: "Deal not found" });
+      }
+      
+      // Verify this deal belongs to the broker
+      if (application.brokerId !== req.brokerProfile.id) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const user = await storage.getUser(application.userId);
+      const documents = await storage.getDocumentsByApplication(application.id);
+      const timeline = await storage.getApplicationTimeline(application.id);
+      
+      return res.json({
+        ...application,
+        borrowerName: user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email : "Unknown",
+        borrowerEmail: user?.email,
+        documents,
+        timeline,
+      });
+    } catch (error) {
+      console.error("Error fetching deal:", error);
+      return res.status(500).json({ error: "Failed to fetch deal" });
+    }
+  });
+
+  // Create deal for a borrower
+  app.post("/api/broker/deals", isAuthenticated, isBroker, async (req: any, res) => {
+    try {
+      const { borrowerId, ...dealData } = req.body;
+      
+      // Verify borrower is linked to this broker
+      const relationship = await storage.getBrokerBorrowerByPair(req.brokerProfile.id, borrowerId);
+      if (!relationship) {
+        return res.status(403).json({ error: "Borrower not linked to your account" });
+      }
+      
+      const application = await storage.createLoanApplication({
+        ...dealData,
+        userId: borrowerId,
+        brokerId: req.brokerProfile.id,
+      });
+      
+      return res.status(201).json(application);
+    } catch (error) {
+      console.error("Error creating deal:", error);
+      return res.status(500).json({ error: "Failed to create deal" });
+    }
+  });
+
+  // Update deal
+  app.patch("/api/broker/deals/:id", isAuthenticated, isBroker, async (req: any, res) => {
+    try {
+      const application = await storage.getLoanApplication(req.params.id);
+      if (!application) {
+        return res.status(404).json({ error: "Deal not found" });
+      }
+      
+      if (application.brokerId !== req.brokerProfile.id) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const updated = await storage.updateLoanApplication(req.params.id, req.body);
+      return res.json(updated);
+    } catch (error) {
+      console.error("Error updating deal:", error);
+      return res.status(500).json({ error: "Failed to update deal" });
+    }
+  });
+
+  // Send invite to borrower
+  app.post("/api/broker/invites", isAuthenticated, isBroker, async (req: any, res) => {
+    try {
+      const { email, firstName, lastName, phone, prefilledData } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+      
+      // Generate a secure token
+      const token = crypto.randomBytes(32).toString("hex");
+      
+      // Set expiry to 14 days from now
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 14);
+      
+      const invite = await storage.createBrokerInvite({
+        brokerId: req.brokerProfile.id,
+        email,
+        firstName,
+        lastName,
+        phone,
+        token,
+        status: "pending",
+        expiresAt,
+        prefilledData,
+      });
+      
+      const inviteLink = `/broker-invite/${token}`;
+      
+      return res.status(201).json({
+        message: "Invite created successfully",
+        invite: {
+          ...invite,
+          inviteLink,
+        },
+      });
+    } catch (error) {
+      console.error("Error creating broker invite:", error);
+      return res.status(500).json({ error: "Failed to create invite" });
+    }
+  });
+
+  // Get broker invites
+  app.get("/api/broker/invites", isAuthenticated, isBroker, async (req: any, res) => {
+    try {
+      const invites = await storage.getBrokerInvites(req.brokerProfile.id);
+      return res.json(invites);
+    } catch (error) {
+      console.error("Error fetching invites:", error);
+      return res.status(500).json({ error: "Failed to fetch invites" });
+    }
+  });
+
+  // Revoke invite
+  app.patch("/api/broker/invites/:id/revoke", isAuthenticated, isBroker, async (req: any, res) => {
+    try {
+      const invites = await storage.getBrokerInvites(req.brokerProfile.id);
+      const invite = invites.find((i) => i.id === req.params.id);
+      
+      if (!invite) {
+        return res.status(404).json({ error: "Invite not found" });
+      }
+      
+      const updated = await storage.updateBrokerInvite(req.params.id, { status: "revoked" });
+      return res.json(updated);
+    } catch (error) {
+      console.error("Error revoking invite:", error);
+      return res.status(500).json({ error: "Failed to revoke invite" });
+    }
+  });
+
+  // Public: Get broker portal info by slug (for white-label theming)
+  app.get("/api/broker-portal/:slug", async (req, res) => {
+    try {
+      const broker = await storage.getBrokerProfileBySlug(req.params.slug);
+      
+      if (!broker || !broker.isActive) {
+        return res.status(404).json({ error: "Broker portal not found" });
+      }
+      
+      const branding = await storage.getBrokerBranding(broker.id);
+      
+      return res.json({
+        id: broker.id,
+        companyName: broker.companyName,
+        companySlug: broker.companySlug,
+        phone: broker.phone,
+        website: broker.website,
+        branding: branding ? {
+          id: branding.id,
+          brokerId: branding.brokerId,
+          logoUrl: branding.logoUrl,
+          primaryColor: branding.primaryColor,
+          secondaryColor: branding.secondaryColor,
+          accentColor: branding.accentColor,
+          customCss: branding.customCss,
+          isPublished: branding.isPublished,
+        } : null,
+      });
+    } catch (error) {
+      console.error("Error fetching broker portal:", error);
+      return res.status(500).json({ error: "Failed to fetch broker portal" });
+    }
+  });
+
+  // Public: Get invite details by token (for borrower signup)
+  app.get("/api/broker-invite/:token", async (req, res) => {
+    try {
+      const invite = await storage.getBrokerInviteByToken(req.params.token);
+      
+      if (!invite) {
+        return res.status(404).json({ error: "Invite not found" });
+      }
+      
+      if (invite.status !== "pending") {
+        return res.status(400).json({ error: `Invite has already been ${invite.status}` });
+      }
+      
+      if (new Date() > new Date(invite.expiresAt)) {
+        return res.status(400).json({ error: "Invite has expired" });
+      }
+      
+      // Get broker profile and branding for white-label
+      const broker = await storage.getBrokerProfile(invite.brokerId);
+      const branding = broker ? await storage.getBrokerBranding(broker.id) : null;
+      
+      return res.json({
+        email: invite.email,
+        firstName: invite.firstName,
+        lastName: invite.lastName,
+        phone: invite.phone,
+        prefilledData: invite.prefilledData,
+        broker: broker ? {
+          companyName: broker.companyName,
+          companySlug: broker.companySlug,
+        } : null,
+        branding: branding ? {
+          logoUrl: branding.logoUrl,
+          primaryColor: branding.primaryColor,
+          secondaryColor: branding.secondaryColor,
+          accentColor: branding.accentColor,
+        } : null,
+      });
+    } catch (error) {
+      console.error("Error fetching invite:", error);
+      return res.status(500).json({ error: "Failed to fetch invite" });
+    }
+  });
+
+  // Accept broker invite (called after borrower authenticates)
+  app.post("/api/broker-invite/:token/accept", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const invite = await storage.getBrokerInviteByToken(req.params.token);
+      
+      if (!invite) {
+        return res.status(404).json({ error: "Invite not found" });
+      }
+      
+      if (invite.status !== "pending") {
+        return res.status(400).json({ error: `Invite has already been ${invite.status}` });
+      }
+      
+      if (new Date() > new Date(invite.expiresAt)) {
+        return res.status(400).json({ error: "Invite has expired" });
+      }
+      
+      // Accept the invite
+      await storage.acceptBrokerInvite(req.params.token, userId);
+      
+      // Create broker-borrower relationship
+      await storage.createBrokerBorrower({
+        brokerId: invite.brokerId,
+        borrowerId: userId,
+        status: "active",
+        isPrimaryBroker: true,
+        referralSource: "invite",
+        inviteId: invite.id,
+      });
+      
+      return res.json({ success: true, message: "Invite accepted successfully" });
+    } catch (error) {
+      console.error("Error accepting invite:", error);
+      return res.status(500).json({ error: "Failed to accept invite" });
+    }
+  });
+
+  // Trigger password reset for borrower (broker assistance)
+  app.post("/api/broker/borrowers/:id/reset-password", isAuthenticated, isBroker, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      
+      // Verify borrower is linked to this broker
+      const relationship = await storage.getBrokerBorrowerByPair(req.brokerProfile.id, id);
+      if (!relationship) {
+        return res.status(403).json({ error: "Borrower not linked to your account" });
+      }
+      
+      const borrower = await storage.getUser(id);
+      if (!borrower) {
+        return res.status(404).json({ error: "Borrower not found" });
+      }
+      
+      // In production, this would trigger an email
+      // For now, return success with message
+      return res.json({ 
+        success: true, 
+        message: `Password reset link would be sent to ${borrower.email}` 
+      });
+    } catch (error) {
+      console.error("Error triggering password reset:", error);
+      return res.status(500).json({ error: "Failed to trigger password reset" });
+    }
+  });
+
+  // Public: Get branding by broker slug (for white-label portal)
+  app.get("/api/branding/:slug", async (req, res) => {
+    try {
+      const broker = await storage.getBrokerProfileBySlug(req.params.slug);
+      
+      if (!broker || !broker.isActive) {
+        return res.status(404).json({ error: "Broker not found" });
+      }
+      
+      const branding = await storage.getBrokerBranding(broker.id);
+      
+      return res.json({
+        companyName: broker.companyName,
+        companySlug: broker.companySlug,
+        branding: branding || null,
+      });
+    } catch (error) {
+      console.error("Error fetching branding:", error);
+      return res.status(500).json({ error: "Failed to fetch branding" });
+    }
+  });
+
+  // ============================================
+  // ADMIN BROKER MANAGEMENT ROUTES
+  // ============================================
+  
+  // Get all brokers (admin only)
+  app.get("/api/admin/brokers", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const brokers = await storage.getBrokerProfiles();
+      
+      // Enrich with user info and stats
+      const enrichedBrokers = await Promise.all(
+        brokers.map(async (broker) => {
+          const user = await storage.getUser(broker.userId);
+          const borrowers = await storage.getBrokerBorrowers(broker.id);
+          const deals = await storage.getLoanApplicationsByBroker(broker.id);
+          const branding = await storage.getBrokerBranding(broker.id);
+          
+          return {
+            ...broker,
+            user: user ? {
+              email: user.email,
+              firstName: user.firstName,
+              lastName: user.lastName,
+            } : null,
+            borrowerCount: borrowers.length,
+            dealCount: deals.length,
+            activeDealCount: deals.filter((d) => 
+              d.status !== 'funded' && d.status !== 'denied' && d.status !== 'withdrawn'
+            ).length,
+            fundedDealCount: deals.filter((d) => d.status === 'funded').length,
+            hasBranding: !!branding?.isPublished,
+          };
+        })
+      );
+      
+      return res.json(enrichedBrokers);
+    } catch (error) {
+      console.error("Error fetching brokers:", error);
+      return res.status(500).json({ error: "Failed to fetch brokers" });
+    }
+  });
+
+  // Get single broker (admin only)
+  app.get("/api/admin/brokers/:id", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const broker = await storage.getBrokerProfile(req.params.id);
+      if (!broker) {
+        return res.status(404).json({ error: "Broker not found" });
+      }
+      
+      const user = await storage.getUser(broker.userId);
+      const borrowers = await storage.getBrokerBorrowers(broker.id);
+      const deals = await storage.getLoanApplicationsByBroker(broker.id);
+      const branding = await storage.getBrokerBranding(broker.id);
+      
+      return res.json({
+        ...broker,
+        user: user ? {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+        } : null,
+        borrowers,
+        dealCount: deals.length,
+        branding,
+      });
+    } catch (error) {
+      console.error("Error fetching broker:", error);
+      return res.status(500).json({ error: "Failed to fetch broker" });
+    }
+  });
+
+  // Create broker (admin only)
+  app.post("/api/admin/brokers", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { email, password, firstName, lastName, companyName, companySlug, ...profileData } = req.body;
+      
+      if (!email || !password || !companyName || !companySlug) {
+        return res.status(400).json({ error: "Email, password, company name, and company slug are required" });
+      }
+      
+      // Check if slug is already taken
+      const existingBroker = await storage.getBrokerProfileBySlug(companySlug);
+      if (existingBroker) {
+        return res.status(400).json({ error: "Company slug is already taken" });
+      }
+      
+      // Check if email is already used
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ error: "Email is already registered" });
+      }
+      
+      // Create the user with broker role
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const user = await storage.createLocalUser({
+        username: email,
+        password: hashedPassword,
+        email,
+        firstName: firstName || "",
+        lastName: lastName || "",
+        role: "broker",
+      });
+      
+      // Create the broker profile
+      const profile = await storage.createBrokerProfile({
+        userId: user.id,
+        companyName,
+        companySlug,
+        ...profileData,
+      });
+      
+      // Create default branding
+      await storage.createBrokerBranding({
+        brokerProfileId: profile.id,
+      });
+      
+      return res.status(201).json(profile);
+    } catch (error) {
+      console.error("Error creating broker:", error);
+      return res.status(500).json({ error: "Failed to create broker" });
+    }
+  });
+
+  // Update broker (admin only)
+  app.patch("/api/admin/brokers/:id", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const broker = await storage.getBrokerProfile(req.params.id);
+      if (!broker) {
+        return res.status(404).json({ error: "Broker not found" });
+      }
+      
+      const updated = await storage.updateBrokerProfile(req.params.id, req.body);
+      return res.json(updated);
+    } catch (error) {
+      console.error("Error updating broker:", error);
+      return res.status(500).json({ error: "Failed to update broker" });
+    }
+  });
+
+  // Delete broker (admin only)
+  app.delete("/api/admin/brokers/:id", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const broker = await storage.getBrokerProfile(req.params.id);
+      if (!broker) {
+        return res.status(404).json({ error: "Broker not found" });
+      }
+      
+      // Delete the broker profile (this will cascade to branding, borrowers, invites)
+      await storage.deleteBrokerProfile(req.params.id);
+      
+      // Optionally demote the user back to borrower
+      await storage.updateUserRole(broker.userId, "borrower");
+      
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting broker:", error);
+      return res.status(500).json({ error: "Failed to delete broker" });
+    }
+  });
+
+  // Link borrower to broker (admin only)
+  app.post("/api/admin/brokers/:brokerId/borrowers/:borrowerId", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { brokerId, borrowerId } = req.params;
+      
+      // Verify broker exists
+      const broker = await storage.getBrokerProfile(brokerId);
+      if (!broker) {
+        return res.status(404).json({ error: "Broker not found" });
+      }
+      
+      // Verify borrower exists
+      const borrower = await storage.getUser(borrowerId);
+      if (!borrower) {
+        return res.status(404).json({ error: "Borrower not found" });
+      }
+      
+      // Check if relationship already exists
+      const existing = await storage.getBrokerBorrowerByPair(brokerId, borrowerId);
+      if (existing) {
+        return res.status(400).json({ error: "Relationship already exists" });
+      }
+      
+      const relationship = await storage.createBrokerBorrower({
+        brokerId,
+        borrowerId,
+        status: "active",
+        isPrimaryBroker: true,
+        referralSource: "manual",
+      });
+      
+      return res.status(201).json(relationship);
+    } catch (error) {
+      console.error("Error linking borrower:", error);
+      return res.status(500).json({ error: "Failed to link borrower" });
+    }
+  });
+
+  // Unlink borrower from broker (admin only)
+  app.delete("/api/admin/brokers/:brokerId/borrowers/:borrowerId", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { brokerId, borrowerId } = req.params;
+      
+      const relationship = await storage.getBrokerBorrowerByPair(brokerId, borrowerId);
+      if (!relationship) {
+        return res.status(404).json({ error: "Relationship not found" });
+      }
+      
+      await storage.deleteBrokerBorrower(relationship.id);
+      
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Error unlinking borrower:", error);
+      return res.status(500).json({ error: "Failed to unlink borrower" });
     }
   });
 

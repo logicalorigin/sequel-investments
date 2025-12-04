@@ -46,6 +46,7 @@ import JoinPage from "@/pages/JoinPage";
 import StaffLoginPage from "@/pages/StaffLoginPage";
 import ResourcesPage from "@/pages/ResourcesPage";
 import ArticlePage from "@/pages/ArticlePage";
+import BrokerPortal from "@/pages/BrokerPortal";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -80,6 +81,8 @@ function Router() {
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/admin/application/:id" component={AdminApplicationDetail} />
       <Route path="/admin/borrower/:id" component={BorrowerProfilePage} />
+      <Route path="/broker" component={BrokerPortal} />
+      <Route path="/broker/:rest*" component={BrokerPortal} />
       <Route path="/join/:token" component={JoinPage} />
       <Route path="/resources" component={ResourcesPage} />
       <Route path="/resources/:slug" component={ArticlePage} />
