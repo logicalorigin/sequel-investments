@@ -5,6 +5,17 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -69,6 +80,112 @@ import { useToast } from "@/hooks/use-toast";
 import { useState, useRef } from "react";
 import type { User as UserType, LoanApplication } from "@shared/schema";
 import { format } from "date-fns";
+
+const brokerLoginSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(1, "Password is required"),
+});
+
+type BrokerLoginFormData = z.infer<typeof brokerLoginSchema>;
+
+function BrokerLoginForm() {
+  const { toast } = useToast();
+
+  const form = useForm<BrokerLoginFormData>({
+    resolver: zodResolver(brokerLoginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
+
+  const loginMutation = useMutation({
+    mutationFn: async (data: BrokerLoginFormData) => {
+      const response = await apiRequest("POST", "/api/broker/login", {
+        username: data.email,
+        password: data.password,
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Login successful",
+        description: "Welcome to your Broker Portal",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/broker/profile"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Login failed",
+        description: error.message || "Invalid email or password",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const onSubmit = (data: BrokerLoginFormData) => {
+    loginMutation.mutate(data);
+  };
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email</FormLabel>
+              <FormControl>
+                <Input
+                  type="email"
+                  placeholder="broker@company.com"
+                  data-testid="input-broker-email"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Password</FormLabel>
+              <FormControl>
+                <Input
+                  type="password"
+                  placeholder="Enter your password"
+                  data-testid="input-broker-password"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button 
+          type="submit" 
+          className="w-full" 
+          disabled={loginMutation.isPending}
+          data-testid="button-broker-login"
+        >
+          {loginMutation.isPending ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Signing in...
+            </>
+          ) : (
+            "Sign In"
+          )}
+        </Button>
+      </form>
+    </Form>
+  );
+}
 
 type BrokerProfile = {
   id: string;
@@ -1060,20 +1177,28 @@ export default function BrokerPortal() {
 
   if (!currentUser || currentUser.role !== "broker" || !profile) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-muted/30">
         <Card className="max-w-md w-full mx-4">
-          <CardHeader>
-            <CardTitle>Access Denied</CardTitle>
+          <CardHeader className="text-center">
+            <div className="mx-auto h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
+              <Building2 className="h-6 w-6 text-primary" />
+            </div>
+            <CardTitle>Broker Portal</CardTitle>
             <CardDescription>
-              You must be logged in as a broker to access this portal.
+              Sign in to access your broker dashboard, manage borrowers, and track deals.
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <Link href="/">
-              <Button className="w-full" data-testid="button-go-home">
-                Go to Homepage
-              </Button>
-            </Link>
+          <CardContent className="space-y-4">
+            <BrokerLoginForm />
+            <Separator />
+            <div className="text-center">
+              <Link href="/">
+                <Button variant="ghost" size="sm" data-testid="button-go-home">
+                  <Home className="h-4 w-4 mr-2" />
+                  Back to Homepage
+                </Button>
+              </Link>
+            </div>
           </CardContent>
         </Card>
       </div>
