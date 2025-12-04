@@ -481,27 +481,27 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-8 sm:mb-12">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">
-              Where Are You{" "}
-              <span className="inline-block relative">
-                <span className="border-b-2 border-primary">
+              <span className="text-foreground">Where Are You</span>{" "}
+              <span className="inline-block relative align-bottom">
+                <span className="inline-block border-b-2 border-primary pb-0.5">
                   <span 
                     className="inline-block overflow-hidden align-bottom"
-                    style={{ height: '1.2em', width: 'auto' }}
+                    style={{ height: '1.15em' }}
                   >
                     <span 
-                      className="flex flex-col animate-word-ticker"
+                      className="flex flex-col"
                       style={{ 
-                        animation: 'wordTicker 9s ease-in-out infinite',
+                        animation: 'wordTickerVertical 9s ease-in-out infinite',
                       }}
                     >
-                      <span className="block text-primary">Renting</span>
-                      <span className="block text-primary">Flipping</span>
-                      <span className="block text-primary">Building</span>
+                      <span className="block text-primary leading-tight">Renting</span>
+                      <span className="block text-primary leading-tight">Flipping</span>
+                      <span className="block text-primary leading-tight">Building</span>
                     </span>
                   </span>
                 </span>
               </span>
-              ?
+              <span className="text-foreground">?</span>
             </h2>
             <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
               Secured Asset Funding is a nationwide private lender serving real estate investors across 48 states + DC. 
