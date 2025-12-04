@@ -39,6 +39,9 @@ import {
   Shield,
   X,
   MapPin,
+  TrendingUp,
+  Users,
+  Percent,
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -94,9 +97,30 @@ const benefits = [
 ];
 
 const loanProducts = [
-  { name: "DSCR Loans", rate: "5.75%", description: "Long-term rental property financing" },
-  { name: "Fix & Flip", rate: "8.90%", description: "Short-term bridge loans" },
-  { name: "Construction", rate: "9.90%", description: "Ground-up new builds" },
+  { 
+    name: "DSCR Loans", 
+    rate: "5.75%", 
+    description: "Long-term rental property financing",
+    preferredPricing: "Volume-based rate reductions",
+    processingTeam: "Dedicated rental specialist team",
+    upsellCapability: "Rate buydown options available",
+  },
+  { 
+    name: "Fix & Flip", 
+    rate: "8.90%", 
+    description: "Short-term bridge loans",
+    preferredPricing: "Experience-based discounts",
+    processingTeam: "Fast-track rehab underwriting",
+    upsellCapability: "Points reduction for repeat clients",
+  },
+  { 
+    name: "Construction", 
+    rate: "9.90%", 
+    description: "Ground-up new builds",
+    preferredPricing: "Builder program pricing tiers",
+    processingTeam: "Construction draw specialists",
+    upsellCapability: "Phased rate lock options",
+  },
 ];
 
 export default function BrokerRegister() {
@@ -230,8 +254,67 @@ export default function BrokerRegister() {
           </div>
         </div>
       </section>
-      {/* Compare/Contrast Table */}
+
+      {/* Loan Products Section - Position 2 */}
       <section className="py-10 bg-muted/30">
+        <div className="max-w-6xl mx-auto px-4">
+          <h2 className="text-xl font-bold text-center mb-2">Available Loan Programs</h2>
+          <p className="text-muted-foreground text-center mb-8 text-sm">Full suite of investor-focused products with broker-exclusive benefits</p>
+          
+          <div className="grid lg:grid-cols-3 gap-6">
+            {loanProducts.map((product, idx) => (
+              <Card key={idx} className="relative overflow-hidden">
+                <div className="absolute top-0 right-0 bg-primary text-primary-foreground px-3 py-1 text-xs font-medium rounded-bl-lg">
+                  From {product.rate}
+                </div>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <Building2 className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">{product.name}</CardTitle>
+                      <CardDescription className="text-xs">{product.description}</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0 space-y-3">
+                  <div className="flex items-start gap-2">
+                    <div className="w-6 h-6 rounded bg-green-500/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <DollarSign className="h-3.5 w-3.5 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-foreground">Preferred Pricing</p>
+                      <p className="text-xs text-muted-foreground">{product.preferredPricing}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <div className="w-6 h-6 rounded bg-blue-500/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <Users className="h-3.5 w-3.5 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-foreground">Processing Team</p>
+                      <p className="text-xs text-muted-foreground">{product.processingTeam}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <div className="w-6 h-6 rounded bg-purple-500/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <TrendingUp className="h-3.5 w-3.5 text-purple-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-foreground">Upsell Capability</p>
+                      <p className="text-xs text-muted-foreground">{product.upsellCapability}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Compare/Contrast Table */}
+      <section className="py-10">
         <div className="max-w-4xl mx-auto px-4">
           <h2 className="text-xl font-bold text-center mb-6">SAF Broker Programs</h2>
           <div className="overflow-x-auto">
@@ -271,25 +354,6 @@ export default function BrokerRegister() {
           </p>
         </div>
       </section>
-      {/* Loan Products Row */}
-      <section className="py-8 border-b">
-        <div className="max-w-5xl mx-auto px-4">
-          <div className="grid md:grid-cols-3 gap-4">
-            {loanProducts.map((product, idx) => (
-              <div key={idx} className="flex items-center gap-3 p-4 rounded-lg bg-muted/30">
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <Building2 className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="font-medium text-sm">{product.name}</p>
-                  <p className="text-xs text-muted-foreground">{product.description}</p>
-                  <p className="text-xs text-primary font-medium">From {product.rate}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
       {/* Benefits Section */}
       <section className="py-10">
         <div className="max-w-5xl mx-auto px-4">
@@ -313,7 +377,7 @@ export default function BrokerRegister() {
       </section>
       {/* Registration Form Section */}
       <section className="py-10 bg-muted/30" id="apply">
-        <div className="max-w-2xl mx-auto px-4">
+        <div className="max-w-6xl mx-auto px-4">
           <Card>
             <CardHeader className="text-center pb-4">
               <CardTitle className="text-xl">Broker Registration</CardTitle>
@@ -324,8 +388,8 @@ export default function BrokerRegister() {
             <CardContent>
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-                  {/* Personal Info Row */}
-                  <div className="grid sm:grid-cols-2 gap-3">
+                  {/* Personal & Contact Info - 4 columns on large screens */}
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
                     <FormField
                       control={form.control}
                       name="firstName"
@@ -352,10 +416,6 @@ export default function BrokerRegister() {
                         </FormItem>
                       )}
                     />
-                  </div>
-
-                  {/* Contact Row */}
-                  <div className="grid sm:grid-cols-2 gap-3">
                     <FormField
                       control={form.control}
                       name="email"
@@ -384,8 +444,8 @@ export default function BrokerRegister() {
                     />
                   </div>
 
-                  {/* Company Row */}
-                  <div className="grid sm:grid-cols-2 gap-3">
+                  {/* Company Info - 4 columns on large screens */}
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
                     <FormField
                       control={form.control}
                       name="companyName"
@@ -412,10 +472,6 @@ export default function BrokerRegister() {
                         </FormItem>
                       )}
                     />
-                  </div>
-
-                  {/* Website & Primary State */}
-                  <div className="grid sm:grid-cols-2 gap-3">
                     <FormField
                       control={form.control}
                       name="companyWebsite"
@@ -474,8 +530,8 @@ export default function BrokerRegister() {
                     )}
                   </div>
 
-                  {/* Volume & Referral */}
-                  <div className="grid sm:grid-cols-2 gap-3">
+                  {/* Volume & Referral - centered 2-column on wide */}
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
                     <FormField
                       control={form.control}
                       name="monthlyLoanVolume"
@@ -524,6 +580,7 @@ export default function BrokerRegister() {
                         </FormItem>
                       )}
                     />
+                    <div className="lg:col-span-2" />
                   </div>
 
                   <Button 
