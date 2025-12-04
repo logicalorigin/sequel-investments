@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Link, useParams } from "wouter";
+import { Link, useParams, useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -64,12 +64,23 @@ export default function ApplicationDocumentsPage() {
   const { toast } = useToast();
   const params = useParams<{ id: string }>();
   const applicationId = params.id;
+  const [, navigate] = useLocation();
   const [selectedDoc, setSelectedDoc] = useState<DocumentWithType | null>(null);
   const [commentDialogOpen, setCommentDialogOpen] = useState(false);
   const [comment, setComment] = useState("");
   const [uploadingDocId, setUploadingDocId] = useState<string | null>(null);
   const [signDialogOpen, setSignDialogOpen] = useState(false);
   const [docToSign, setDocToSign] = useState<DocumentWithType | null>(null);
+
+  const logoutMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("POST", "/api/borrower/logout");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries();
+      navigate("/login");
+    },
+  });
 
   useEffect(() => {
     document.title = "Document Checklist | Secured Asset Funding";
@@ -312,12 +323,15 @@ export default function ApplicationDocumentsPage() {
                 {user?.firstName || user?.email || "User"}
               </span>
             </div>
-            <a href="/api/logout">
-              <Button variant="ghost" size="sm" data-testid="button-logout">
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
-              </Button>
-            </a>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              data-testid="button-logout"
+              onClick={() => logoutMutation.mutate()}
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Logout
+            </Button>
           </div>
         </div>
       </header>

@@ -53,7 +53,17 @@ const getNotificationIcon = (type: string) => {
 };
 
 export function PortalHeader({ user, title, titleExtra, backHref }: PortalHeaderProps) {
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
+
+  const logoutMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("POST", "/api/borrower/logout");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries();
+      navigate("/login");
+    },
+  });
 
   const getInitials = (firstName?: string | null, lastName?: string | null) => {
     const first = firstName?.charAt(0) || "";
@@ -304,11 +314,12 @@ export function PortalHeader({ user, title, titleExtra, backHref }: PortalHeader
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <a href="/api/logout" className="flex items-center gap-2 cursor-pointer text-destructive">
-                  <LogOut className="h-4 w-4" />
-                  Logout
-                </a>
+              <DropdownMenuItem 
+                onClick={() => logoutMutation.mutate()}
+                className="flex items-center gap-2 cursor-pointer text-destructive"
+              >
+                <LogOut className="h-4 w-4" />
+                Logout
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
