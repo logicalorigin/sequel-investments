@@ -2175,25 +2175,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   };
 
-  // Broker login route
-  app.post("/api/broker/login", async (req, res, next) => {
-    passport.authenticate("local", (err: any, user: any, info: any) => {
-      if (err) {
-        return res.status(500).json({ error: "Authentication error" });
-      }
-      if (!user) {
-        return res.status(401).json({ error: info?.message || "Invalid credentials" });
-      }
-      
-      req.login(user, (loginErr) => {
-        if (loginErr) {
-          return res.status(500).json({ error: "Login error" });
-        }
-        return res.json({ success: true, message: "Logged in successfully" });
-      });
-    })(req, res, next);
-  });
-
   // Get broker profile
   app.get("/api/broker/profile", isAuthenticated, isBroker, async (req: any, res) => {
     try {
