@@ -972,6 +972,76 @@ export const brokerInviteStatusEnum = pgEnum("broker_invite_status", ["pending",
 // Broker-borrower relationship status enum
 export const brokerBorrowerStatusEnum = pgEnum("broker_borrower_status", ["active", "inactive", "pending"]);
 
+// Broker application status enum (for registration requests)
+export const brokerApplicationStatusEnum = pgEnum("broker_application_status", ["pending", "approved", "rejected"]);
+
+// Broker program tier enum
+export const brokerProgramTierEnum = pgEnum("broker_program_tier", ["partner", "premier", "elite"]);
+
+// Broker Applications table - Registration requests from potential brokers
+export const brokerApplications = pgTable("broker_applications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  
+  // Applicant Info
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name").notNull(),
+  email: varchar("email").notNull(),
+  phone: text("phone"),
+  
+  // Company Info
+  companyName: text("company_name").notNull(),
+  companyWebsite: text("company_website"),
+  nmlsNumber: text("nmls_number"),
+  
+  // Address
+  state: varchar("state", { length: 2 }),
+  
+  // Experience & Volume
+  yearsExperience: integer("years_experience"),
+  monthlyLoanVolume: text("monthly_loan_volume"), // e.g., "1-5", "6-10", "11-20", "20+"
+  loanTypesInterested: text("loan_types_interested").array(), // ["dscr", "bridge", "construction"]
+  
+  // Program Tier Requested
+  programTier: brokerProgramTierEnum("program_tier").default("partner"),
+  
+  // How did you hear about us
+  referralSource: text("referral_source"),
+  
+  // Status
+  status: brokerApplicationStatusEnum("status").default("pending").notNull(),
+  reviewedAt: timestamp("reviewed_at"),
+  reviewedBy: varchar("reviewed_by").references(() => users.id),
+  reviewNotes: text("review_notes"),
+  
+  // If approved, link to created broker profile
+  approvedBrokerProfileId: varchar("approved_broker_profile_id"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_broker_applications_email").on(table.email),
+  index("idx_broker_applications_status").on(table.status),
+]);
+
+export type BrokerApplication = typeof brokerApplications.$inferSelect;
+export type InsertBrokerApplication = typeof brokerApplications.$inferInsert;
+
+export const insertBrokerApplicationSchema = createInsertSchema(brokerApplications, {
+  firstName: (schema) => schema.min(1, "First name is required"),
+  lastName: (schema) => schema.min(1, "Last name is required"),
+  email: (schema) => schema.email("Valid email is required"),
+  companyName: (schema) => schema.min(1, "Company name is required"),
+}).omit({
+  id: true,
+  status: true,
+  reviewedAt: true,
+  reviewedBy: true,
+  reviewNotes: true,
+  approvedBrokerProfileId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Broker Profiles table - Company info and contact details
 export const brokerProfiles = pgTable("broker_profiles", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

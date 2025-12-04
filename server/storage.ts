@@ -23,6 +23,7 @@ import {
   brokerBranding,
   brokerBorrowers,
   brokerInvites,
+  brokerApplications,
   type User, 
   type UpsertUser,
   type Lead, 
@@ -71,6 +72,8 @@ import {
   type InsertBrokerBorrower,
   type BrokerInvite,
   type InsertBrokerInvite,
+  type BrokerApplication,
+  type InsertBrokerApplication,
   DEFAULT_DOCUMENT_TYPES,
 } from "@shared/schema";
 import { db } from "./db";
@@ -82,7 +85,7 @@ export interface IStorage {
   upsertUser(user: UpsertUser): Promise<User>;
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
-  createLocalUser(user: { username: string; password: string; email: string; firstName: string; lastName: string; role: "borrower" | "staff" | "admin" }): Promise<User>;
+  createLocalUser(user: { username: string; password: string; email: string; firstName: string; lastName: string; role: "borrower" | "staff" | "admin" | "broker" }): Promise<User>;
   updateUserPassword(userId: string, hashedPassword: string): Promise<void>;
   
   // Lead operations
@@ -245,6 +248,13 @@ export interface IStorage {
   
   // Broker deal operations
   getLoanApplicationsByBroker(brokerId: string): Promise<LoanApplication[]>;
+  
+  // Broker application operations (registration requests)
+  getBrokerApplications(): Promise<BrokerApplication[]>;
+  getBrokerApplication(id: string): Promise<BrokerApplication | undefined>;
+  getBrokerApplicationByEmail(email: string): Promise<BrokerApplication | undefined>;
+  createBrokerApplication(application: InsertBrokerApplication): Promise<BrokerApplication>;
+  updateBrokerApplication(id: string, data: Partial<BrokerApplication>): Promise<BrokerApplication | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -279,7 +289,7 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async createLocalUser(userData: { username: string; password: string; email: string; firstName: string; lastName: string; role: "borrower" | "staff" | "admin" }): Promise<User> {
+  async createLocalUser(userData: { username: string; password: string; email: string; firstName: string; lastName: string; role: "borrower" | "staff" | "admin" | "broker" }): Promise<User> {
     const [user] = await db
       .insert(users)
       .values({
@@ -1265,6 +1275,47 @@ export class DatabaseStorage implements IStorage {
       .from(loanApplications)
       .where(eq(loanApplications.brokerId, brokerId))
       .orderBy(desc(loanApplications.createdAt));
+  }
+
+  // Broker application operations (registration requests)
+  async getBrokerApplications(): Promise<BrokerApplication[]> {
+    return await db
+      .select()
+      .from(brokerApplications)
+      .orderBy(desc(brokerApplications.createdAt));
+  }
+
+  async getBrokerApplication(id: string): Promise<BrokerApplication | undefined> {
+    const [application] = await db
+      .select()
+      .from(brokerApplications)
+      .where(eq(brokerApplications.id, id));
+    return application;
+  }
+
+  async getBrokerApplicationByEmail(email: string): Promise<BrokerApplication | undefined> {
+    const [application] = await db
+      .select()
+      .from(brokerApplications)
+      .where(eq(brokerApplications.email, email));
+    return application;
+  }
+
+  async createBrokerApplication(application: InsertBrokerApplication): Promise<BrokerApplication> {
+    const [created] = await db
+      .insert(brokerApplications)
+      .values(application)
+      .returning();
+    return created;
+  }
+
+  async updateBrokerApplication(id: string, data: Partial<BrokerApplication>): Promise<BrokerApplication | undefined> {
+    const [updated] = await db
+      .update(brokerApplications)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(brokerApplications.id, id))
+      .returning();
+    return updated;
   }
 }
 
