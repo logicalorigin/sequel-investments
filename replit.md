@@ -102,7 +102,15 @@ All three deal analyzers (DSCR, Fix & Flip, Construction) feature a sticky resul
   - **Borrowers Page**: List of linked borrowers with application counts, active deals, and funded loans. Password reset assistance for borrowers.
   - **Deals Page**: Track all deals from linked borrowers with status filters (All, Submitted, In Review, Approved, Funded).
   - **Invites Page**: Create and manage borrower invitations with 7-day expiry, copy invite links, revoke pending invites.
-- **White-Label Theming**: BrokerBrandingContext provider injects custom CSS variables for colors and logos when accessing via broker subdomain or URL parameter.
+  - **Settings Page** (`/broker/settings`): White-label branding customization with:
+    - Portal Information display (company name, phone, license, website, white-label URL)
+    - Logo upload section with preview
+    - Color scheme customization (primary/secondary/accent colors in HSL format)
+    - Typography selection (Inter, Roboto, Open Sans, Lato, Montserrat, Poppins)
+    - Footer & Legal section (footer text, privacy policy URL, terms of service URL)
+    - Live preview panel showing real-time branding appearance
+    - Publish/Unpublish toggle for branding visibility to borrowers
+- **White-Label Theming**: BrokerBrandingContext provider (`client/src/context/BrokerBrandingContext.tsx`) injects custom CSS variables for colors and logos when accessing via broker subdomain or URL parameter.
   - **Development Access**: Use `?broker=slug` query parameter to test white-label branding locally
   - **Production Access**: Brokers access via `{companySlug}.securedassetfunding.com`
 - **Broker Borrower Relationship**: Brokers can link borrowers to their accounts, track deal activity, and assist with account management.
