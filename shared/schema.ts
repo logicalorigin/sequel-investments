@@ -585,6 +585,7 @@ export const documentComments = pgTable("document_comments", {
   userId: varchar("user_id").notNull().references(() => users.id),
   content: text("content").notNull(),
   isInternal: boolean("is_internal").default(false).notNull(),
+  staffRole: text("staff_role"), // For color-coding: account_executive, processor, underwriter, management
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -1245,3 +1246,169 @@ export const insertBrokerInviteSchema = createInsertSchema(brokerInvites).omit({
   acceptedAt: true,
   acceptedByUserId: true,
 });
+
+// ============================================
+// STAFF ROLES FOR COLOR-CODING
+// ============================================
+export const staffRoleEnum = pgEnum("staff_role", [
+  "account_executive",
+  "processor", 
+  "underwriter",
+  "management"
+]);
+
+export type StaffRole = "account_executive" | "processor" | "underwriter" | "management";
+
+// Staff role colors for UI
+export const STAFF_ROLE_COLORS: Record<StaffRole, { bg: string; text: string; label: string }> = {
+  account_executive: { bg: "bg-blue-100 dark:bg-blue-900", text: "text-blue-700 dark:text-blue-300", label: "Account Executive" },
+  processor: { bg: "bg-emerald-100 dark:bg-emerald-900", text: "text-emerald-700 dark:text-emerald-300", label: "Processor" },
+  underwriter: { bg: "bg-amber-100 dark:bg-amber-900", text: "text-amber-700 dark:text-amber-300", label: "Underwriter" },
+  management: { bg: "bg-purple-100 dark:bg-purple-900", text: "text-purple-700 dark:text-purple-300", label: "Management" },
+};
+
+// ============================================
+// DOCUMENT REVIEWS (Approval/Rejection History)
+// ============================================
+export const documentReviewActionEnum = pgEnum("document_review_action", [
+  "approved",
+  "rejected", 
+  "request_changes",
+  "under_review"
+]);
+
+export const documentReviews = pgTable("document_reviews", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  documentId: varchar("document_id").notNull().references(() => documents.id),
+  reviewerId: varchar("reviewer_id").notNull().references(() => users.id),
+  action: documentReviewActionEnum("action").notNull(),
+  staffRole: staffRoleEnum("staff_role"),
+  comment: text("comment"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const documentReviewsRelations = relations(documentReviews, ({ one, many }) => ({
+  document: one(documents, {
+    fields: [documentReviews.documentId],
+    references: [documents.id],
+  }),
+  reviewer: one(users, {
+    fields: [documentReviews.reviewerId],
+    references: [users.id],
+  }),
+  attachments: many(commentAttachments),
+}));
+
+export type DocumentReview = typeof documentReviews.$inferSelect;
+export type InsertDocumentReview = typeof documentReviews.$inferInsert;
+
+export const insertDocumentReviewSchema = createInsertSchema(documentReviews).omit({
+  id: true,
+  createdAt: true,
+});
+
+// ============================================
+// COMMENT ATTACHMENTS (Images in Comments)
+// ============================================
+export const commentAttachments = pgTable("comment_attachments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  // Can be attached to either a document comment or a document review
+  documentCommentId: varchar("document_comment_id").references(() => documentComments.id),
+  documentReviewId: varchar("document_review_id").references(() => documentReviews.id),
+  fileName: text("file_name").notNull(),
+  fileUrl: text("file_url").notNull(),
+  fileSize: integer("file_size"),
+  mimeType: text("mime_type").notNull(),
+  uploadedById: varchar("uploaded_by_id").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const commentAttachmentsRelations = relations(commentAttachments, ({ one }) => ({
+  documentComment: one(documentComments, {
+    fields: [commentAttachments.documentCommentId],
+    references: [documentComments.id],
+  }),
+  documentReview: one(documentReviews, {
+    fields: [commentAttachments.documentReviewId],
+    references: [documentReviews.id],
+  }),
+  uploadedBy: one(users, {
+    fields: [commentAttachments.uploadedById],
+    references: [users.id],
+  }),
+}));
+
+export type CommentAttachment = typeof commentAttachments.$inferSelect;
+export type InsertCommentAttachment = typeof commentAttachments.$inferInsert;
+
+export const insertCommentAttachmentSchema = createInsertSchema(commentAttachments).omit({
+  id: true,
+  createdAt: true,
+});
+
+// ============================================
+// NOTIFICATION QUEUE (For Batched Notifications)
+// ============================================
+export const notificationQueueStatusEnum = pgEnum("notification_queue_status", [
+  "pending",
+  "sent",
+  "failed"
+]);
+
+export const notificationQueue = pgTable("notification_queue", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  recipientId: varchar("recipient_id").notNull().references(() => users.id),
+  recipientEmail: text("recipient_email"),
+  notificationType: notificationTypeEnum("notification_type").notNull(),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  linkUrl: text("link_url"),
+  relatedApplicationId: varchar("related_application_id").references(() => loanApplications.id),
+  relatedDocumentId: varchar("related_document_id").references(() => documents.id),
+  
+  // Batching control
+  batchKey: text("batch_key"), // e.g., "document_upload:app123" to group related notifications
+  sendAfter: timestamp("send_after").notNull(), // When this notification should be sent (for 30-min batching)
+  status: notificationQueueStatusEnum("status").default("pending").notNull(),
+  sentAt: timestamp("sent_at"),
+  errorMessage: text("error_message"),
+  
+  // Metadata for the notification
+  metadata: jsonb("metadata"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_notification_queue_status_send_after").on(table.status, table.sendAfter),
+  index("idx_notification_queue_recipient").on(table.recipientId),
+  index("idx_notification_queue_batch").on(table.batchKey),
+]);
+
+export const notificationQueueRelations = relations(notificationQueue, ({ one }) => ({
+  recipient: one(users, {
+    fields: [notificationQueue.recipientId],
+    references: [users.id],
+  }),
+  application: one(loanApplications, {
+    fields: [notificationQueue.relatedApplicationId],
+    references: [loanApplications.id],
+  }),
+  document: one(documents, {
+    fields: [notificationQueue.relatedDocumentId],
+    references: [documents.id],
+  }),
+}));
+
+export type NotificationQueueItem = typeof notificationQueue.$inferSelect;
+export type InsertNotificationQueueItem = typeof notificationQueue.$inferInsert;
+
+export const insertNotificationQueueItemSchema = createInsertSchema(notificationQueue).omit({
+  id: true,
+  createdAt: true,
+  sentAt: true,
+});
+
+// ============================================
+// EXTENDED DOCUMENT COMMENTS (with staff role)
+// ============================================
+// Note: Adding staffRole to track which role made the comment for color-coding
+// The existing documentComments table will be extended via migration
