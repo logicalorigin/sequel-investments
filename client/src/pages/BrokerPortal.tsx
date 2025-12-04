@@ -69,6 +69,7 @@ import {
   ChevronRight,
   ChevronDown,
   User,
+  UserPlus,
   KeyRound,
   LinkIcon,
   Palette,
@@ -1191,6 +1192,15 @@ export default function BrokerPortal() {
           <CardContent className="space-y-4">
             <BrokerLoginForm />
             <Separator />
+            <div className="text-center space-y-2">
+              <p className="text-sm text-muted-foreground">Don't have an account?</p>
+              <Link href="/broker/register">
+                <Button variant="outline" className="w-full" data-testid="button-get-access">
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Get Access
+                </Button>
+              </Link>
+            </div>
             <div className="text-center">
               <Link href="/">
                 <Button variant="ghost" size="sm" data-testid="button-go-home">

@@ -17,6 +17,7 @@ import {
   insertApplicationTimelineEventSchema,
   insertFundedDealSchema,
   insertWebhookEndpointSchema,
+  insertBrokerApplicationSchema,
   getStateBySlug,
   type UserRole,
 } from "@shared/schema";
@@ -2443,16 +2444,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         id: broker.id,
         companyName: broker.companyName,
         companySlug: broker.companySlug,
-        phone: broker.phone,
-        website: broker.website,
+        phone: broker.companyPhone,
+        website: broker.companyWebsite,
         branding: branding ? {
           id: branding.id,
-          brokerId: branding.brokerId,
+          brokerProfileId: branding.brokerProfileId,
           logoUrl: branding.logoUrl,
           primaryColor: branding.primaryColor,
           secondaryColor: branding.secondaryColor,
           accentColor: branding.accentColor,
-          customCss: branding.customCss,
           isPublished: branding.isPublished,
         } : null,
       });
@@ -2810,6 +2810,197 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error unlinking borrower:", error);
       return res.status(500).json({ error: "Failed to unlink borrower" });
+    }
+  });
+
+  // ============================================
+  // BROKER REGISTRATION / APPLICATION ROUTES
+  // ============================================
+
+  // Public: Submit broker application (registration request)
+  app.post("/api/broker/apply", async (req, res) => {
+    try {
+      // Prepare and coerce the data before validation
+      const applicationData = {
+        firstName: req.body.firstName,
+        lastName: req.body.lastName,
+        email: req.body.email,
+        phone: req.body.phone || null,
+        companyName: req.body.companyName,
+        companyWebsite: req.body.companyWebsite || null,
+        nmlsNumber: req.body.nmlsNumber || null,
+        state: req.body.state || null,
+        yearsExperience: req.body.yearsExperience ? parseInt(req.body.yearsExperience, 10) : null,
+        monthlyLoanVolume: req.body.monthlyLoanVolume || null,
+        loanTypesInterested: Array.isArray(req.body.loanTypesInterested) ? req.body.loanTypesInterested : null,
+        programTier: req.body.programTier || "partner",
+        referralSource: req.body.referralSource || null,
+      };
+      
+      // Validate using the Zod schema
+      const validationResult = insertBrokerApplicationSchema.safeParse(applicationData);
+      
+      if (!validationResult.success) {
+        const validationError = fromZodError(validationResult.error);
+        return res.status(400).json({ 
+          error: "Validation failed", 
+          details: validationError.message 
+        });
+      }
+      
+      const validatedData = validationResult.data;
+      
+      // Check if email already has a pending application
+      const existingApplication = await storage.getBrokerApplicationByEmail(validatedData.email);
+      if (existingApplication && existingApplication.status === "pending") {
+        return res.status(400).json({ error: "An application with this email is already pending review" });
+      }
+      
+      // Check if email is already a broker
+      const existingUser = await storage.getUserByEmail(validatedData.email);
+      if (existingUser && existingUser.role === "broker") {
+        return res.status(400).json({ error: "This email is already registered as a broker" });
+      }
+      
+      const application = await storage.createBrokerApplication(validatedData);
+      
+      return res.status(201).json({ 
+        success: true, 
+        message: "Your application has been submitted successfully. We'll be in touch soon!",
+        applicationId: application.id
+      });
+    } catch (error) {
+      console.error("Error submitting broker application:", error);
+      return res.status(500).json({ error: "Failed to submit application" });
+    }
+  });
+
+  // Admin: Get all broker applications
+  app.get("/api/admin/broker-applications", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const applications = await storage.getBrokerApplications();
+      return res.json(applications);
+    } catch (error) {
+      console.error("Error fetching broker applications:", error);
+      return res.status(500).json({ error: "Failed to fetch applications" });
+    }
+  });
+
+  // Admin: Get single broker application
+  app.get("/api/admin/broker-applications/:id", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const application = await storage.getBrokerApplication(req.params.id);
+      if (!application) {
+        return res.status(404).json({ error: "Application not found" });
+      }
+      return res.json(application);
+    } catch (error) {
+      console.error("Error fetching broker application:", error);
+      return res.status(500).json({ error: "Failed to fetch application" });
+    }
+  });
+
+  // Admin: Approve broker application
+  app.post("/api/admin/broker-applications/:id/approve", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const application = await storage.getBrokerApplication(req.params.id);
+      if (!application) {
+        return res.status(404).json({ error: "Application not found" });
+      }
+      
+      if (application.status !== "pending") {
+        return res.status(400).json({ error: "Application has already been processed" });
+      }
+      
+      const { password, companySlug } = req.body;
+      if (!password || !companySlug) {
+        return res.status(400).json({ error: "Password and company slug are required for approval" });
+      }
+      
+      // Check if slug is taken
+      const existingBroker = await storage.getBrokerProfileBySlug(companySlug);
+      if (existingBroker) {
+        return res.status(400).json({ error: "Company slug is already taken" });
+      }
+      
+      // Check if email is already used
+      const existingUser = await storage.getUserByEmail(application.email);
+      if (existingUser) {
+        return res.status(400).json({ error: "Email is already registered" });
+      }
+      
+      // Create the user with broker role
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const user = await storage.createLocalUser({
+        username: application.email,
+        password: hashedPassword,
+        email: application.email,
+        firstName: application.firstName,
+        lastName: application.lastName,
+        role: "broker",
+      });
+      
+      // Create the broker profile
+      const profile = await storage.createBrokerProfile({
+        userId: user.id,
+        companyName: application.companyName,
+        companySlug,
+        nmlsNumber: application.nmlsNumber,
+        companyPhone: application.phone,
+        companyEmail: application.email,
+        companyWebsite: application.companyWebsite,
+        state: application.state,
+      });
+      
+      // Create default branding
+      await storage.createBrokerBranding({
+        brokerProfileId: profile.id,
+      });
+      
+      // Update application status
+      await storage.updateBrokerApplication(application.id, {
+        status: "approved",
+        reviewedAt: new Date(),
+        reviewedBy: req.user.claims.sub,
+        approvedBrokerProfileId: profile.id,
+      });
+      
+      return res.json({ 
+        success: true, 
+        message: "Application approved successfully",
+        brokerProfile: profile
+      });
+    } catch (error) {
+      console.error("Error approving broker application:", error);
+      return res.status(500).json({ error: "Failed to approve application" });
+    }
+  });
+
+  // Admin: Reject broker application
+  app.post("/api/admin/broker-applications/:id/reject", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const application = await storage.getBrokerApplication(req.params.id);
+      if (!application) {
+        return res.status(404).json({ error: "Application not found" });
+      }
+      
+      if (application.status !== "pending") {
+        return res.status(400).json({ error: "Application has already been processed" });
+      }
+      
+      const { reviewNotes } = req.body;
+      
+      await storage.updateBrokerApplication(application.id, {
+        status: "rejected",
+        reviewedAt: new Date(),
+        reviewedBy: req.user.claims.sub,
+        reviewNotes,
+      });
+      
+      return res.json({ success: true, message: "Application rejected" });
+    } catch (error) {
+      console.error("Error rejecting broker application:", error);
+      return res.status(500).json({ error: "Failed to reject application" });
     }
   });
 
