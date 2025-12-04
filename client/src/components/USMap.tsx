@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Link } from "wouter";
 import { statesData, type StateData } from "@shared/schema";
 
@@ -70,6 +70,8 @@ interface USMapProps {
 export default function USMap({ onStateClick }: USMapProps) {
   const [hoveredState, setHoveredState] = useState<StateData | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const [tooltipPlacement, setTooltipPlacement] = useState<'top' | 'bottom' | 'left' | 'right'>('top');
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const handleMouseEnter = (e: React.MouseEvent, stateAbbr: string) => {
     const stateData = statesData.find(s => s.abbreviation === stateAbbr);
@@ -77,11 +79,38 @@ export default function USMap({ onStateClick }: USMapProps) {
       setHoveredState(stateData);
       const rect = e.currentTarget.getBoundingClientRect();
       const svgRect = (e.currentTarget.closest('svg') as SVGElement)?.getBoundingClientRect();
-      if (svgRect) {
-        setTooltipPosition({
-          x: rect.left - svgRect.left + rect.width / 2,
-          y: rect.top - svgRect.top - 10,
-        });
+      const containerRect = containerRef.current?.getBoundingClientRect();
+      
+      if (svgRect && containerRect) {
+        const stateCenterX = rect.left - svgRect.left + rect.width / 2;
+        const stateCenterY = rect.top - svgRect.top + rect.height / 2;
+        const stateTop = rect.top - svgRect.top;
+        const stateBottom = rect.bottom - svgRect.top;
+        
+        const tooltipWidth = 160;
+        const tooltipHeight = 80;
+        const margin = 10;
+        
+        let placement: 'top' | 'bottom' | 'left' | 'right' = 'top';
+        let x = stateCenterX;
+        let y = stateTop - margin;
+        
+        if (stateTop < tooltipHeight + margin) {
+          placement = 'bottom';
+          y = stateBottom + margin;
+        }
+        
+        const leftEdge = x - tooltipWidth / 2;
+        const rightEdge = x + tooltipWidth / 2;
+        
+        if (leftEdge < margin) {
+          x = tooltipWidth / 2 + margin;
+        } else if (rightEdge > svgRect.width - margin) {
+          x = svgRect.width - tooltipWidth / 2 - margin;
+        }
+        
+        setTooltipPosition({ x, y });
+        setTooltipPlacement(placement);
       }
     }
   };
@@ -109,8 +138,15 @@ export default function USMap({ onStateClick }: USMapProps) {
     return "#d1d5db";
   };
 
+  const getTooltipTransform = () => {
+    if (tooltipPlacement === 'bottom') {
+      return '-translate-x-1/2';
+    }
+    return '-translate-x-1/2 -translate-y-full';
+  };
+
   return (
-    <div className="relative w-full overflow-visible" data-testid="us-map-container">
+    <div ref={containerRef} className="relative w-full overflow-visible" data-testid="us-map-container">
       <svg
         viewBox="0 0 1000 589"
         className="w-full h-auto overflow-visible"
@@ -126,6 +162,7 @@ export default function USMap({ onStateClick }: USMapProps) {
             <Link
               key={stateAbbr}
               href={isEligible && stateData ? `/states/${stateData.slug}` : '#'}
+              className="no-underline"
             >
               <path
                 d={path}
@@ -137,6 +174,7 @@ export default function USMap({ onStateClick }: USMapProps) {
                 onMouseLeave={handleMouseLeave}
                 onClick={() => handleClick(stateAbbr)}
                 data-testid={`state-${stateAbbr}`}
+                style={{ textDecoration: 'none' }}
               />
             </Link>
           );
@@ -146,27 +184,27 @@ export default function USMap({ onStateClick }: USMapProps) {
       {/* Tooltip */}
       {hoveredState && (
         <div
-          className="absolute z-50 pointer-events-none bg-white dark:bg-gray-800 shadow-lg rounded-lg p-3 text-sm transform -translate-x-1/2 -translate-y-full"
+          className={`absolute z-50 pointer-events-none bg-white dark:bg-gray-800 shadow-lg rounded-lg p-3 text-sm transform ${getTooltipTransform()}`}
           style={{
             left: tooltipPosition.x,
             top: tooltipPosition.y,
           }}
           data-testid="state-tooltip"
         >
-          <div className="font-semibold text-gray-900 dark:text-white">
+          <div className="font-semibold text-gray-900 dark:text-white whitespace-nowrap">
             {hoveredState.name}
           </div>
           {hoveredState.isEligible ? (
             <div className="flex flex-col gap-0.5 mt-1">
-              <div className="text-gray-600 dark:text-gray-300 text-xs">
+              <div className="text-gray-600 dark:text-gray-300 text-xs whitespace-nowrap">
                 Loans Closed: <span className="font-semibold">{hoveredState.loansClosed}</span>
               </div>
-              <div className="text-gray-600 dark:text-gray-300 text-xs">
+              <div className="text-gray-600 dark:text-gray-300 text-xs whitespace-nowrap">
                 Loan Volume: <span className="font-semibold">{formatLoanVolume(hoveredState.loanVolume)}</span>
               </div>
             </div>
           ) : (
-            <div className="text-gray-500 dark:text-gray-400 text-xs mt-1">
+            <div className="text-gray-500 dark:text-gray-400 text-xs mt-1 whitespace-nowrap">
               Not Yet Available
             </div>
           )}
