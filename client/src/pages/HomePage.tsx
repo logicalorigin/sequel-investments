@@ -490,7 +490,7 @@ export default function HomePage() {
             {/* Text on right */}
             <div className="order-1 lg:order-2 text-center lg:text-left">
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 sm:mb-6">
-                <span className="text-foreground block">Where Are You</span>
+                <span className="text-foreground">Where Are You </span>
                 <span className="inline-block border-b-2 border-foreground pb-0.5">
                   <span 
                     className="inline-block overflow-hidden align-bottom"
@@ -499,12 +499,13 @@ export default function HomePage() {
                     <span 
                       className="flex flex-col"
                       style={{ 
-                        animation: 'wordTickerDown 9s ease-in-out infinite',
+                        animation: 'wordTickerDown 12s ease-in-out infinite',
                       }}
                     >
-                      <span className="block text-primary leading-tight">Renting?</span>
+                      <span className="block text-primary leading-tight">Investing?</span>
                       <span className="block text-primary leading-tight">Flipping?</span>
                       <span className="block text-primary leading-tight">Building?</span>
+                      <span className="block text-primary leading-tight">Investing?</span>
                     </span>
                   </span>
                 </span>
