@@ -209,6 +209,7 @@ export default function GetQuotePage() {
       propertyLocation: fullAddress,
       propertyValue: formData.purchasePrice,
       investmentExperience: formData.investmentExperience,
+      desiredClosingDate: formData.desiredCloseDate || undefined,
       message: formData.additionalNotes || undefined,
     });
   };
