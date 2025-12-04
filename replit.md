@@ -93,6 +93,21 @@ All three deal analyzers (DSCR, Fix & Flip, Construction) feature a sticky resul
 - **Join Flow** (`/join/:token`): Invited users access the join page, sign in with the invited email address, and accept the invitation to gain staff/admin access.
 - **Timeline Events**: Status and stage changes create timeline events with staff attribution.
 
+### Broker Portal (White-Label System)
+
+- **Role-Based Access Control**: Extended user roles to include "broker" role alongside borrower, staff, and admin.
+- **Admin Broker Management** (`/admin` → Brokers tab): Admin can create, edit, and delete broker accounts with company name, slug, contact info, and license details.
+- **Broker Portal** (`/broker`): Dedicated portal for brokers to manage their borrowers and deals.
+  - **Dashboard**: Overview stats (borrowers, active deals, funded deals, pending invites), recent deals/borrowers lists, portal branding preview.
+  - **Borrowers Page**: List of linked borrowers with application counts, active deals, and funded loans. Password reset assistance for borrowers.
+  - **Deals Page**: Track all deals from linked borrowers with status filters (All, Submitted, In Review, Approved, Funded).
+  - **Invites Page**: Create and manage borrower invitations with 7-day expiry, copy invite links, revoke pending invites.
+- **White-Label Theming**: BrokerBrandingContext provider injects custom CSS variables for colors and logos when accessing via broker subdomain or URL parameter.
+  - **Development Access**: Use `?broker=slug` query parameter to test white-label branding locally
+  - **Production Access**: Brokers access via `{companySlug}.securedassetfunding.com`
+- **Broker Borrower Relationship**: Brokers can link borrowers to their accounts, track deal activity, and assist with account management.
+- **Broker Invites**: Token-based invite system with prefilled data support for seamless borrower onboarding.
+
 ### Trust Indicators
 
 Homepage displays: $500M+ Loans Funded, 1,500+ Investors Served, 48hrs Fastest Closing, 48 States + DC Licensed.
