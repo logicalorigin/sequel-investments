@@ -83,7 +83,7 @@ import type { User as UserType, LoanApplication } from "@shared/schema";
 import { format } from "date-fns";
 
 const brokerLoginSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
+  email: z.string().min(1, "Username or email is required"),
   password: z.string().min(1, "Password is required"),
 });
 
@@ -137,11 +137,11 @@ function BrokerLoginForm() {
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email</FormLabel>
+              <FormLabel>Username or Email</FormLabel>
               <FormControl>
                 <Input
-                  type="email"
-                  placeholder="broker@company.com"
+                  type="text"
+                  placeholder="broker or admin"
                   data-testid="input-broker-email"
                   {...field}
                 />
@@ -1151,7 +1151,7 @@ export default function BrokerPortal() {
 
   const { data: profile, isLoading: profileLoading } = useQuery<BrokerProfile>({
     queryKey: ["/api/broker/profile"],
-    enabled: currentUser?.role === "broker",
+    enabled: currentUser?.role === "broker" || currentUser?.role === "admin",
   });
 
   const logoutMutation = useMutation({
@@ -1176,7 +1176,7 @@ export default function BrokerPortal() {
     );
   }
 
-  if (!currentUser || currentUser.role !== "broker" || !profile) {
+  if (!currentUser || (currentUser.role !== "broker" && currentUser.role !== "admin") || !profile) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted/30">
         <Card className="max-w-md w-full mx-4">

@@ -35,7 +35,7 @@ export async function setupStaffAuth(app: Express) {
             first_name: user.firstName,
             last_name: user.lastName,
           },
-          expires_at: Math.floor(Date.now() / 1000) + 86400,
+          expires_at: Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60), // 30 days
         });
       } catch (error) {
         return done(error);
@@ -98,4 +98,61 @@ export async function createAdminUser(username: string, password: string) {
   
   console.log("Admin user created successfully");
   return adminUser;
+}
+
+export async function createTestBrokerUser(username: string, password: string) {
+  const existingUser = await storage.getUserByUsername(username);
+  const hashedPassword = await bcrypt.hash(password, 10);
+  
+  if (existingUser) {
+    await storage.updateUserPassword(existingUser.id, hashedPassword);
+    console.log("Broker test user password reset");
+    return existingUser;
+  }
+  
+  const brokerUser = await storage.createLocalUser({
+    username,
+    password: hashedPassword,
+    email: `${username}@testbroker.com`,
+    firstName: "Test",
+    lastName: "Broker",
+    role: "broker",
+  });
+  
+  // Create a broker profile for this user
+  await storage.createBrokerProfile({
+    userId: brokerUser.id,
+    companyName: "Test Broker Company",
+    companySlug: "test-broker",
+    phone: "555-123-4567",
+    licenseNumber: "BRK-TEST-001",
+    website: "https://testbroker.com",
+    isActive: true,
+  });
+  
+  console.log("Broker test user created successfully");
+  return brokerUser;
+}
+
+export async function createTestBorrowerUser(username: string, password: string) {
+  const existingUser = await storage.getUserByUsername(username);
+  const hashedPassword = await bcrypt.hash(password, 10);
+  
+  if (existingUser) {
+    await storage.updateUserPassword(existingUser.id, hashedPassword);
+    console.log("Borrower test user password reset");
+    return existingUser;
+  }
+  
+  const borrowerUser = await storage.createLocalUser({
+    username,
+    password: hashedPassword,
+    email: `${username}@testborrower.com`,
+    firstName: "Test",
+    lastName: "Borrower",
+    role: "borrower",
+  });
+  
+  console.log("Borrower test user created successfully");
+  return borrowerUser;
 }

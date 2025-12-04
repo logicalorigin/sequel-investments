@@ -23,7 +23,7 @@ import {
 } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { setupStaffAuth, createAdminUser } from "./staffAuth";
+import { setupStaffAuth, createAdminUser, createTestBrokerUser, createTestBorrowerUser } from "./staffAuth";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { ObjectPermission } from "./objectAcl";
 import crypto from "crypto";
@@ -38,10 +38,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set up staff local authentication (username/password)
   await setupStaffAuth(app);
   
-  // Create default admin user in development mode only
+  // Create test users in development mode only
   // In production, use environment variables or a proper user management system
   if (process.env.NODE_ENV !== 'production') {
-    await createAdminUser("admin", "admin123");
+    await createAdminUser("admin", "admin");
+    await createTestBrokerUser("broker", "broker");
+    await createTestBorrowerUser("borrower", "borrower");
   }
   
   // Seed document types on startup
@@ -2128,7 +2130,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const user = await storage.getUser(userId);
-      if (!user || user.role !== "broker") {
+      if (!user) {
+        return res.status(403).json({ error: "User not found" });
+      }
+      
+      // Allow admin users to access broker portal for testing
+      if (user.role === "admin") {
+        // Get or create a temp broker profile for admin testing
+        let brokerProfile = await storage.getBrokerProfileByUserId(userId);
+        if (!brokerProfile) {
+          // Create a temporary broker profile for admin testing
+          brokerProfile = await storage.createBrokerProfile({
+            userId: userId,
+            companyName: "SAF Admin Test",
+            companySlug: `admin-test-${userId.slice(0, 8)}`,
+            companyEmail: user.email,
+          });
+          // Create default branding
+          await storage.createBrokerBranding({
+            brokerProfileId: brokerProfile.id,
+          });
+        }
+        req.brokerUser = user;
+        req.brokerProfile = brokerProfile;
+        return next();
+      }
+      
+      if (user.role !== "broker") {
         return res.status(403).json({ error: "Broker access required" });
       }
       
