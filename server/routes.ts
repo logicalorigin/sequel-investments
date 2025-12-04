@@ -509,6 +509,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         title: `${docType?.name || "Document"} Uploaded`,
         description: req.body.fileName || "Document uploaded successfully",
       });
+      
+      // Queue notification to assigned staff member(s) for the application
+      // Notify account executive and/or processor when borrower uploads a document
+      if (application.assignedAccountExecutive) {
+        const sendAfter = new Date(Date.now() + 30 * 60 * 1000);
+        await storage.createNotificationQueueItem({
+          recipientId: application.assignedAccountExecutive,
+          notificationType: "document_uploaded",
+          title: "Document Uploaded",
+          message: `${docType?.name || "A document"} was uploaded for ${application.propertyAddress || "an application"}.`,
+          linkUrl: `/admin/applications/${application.id}`,
+          relatedApplicationId: application.id,
+          relatedDocumentId: doc.id,
+          batchKey: `doc_upload:staff:${application.id}`,
+          sendAfter,
+        });
+      }
+      if (application.assignedProcessor && application.assignedProcessor !== application.assignedAccountExecutive) {
+        const sendAfter = new Date(Date.now() + 30 * 60 * 1000);
+        await storage.createNotificationQueueItem({
+          recipientId: application.assignedProcessor,
+          notificationType: "document_uploaded",
+          title: "Document Uploaded",
+          message: `${docType?.name || "A document"} was uploaded for ${application.propertyAddress || "an application"}.`,
+          linkUrl: `/admin/applications/${application.id}`,
+          relatedApplicationId: application.id,
+          relatedDocumentId: doc.id,
+          batchKey: `doc_upload:staff:${application.id}`,
+          sendAfter,
+        });
+      }
 
       res.status(200).json(updated);
     } catch (error) {
@@ -3492,6 +3523,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+
+  // ============================================
+  // AUTOMATIC NOTIFICATION PROCESSOR
+  // Process pending notifications every 5 minutes during business hours
+  // (Notifications are queued with 30-minute delay, so checking every 5 mins is efficient)
+  // ============================================
+  const NOTIFICATION_PROCESS_INTERVAL = 5 * 60 * 1000; // 5 minutes
+  
+  const processNotificationQueue = async () => {
+    try {
+      const now = new Date();
+      const pending = await storage.getPendingNotifications(now);
+      
+      if (pending.length === 0) return;
+      
+      // Group by batch key for consolidated notifications
+      const batches = new Map<string, typeof pending>();
+      for (const notification of pending) {
+        const key = notification.batchKey || notification.id;
+        if (!batches.has(key)) {
+          batches.set(key, []);
+        }
+        batches.get(key)!.push(notification);
+      }
+      
+      let processed = 0;
+      const batchEntries = Array.from(batches.entries());
+      
+      for (const [batchKey, batchNotifications] of batchEntries) {
+        try {
+          const firstNotif = batchNotifications[0];
+          
+          // Consolidate multiple notifications into one
+          let title = firstNotif.title;
+          let message = firstNotif.message;
+          
+          if (batchNotifications.length > 1) {
+            title = `${batchNotifications.length} Document Updates`;
+            message = `You have ${batchNotifications.length} document updates. Click to view details.`;
+          }
+          
+          // Create the actual notification
+          await storage.createNotification({
+            userId: firstNotif.recipientId,
+            type: firstNotif.notificationType,
+            title,
+            message,
+            linkUrl: firstNotif.linkUrl || undefined,
+            relatedApplicationId: firstNotif.relatedApplicationId || undefined,
+          });
+          
+          // Mark all in batch as sent
+          for (const notif of batchNotifications) {
+            await storage.markNotificationSent(notif.id);
+          }
+          
+          processed += batchNotifications.length;
+        } catch (error) {
+          console.error(`Notification batch ${batchKey} failed:`, error);
+          for (const notif of batchNotifications) {
+            await storage.markNotificationFailed(notif.id, String(error));
+          }
+        }
+      }
+      
+      if (processed > 0) {
+        console.log(`Notification processor: ${processed} notifications sent in ${batches.size} batches`);
+      }
+    } catch (error) {
+      console.error("Notification processor error:", error);
+    }
+  };
+  
+  // Start the notification processor interval
+  setInterval(processNotificationQueue, NOTIFICATION_PROCESS_INTERVAL);
+  
+  // Run once at startup to process any pending notifications
+  setTimeout(processNotificationQueue, 5000);
 
   return httpServer;
 }
