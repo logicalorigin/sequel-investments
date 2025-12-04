@@ -28,6 +28,7 @@ export const users = pgTable("users", {
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
   role: userRoleEnum("role").default("borrower").notNull(),
+  staffRole: text("staff_role"), // For color-coding: account_executive, processor, underwriter, management
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
