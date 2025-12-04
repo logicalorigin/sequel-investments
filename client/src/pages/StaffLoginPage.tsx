@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Shield, Lock, User } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 export default function StaffLoginPage() {
   const [, navigate] = useLocation();
@@ -24,6 +24,8 @@ export default function StaffLoginPage() {
       return await res.json();
     },
     onSuccess: () => {
+      // Invalidate auth query so admin dashboard can recognize the logged-in user
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       toast({
         title: "Login Successful",
         description: "Welcome to the Company Backend.",
