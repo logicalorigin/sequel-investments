@@ -42,26 +42,9 @@ import {
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { StateSelectionMap, ALL_STATES } from "@/components/StateSelectionMap";
 
-const US_STATES = [
-  { value: "AL", label: "Alabama" }, { value: "AK", label: "Alaska" }, { value: "AZ", label: "Arizona" },
-  { value: "AR", label: "Arkansas" }, { value: "CA", label: "California" }, { value: "CO", label: "Colorado" },
-  { value: "CT", label: "Connecticut" }, { value: "DE", label: "Delaware" }, { value: "FL", label: "Florida" },
-  { value: "GA", label: "Georgia" }, { value: "HI", label: "Hawaii" }, { value: "ID", label: "Idaho" },
-  { value: "IL", label: "Illinois" }, { value: "IN", label: "Indiana" }, { value: "IA", label: "Iowa" },
-  { value: "KS", label: "Kansas" }, { value: "KY", label: "Kentucky" }, { value: "LA", label: "Louisiana" },
-  { value: "ME", label: "Maine" }, { value: "MD", label: "Maryland" }, { value: "MA", label: "Massachusetts" },
-  { value: "MI", label: "Michigan" }, { value: "MN", label: "Minnesota" }, { value: "MS", label: "Mississippi" },
-  { value: "MO", label: "Missouri" }, { value: "MT", label: "Montana" }, { value: "NE", label: "Nebraska" },
-  { value: "NV", label: "Nevada" }, { value: "NH", label: "New Hampshire" }, { value: "NJ", label: "New Jersey" },
-  { value: "NM", label: "New Mexico" }, { value: "NY", label: "New York" }, { value: "NC", label: "North Carolina" },
-  { value: "ND", label: "North Dakota" }, { value: "OH", label: "Ohio" }, { value: "OK", label: "Oklahoma" },
-  { value: "OR", label: "Oregon" }, { value: "PA", label: "Pennsylvania" }, { value: "RI", label: "Rhode Island" },
-  { value: "SC", label: "South Carolina" }, { value: "SD", label: "South Dakota" }, { value: "TN", label: "Tennessee" },
-  { value: "TX", label: "Texas" }, { value: "UT", label: "Utah" }, { value: "VT", label: "Vermont" },
-  { value: "VA", label: "Virginia" }, { value: "WA", label: "Washington" }, { value: "WV", label: "West Virginia" },
-  { value: "WI", label: "Wisconsin" }, { value: "WY", label: "Wyoming" }, { value: "DC", label: "Washington DC" },
-];
+const US_STATES = ALL_STATES;
 
 const brokerApplicationSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -476,61 +459,18 @@ export default function BrokerRegister() {
                     />
                   </div>
 
-                  {/* Where Do You Lend - Interactive Section */}
+                  {/* States Serviced - Interactive Map Section */}
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <FormLabel className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-primary" />
-                        Where Do You Lend? *
-                      </FormLabel>
-                      <div className="flex gap-2">
-                        <Button 
-                          type="button" 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={selectAllStates}
-                          data-testid="button-select-all-states"
-                        >
-                          Select All
-                        </Button>
-                        <Button 
-                          type="button" 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={clearAllStates}
-                          data-testid="button-clear-states"
-                        >
-                          Clear
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="border rounded-lg p-3 bg-muted/20 max-h-[200px] overflow-y-auto">
-                      <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-1">
-                        {US_STATES.map((state) => {
-                          const isSelected = selectedStates.includes(state.value);
-                          return (
-                            <button
-                              key={state.value}
-                              type="button"
-                              onClick={() => toggleState(state.value)}
-                              className={`px-2 py-1.5 text-xs font-medium rounded transition-colors ${
-                                isSelected 
-                                  ? "bg-primary text-primary-foreground" 
-                                  : "bg-background hover:bg-muted border"
-                              }`}
-                              data-testid={`state-${state.value}`}
-                            >
-                              {state.value}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                    {selectedStates.length > 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        {selectedStates.length} state{selectedStates.length > 1 ? "s" : ""} selected
-                      </p>
-                    )}
+                    <FormLabel className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-primary" />
+                      States Serviced *
+                    </FormLabel>
+                    <StateSelectionMap
+                      selectedStates={selectedStates}
+                      onToggleState={toggleState}
+                      onSelectAll={selectAllStates}
+                      onClearAll={clearAllStates}
+                    />
                     {form.formState.errors.lendingStates && (
                       <p className="text-xs text-destructive">
                         {form.formState.errors.lendingStates.message}
