@@ -205,6 +205,7 @@ export const leads = pgTable("leads", {
   propertyLocation: text("property_location"),
   propertyValue: text("property_value"),
   investmentExperience: text("investment_experience"),
+  desiredClosingDate: text("desired_closing_date"),
   message: text("message"),
   howHeardAboutUs: text("how_heard_about_us"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -221,6 +222,7 @@ export const insertLeadSchema = createInsertSchema(leads).omit({
   propertyLocation: z.string().nullable().optional(),
   propertyValue: z.string().nullable().optional(),
   investmentExperience: z.string().nullable().optional(),
+  desiredClosingDate: z.string().nullable().optional(),
   message: z.string().nullable().optional(),
   howHeardAboutUs: z.string().nullable().optional(),
 });

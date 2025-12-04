@@ -1368,12 +1368,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const documents = await storage.getDocumentsByApplication(application.id);
       const timeline = await storage.getApplicationTimeline(application.id);
       
+      // Fetch broker info if application has a brokerId
+      let brokerInfo = null;
+      if (application.brokerId) {
+        const brokerProfile = await storage.getBrokerProfile(application.brokerId);
+        if (brokerProfile) {
+          const brokerUser = await storage.getUser(brokerProfile.userId);
+          brokerInfo = {
+            id: brokerProfile.id,
+            companyName: brokerProfile.companyName,
+            nmlsNumber: brokerProfile.nmlsNumber,
+            companyPhone: brokerProfile.companyPhone,
+            companyEmail: brokerProfile.companyEmail,
+            brokerName: brokerUser ? `${brokerUser.firstName || ""} ${brokerUser.lastName || ""}`.trim() || brokerUser.email : null,
+            brokerEmail: brokerUser?.email,
+          };
+        }
+      }
+      
       return res.json({
         ...application,
         borrowerName: user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email : "Unknown",
         borrowerEmail: user?.email,
         documents,
         timeline,
+        brokerInfo,
       });
     } catch (error) {
       console.error("Error fetching application:", error);

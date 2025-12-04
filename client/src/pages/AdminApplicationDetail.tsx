@@ -25,16 +25,28 @@ import {
   Calendar,
   Mail,
   Phone,
+  Briefcase,
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { LoanApplication, Document, ApplicationTimelineEvent, User as UserType } from "@shared/schema";
+
+type BrokerInfo = {
+  id: string;
+  companyName: string;
+  nmlsNumber?: string | null;
+  companyPhone?: string | null;
+  companyEmail?: string | null;
+  brokerName?: string | null;
+  brokerEmail?: string | null;
+};
 
 type EnrichedApplication = LoanApplication & {
   borrowerName: string;
   borrowerEmail?: string;
   documents: Document[];
   timeline: ApplicationTimelineEvent[];
+  brokerInfo?: BrokerInfo | null;
 };
 
 const statusColors: Record<string, string> = {
@@ -229,33 +241,6 @@ export default function AdminApplicationDetail() {
               </CardContent>
             </Card>
 
-            {/* Status Control */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Application Status</CardTitle>
-                <CardDescription>Update the loan application status</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Select
-                  value={application.status}
-                  onValueChange={(status) => updateMutation.mutate({ status: status as any })}
-                >
-                  <SelectTrigger className="w-full" data-testid="select-status">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="draft">Draft</SelectItem>
-                    <SelectItem value="submitted">Submitted</SelectItem>
-                    <SelectItem value="in_review">In Review</SelectItem>
-                    <SelectItem value="approved">Approved</SelectItem>
-                    <SelectItem value="funded">Funded</SelectItem>
-                    <SelectItem value="denied">Denied</SelectItem>
-                    <SelectItem value="withdrawn">Withdrawn</SelectItem>
-                  </SelectContent>
-                </Select>
-              </CardContent>
-            </Card>
-
             {/* Property & Loan Details */}
             <Card>
               <CardHeader>
@@ -393,6 +378,32 @@ export default function AdminApplicationDetail() {
           </div>
 
           <div className="space-y-6">
+            {/* Compact Application Status */}
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm font-medium text-muted-foreground">Status</span>
+                  <Select
+                    value={application.status}
+                    onValueChange={(status) => updateMutation.mutate({ status: status as any })}
+                  >
+                    <SelectTrigger className="w-40" data-testid="select-status">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="draft">Draft</SelectItem>
+                      <SelectItem value="submitted">Submitted</SelectItem>
+                      <SelectItem value="in_review">In Review</SelectItem>
+                      <SelectItem value="approved">Approved</SelectItem>
+                      <SelectItem value="funded">Funded</SelectItem>
+                      <SelectItem value="denied">Denied</SelectItem>
+                      <SelectItem value="withdrawn">Withdrawn</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Borrower Info */}
             <Card>
               <CardHeader>
@@ -426,6 +437,55 @@ export default function AdminApplicationDetail() {
                     <p className="text-sm text-muted-foreground">Entity</p>
                     <p className="font-medium">{application.entityName}</p>
                   </div>
+                )}
+
+                {/* Broker Info Section */}
+                {application.brokerInfo && (
+                  <>
+                    <Separator className="my-3" />
+                    <div className="space-y-3">
+                      <p className="text-sm font-medium flex items-center gap-1.5">
+                        <Briefcase className="h-4 w-4" />
+                        Originating Broker
+                      </p>
+                      <div className="space-y-2 pl-5">
+                        <div className="space-y-0.5">
+                          <p className="text-sm text-muted-foreground">Company</p>
+                          <p className="font-medium">{application.brokerInfo.companyName}</p>
+                        </div>
+                        {application.brokerInfo.brokerName && (
+                          <div className="space-y-0.5">
+                            <p className="text-sm text-muted-foreground">Contact</p>
+                            <p className="font-medium">{application.brokerInfo.brokerName}</p>
+                          </div>
+                        )}
+                        {application.brokerInfo.companyEmail && (
+                          <div className="space-y-0.5">
+                            <p className="text-sm text-muted-foreground flex items-center gap-1">
+                              <Mail className="h-3 w-3" />
+                              Email
+                            </p>
+                            <p className="font-medium">{application.brokerInfo.companyEmail}</p>
+                          </div>
+                        )}
+                        {application.brokerInfo.companyPhone && (
+                          <div className="space-y-0.5">
+                            <p className="text-sm text-muted-foreground flex items-center gap-1">
+                              <Phone className="h-3 w-3" />
+                              Phone
+                            </p>
+                            <p className="font-medium">{application.brokerInfo.companyPhone}</p>
+                          </div>
+                        )}
+                        {application.brokerInfo.nmlsNumber && (
+                          <div className="space-y-0.5">
+                            <p className="text-sm text-muted-foreground">NMLS #</p>
+                            <p className="font-medium">{application.brokerInfo.nmlsNumber}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </>
                 )}
               </CardContent>
             </Card>
@@ -487,9 +547,17 @@ export default function AdminApplicationDetail() {
                     {application.updatedAt ? new Date(application.updatedAt).toLocaleDateString() : "-"}
                   </span>
                 </div>
+                {application.requestedClosingDate && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Requested Close</span>
+                    <span className="font-medium">
+                      {new Date(application.requestedClosingDate).toLocaleDateString()}
+                    </span>
+                  </div>
+                )}
                 {application.closingDate && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Target Closing</span>
+                    <span className="text-muted-foreground">Close of Escrow</span>
                     <span className="font-medium">
                       {new Date(application.closingDate).toLocaleDateString()}
                     </span>
