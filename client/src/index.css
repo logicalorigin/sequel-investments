@@ -534,3 +534,18 @@
     transform: translateY(0);
   }
 }
+
+@keyframes wordTickerDown {
+  0%, 28% {
+    transform: translateY(0);
+  }
+  33%, 61% {
+    transform: translateY(-33.333%);
+  }
+  66%, 94% {
+    transform: translateY(-66.666%);
+  }
+  100% {
+    transform: translateY(-100%);
+  }
+}
