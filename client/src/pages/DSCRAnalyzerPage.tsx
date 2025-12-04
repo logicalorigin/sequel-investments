@@ -25,7 +25,11 @@ import {
   Sun,
   Loader2,
   ArrowLeft,
+  CalendarIcon,
 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
 import { Link } from "wouter";
 import { Slider } from "@/components/ui/slider";
 
@@ -164,6 +168,7 @@ export default function DSCRAnalyzerPage() {
   const [creditScore, setCreditScore] = useState([740]);
   const [ltvSlider, setLtvSlider] = useState([80]);
   const [prepaymentPenalty, setPrepaymentPenalty] = useState("5-4-3-2-1");
+  const [requestedClosingDate, setRequestedClosingDate] = useState<Date | undefined>(undefined);
   const [dataLoaded, setDataLoaded] = useState(false);
   const ltvSourceRef = useRef<"slider" | "input" | null>(null);
 
@@ -318,6 +323,7 @@ export default function DSCRAnalyzerPage() {
         annualHOA: parseFloat(annualHOA) || 0,
         analyzerType: "dscr",
         analyzerData: analyzerData,
+        requestedClosingDate: requestedClosingDate?.toISOString(),
       });
       return response.json();
     },
@@ -986,6 +992,32 @@ export default function DSCRAnalyzerPage() {
                       ? "We have options for this scenario."
                       : "Contact us to discuss alternatives."}
                   </span>
+                </div>
+
+                {/* Requested Closing Date */}
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Requested Closing Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start text-left font-normal text-sm h-9"
+                        data-testid="input-requested-closing-date"
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {requestedClosingDate ? format(requestedClosingDate, "PPP") : <span className="text-muted-foreground">Select date...</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={requestedClosingDate}
+                        onSelect={setRequestedClosingDate}
+                        disabled={(date) => date < new Date()}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
 
                 <Button 

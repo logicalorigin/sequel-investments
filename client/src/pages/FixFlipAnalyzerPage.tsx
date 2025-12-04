@@ -21,7 +21,11 @@ import {
   Hammer,
   Loader2,
   ArrowLeft,
+  CalendarIcon,
 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
 import { Link } from "wouter";
 import { Slider } from "@/components/ui/slider";
 
@@ -148,6 +152,7 @@ export default function FixFlipAnalyzerPage() {
   const [loanTermMonths, setLoanTermMonths] = useState(12);
   const [creditScore, setCreditScore] = useState([720]);
   const [experience, setExperience] = useState("3-5");
+  const [requestedClosingDate, setRequestedClosingDate] = useState<Date | undefined>(undefined);
   const [ltcSlider, setLtcSlider] = useState([90]);
   const [dataLoaded, setDataLoaded] = useState(false);
 
@@ -375,6 +380,7 @@ export default function FixFlipAnalyzerPage() {
         holdTimeMonths: loanTermMonths,
         analyzerType: "fixflip",
         analyzerData: analyzerData,
+        requestedClosingDate: requestedClosingDate?.toISOString(),
       });
       return response.json();
     },
@@ -807,6 +813,32 @@ export default function FixFlipAnalyzerPage() {
                   <span className={`font-semibold ${results.roi >= 15 ? "text-green-600" : results.roi >= 10 ? "text-yellow-600" : "text-red-600"}`}>
                     {results.roi >= 20 ? "Excellent deal! Strong profit potential." : results.roi >= 15 ? "Good deal! Solid returns expected." : results.roi >= 10 ? "Marginal - review costs carefully." : "Consider renegotiating terms."}
                   </span>
+                </div>
+
+                {/* Requested Closing Date */}
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Requested Closing Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start text-left font-normal text-sm h-9"
+                        data-testid="input-requested-closing-date"
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {requestedClosingDate ? format(requestedClosingDate, "PPP") : <span className="text-muted-foreground">Select date...</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={requestedClosingDate}
+                        onSelect={setRequestedClosingDate}
+                        disabled={(date) => date < new Date()}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
 
                 <Button 
