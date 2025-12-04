@@ -124,11 +124,10 @@ export function StateSelectionMap({
           </div>
 
           {/* Center - US Map */}
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 flex items-center justify-center">
             <svg 
               viewBox="150 40 820 520" 
-              className="w-full h-auto"
-              style={{ maxHeight: "350px" }}
+              className="w-full h-full"
             >
               {Object.entries(statePaths).map(([stateCode, path]) => {
                 const isSelected = selectedStates.includes(stateCode);
