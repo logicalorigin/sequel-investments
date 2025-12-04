@@ -747,6 +747,7 @@ function BrokerDeals() {
                   <TableHead className="text-right">Loan Amount</TableHead>
                   <TableHead className="text-center">Status</TableHead>
                   <TableHead className="text-right">Date</TableHead>
+                  <TableHead className="text-right">View</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -774,10 +775,251 @@ function BrokerDeals() {
                     <TableCell className="text-right text-sm text-muted-foreground">
                       {deal.createdAt ? format(new Date(deal.createdAt), "MMM d, yyyy") : "-"}
                     </TableCell>
+                    <TableCell className="text-right">
+                      <Link href={`/broker/deals/${deal.id}`}>
+                        <Button variant="ghost" size="icon" data-testid={`button-view-deal-${deal.id}`}>
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </Link>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+type BrokerDealDetail = EnrichedDeal & {
+  loanSubtype?: string | null;
+  propertyValue?: number | string | null;
+  documents: Array<{
+    id: string;
+    documentTypeId: string;
+    fileName: string | null;
+    status: string;
+    uploadedAt: string | null;
+  }>;
+  timeline: Array<{
+    id: string;
+    eventType: string;
+    title: string;
+    description: string | null;
+    createdAt: string;
+  }>;
+};
+
+const documentStatusColors: Record<string, string> = {
+  pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
+  uploaded: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+  approved: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+  rejected: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+  under_review: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
+};
+
+function BrokerDealDetail({ dealId }: { dealId: string }) {
+  const [, setLocation] = useLocation();
+  
+  const { data: deal, isLoading } = useQuery<BrokerDealDetail>({
+    queryKey: ["/api/broker/deals", dealId],
+    enabled: !!dealId,
+  });
+  
+  const formatCurrency = (value: number | string | null | undefined) => {
+    if (!value) return "-";
+    const num = typeof value === "string" ? parseFloat(value) : value;
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 0,
+    }).format(num);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!deal) {
+    return (
+      <div className="text-center py-12">
+        <AlertCircle className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
+        <p className="text-muted-foreground">Deal not found</p>
+        <Button variant="outline" className="mt-4" onClick={() => setLocation("/broker/deals")}>
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Deals
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => setLocation("/broker/deals")}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <h2 className="text-2xl font-bold">{deal.propertyAddress || "Untitled Deal"}</h2>
+            <p className="text-muted-foreground">
+              {deal.propertyCity}, {deal.propertyState} {deal.propertyZip}
+            </p>
+          </div>
+        </div>
+        <Badge variant="outline" className={statusColors[deal.status] || ""}>
+          {statusLabels[deal.status] || deal.status}
+        </Badge>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Building2 className="h-5 w-5" />
+              Loan Details
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Loan Type</p>
+                <Badge variant="outline">{deal.loanType}</Badge>
+              </div>
+              {deal.loanSubtype && (
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Loan Subtype</p>
+                  <p className="font-medium">{deal.loanSubtype}</p>
+                </div>
+              )}
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Loan Amount</p>
+                <p className="font-medium">{formatCurrency(deal.loanAmount)}</p>
+              </div>
+              {deal.purchasePrice && (
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Purchase Price</p>
+                  <p className="font-medium">{formatCurrency(deal.purchasePrice)}</p>
+                </div>
+              )}
+              {deal.propertyValue && (
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Property Value</p>
+                  <p className="font-medium">{formatCurrency(deal.propertyValue)}</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Borrower
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">Name</p>
+              <p className="font-medium">{deal.borrowerName}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">Email</p>
+              <p className="font-medium">{deal.borrowerEmail}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">Application Date</p>
+              <p className="font-medium">
+                {deal.createdAt ? format(new Date(deal.createdAt), "MMMM d, yyyy") : "-"}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Documents ({deal.documents?.length || 0})
+          </CardTitle>
+          <CardDescription>
+            View document status for this loan application
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {!deal.documents || deal.documents.length === 0 ? (
+            <div className="py-8 text-center">
+              <FileText className="h-10 w-10 mx-auto text-muted-foreground/50 mb-2" />
+              <p className="text-sm text-muted-foreground">No documents uploaded yet</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {deal.documents.map((doc) => (
+                <div 
+                  key={doc.id} 
+                  className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+                  data-testid={`doc-row-${doc.id}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <FileText className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="font-medium text-sm">{doc.fileName || "Untitled Document"}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {doc.uploadedAt 
+                          ? `Uploaded ${format(new Date(doc.uploadedAt), "MMM d, yyyy")}`
+                          : "Not yet uploaded"
+                        }
+                      </p>
+                    </div>
+                  </div>
+                  <Badge className={documentStatusColors[doc.status] || ""}>
+                    {doc.status === "under_review" ? "Under Review" : doc.status}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            Activity Timeline
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {!deal.timeline || deal.timeline.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">No activity yet</p>
+          ) : (
+            <div className="space-y-4">
+              {deal.timeline.slice(0, 10).map((event) => (
+                <div key={event.id} className="flex gap-3">
+                  <div className="flex flex-col items-center">
+                    <div className="h-2 w-2 rounded-full bg-primary mt-2" />
+                    <div className="w-px flex-1 bg-border" />
+                  </div>
+                  <div className="flex-1 pb-4">
+                    <p className="font-medium text-sm">{event.title}</p>
+                    {event.description && (
+                      <p className="text-xs text-muted-foreground mt-0.5">{event.description}</p>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {format(new Date(event.createdAt), "MMM d, yyyy 'at' h:mm a")}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </CardContent>
       </Card>
@@ -1803,6 +2045,9 @@ export default function BrokerPortal() {
         <Switch>
           <Route path="/broker" component={() => <BrokerDashboard profile={profile} />} />
           <Route path="/broker/borrowers" component={BrokerBorrowers} />
+          <Route path="/broker/deals/:dealId">
+            {(params) => <BrokerDealDetail dealId={params.dealId} />}
+          </Route>
           <Route path="/broker/deals" component={BrokerDeals} />
           <Route path="/broker/invites" component={BrokerInvites} />
           <Route path="/broker/settings" component={() => <BrokerSettings profile={profile} />} />
