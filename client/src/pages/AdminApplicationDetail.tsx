@@ -34,7 +34,14 @@ import {
   Phone,
   Briefcase,
   Eye,
+  Upload,
+  MessageSquare,
+  CalendarIcon,
+  AlertCircle,
 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { format } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { DocumentReviewPanel } from "@/components/DocumentReviewPanel";
@@ -88,11 +95,21 @@ const processingStages = [
 ];
 
 const documentStatusColors: Record<string, string> = {
-  pending: "bg-yellow-500/10 text-yellow-600 border-yellow-500/30",
-  uploaded: "bg-blue-500/10 text-blue-600 border-blue-500/30",
-  approved: "bg-green-500/10 text-green-600 border-green-500/30",
-  rejected: "bg-red-500/10 text-red-600 border-red-500/30",
-  if_applicable: "bg-gray-500/10 text-gray-500 border-gray-500/30",
+  pending: "bg-yellow-500 text-white",
+  uploaded: "bg-blue-500 text-white",
+  approved: "bg-green-500 text-white",
+  rejected: "bg-red-500 text-white",
+  request_changes: "bg-orange-500 text-white",
+  if_applicable: "bg-gray-400 text-white",
+};
+
+const documentStatusLabels: Record<string, string> = {
+  pending: "Outstanding",
+  uploaded: "Pending Review",
+  approved: "Approved",
+  rejected: "Rejected",
+  request_changes: "Revision Required",
+  if_applicable: "If Applicable",
 };
 
 export default function AdminApplicationDetail() {
@@ -325,40 +342,81 @@ export default function AdminApplicationDetail() {
 
             {/* Documents */}
             <Card>
-              <CardHeader>
+              <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <FileText className="h-5 w-5" />
                   Documents ({application.documents?.length || 0})
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-0">
                 {application.documents?.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-4">No documents uploaded</p>
+                  <p className="text-muted-foreground text-center py-8">No documents uploaded</p>
                 ) : (
-                  <div className="space-y-2">
-                    {application.documents?.map((doc) => (
-                      <div key={doc.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                        <div>
-                          <p className="font-medium">{doc.fileName || "Untitled Document"}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleDateString() : "Not uploaded"}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Badge className={documentStatusColors[doc.status]}>
-                            {doc.status}
-                          </Badge>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setSelectedDocument(doc)}
-                            data-testid={`button-review-doc-${doc.id}`}
+                  <div className="divide-y">
+                    {application.documents?.map((doc) => {
+                      const displayStatus = doc.status;
+                      return (
+                        <div key={doc.id} className="flex items-center gap-4 px-6 py-4 hover-elevate" data-testid={`document-row-${doc.id}`}>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{doc.fileName || "Untitled Document"}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleDateString() : "Awaiting upload"}
+                            </p>
+                          </div>
+                          
+                          <Badge 
+                            className={`${documentStatusColors[displayStatus]} text-xs px-2.5 py-1 rounded-full shrink-0`}
                           >
-                            <Eye className="h-4 w-4" />
-                          </Button>
+                            {documentStatusLabels[displayStatus] || displayStatus}
+                          </Badge>
+                          
+                          <div className="flex items-center gap-1 shrink-0">
+                            {doc.fileUrl ? (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-9 w-9 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                onClick={() => window.open(doc.fileUrl!, '_blank')}
+                                title="Download"
+                                data-testid={`button-download-doc-${doc.id}`}
+                              >
+                                <Upload className="h-4 w-4 rotate-180" />
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-9 w-9 text-muted-foreground"
+                                disabled
+                                title="No file uploaded"
+                              >
+                                <Upload className="h-4 w-4" />
+                              </Button>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-9 w-9"
+                              onClick={() => setSelectedDocument(doc)}
+                              title="View & Review"
+                              data-testid={`button-review-doc-${doc.id}`}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-9 w-9"
+                              onClick={() => setSelectedDocument(doc)}
+                              title="Comments"
+                              data-testid={`button-comments-doc-${doc.id}`}
+                            >
+                              <MessageSquare className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </CardContent>
@@ -548,41 +606,64 @@ export default function AdminApplicationDetail() {
 
             {/* Dates */}
             <Card>
-              <CardHeader>
+              <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Calendar className="h-5 w-5" />
                   Important Dates
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Created</span>
-                  <span className="font-medium">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Created</span>
+                  <span className="text-sm font-medium">
                     {application.createdAt ? new Date(application.createdAt).toLocaleDateString() : "-"}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Last Updated</span>
-                  <span className="font-medium">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Last Updated</span>
+                  <span className="text-sm font-medium">
                     {application.updatedAt ? new Date(application.updatedAt).toLocaleDateString() : "-"}
                   </span>
                 </div>
-                {application.requestedClosingDate && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Requested Close</span>
-                    <span className="font-medium">
-                      {new Date(application.requestedClosingDate).toLocaleDateString()}
-                    </span>
-                  </div>
-                )}
-                {application.closingDate && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Close of Escrow</span>
-                    <span className="font-medium">
-                      {new Date(application.closingDate).toLocaleDateString()}
-                    </span>
-                  </div>
-                )}
+                <Separator />
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Requested Close</span>
+                  <span className="text-sm font-medium">
+                    {application.requestedClosingDate 
+                      ? new Date(application.requestedClosingDate).toLocaleDateString() 
+                      : <span className="text-muted-foreground/60">Not set</span>}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Close of Escrow</span>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 justify-start text-left font-normal"
+                        data-testid="button-edit-closing-date"
+                      >
+                        <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                        {application.closingDate 
+                          ? format(new Date(application.closingDate), "MMM d, yyyy")
+                          : <span className="text-muted-foreground">Set date</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="end">
+                      <CalendarComponent
+                        mode="single"
+                        selected={application.closingDate ? new Date(application.closingDate) : undefined}
+                        onSelect={(date) => {
+                          if (date) {
+                            updateMutation.mutate({ closingDate: date.toISOString() as any });
+                          }
+                        }}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </CardContent>
             </Card>
           </div>
