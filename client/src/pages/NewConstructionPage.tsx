@@ -390,8 +390,8 @@ export default function NewConstructionPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
             {/* Map on left - as large as possible */}
-            <div className="order-2 lg:order-1">
-              <div className="w-full overflow-x-auto">
+            <div className="order-2 lg:order-1 overflow-visible">
+              <div className="w-full overflow-visible">
                 <USMap onStateClick={handleStateClick} />
               </div>
             </div>
