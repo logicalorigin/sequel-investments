@@ -77,7 +77,7 @@ import {
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useRef } from "react";
-import type { LoanApplication, User as UserType, StaffInvite, FundedDeal, WebhookEndpoint, BrokerProfile, BrokerBranding, BrokerBorrower } from "@shared/schema";
+import type { LoanApplication, User as UserType, StaffInvite, FundedDeal, WebhookEndpoint, BrokerProfile, BrokerBranding, BrokerBorrower, BrokerApplication } from "@shared/schema";
 
 type EnrichedBroker = {
   id: string;
@@ -231,6 +231,14 @@ export default function AdminDashboard() {
   const [fundedPage, setFundedPage] = useState(1);
   const [staffPage, setStaffPage] = useState(1);
   const [brokersPage, setBrokersPage] = useState(1);
+  const [brokerAppsPage, setBrokerAppsPage] = useState(1);
+  
+  const [showApproveDialog, setShowApproveDialog] = useState(false);
+  const [approvingApplication, setApprovingApplication] = useState<BrokerApplication | null>(null);
+  const [approveForm, setApproveForm] = useState({ password: "", companySlug: "" });
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [rejectingApplication, setRejectingApplication] = useState<BrokerApplication | null>(null);
+  const [rejectNotes, setRejectNotes] = useState("");
   
   const [showBrokerDialog, setShowBrokerDialog] = useState(false);
   const [editingBroker, setEditingBroker] = useState<EnrichedBroker | null>(null);
@@ -282,6 +290,7 @@ export default function AdminDashboard() {
   const fundedRef = useRef<HTMLElement>(null);
   const staffRef = useRef<HTMLElement>(null);
   const brokersRef = useRef<HTMLElement>(null);
+  const brokerAppsRef = useRef<HTMLElement>(null);
 
   const scrollToSection = (ref: React.RefObject<HTMLElement | null>) => {
     ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -323,6 +332,11 @@ export default function AdminDashboard() {
 
   const { data: brokers, isLoading: brokersLoading } = useQuery<EnrichedBroker[]>({
     queryKey: ["/api/admin/brokers"],
+    enabled: currentUser?.role === "admin",
+  });
+
+  const { data: brokerApplications, isLoading: brokerAppsLoading } = useQuery<BrokerApplication[]>({
+    queryKey: ["/api/admin/broker-applications"],
     enabled: currentUser?.role === "admin",
   });
 
@@ -565,6 +579,55 @@ export default function AdminDashboard() {
     },
   });
 
+  const approveBrokerApplicationMutation = useMutation({
+    mutationFn: async ({ id, password, companySlug }: { id: string; password: string; companySlug: string }) => {
+      const res = await apiRequest("POST", `/api/admin/broker-applications/${id}/approve`, { password, companySlug });
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/broker-applications"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/brokers"] });
+      setShowApproveDialog(false);
+      setApprovingApplication(null);
+      setApproveForm({ password: "", companySlug: "" });
+      toast({
+        title: "Application approved",
+        description: "The broker account has been created and is now active",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to approve application",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const rejectBrokerApplicationMutation = useMutation({
+    mutationFn: async ({ id, reviewNotes }: { id: string; reviewNotes?: string }) => {
+      const res = await apiRequest("POST", `/api/admin/broker-applications/${id}/reject`, { reviewNotes });
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/broker-applications"] });
+      setShowRejectDialog(false);
+      setRejectingApplication(null);
+      setRejectNotes("");
+      toast({
+        title: "Application rejected",
+        description: "The broker application has been declined",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to reject application",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    },
+  });
+
   const resetBrokerForm = () => {
     setBrokerForm({
       email: "",
@@ -796,6 +859,13 @@ export default function AdminDashboard() {
     brokersPage * ITEMS_PER_PAGE
   );
 
+  const pendingBrokerApps = (brokerApplications || []).filter(app => app.status === "pending");
+  const brokerAppsTotalPages = Math.ceil((pendingBrokerApps.length || 0) / ITEMS_PER_PAGE);
+  const paginatedBrokerApps = pendingBrokerApps.slice(
+    (brokerAppsPage - 1) * ITEMS_PER_PAGE,
+    brokerAppsPage * ITEMS_PER_PAGE
+  );
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card sticky top-0 z-50">
@@ -887,6 +957,19 @@ export default function AdminDashboard() {
             </Button>
             {currentUser.role === "admin" && (
               <>
+                {pendingBrokerApps.length > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 text-xs shrink-0"
+                    onClick={() => scrollToSection(brokerAppsRef)}
+                    data-testid="jump-broker-apps"
+                  >
+                    <UserPlus className="h-3.5 w-3.5 mr-1.5" />
+                    Applications
+                    <Badge variant="default" className="ml-1.5 text-[10px] h-4 px-1 bg-primary">{pendingBrokerApps.length}</Badge>
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
                   size="sm"
@@ -1589,6 +1672,235 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
         </section>
+
+        {/* Broker Applications Section (Admin Only) */}
+        {currentUser.role === "admin" && pendingBrokerApps.length > 0 && (
+          <section ref={brokerAppsRef} id="broker-applications" className="scroll-mt-32">
+            <Card>
+              <CardHeader className="p-4 sm:p-6">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                      <UserPlus className="h-5 w-5" />
+                      Broker Applications
+                      <Badge variant="default" className="bg-primary">{pendingBrokerApps.length} pending</Badge>
+                    </CardTitle>
+                    <CardDescription className="text-xs sm:text-sm">
+                      Review and approve new broker partner applications
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                {brokerAppsLoading ? (
+                  <div className="p-8 text-center">
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+                  </div>
+                ) : (
+                  <>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-[200px]">Applicant</TableHead>
+                            <TableHead>Company</TableHead>
+                            <TableHead className="hidden md:table-cell">Experience</TableHead>
+                            <TableHead className="hidden lg:table-cell">Volume</TableHead>
+                            <TableHead className="hidden sm:table-cell">Applied</TableHead>
+                            <TableHead className="w-[120px]">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {paginatedBrokerApps.map((app) => (
+                            <TableRow key={app.id} data-testid={`row-broker-app-${app.id}`}>
+                              <TableCell>
+                                <div>
+                                  <p className="font-medium text-sm">{app.firstName} {app.lastName}</p>
+                                  <p className="text-xs text-muted-foreground">{app.email}</p>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div>
+                                  <p className="font-medium text-sm">{app.companyName}</p>
+                                  {app.nmlsNumber && (
+                                    <p className="text-xs text-muted-foreground">NMLS# {app.nmlsNumber}</p>
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell className="hidden md:table-cell">
+                                <p className="text-sm">{app.yearsExperience || 0} years</p>
+                              </TableCell>
+                              <TableCell className="hidden lg:table-cell">
+                                <p className="text-sm">{app.monthlyLoanVolume || "N/A"} loans/mo</p>
+                              </TableCell>
+                              <TableCell className="hidden sm:table-cell">
+                                <p className="text-xs text-muted-foreground">
+                                  {app.createdAt ? formatDate(app.createdAt) : "N/A"}
+                                </p>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => {
+                                      setApprovingApplication(app);
+                                      setApproveForm({ 
+                                        password: "", 
+                                        companySlug: app.companyName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")
+                                      });
+                                      setShowApproveDialog(true);
+                                    }}
+                                    data-testid={`button-approve-app-${app.id}`}
+                                  >
+                                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => {
+                                      setRejectingApplication(app);
+                                      setRejectNotes("");
+                                      setShowRejectDialog(true);
+                                    }}
+                                    data-testid={`button-reject-app-${app.id}`}
+                                  >
+                                    <AlertCircle className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    {brokerAppsTotalPages > 1 && (
+                      <Pagination
+                        currentPage={brokerAppsPage}
+                        totalPages={brokerAppsTotalPages}
+                        onPageChange={setBrokerAppsPage}
+                        totalItems={pendingBrokerApps.length}
+                        itemsPerPage={ITEMS_PER_PAGE}
+                      />
+                    )}
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </section>
+        )}
+
+        {/* Approve Application Dialog */}
+        <Dialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Approve Broker Application</DialogTitle>
+              <DialogDescription>
+                Create a broker account for {approvingApplication?.firstName} {approvingApplication?.lastName} at {approvingApplication?.companyName}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="space-y-2">
+                <Label>Company Slug (URL)</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={approveForm.companySlug}
+                    onChange={(e) => setApproveForm({ ...approveForm, companySlug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") })}
+                    placeholder="company-name"
+                    data-testid="input-approve-slug"
+                  />
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">.securedassetfunding.com</span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Initial Password</Label>
+                <Input
+                  type="password"
+                  value={approveForm.password}
+                  onChange={(e) => setApproveForm({ ...approveForm, password: e.target.value })}
+                  placeholder="Set initial password"
+                  data-testid="input-approve-password"
+                />
+                <p className="text-xs text-muted-foreground">The broker will use this to log in. They can change it later.</p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowApproveDialog(false)}>Cancel</Button>
+              <Button
+                onClick={() => {
+                  if (approvingApplication && approveForm.password && approveForm.companySlug) {
+                    approveBrokerApplicationMutation.mutate({
+                      id: approvingApplication.id,
+                      password: approveForm.password,
+                      companySlug: approveForm.companySlug,
+                    });
+                  }
+                }}
+                disabled={!approveForm.password || !approveForm.companySlug || approveBrokerApplicationMutation.isPending}
+                data-testid="button-confirm-approve"
+              >
+                {approveBrokerApplicationMutation.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Approving...
+                  </>
+                ) : (
+                  "Approve & Create Account"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Reject Application Dialog */}
+        <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Reject Application</DialogTitle>
+              <DialogDescription>
+                Decline the broker application from {rejectingApplication?.firstName} {rejectingApplication?.lastName}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="space-y-2">
+                <Label>Rejection Notes (Optional)</Label>
+                <Input
+                  value={rejectNotes}
+                  onChange={(e) => setRejectNotes(e.target.value)}
+                  placeholder="Reason for rejection..."
+                  data-testid="input-reject-notes"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowRejectDialog(false)}>Cancel</Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  if (rejectingApplication) {
+                    rejectBrokerApplicationMutation.mutate({
+                      id: rejectingApplication.id,
+                      reviewNotes: rejectNotes || undefined,
+                    });
+                  }
+                }}
+                disabled={rejectBrokerApplicationMutation.isPending}
+                data-testid="button-confirm-reject"
+              >
+                {rejectBrokerApplicationMutation.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Rejecting...
+                  </>
+                ) : (
+                  "Reject Application"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Brokers Section (Admin Only) */}
         {currentUser.role === "admin" && (
