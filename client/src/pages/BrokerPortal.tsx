@@ -78,7 +78,7 @@ import {
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import type { User as UserType, LoanApplication } from "@shared/schema";
 import { format } from "date-fns";
 
@@ -1141,6 +1141,508 @@ function BrokerInvites() {
   );
 }
 
+type BrokerBrandingData = {
+  id: string;
+  brokerProfileId: string;
+  logoUrl: string | null;
+  faviconUrl: string | null;
+  primaryColor: string | null;
+  secondaryColor: string | null;
+  accentColor: string | null;
+  backgroundColor: string | null;
+  foregroundColor: string | null;
+  mutedColor: string | null;
+  fontFamily: string | null;
+  customDomain: string | null;
+  customDomainVerified: boolean;
+  footerText: string | null;
+  privacyPolicyUrl: string | null;
+  termsOfServiceUrl: string | null;
+  isPublished: boolean;
+};
+
+const brandingFormSchema = z.object({
+  primaryColor: z.string().optional(),
+  secondaryColor: z.string().optional(),
+  accentColor: z.string().optional(),
+  fontFamily: z.string().optional(),
+  footerText: z.string().optional(),
+  privacyPolicyUrl: z.string().url().optional().or(z.literal("")),
+  termsOfServiceUrl: z.string().url().optional().or(z.literal("")),
+});
+
+type BrandingFormData = z.infer<typeof brandingFormSchema>;
+
+function BrokerSettings({ profile }: { profile: BrokerProfile }) {
+  const { toast } = useToast();
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+
+  const { data: branding, isLoading } = useQuery<BrokerBrandingData>({
+    queryKey: ["/api/broker/branding"],
+  });
+
+  const form = useForm<BrandingFormData>({
+    resolver: zodResolver(brandingFormSchema),
+    defaultValues: {
+      primaryColor: branding?.primaryColor || "",
+      secondaryColor: branding?.secondaryColor || "",
+      accentColor: branding?.accentColor || "",
+      fontFamily: branding?.fontFamily || "Inter",
+      footerText: branding?.footerText || "",
+      privacyPolicyUrl: branding?.privacyPolicyUrl || "",
+      termsOfServiceUrl: branding?.termsOfServiceUrl || "",
+    },
+  });
+
+  useEffect(() => {
+    if (branding) {
+      form.reset({
+        primaryColor: branding.primaryColor || "",
+        secondaryColor: branding.secondaryColor || "",
+        accentColor: branding.accentColor || "",
+        fontFamily: branding.fontFamily || "Inter",
+        footerText: branding.footerText || "",
+        privacyPolicyUrl: branding.privacyPolicyUrl || "",
+        termsOfServiceUrl: branding.termsOfServiceUrl || "",
+      });
+      if (branding.logoUrl && !logoPreview) {
+        setLogoPreview(branding.logoUrl);
+      }
+    }
+  }, [branding]);
+
+  const updateBrandingMutation = useMutation({
+    mutationFn: async (data: Partial<BrandingFormData & { logoUrl?: string; isPublished?: boolean }>) => {
+      const res = await apiRequest("PATCH", "/api/broker/branding", data);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/broker/branding"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/broker/profile"] });
+      toast({
+        title: "Branding updated",
+        description: "Your portal branding has been saved",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to update branding",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: "Logo must be under 2MB",
+          variant: "destructive",
+        });
+        return;
+      }
+      setLogoFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const onSubmit = (data: BrandingFormData) => {
+    updateBrandingMutation.mutate(data);
+  };
+
+  const handlePublishToggle = () => {
+    updateBrandingMutation.mutate({ isPublished: !branding?.isPublished });
+  };
+
+  const previewColors = {
+    primary: form.watch("primaryColor") || branding?.primaryColor || "222 47% 31%",
+    secondary: form.watch("secondaryColor") || branding?.secondaryColor || "171 77% 36%",
+    accent: form.watch("accentColor") || branding?.accentColor || "171 77% 36%",
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold">Settings & Branding</h2>
+        <p className="text-muted-foreground">
+          Customize your white-label portal appearance for your borrowers
+        </p>
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Portal Information</CardTitle>
+              <CardDescription>
+                Your white-label portal URL: <span className="font-medium text-foreground">{profile.companySlug}.securedassetfunding.com</span>
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-medium">Company Name</Label>
+                  <p className="text-sm mt-1">{profile.companyName}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Contact Phone</Label>
+                  <p className="text-sm mt-1">{profile.phone || "Not set"}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">License Number</Label>
+                  <p className="text-sm mt-1">{profile.licenseNumber || "Not set"}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Website</Label>
+                  <p className="text-sm mt-1">{profile.website || "Not set"}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Logo</CardTitle>
+              <CardDescription>
+                Upload your company logo to display on your white-label portal
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-4">
+                <div 
+                  className="h-20 w-20 rounded-lg border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/20 overflow-hidden cursor-pointer hover:border-primary/50 transition-colors"
+                  onClick={() => logoInputRef.current?.click()}
+                  data-testid="logo-upload-area"
+                >
+                  {logoPreview ? (
+                    <img src={logoPreview} alt="Logo preview" className="h-16 w-16 object-contain" />
+                  ) : (
+                    <Building2 className="h-8 w-8 text-muted-foreground" />
+                  )}
+                </div>
+                <input
+                  ref={logoInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/svg+xml"
+                  className="hidden"
+                  onChange={handleLogoChange}
+                  data-testid="input-logo-file"
+                />
+                <div className="flex-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => logoInputRef.current?.click()}
+                    data-testid="button-upload-logo"
+                  >
+                    Upload Logo
+                  </Button>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    PNG, JPG or SVG. Max 2MB.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Color Scheme</CardTitle>
+                  <CardDescription>
+                    Customize your portal colors (HSL format: H S% L%)
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid sm:grid-cols-3 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="primaryColor"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Primary Color</FormLabel>
+                          <FormControl>
+                            <div className="flex gap-2">
+                              <div
+                                className="h-9 w-9 rounded border shrink-0"
+                                style={{ backgroundColor: `hsl(${field.value || previewColors.primary})` }}
+                              />
+                              <Input
+                                placeholder="222 47% 31%"
+                                data-testid="input-primary-color"
+                                {...field}
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="secondaryColor"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Secondary Color</FormLabel>
+                          <FormControl>
+                            <div className="flex gap-2">
+                              <div
+                                className="h-9 w-9 rounded border shrink-0"
+                                style={{ backgroundColor: `hsl(${field.value || previewColors.secondary})` }}
+                              />
+                              <Input
+                                placeholder="171 77% 36%"
+                                data-testid="input-secondary-color"
+                                {...field}
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="accentColor"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Accent Color</FormLabel>
+                          <FormControl>
+                            <div className="flex gap-2">
+                              <div
+                                className="h-9 w-9 rounded border shrink-0"
+                                style={{ backgroundColor: `hsl(${field.value || previewColors.accent})` }}
+                              />
+                              <Input
+                                placeholder="171 77% 36%"
+                                data-testid="input-accent-color"
+                                {...field}
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Typography</CardTitle>
+                  <CardDescription>
+                    Select the font family for your portal
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <FormField
+                    control={form.control}
+                    name="fontFamily"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Font Family</FormLabel>
+                        <FormControl>
+                          <select
+                            className="flex h-9 w-full max-w-xs rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                            data-testid="select-font-family"
+                            {...field}
+                          >
+                            <option value="Inter">Inter (Default)</option>
+                            <option value="Roboto">Roboto</option>
+                            <option value="Open Sans">Open Sans</option>
+                            <option value="Lato">Lato</option>
+                            <option value="Montserrat">Montserrat</option>
+                            <option value="Poppins">Poppins</option>
+                          </select>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Footer & Legal</CardTitle>
+                  <CardDescription>
+                    Add custom footer text and legal links
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="footerText"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Footer Text</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="© 2024 Your Company. All rights reserved."
+                            data-testid="input-footer-text"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="privacyPolicyUrl"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Privacy Policy URL</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="url"
+                              placeholder="https://yoursite.com/privacy"
+                              data-testid="input-privacy-url"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="termsOfServiceUrl"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Terms of Service URL</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="url"
+                              placeholder="https://yoursite.com/terms"
+                              data-testid="input-terms-url"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="flex justify-end gap-3">
+                <Button
+                  type="submit"
+                  disabled={updateBrandingMutation.isPending}
+                  data-testid="button-save-branding"
+                >
+                  {updateBrandingMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    "Save Changes"
+                  )}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </div>
+
+        <div className="space-y-6">
+          <Card className="sticky top-24">
+            <CardHeader>
+              <CardTitle className="text-lg">Live Preview</CardTitle>
+              <CardDescription>
+                See how your branding looks
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="border rounded-lg overflow-hidden">
+                <div 
+                  className="p-3 flex items-center gap-2"
+                  style={{ backgroundColor: `hsl(${previewColors.primary})` }}
+                >
+                  <div className="h-8 w-8 rounded bg-white/20 flex items-center justify-center">
+                    {logoPreview ? (
+                      <img src={logoPreview} alt="Logo" className="h-6 w-6 object-contain" />
+                    ) : (
+                      <Building2 className="h-4 w-4 text-white" />
+                    )}
+                  </div>
+                  <span className="text-white text-sm font-medium">{profile.companyName}</span>
+                </div>
+                <div className="p-4 bg-background space-y-3">
+                  <div className="h-3 w-3/4 rounded bg-muted" />
+                  <div className="h-3 w-1/2 rounded bg-muted" />
+                  <Button
+                    size="sm"
+                    className="mt-2"
+                    style={{ 
+                      backgroundColor: `hsl(${previewColors.secondary})`,
+                      borderColor: `hsl(${previewColors.secondary})`,
+                    }}
+                  >
+                    Sample Button
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+            <CardContent className="pt-0 space-y-3">
+              <Separator />
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-sm">Publish Branding</p>
+                  <p className="text-xs text-muted-foreground">
+                    {branding?.isPublished 
+                      ? "Your branding is live" 
+                      : "Make your branding visible to borrowers"
+                    }
+                  </p>
+                </div>
+                <Button
+                  variant={branding?.isPublished ? "outline" : "default"}
+                  size="sm"
+                  onClick={handlePublishToggle}
+                  disabled={updateBrandingMutation.isPending}
+                  data-testid="button-toggle-publish"
+                >
+                  {branding?.isPublished ? "Unpublish" : "Publish"}
+                </Button>
+              </div>
+              {branding?.isPublished && (
+                <div className="flex items-center gap-2 text-xs text-green-600 bg-green-50 dark:bg-green-900/20 p-2 rounded">
+                  <CheckCircle2 className="h-4 w-4" />
+                  <span>Branding is published and visible</span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function BrokerPortal() {
   const [location, navigate] = useLocation();
   const { toast } = useToast();
@@ -1220,6 +1722,7 @@ export default function BrokerPortal() {
     { href: "/broker/borrowers", label: "Borrowers", icon: Users },
     { href: "/broker/deals", label: "Deals", icon: FileText },
     { href: "/broker/invites", label: "Invites", icon: Send },
+    { href: "/broker/settings", label: "Settings", icon: Settings },
   ];
 
   const isActive = (href: string) => {
@@ -1299,6 +1802,7 @@ export default function BrokerPortal() {
           <Route path="/broker/borrowers" component={BrokerBorrowers} />
           <Route path="/broker/deals" component={BrokerDeals} />
           <Route path="/broker/invites" component={BrokerInvites} />
+          <Route path="/broker/settings" component={() => <BrokerSettings profile={profile} />} />
         </Switch>
       </main>
     </div>
