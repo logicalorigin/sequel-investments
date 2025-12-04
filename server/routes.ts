@@ -2225,6 +2225,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Public endpoint for white-label branding by slug
+  // Only returns published branding data (colors, logo, fonts) for borrower-facing pages
+  app.get("/api/broker/branding/public/:slug", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      
+      // Find broker by slug
+      const brokerProfile = await storage.getBrokerProfileBySlug(slug);
+      if (!brokerProfile) {
+        return res.status(404).json({ error: "Broker not found" });
+      }
+      
+      // Only approved brokers can have public branding
+      if (brokerProfile.kycStatus !== "approved") {
+        return res.status(404).json({ error: "Broker not found" });
+      }
+      
+      const branding = await storage.getBrokerBranding(brokerProfile.id);
+      if (!branding || !branding.isPublished) {
+        return res.status(404).json({ error: "Branding not available" });
+      }
+      
+      // Return only public branding fields (no sensitive data)
+      return res.json({
+        id: branding.id,
+        logoUrl: branding.logoUrl,
+        faviconUrl: branding.faviconUrl,
+        primaryColor: branding.primaryColor,
+        secondaryColor: branding.secondaryColor,
+        accentColor: branding.accentColor,
+        backgroundColor: branding.backgroundColor,
+        foregroundColor: branding.foregroundColor,
+        mutedColor: branding.mutedColor,
+        fontFamily: branding.fontFamily,
+        footerText: branding.footerText,
+        privacyPolicyUrl: branding.privacyPolicyUrl,
+        termsOfServiceUrl: branding.termsOfServiceUrl,
+        isPublished: branding.isPublished,
+        companyName: brokerProfile.companyName,
+        companySlug: brokerProfile.companySlug,
+      });
+    } catch (error) {
+      console.error("Error fetching public branding:", error);
+      return res.status(500).json({ error: "Failed to fetch branding" });
+    }
+  });
+
   // Get broker branding
   app.get("/api/broker/branding", isAuthenticated, isBroker, async (req: any, res) => {
     try {

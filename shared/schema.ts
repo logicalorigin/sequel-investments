@@ -16,6 +16,7 @@ export const sessions = pgTable(
 
 // User role enum
 export const userRoleEnum = pgEnum("user_role", ["borrower", "staff", "admin", "broker"]);
+export type UserRole = "borrower" | "staff" | "admin" | "broker";
 
 // User storage table for Replit Auth + local auth
 export const users = pgTable("users", {
