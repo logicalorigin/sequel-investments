@@ -18,8 +18,14 @@ import {
   insertFundedDealSchema,
   insertWebhookEndpointSchema,
   insertBrokerApplicationSchema,
+  insertDocumentReviewSchema,
+  insertCommentAttachmentSchema,
+  insertNotificationQueueItemSchema,
+  insertDocumentCommentSchema,
   getStateBySlug,
   type UserRole,
+  type StaffRole,
+  STAFF_ROLE_COLORS,
 } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { setupAuth, isAuthenticated } from "./replitAuth";
@@ -1328,6 +1334,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       next();
     } catch (error) {
       console.error("Error checking admin status:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  };
+  
+  // Middleware to check if user is staff or admin
+  const isStaffOrAdmin = async (req: any, res: any, next: any) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user || (user.role !== "staff" && user.role !== "admin")) {
+        return res.status(403).json({ error: "Staff or Admin access required" });
+      }
+      
+      req.staffUser = user;
+      next();
+    } catch (error) {
+      console.error("Error checking staff/admin status:", error);
       return res.status(500).json({ error: "Internal server error" });
     }
   };
@@ -3077,6 +3104,391 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error rejecting broker application:", error);
       return res.status(500).json({ error: "Failed to reject application" });
     }
+  });
+
+  // ============================================
+  // DOCUMENT REVIEW API ENDPOINTS
+  // ============================================
+
+  // Get all reviews for a document
+  app.get("/api/documents/:documentId/reviews", isAuthenticated, async (req: any, res) => {
+    try {
+      const { documentId } = req.params;
+      const reviews = await storage.getDocumentReviews(documentId);
+      return res.json(reviews);
+    } catch (error) {
+      console.error("Error fetching document reviews:", error);
+      return res.status(500).json({ error: "Failed to fetch document reviews" });
+    }
+  });
+
+  // Create a document review (approve, reject, request changes)
+  app.post("/api/documents/:documentId/reviews", isAuthenticated, isStaffOrAdmin, async (req: any, res) => {
+    try {
+      const { documentId } = req.params;
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      const validationResult = insertDocumentReviewSchema.safeParse({
+        ...req.body,
+        documentId,
+        reviewerId: userId,
+        staffRole: user?.staffRole as StaffRole || undefined,
+      });
+      
+      if (!validationResult.success) {
+        const validationError = fromZodError(validationResult.error);
+        return res.status(400).json({ error: validationError.message });
+      }
+      
+      // Get the document to update its status based on review action
+      const document = await storage.getDocument(documentId);
+      if (!document) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+      
+      // Create the review
+      const review = await storage.createDocumentReview(validationResult.data);
+      
+      // Update document status based on review action
+      const statusMap: Record<string, string> = {
+        approved: "approved",
+        rejected: "rejected",
+        request_changes: "pending",
+        under_review: "pending",
+      };
+      
+      const newStatus = statusMap[validationResult.data.action] || "pending";
+      await storage.updateDocument(documentId, { status: newStatus as any });
+      
+      // Create a timeline event for the application
+      if (document.loanApplicationId) {
+        const actionLabels: Record<string, string> = {
+          approved: "approved",
+          rejected: "rejected",
+          request_changes: "requested changes on",
+          under_review: "marked as under review",
+        };
+        
+        // Map review action to appropriate timeline event type
+        const eventTypeMap: Record<string, "document_approved" | "document_rejected" | "document_uploaded"> = {
+          approved: "document_approved",
+          rejected: "document_rejected",
+          request_changes: "document_rejected", // treat as similar to rejected for timeline
+          under_review: "document_uploaded", // use uploaded as a neutral type
+        };
+        
+        await storage.createTimelineEvent({
+          loanApplicationId: document.loanApplicationId,
+          eventType: eventTypeMap[validationResult.data.action] || "document_uploaded",
+          title: `Document ${actionLabels[validationResult.data.action] || "reviewed"}`,
+          description: validationResult.data.comment || `A staff member ${actionLabels[validationResult.data.action]} a document.`,
+          metadata: {
+            documentId,
+            reviewId: review.id,
+            action: validationResult.data.action,
+            reviewerRole: user?.staffRole,
+          },
+          createdByUserId: userId,
+        });
+      }
+      
+      // Queue notification for document owner
+      const app = await storage.getLoanApplication(document.loanApplicationId!);
+      if (app?.userId) {
+        const notificationMessages: Record<string, { title: string; message: string; type: "document_approved" | "document_rejected" }> = {
+          approved: {
+            title: "Document Approved",
+            message: `Your document has been approved by our team.`,
+            type: "document_approved",
+          },
+          rejected: {
+            title: "Document Rejected",
+            message: `Your document was rejected. ${validationResult.data.comment || "Please upload a new version."}`,
+            type: "document_rejected",
+          },
+          request_changes: {
+            title: "Document Changes Requested",
+            message: `Changes have been requested for your document. ${validationResult.data.comment || "Please review and resubmit."}`,
+            type: "document_rejected",
+          },
+        };
+        
+        const notif = notificationMessages[validationResult.data.action];
+        if (notif) {
+          // Schedule notification to be sent after 30 minutes (batching)
+          const sendAfter = new Date(Date.now() + 30 * 60 * 1000);
+          await storage.createNotificationQueueItem({
+            recipientId: app.userId,
+            notificationType: notif.type,
+            title: notif.title,
+            message: notif.message,
+            linkUrl: `/portal/applications/${app.id}`,
+            relatedApplicationId: app.id,
+            relatedDocumentId: documentId,
+            batchKey: `doc_review:${app.id}`,
+            sendAfter,
+          });
+        }
+      }
+      
+      return res.status(201).json(review);
+    } catch (error) {
+      console.error("Error creating document review:", error);
+      return res.status(500).json({ error: "Failed to create document review" });
+    }
+  });
+
+  // Get the latest review for a document
+  app.get("/api/documents/:documentId/reviews/latest", isAuthenticated, async (req: any, res) => {
+    try {
+      const { documentId } = req.params;
+      const review = await storage.getLatestDocumentReview(documentId);
+      return res.json(review || null);
+    } catch (error) {
+      console.error("Error fetching latest document review:", error);
+      return res.status(500).json({ error: "Failed to fetch latest review" });
+    }
+  });
+
+  // ============================================
+  // DOCUMENT COMMENT API ENDPOINTS (with staff role)
+  // ============================================
+
+  // Get comments for a document (with user info and role)
+  app.get("/api/documents/:documentId/comments", isAuthenticated, async (req: any, res) => {
+    try {
+      const { documentId } = req.params;
+      const comments = await storage.getDocumentComments(documentId);
+      return res.json(comments);
+    } catch (error) {
+      console.error("Error fetching document comments:", error);
+      return res.status(500).json({ error: "Failed to fetch comments" });
+    }
+  });
+
+  // Create a document comment with staff role
+  app.post("/api/documents/:documentId/comments", isAuthenticated, async (req: any, res) => {
+    try {
+      const { documentId } = req.params;
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      const validationResult = insertDocumentCommentSchema.safeParse({
+        ...req.body,
+        documentId,
+        userId,
+        staffRole: user?.staffRole || undefined,
+      });
+      
+      if (!validationResult.success) {
+        const validationError = fromZodError(validationResult.error);
+        return res.status(400).json({ error: validationError.message });
+      }
+      
+      const comment = await storage.createDocumentComment(validationResult.data);
+      
+      // If comment has attachments, create them
+      if (req.body.attachments && Array.isArray(req.body.attachments)) {
+        for (const attachment of req.body.attachments) {
+          await storage.createCommentAttachment({
+            documentCommentId: comment.id,
+            fileName: attachment.fileName,
+            fileUrl: attachment.fileUrl,
+            fileSize: attachment.fileSize,
+            mimeType: attachment.mimeType,
+            uploadedById: userId,
+          });
+        }
+      }
+      
+      return res.status(201).json(comment);
+    } catch (error) {
+      console.error("Error creating document comment:", error);
+      return res.status(500).json({ error: "Failed to create comment" });
+    }
+  });
+
+  // ============================================
+  // COMMENT ATTACHMENT API ENDPOINTS
+  // ============================================
+
+  // Get attachments for a comment or review
+  app.get("/api/comments/:commentId/attachments", isAuthenticated, async (req: any, res) => {
+    try {
+      const { commentId } = req.params;
+      const type = req.query.type === 'review' ? 'review' : 'comment';
+      const attachments = await storage.getCommentAttachments(commentId, type);
+      return res.json(attachments);
+    } catch (error) {
+      console.error("Error fetching comment attachments:", error);
+      return res.status(500).json({ error: "Failed to fetch attachments" });
+    }
+  });
+
+  // Upload an attachment (image) for a comment
+  app.post("/api/comments/:commentId/attachments", isAuthenticated, async (req: any, res) => {
+    try {
+      const { commentId } = req.params;
+      const userId = req.user.claims.sub;
+      const type = req.query.type === 'review' ? 'review' : 'comment';
+      
+      const attachmentData = {
+        [type === 'review' ? 'documentReviewId' : 'documentCommentId']: commentId,
+        fileName: req.body.fileName,
+        fileUrl: req.body.fileUrl,
+        fileSize: req.body.fileSize,
+        mimeType: req.body.mimeType,
+        uploadedById: userId,
+      };
+      
+      const validationResult = insertCommentAttachmentSchema.safeParse(attachmentData);
+      
+      if (!validationResult.success) {
+        const validationError = fromZodError(validationResult.error);
+        return res.status(400).json({ error: validationError.message });
+      }
+      
+      const attachment = await storage.createCommentAttachment(validationResult.data);
+      return res.status(201).json(attachment);
+    } catch (error) {
+      console.error("Error creating comment attachment:", error);
+      return res.status(500).json({ error: "Failed to create attachment" });
+    }
+  });
+
+  // Delete an attachment
+  app.delete("/api/attachments/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const success = await storage.deleteCommentAttachment(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Attachment not found" });
+      }
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting attachment:", error);
+      return res.status(500).json({ error: "Failed to delete attachment" });
+    }
+  });
+
+  // ============================================
+  // NOTIFICATION QUEUE API ENDPOINTS
+  // ============================================
+
+  // Get pending notifications (admin only)
+  app.get("/api/admin/notification-queue", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const notifications = await storage.getPendingNotifications();
+      return res.json(notifications);
+    } catch (error) {
+      console.error("Error fetching notification queue:", error);
+      return res.status(500).json({ error: "Failed to fetch notification queue" });
+    }
+  });
+
+  // Process pending notifications (admin trigger or cron job)
+  app.post("/api/admin/notification-queue/process", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const now = new Date();
+      const pending = await storage.getPendingNotifications(now);
+      
+      // Group by batch key for consolidated notifications
+      const batches = new Map<string, typeof pending>();
+      for (const notification of pending) {
+        const key = notification.batchKey || notification.id;
+        if (!batches.has(key)) {
+          batches.set(key, []);
+        }
+        batches.get(key)!.push(notification);
+      }
+      
+      let processed = 0;
+      let failed = 0;
+      
+      // Convert Map to array entries for iteration
+      const batchEntries = Array.from(batches.entries());
+      
+      for (const [batchKey, batchNotifications] of batchEntries) {
+        try {
+          // Create a single consolidated notification for this batch
+          const firstNotif = batchNotifications[0];
+          
+          // If multiple items in batch, consolidate message
+          let title = firstNotif.title;
+          let message = firstNotif.message;
+          
+          if (batchNotifications.length > 1) {
+            title = `${batchNotifications.length} Document Updates`;
+            message = `You have ${batchNotifications.length} document updates. Click to view details.`;
+          }
+          
+          // Create actual notification for the user
+          await storage.createNotification({
+            userId: firstNotif.recipientId,
+            type: firstNotif.notificationType,
+            title,
+            message,
+            linkUrl: firstNotif.linkUrl || undefined,
+            relatedApplicationId: firstNotif.relatedApplicationId || undefined,
+          });
+          
+          // Mark all notifications in batch as sent
+          for (const notif of batchNotifications) {
+            await storage.markNotificationSent(notif.id);
+          }
+          
+          processed += batchNotifications.length;
+        } catch (error) {
+          console.error(`Error processing batch ${batchKey}:`, error);
+          for (const notif of batchNotifications) {
+            await storage.markNotificationFailed(notif.id, String(error));
+          }
+          failed += batchNotifications.length;
+        }
+      }
+      
+      return res.json({ 
+        success: true, 
+        processed, 
+        failed,
+        batchesProcessed: batches.size,
+      });
+    } catch (error) {
+      console.error("Error processing notification queue:", error);
+      return res.status(500).json({ error: "Failed to process notifications" });
+    }
+  });
+
+  // ============================================
+  // STAFF ROLE MANAGEMENT
+  // ============================================
+
+  // Update a user's staff role (admin only)
+  app.patch("/api/admin/users/:userId/staff-role", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { userId } = req.params;
+      const { staffRole } = req.body;
+      
+      const validRoles: StaffRole[] = ["account_executive", "processor", "underwriter", "management"];
+      if (!validRoles.includes(staffRole)) {
+        return res.status(400).json({ error: "Invalid staff role" });
+      }
+      
+      const user = await storage.updateUserStaffRole(userId, staffRole);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      return res.json(user);
+    } catch (error) {
+      console.error("Error updating staff role:", error);
+      return res.status(500).json({ error: "Failed to update staff role" });
+    }
+  });
+
+  // Get staff role colors/labels (public for UI)
+  app.get("/api/staff-roles", async (req, res) => {
+    return res.json(STAFF_ROLE_COLORS);
   });
 
   const httpServer = createServer(app);
