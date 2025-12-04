@@ -480,7 +480,29 @@ export default function HomePage() {
       <section className="py-12 sm:py-16 md:py-24 bg-card" data-testid="section-where-we-lend">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-8 sm:mb-12">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">Where We Lend</h2>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">
+              Where Are You{" "}
+              <span className="inline-block relative">
+                <span className="border-b-2 border-primary">
+                  <span 
+                    className="inline-block overflow-hidden align-bottom"
+                    style={{ height: '1.2em', width: 'auto' }}
+                  >
+                    <span 
+                      className="flex flex-col animate-word-ticker"
+                      style={{ 
+                        animation: 'wordTicker 9s ease-in-out infinite',
+                      }}
+                    >
+                      <span className="block text-primary">Renting</span>
+                      <span className="block text-primary">Flipping</span>
+                      <span className="block text-primary">Building</span>
+                    </span>
+                  </span>
+                </span>
+              </span>
+              ?
+            </h2>
             <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
               Secured Asset Funding is a nationwide private lender serving real estate investors across 48 states + DC. 
               Click on a state to explore our loan programs in your area.

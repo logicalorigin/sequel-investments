@@ -500,3 +500,22 @@
   background-size: 200% 100%;
   animation: shimmer 2s infinite;
 }
+
+@keyframes wordTicker {
+  0%, 30% {
+    transform: translateY(0);
+  }
+  33.33%, 63.33% {
+    transform: translateY(-33.333%);
+  }
+  66.66%, 96.66% {
+    transform: translateY(-66.666%);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+.animate-word-ticker {
+  animation: wordTicker 9s ease-in-out infinite;
+}
