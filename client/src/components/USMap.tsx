@@ -110,10 +110,10 @@ export default function USMap({ onStateClick }: USMapProps) {
   };
 
   return (
-    <div className="relative w-full" data-testid="us-map-container">
+    <div className="relative w-full overflow-visible" data-testid="us-map-container">
       <svg
         viewBox="0 0 1000 589"
-        className="w-full h-auto"
+        className="w-full h-auto overflow-visible"
         preserveAspectRatio="xMidYMid meet"
         data-testid="us-map-svg"
       >
