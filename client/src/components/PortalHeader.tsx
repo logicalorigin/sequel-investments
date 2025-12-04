@@ -57,11 +57,17 @@ export function PortalHeader({ user, title, titleExtra, backHref }: PortalHeader
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest("POST", "/api/borrower/logout");
+      const response = await apiRequest("POST", "/api/borrower/logout");
+      return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries();
-      navigate("/login");
+      queryClient.clear();
+      window.location.href = "/login";
+    },
+    onError: (error) => {
+      console.error("Logout error:", error);
+      queryClient.clear();
+      window.location.href = "/login";
     },
   });
 
