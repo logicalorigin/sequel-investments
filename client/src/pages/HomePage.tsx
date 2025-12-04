@@ -479,11 +479,19 @@ export default function HomePage() {
 
       <section className="py-12 sm:py-16 md:py-24 bg-card" data-testid="section-where-we-lend">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-8 sm:mb-12">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">
-              <span className="text-foreground">Where Are You</span>{" "}
-              <span className="inline-block relative align-bottom">
-                <span className="inline-block border-b-2 border-primary pb-0.5">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+            {/* Map on left - as large as possible */}
+            <div className="order-2 lg:order-1">
+              <div className="w-full overflow-x-auto">
+                <USMap onStateClick={handleStateClick} />
+              </div>
+            </div>
+
+            {/* Text on right */}
+            <div className="order-1 lg:order-2 text-center lg:text-left">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 sm:mb-6">
+                <span className="text-foreground block">Where Are You</span>
+                <span className="inline-block border-b-2 border-foreground pb-0.5">
                   <span 
                     className="inline-block overflow-hidden align-bottom"
                     style={{ height: '1.15em' }}
@@ -491,46 +499,41 @@ export default function HomePage() {
                     <span 
                       className="flex flex-col"
                       style={{ 
-                        animation: 'wordTickerVertical 9s ease-in-out infinite',
+                        animation: 'wordTickerDown 9s ease-in-out infinite',
                       }}
                     >
-                      <span className="block text-primary leading-tight">Renting</span>
-                      <span className="block text-primary leading-tight">Flipping</span>
-                      <span className="block text-primary leading-tight">Building</span>
+                      <span className="block text-primary leading-tight">Renting?</span>
+                      <span className="block text-primary leading-tight">Flipping?</span>
+                      <span className="block text-primary leading-tight">Building?</span>
                     </span>
                   </span>
                 </span>
-              </span>
-              <span className="text-foreground">?</span>
-            </h2>
-            <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
-              Secured Asset Funding is a nationwide private lender serving real estate investors across 48 states + DC. 
-              Click on a state to explore our loan programs in your area.
-            </p>
-          </div>
+              </h2>
+              <p className="text-base sm:text-lg md:text-xl text-muted-foreground mb-6 sm:mb-8 max-w-lg mx-auto lg:mx-0">
+                Secured Asset Funding is a nationwide private lender serving real estate investors across 48 states + DC. 
+                Click on a state to explore our loan programs in your area.
+              </p>
 
-          <div className="max-w-4xl mx-auto mb-8 sm:mb-12 overflow-x-auto">
-            <USMap onStateClick={handleStateClick} />
-          </div>
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 sm:gap-3 mb-6">
+                {eligibleStates.slice(0, 8).map((state) => (
+                  <Link key={state.slug} href={`/states/${state.slug}`}>
+                    <div className="text-center p-2 sm:p-3 rounded-lg border bg-background hover-elevate transition-all cursor-pointer" data-testid={`state-link-${state.slug}`}>
+                      <p className="font-semibold text-primary text-sm sm:text-base">{state.abbreviation}</p>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">{state.name}</p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
 
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 sm:gap-3">
-            {eligibleStates.slice(0, 12).map((state) => (
-              <Link key={state.slug} href={`/states/${state.slug}`}>
-                <div className="text-center p-2 sm:p-3 rounded-lg border bg-background hover-elevate transition-all cursor-pointer" data-testid={`state-link-${state.slug}`}>
-                  <p className="font-semibold text-primary text-sm sm:text-base">{state.abbreviation}</p>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground">{state.name}</p>
-                </div>
-              </Link>
-            ))}
-          </div>
-
-          <div className="text-center mt-6 sm:mt-8">
-            <Link href="/where-we-lend">
-              <Button variant="outline" size="default" className="sm:text-base" data-testid="button-view-all-states">
-                <MapPin className="mr-2 h-4 w-4" />
-                View All States
-              </Button>
-            </Link>
+              <div className="text-center lg:text-left">
+                <Link href="/where-we-lend">
+                  <Button variant="outline" size="default" className="sm:text-base" data-testid="button-view-all-states">
+                    <MapPin className="mr-2 h-4 w-4" />
+                    View All States
+                  </Button>
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       </section>
