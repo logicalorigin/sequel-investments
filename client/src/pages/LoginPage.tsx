@@ -4,10 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/hooks/useAuth";
-import { Home, Lock, User, Loader2, UserPlus, Mail } from "lucide-react";
-import { SiGoogle, SiGithub, SiApple } from "react-icons/si";
+import { Home, Lock, Loader2, Mail } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -19,17 +17,12 @@ export default function LoginPage() {
   const { toast } = useToast();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [showTestLogin, setShowTestLogin] = useState(false);
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
       setLocation("/portal");
     }
   }, [isAuthenticated, isLoading, setLocation]);
-
-  const handleOAuthLogin = () => {
-    window.location.href = "/api/login";
-  };
 
   const loginMutation = useMutation({
     mutationFn: async () => {
@@ -56,12 +49,12 @@ export default function LoginPage() {
     },
   });
 
-  const handleTestLogin = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!username || !password) {
       toast({
         title: "Missing Credentials",
-        description: "Please enter both email/username and password",
+        description: "Please enter both email and password",
         variant: "destructive",
       });
       return;
@@ -90,143 +83,58 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {!showTestLogin ? (
-            <>
-              <Button
-                onClick={handleOAuthLogin}
-                className="w-full"
-                data-testid="button-continue-signin"
-              >
-                <Lock className="mr-2 h-4 w-4" />
-                Continue to Sign In
-              </Button>
-
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="username">Email</Label>
               <div className="relative">
-                <Separator />
-                <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-3 text-xs text-muted-foreground">
-                  or sign in with
-                </span>
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="username"
+                  type="text"
+                  placeholder="Enter email (or 'borrower' for test)"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="pl-10"
+                  data-testid="input-username"
+                  autoComplete="username"
+                />
               </div>
-
-              <div className="grid grid-cols-3 gap-3">
-                <Button
-                  variant="outline"
-                  onClick={handleOAuthLogin}
-                  className="h-11"
-                  data-testid="button-google-signin"
-                >
-                  <SiGoogle className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={handleOAuthLogin}
-                  className="h-11"
-                  data-testid="button-github-signin"
-                >
-                  <SiGithub className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={handleOAuthLogin}
-                  className="h-11"
-                  data-testid="button-apple-signin"
-                >
-                  <SiApple className="h-4 w-4" />
-                </Button>
+              <p className="text-xs text-muted-foreground">
+                Test account: borrower / borrower
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Enter password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pl-10"
+                  data-testid="input-password"
+                  autoComplete="current-password"
+                />
               </div>
-
-              <Separator />
-
-              <div className="text-center space-y-2">
-                <p className="text-sm text-muted-foreground">Don't have an account?</p>
-                <Button
-                  variant="outline"
-                  onClick={handleOAuthLogin}
-                  className="w-full"
-                  data-testid="button-create-account"
-                >
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Create Account
-                </Button>
-              </div>
-
-              <div className="text-center pt-2">
-                <button
-                  onClick={() => setShowTestLogin(true)}
-                  className="text-xs text-muted-foreground hover:text-primary transition-colors"
-                  data-testid="button-show-test-login"
-                >
-                  Test account login
-                </button>
-              </div>
-            </>
-          ) : (
-            <>
-              <form onSubmit={handleTestLogin} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="username">Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="username"
-                      type="text"
-                      placeholder="Enter email (or 'borrower' for test)"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      className="pl-10"
-                      data-testid="input-borrower-email"
-                      autoComplete="username"
-                    />
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Test account: borrower / borrower
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="Enter password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="pl-10"
-                      data-testid="input-borrower-password"
-                      autoComplete="current-password"
-                    />
-                  </div>
-                </div>
-                <Button 
-                  type="submit" 
-                  className="w-full" 
-                  disabled={loginMutation.isPending}
-                  data-testid="button-borrower-login"
-                >
-                  {loginMutation.isPending ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Signing in...
-                    </>
-                  ) : (
-                    "Sign In"
-                  )}
-                </Button>
-              </form>
-
-              <Separator />
-
-              <Button
-                variant="outline"
-                onClick={() => setShowTestLogin(false)}
-                className="w-full"
-                data-testid="button-back-to-oauth"
-              >
-                Back to OAuth Login
-              </Button>
-            </>
-          )}
+            </div>
+            <Button 
+              type="submit" 
+              className="w-full" 
+              disabled={loginMutation.isPending}
+              data-testid="button-login"
+            >
+              {loginMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                "Sign In"
+              )}
+            </Button>
+          </form>
 
           <div className="text-center">
             <Link href="/">
