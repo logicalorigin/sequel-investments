@@ -112,8 +112,8 @@ export function Navigation() {
                 Client Portal
               </Button>
             </Link>
-            <Link href="/get-quote" data-testid="button-nav-getrate">
-              <Button size="default" variant="outline">Get Funded</Button>
+            <Link href="/broker" data-testid="link-nav-broker-portal">
+              <Button size="default" variant="outline">Broker Portal</Button>
             </Link>
           </div>
 
@@ -200,9 +200,9 @@ export function Navigation() {
                   Client Portal
                 </Button>
               </Link>
-              <Link href="/get-quote" data-testid="button-mobile-getrate">
+              <Link href="/broker" data-testid="link-mobile-broker-portal">
                 <Button variant="outline" className="w-full" onClick={() => setIsMobileMenuOpen(false)}>
-                  Get Funded
+                  Broker Portal
                 </Button>
               </Link>
             </div>
