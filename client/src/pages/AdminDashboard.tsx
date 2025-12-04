@@ -77,7 +77,30 @@ import {
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useRef } from "react";
-import type { LoanApplication, User as UserType, StaffInvite, FundedDeal, WebhookEndpoint } from "@shared/schema";
+import type { LoanApplication, User as UserType, StaffInvite, FundedDeal, WebhookEndpoint, BrokerProfile, BrokerBranding, BrokerBorrower } from "@shared/schema";
+
+type EnrichedBroker = {
+  id: string;
+  userId: string;
+  companyName: string;
+  companySlug: string;
+  phone: string | null;
+  licenseNumber: string | null;
+  website: string | null;
+  isActive: boolean;
+  createdAt: Date | string | null;
+  updatedAt: Date | string | null;
+  user: {
+    email: string;
+    firstName: string | null;
+    lastName: string | null;
+  } | null;
+  borrowerCount: number;
+  dealCount: number;
+  activeDealCount: number;
+  fundedDealCount: number;
+  hasBranding: boolean;
+};
 
 type EnrichedUser = UserType & {
   applicationCount: number;
@@ -207,6 +230,21 @@ export default function AdminDashboard() {
   const [borrowersPage, setBorrowersPage] = useState(1);
   const [fundedPage, setFundedPage] = useState(1);
   const [staffPage, setStaffPage] = useState(1);
+  const [brokersPage, setBrokersPage] = useState(1);
+  
+  const [showBrokerDialog, setShowBrokerDialog] = useState(false);
+  const [editingBroker, setEditingBroker] = useState<EnrichedBroker | null>(null);
+  const [brokerForm, setBrokerForm] = useState({
+    email: "",
+    password: "",
+    firstName: "",
+    lastName: "",
+    companyName: "",
+    companySlug: "",
+    phone: "",
+    licenseNumber: "",
+    website: "",
+  });
   
   const [showDealDialog, setShowDealDialog] = useState(false);
   const [editingDeal, setEditingDeal] = useState<FundedDeal | null>(null);
@@ -243,6 +281,7 @@ export default function AdminDashboard() {
   const borrowersRef = useRef<HTMLElement>(null);
   const fundedRef = useRef<HTMLElement>(null);
   const staffRef = useRef<HTMLElement>(null);
+  const brokersRef = useRef<HTMLElement>(null);
 
   const scrollToSection = (ref: React.RefObject<HTMLElement | null>) => {
     ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -279,6 +318,11 @@ export default function AdminDashboard() {
 
   const { data: webhookEndpoints, isLoading: webhooksLoading } = useQuery<WebhookEndpoint[]>({
     queryKey: ["/api/admin/webhooks/endpoints"],
+    enabled: currentUser?.role === "admin",
+  });
+
+  const { data: brokers, isLoading: brokersLoading } = useQuery<EnrichedBroker[]>({
+    queryKey: ["/api/admin/brokers"],
     enabled: currentUser?.role === "admin",
   });
 
@@ -452,6 +496,123 @@ export default function AdminDashboard() {
       targetUrl: webhookForm.targetUrl,
       subscribedEvents: webhookForm.subscribedEvents,
     });
+  };
+
+  const createBrokerMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("POST", "/api/admin/brokers", data);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/brokers"] });
+      setShowBrokerDialog(false);
+      resetBrokerForm();
+      toast({
+        title: "Broker created",
+        description: "The new broker account has been created successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to create broker",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateBrokerMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const res = await apiRequest("PATCH", `/api/admin/brokers/${id}`, data);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/brokers"] });
+      setShowBrokerDialog(false);
+      setEditingBroker(null);
+      resetBrokerForm();
+      toast({
+        title: "Broker updated",
+        description: "The broker account has been updated successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to update broker",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteBrokerMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("DELETE", `/api/admin/brokers/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/brokers"] });
+      toast({
+        title: "Broker deleted",
+        description: "The broker account has been removed",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to delete broker",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const resetBrokerForm = () => {
+    setBrokerForm({
+      email: "",
+      password: "",
+      firstName: "",
+      lastName: "",
+      companyName: "",
+      companySlug: "",
+      phone: "",
+      licenseNumber: "",
+      website: "",
+    });
+  };
+
+  const openEditBroker = (broker: EnrichedBroker) => {
+    setEditingBroker(broker);
+    setBrokerForm({
+      email: broker.user?.email || "",
+      password: "",
+      firstName: broker.user?.firstName || "",
+      lastName: broker.user?.lastName || "",
+      companyName: broker.companyName,
+      companySlug: broker.companySlug,
+      phone: broker.phone || "",
+      licenseNumber: broker.licenseNumber || "",
+      website: broker.website || "",
+    });
+    setShowBrokerDialog(true);
+  };
+
+  const handleBrokerSubmit = () => {
+    const data = {
+      email: brokerForm.email,
+      password: brokerForm.password || undefined,
+      firstName: brokerForm.firstName,
+      lastName: brokerForm.lastName,
+      companyName: brokerForm.companyName,
+      companySlug: brokerForm.companySlug.toLowerCase().replace(/[^a-z0-9-]/g, "-"),
+      phone: brokerForm.phone || null,
+      licenseNumber: brokerForm.licenseNumber || null,
+      website: brokerForm.website || null,
+    };
+
+    if (editingBroker) {
+      updateBrokerMutation.mutate({ id: editingBroker.id, data });
+    } else {
+      createBrokerMutation.mutate(data);
+    }
   };
 
   const createInviteMutation = useMutation({
@@ -629,6 +790,12 @@ export default function AdminDashboard() {
     staffPage * ITEMS_PER_PAGE
   );
 
+  const brokersTotalPages = Math.ceil((brokers?.length || 0) / ITEMS_PER_PAGE);
+  const paginatedBrokers = (brokers || []).slice(
+    (brokersPage - 1) * ITEMS_PER_PAGE,
+    brokersPage * ITEMS_PER_PAGE
+  );
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card sticky top-0 z-50">
@@ -719,17 +886,30 @@ export default function AdminDashboard() {
               <Badge variant="secondary" className="ml-1.5 text-[10px] h-4 px-1">{stats.totalDeals}</Badge>
             </Button>
             {currentUser.role === "admin" && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 text-xs shrink-0"
-                onClick={() => scrollToSection(staffRef)}
-                data-testid="jump-staff"
-              >
-                <Shield className="h-3.5 w-3.5 mr-1.5" />
-                Staff & Invites
-                <Badge variant="secondary" className="ml-1.5 text-[10px] h-4 px-1">{staffMembers.length}</Badge>
-              </Button>
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 text-xs shrink-0"
+                  onClick={() => scrollToSection(brokersRef)}
+                  data-testid="jump-brokers"
+                >
+                  <Building2 className="h-3.5 w-3.5 mr-1.5" />
+                  Brokers
+                  <Badge variant="secondary" className="ml-1.5 text-[10px] h-4 px-1">{brokers?.length || 0}</Badge>
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 text-xs shrink-0"
+                  onClick={() => scrollToSection(staffRef)}
+                  data-testid="jump-staff"
+                >
+                  <Shield className="h-3.5 w-3.5 mr-1.5" />
+                  Staff & Invites
+                  <Badge variant="secondary" className="ml-1.5 text-[10px] h-4 px-1">{staffMembers.length}</Badge>
+                </Button>
+              </>
             )}
           </div>
         </div>
@@ -1409,6 +1589,303 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
         </section>
+
+        {/* Brokers Section (Admin Only) */}
+        {currentUser.role === "admin" && (
+          <section ref={brokersRef} id="brokers" className="scroll-mt-32">
+            <Card>
+              <CardHeader className="p-4 sm:p-6">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                      <Building2 className="h-5 w-5" />
+                      Broker Partners
+                    </CardTitle>
+                    <CardDescription className="text-xs sm:text-sm">
+                      Manage white-label broker accounts and their borrowers
+                    </CardDescription>
+                  </div>
+                  <Dialog open={showBrokerDialog} onOpenChange={(open) => {
+                    setShowBrokerDialog(open);
+                    if (!open) {
+                      setEditingBroker(null);
+                      resetBrokerForm();
+                    }
+                  }}>
+                    <DialogTrigger asChild>
+                      <Button size="sm" data-testid="button-add-broker">
+                        <Plus className="h-3.5 w-3.5 mr-1" />
+                        Add Broker
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-lg">
+                      <DialogHeader>
+                        <DialogTitle>{editingBroker ? "Edit Broker" : "Add New Broker"}</DialogTitle>
+                        <DialogDescription>
+                          {editingBroker 
+                            ? "Update broker account details and white-label settings" 
+                            : "Create a new broker account with white-label portal access"
+                          }
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-2">
+                            <Label htmlFor="broker-firstName">First Name</Label>
+                            <Input
+                              id="broker-firstName"
+                              value={brokerForm.firstName}
+                              onChange={(e) => setBrokerForm(prev => ({ ...prev, firstName: e.target.value }))}
+                              placeholder="John"
+                              data-testid="input-broker-firstname"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="broker-lastName">Last Name</Label>
+                            <Input
+                              id="broker-lastName"
+                              value={brokerForm.lastName}
+                              onChange={(e) => setBrokerForm(prev => ({ ...prev, lastName: e.target.value }))}
+                              placeholder="Smith"
+                              data-testid="input-broker-lastname"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="broker-email">Email</Label>
+                          <Input
+                            id="broker-email"
+                            type="email"
+                            value={brokerForm.email}
+                            onChange={(e) => setBrokerForm(prev => ({ ...prev, email: e.target.value }))}
+                            placeholder="broker@example.com"
+                            disabled={!!editingBroker}
+                            data-testid="input-broker-email"
+                          />
+                        </div>
+                        {!editingBroker && (
+                          <div className="space-y-2">
+                            <Label htmlFor="broker-password">Password</Label>
+                            <Input
+                              id="broker-password"
+                              type="password"
+                              value={brokerForm.password}
+                              onChange={(e) => setBrokerForm(prev => ({ ...prev, password: e.target.value }))}
+                              placeholder="Create a password"
+                              data-testid="input-broker-password"
+                            />
+                          </div>
+                        )}
+                        <Separator />
+                        <div className="space-y-2">
+                          <Label htmlFor="broker-companyName">Company Name</Label>
+                          <Input
+                            id="broker-companyName"
+                            value={brokerForm.companyName}
+                            onChange={(e) => setBrokerForm(prev => ({ ...prev, companyName: e.target.value }))}
+                            placeholder="ABC Mortgage Company"
+                            data-testid="input-broker-company"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="broker-companySlug">Portal URL Slug</Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="broker-companySlug"
+                              value={brokerForm.companySlug}
+                              onChange={(e) => setBrokerForm(prev => ({ 
+                                ...prev, 
+                                companySlug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-") 
+                              }))}
+                              placeholder="abc-mortgage"
+                              disabled={!!editingBroker}
+                              data-testid="input-broker-slug"
+                            />
+                          </div>
+                          {brokerForm.companySlug && (
+                            <p className="text-xs text-muted-foreground">
+                              Portal URL: {brokerForm.companySlug}.securedassetfunding.com
+                            </p>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-2">
+                            <Label htmlFor="broker-phone">Phone</Label>
+                            <Input
+                              id="broker-phone"
+                              value={brokerForm.phone}
+                              onChange={(e) => setBrokerForm(prev => ({ ...prev, phone: e.target.value }))}
+                              placeholder="(555) 123-4567"
+                              data-testid="input-broker-phone"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="broker-license">License #</Label>
+                            <Input
+                              id="broker-license"
+                              value={brokerForm.licenseNumber}
+                              onChange={(e) => setBrokerForm(prev => ({ ...prev, licenseNumber: e.target.value }))}
+                              placeholder="NMLS-123456"
+                              data-testid="input-broker-license"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="broker-website">Website</Label>
+                          <Input
+                            id="broker-website"
+                            value={brokerForm.website}
+                            onChange={(e) => setBrokerForm(prev => ({ ...prev, website: e.target.value }))}
+                            placeholder="https://abcmortgage.com"
+                            data-testid="input-broker-website"
+                          />
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button 
+                          variant="outline" 
+                          onClick={() => {
+                            setShowBrokerDialog(false);
+                            setEditingBroker(null);
+                            resetBrokerForm();
+                          }}
+                          data-testid="button-broker-cancel"
+                        >
+                          Cancel
+                        </Button>
+                        <Button 
+                          onClick={handleBrokerSubmit}
+                          disabled={!brokerForm.companyName || !brokerForm.companySlug || (!editingBroker && (!brokerForm.email || !brokerForm.password))}
+                          data-testid="button-broker-submit"
+                        >
+                          {createBrokerMutation.isPending || updateBrokerMutation.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          ) : null}
+                          {editingBroker ? "Save Changes" : "Create Broker"}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                {brokersLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : !brokers?.length ? (
+                  <div className="py-12 text-center">
+                    <Building2 className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
+                    <p className="text-sm text-muted-foreground">No broker partners yet</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Create a broker account to enable white-label portal access
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Company</TableHead>
+                            <TableHead>Contact</TableHead>
+                            <TableHead className="text-center">Borrowers</TableHead>
+                            <TableHead className="text-center">Active Deals</TableHead>
+                            <TableHead className="text-center">Funded</TableHead>
+                            <TableHead className="text-center">Status</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {paginatedBrokers.map((broker) => (
+                            <TableRow key={broker.id} data-testid={`row-broker-${broker.id}`}>
+                              <TableCell>
+                                <div className="flex items-center gap-3">
+                                  <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                                    <Building2 className="h-4 w-4 text-primary" />
+                                  </div>
+                                  <div>
+                                    <p className="font-medium text-sm">{broker.companyName}</p>
+                                    <p className="text-xs text-muted-foreground">{broker.companySlug}.securedassetfunding.com</p>
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div>
+                                  <p className="text-sm">{broker.user?.firstName} {broker.user?.lastName}</p>
+                                  <p className="text-xs text-muted-foreground">{broker.user?.email}</p>
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Badge variant="secondary">{broker.borrowerCount}</Badge>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Badge variant="secondary" className="bg-blue-500/10 text-blue-600 border-blue-500/30">
+                                  {broker.activeDealCount}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Badge variant="secondary" className="bg-green-500/10 text-green-600 border-green-500/30">
+                                  {broker.fundedDealCount}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Badge 
+                                  variant="outline"
+                                  className={broker.isActive 
+                                    ? "bg-green-500/10 text-green-600 border-green-500/30" 
+                                    : "bg-gray-500/10 text-gray-500 border-gray-500/30"
+                                  }
+                                >
+                                  {broker.isActive ? "Active" : "Inactive"}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex items-center justify-end gap-1">
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-7 w-7"
+                                    onClick={() => openEditBroker(broker)}
+                                    data-testid={`button-edit-broker-${broker.id}`}
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-7 w-7"
+                                    onClick={() => {
+                                      if (confirm(`Are you sure you want to delete ${broker.companyName}?`)) {
+                                        deleteBrokerMutation.mutate(broker.id);
+                                      }
+                                    }}
+                                    data-testid={`button-delete-broker-${broker.id}`}
+                                  >
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    {brokersTotalPages > 1 && (
+                      <Pagination
+                        currentPage={brokersPage}
+                        totalPages={brokersTotalPages}
+                        onPageChange={setBrokersPage}
+                        totalItems={brokers?.length || 0}
+                        itemsPerPage={ITEMS_PER_PAGE}
+                      />
+                    )}
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </section>
+        )}
 
         {/* Staff Section (Admin Only) */}
         {currentUser.role === "admin" && (

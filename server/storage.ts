@@ -19,6 +19,10 @@ import {
   webhookEndpoints,
   webhookEvents,
   webhookDeliveryLogs,
+  brokerProfiles,
+  brokerBranding,
+  brokerBorrowers,
+  brokerInvites,
   type User, 
   type UpsertUser,
   type Lead, 
@@ -59,6 +63,14 @@ import {
   type InsertWebhookEvent,
   type WebhookDeliveryLog,
   type InsertWebhookDeliveryLog,
+  type BrokerProfile,
+  type InsertBrokerProfile,
+  type BrokerBranding,
+  type InsertBrokerBranding,
+  type BrokerBorrower,
+  type InsertBrokerBorrower,
+  type BrokerInvite,
+  type InsertBrokerInvite,
   DEFAULT_DOCUMENT_TYPES,
 } from "@shared/schema";
 import { db } from "./db";
@@ -201,6 +213,38 @@ export interface IStorage {
   getWebhookDeliveryLogs(eventId: string): Promise<WebhookDeliveryLog[]>;
   updateWebhookDeliveryLog(id: string, data: Partial<InsertWebhookDeliveryLog>): Promise<WebhookDeliveryLog | undefined>;
   getRecentWebhookDeliveries(limit?: number): Promise<WebhookDeliveryLog[]>;
+  
+  // Broker profile operations
+  getBrokerProfiles(): Promise<BrokerProfile[]>;
+  getBrokerProfile(id: string): Promise<BrokerProfile | undefined>;
+  getBrokerProfileByUserId(userId: string): Promise<BrokerProfile | undefined>;
+  getBrokerProfileBySlug(slug: string): Promise<BrokerProfile | undefined>;
+  createBrokerProfile(profile: InsertBrokerProfile): Promise<BrokerProfile>;
+  updateBrokerProfile(id: string, data: Partial<InsertBrokerProfile>): Promise<BrokerProfile | undefined>;
+  deleteBrokerProfile(id: string): Promise<boolean>;
+  
+  // Broker branding operations
+  getBrokerBranding(brokerProfileId: string): Promise<BrokerBranding | undefined>;
+  createBrokerBranding(branding: InsertBrokerBranding): Promise<BrokerBranding>;
+  updateBrokerBranding(id: string, data: Partial<InsertBrokerBranding>): Promise<BrokerBranding | undefined>;
+  
+  // Broker-borrower relationship operations
+  getBrokerBorrowers(brokerId: string): Promise<(BrokerBorrower & { borrower: User })[]>;
+  getBorrowerBrokers(borrowerId: string): Promise<(BrokerBorrower & { broker: BrokerProfile })[]>;
+  createBrokerBorrower(relationship: InsertBrokerBorrower): Promise<BrokerBorrower>;
+  updateBrokerBorrower(id: string, data: Partial<InsertBrokerBorrower>): Promise<BrokerBorrower | undefined>;
+  deleteBrokerBorrower(id: string): Promise<boolean>;
+  getBrokerBorrowerByPair(brokerId: string, borrowerId: string): Promise<BrokerBorrower | undefined>;
+  
+  // Broker invite operations
+  createBrokerInvite(invite: InsertBrokerInvite): Promise<BrokerInvite>;
+  getBrokerInviteByToken(token: string): Promise<BrokerInvite | undefined>;
+  getBrokerInvites(brokerId: string): Promise<BrokerInvite[]>;
+  updateBrokerInvite(id: string, data: Partial<InsertBrokerInvite>): Promise<BrokerInvite | undefined>;
+  acceptBrokerInvite(token: string, userId: string): Promise<BrokerInvite | undefined>;
+  
+  // Broker deal operations
+  getLoanApplicationsByBroker(brokerId: string): Promise<LoanApplication[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1035,6 +1079,192 @@ export class DatabaseStorage implements IStorage {
       .from(webhookDeliveryLogs)
       .orderBy(desc(webhookDeliveryLogs.createdAt))
       .limit(limit);
+  }
+
+  // Broker profile operations
+  async getBrokerProfiles(): Promise<BrokerProfile[]> {
+    return await db.select().from(brokerProfiles).orderBy(desc(brokerProfiles.createdAt));
+  }
+
+  async getBrokerProfile(id: string): Promise<BrokerProfile | undefined> {
+    const [profile] = await db.select().from(brokerProfiles).where(eq(brokerProfiles.id, id));
+    return profile;
+  }
+
+  async getBrokerProfileByUserId(userId: string): Promise<BrokerProfile | undefined> {
+    const [profile] = await db.select().from(brokerProfiles).where(eq(brokerProfiles.userId, userId));
+    return profile;
+  }
+
+  async getBrokerProfileBySlug(slug: string): Promise<BrokerProfile | undefined> {
+    const [profile] = await db.select().from(brokerProfiles).where(eq(brokerProfiles.companySlug, slug));
+    return profile;
+  }
+
+  async createBrokerProfile(profile: InsertBrokerProfile): Promise<BrokerProfile> {
+    const [created] = await db
+      .insert(brokerProfiles)
+      .values(profile)
+      .returning();
+    return created;
+  }
+
+  async updateBrokerProfile(id: string, data: Partial<InsertBrokerProfile>): Promise<BrokerProfile | undefined> {
+    const [updated] = await db
+      .update(brokerProfiles)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(brokerProfiles.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteBrokerProfile(id: string): Promise<boolean> {
+    const result = await db.delete(brokerProfiles).where(eq(brokerProfiles.id, id));
+    return true;
+  }
+
+  // Broker branding operations
+  async getBrokerBranding(brokerProfileId: string): Promise<BrokerBranding | undefined> {
+    const [branding] = await db.select().from(brokerBranding).where(eq(brokerBranding.brokerProfileId, brokerProfileId));
+    return branding;
+  }
+
+  async createBrokerBranding(branding: InsertBrokerBranding): Promise<BrokerBranding> {
+    const [created] = await db
+      .insert(brokerBranding)
+      .values(branding)
+      .returning();
+    return created;
+  }
+
+  async updateBrokerBranding(id: string, data: Partial<InsertBrokerBranding>): Promise<BrokerBranding | undefined> {
+    const [updated] = await db
+      .update(brokerBranding)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(brokerBranding.id, id))
+      .returning();
+    return updated;
+  }
+
+  // Broker-borrower relationship operations
+  async getBrokerBorrowers(brokerId: string): Promise<(BrokerBorrower & { borrower: User })[]> {
+    const relationships = await db
+      .select()
+      .from(brokerBorrowers)
+      .where(eq(brokerBorrowers.brokerId, brokerId))
+      .orderBy(desc(brokerBorrowers.createdAt));
+    
+    const enriched = await Promise.all(
+      relationships.map(async (rel) => {
+        const [borrower] = await db.select().from(users).where(eq(users.id, rel.borrowerId));
+        return { ...rel, borrower };
+      })
+    );
+    
+    return enriched;
+  }
+
+  async getBorrowerBrokers(borrowerId: string): Promise<(BrokerBorrower & { broker: BrokerProfile })[]> {
+    const relationships = await db
+      .select()
+      .from(brokerBorrowers)
+      .where(eq(brokerBorrowers.borrowerId, borrowerId))
+      .orderBy(desc(brokerBorrowers.createdAt));
+    
+    const enriched = await Promise.all(
+      relationships.map(async (rel) => {
+        const [broker] = await db.select().from(brokerProfiles).where(eq(brokerProfiles.id, rel.brokerId));
+        return { ...rel, broker };
+      })
+    );
+    
+    return enriched;
+  }
+
+  async createBrokerBorrower(relationship: InsertBrokerBorrower): Promise<BrokerBorrower> {
+    const [created] = await db
+      .insert(brokerBorrowers)
+      .values(relationship)
+      .returning();
+    return created;
+  }
+
+  async updateBrokerBorrower(id: string, data: Partial<InsertBrokerBorrower>): Promise<BrokerBorrower | undefined> {
+    const [updated] = await db
+      .update(brokerBorrowers)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(brokerBorrowers.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteBrokerBorrower(id: string): Promise<boolean> {
+    await db.delete(brokerBorrowers).where(eq(brokerBorrowers.id, id));
+    return true;
+  }
+
+  async getBrokerBorrowerByPair(brokerId: string, borrowerId: string): Promise<BrokerBorrower | undefined> {
+    const [relationship] = await db
+      .select()
+      .from(brokerBorrowers)
+      .where(and(
+        eq(brokerBorrowers.brokerId, brokerId),
+        eq(brokerBorrowers.borrowerId, borrowerId)
+      ));
+    return relationship;
+  }
+
+  // Broker invite operations
+  async createBrokerInvite(invite: InsertBrokerInvite): Promise<BrokerInvite> {
+    const [created] = await db
+      .insert(brokerInvites)
+      .values(invite)
+      .returning();
+    return created;
+  }
+
+  async getBrokerInviteByToken(token: string): Promise<BrokerInvite | undefined> {
+    const [invite] = await db.select().from(brokerInvites).where(eq(brokerInvites.token, token));
+    return invite;
+  }
+
+  async getBrokerInvites(brokerId: string): Promise<BrokerInvite[]> {
+    return await db
+      .select()
+      .from(brokerInvites)
+      .where(eq(brokerInvites.brokerId, brokerId))
+      .orderBy(desc(brokerInvites.createdAt));
+  }
+
+  async updateBrokerInvite(id: string, data: Partial<InsertBrokerInvite>): Promise<BrokerInvite | undefined> {
+    const [updated] = await db
+      .update(brokerInvites)
+      .set(data)
+      .where(eq(brokerInvites.id, id))
+      .returning();
+    return updated;
+  }
+
+  async acceptBrokerInvite(token: string, userId: string): Promise<BrokerInvite | undefined> {
+    const [updated] = await db
+      .update(brokerInvites)
+      .set({
+        status: "accepted",
+        acceptedAt: new Date(),
+        acceptedByUserId: userId,
+      })
+      .where(eq(brokerInvites.token, token))
+      .returning();
+    return updated;
+  }
+
+  // Broker deal operations
+  async getLoanApplicationsByBroker(brokerId: string): Promise<LoanApplication[]> {
+    return await db
+      .select()
+      .from(loanApplications)
+      .where(eq(loanApplications.brokerId, brokerId))
+      .orderBy(desc(loanApplications.createdAt));
   }
 }
 

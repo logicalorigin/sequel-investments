@@ -24,8 +24,8 @@ export async function setupStaffAuth(app: Express) {
           return done(null, false, { message: "Invalid username or password" });
         }
         
-        if (user.role !== "staff" && user.role !== "admin") {
-          return done(null, false, { message: "Staff access required" });
+        if (user.role !== "staff" && user.role !== "admin" && user.role !== "broker") {
+          return done(null, false, { message: "Staff or broker access required" });
         }
         
         return done(null, {
