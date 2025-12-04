@@ -317,6 +317,7 @@ export function PortalHeader({ user, title, titleExtra, backHref }: PortalHeader
               <DropdownMenuItem 
                 onClick={() => logoutMutation.mutate()}
                 className="flex items-center gap-2 cursor-pointer text-destructive"
+                data-testid="button-logout"
               >
                 <LogOut className="h-4 w-4" />
                 Logout

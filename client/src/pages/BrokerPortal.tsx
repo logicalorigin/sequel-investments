@@ -1769,7 +1769,7 @@ export default function BrokerPortal() {
                     Main Site
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => logoutMutation.mutate()}>
+                <DropdownMenuItem onClick={() => logoutMutation.mutate()} data-testid="button-logout">
                   <LogOut className="h-4 w-4 mr-2" />
                   Logout
                 </DropdownMenuItem>

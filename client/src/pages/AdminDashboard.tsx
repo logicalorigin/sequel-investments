@@ -73,6 +73,7 @@ import {
   ChevronRight,
   ChevronDown,
   ChevronLeft,
+  LogOut,
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -338,6 +339,16 @@ export default function AdminDashboard() {
   const { data: brokerApplications, isLoading: brokerAppsLoading } = useQuery<BrokerApplication[]>({
     queryKey: ["/api/admin/broker-applications"],
     enabled: currentUser?.role === "admin",
+  });
+
+  const logoutMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("POST", "/api/admin/logout");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries();
+      navigate("/admin");
+    },
   });
 
   const createDealMutation = useMutation({
@@ -914,6 +925,16 @@ export default function AdminDashboard() {
                 {currentUser.firstName} {currentUser.lastName}
               </span>
             </div>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-8 gap-1"
+              onClick={() => logoutMutation.mutate()}
+              data-testid="button-logout"
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="hidden sm:inline text-xs">Logout</span>
+            </Button>
           </div>
         </div>
       </header>
