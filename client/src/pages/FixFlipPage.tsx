@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { LeadForm } from "@/components/LeadForm";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
@@ -9,6 +9,8 @@ import { TeaserFixFlipCalculator } from "@/components/TeaserFixFlipCalculator";
 import { RecentlyFundedCarousel } from "@/components/RecentlyFundedCarousel";
 import { RatesTermsSection, type RateTermItem, type BenefitItem } from "@/components/RatesTermsSection";
 import { ResourcesSection, type ResourceItem } from "@/components/ResourcesSection";
+import USMap from "@/components/USMap";
+import { type StateData, getEligibleStates } from "@shared/schema";
 import {
   Accordion,
   AccordionContent,
@@ -23,7 +25,8 @@ import {
   Zap,
   FileCheck,
   Building,
-  ArrowRight
+  ArrowRight,
+  MapPin
 } from "lucide-react";
 import fixFlipImage from "@assets/stock_images/house_renovation_con_aaeb0f05.jpg";
 import { useToast } from "@/hooks/use-toast";
@@ -64,12 +67,18 @@ const resourcesItems: ResourceItem[] = [
 
 export default function FixFlipPage() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
+  const eligibleStates = getEligibleStates();
 
   const handleFormSuccess = () => {
     toast({
       title: "Application Received!",
       description: "A loan specialist will contact you within 24 hours.",
     });
+  };
+
+  const handleStateClick = (state: StateData) => {
+    setLocation(`/states/${state.slug}`);
   };
 
   return (
@@ -354,6 +363,64 @@ export default function FixFlipPage() {
         viewMoreLink="/resources"
         viewMoreText="View More"
       />
+
+      {/* Where We Lend Section */}
+      <section className="py-12 sm:py-16 md:py-24 bg-card" data-testid="section-where-we-lend">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-8 sm:mb-12">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">
+              <span className="text-foreground">Where Are You</span>{" "}
+              <span className="inline-block relative align-bottom">
+                <span className="inline-block border-b-2 border-primary pb-0.5">
+                  <span 
+                    className="inline-block overflow-hidden align-bottom"
+                    style={{ height: '1.15em' }}
+                  >
+                    <span 
+                      className="flex flex-col"
+                      style={{ 
+                        animation: 'wordTickerVertical 9s ease-in-out infinite',
+                      }}
+                    >
+                      <span className="block text-primary leading-tight">Renting</span>
+                      <span className="block text-primary leading-tight">Flipping</span>
+                      <span className="block text-primary leading-tight">Building</span>
+                    </span>
+                  </span>
+                </span>
+              </span>
+              <span className="text-foreground">?</span>
+            </h2>
+            <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
+              We offer Fix & Flip loans in 48 states + DC. Click on a state to explore our rehab loan programs in your area.
+            </p>
+          </div>
+
+          <div className="max-w-4xl mx-auto mb-8 sm:mb-12 overflow-x-auto">
+            <USMap onStateClick={handleStateClick} />
+          </div>
+
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 sm:gap-3">
+            {eligibleStates.slice(0, 12).map((state) => (
+              <Link key={state.slug} href={`/states/${state.slug}`}>
+                <div className="text-center p-2 sm:p-3 rounded-lg border bg-background hover-elevate transition-all cursor-pointer" data-testid={`state-link-${state.slug}`}>
+                  <p className="font-semibold text-primary text-sm sm:text-base">{state.abbreviation}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">{state.name}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+
+          <div className="text-center mt-6 sm:mt-8">
+            <Link href="/where-we-lend">
+              <Button variant="outline" size="default" className="sm:text-base" data-testid="button-view-all-states">
+                <MapPin className="mr-2 h-4 w-4" />
+                View All States
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
 
       {/* CTA Section */}
       <section className="py-16 bg-primary relative overflow-hidden">
