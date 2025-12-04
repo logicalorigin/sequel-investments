@@ -2833,7 +2833,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         yearsExperience: req.body.yearsExperience ? parseInt(req.body.yearsExperience, 10) : null,
         monthlyLoanVolume: req.body.monthlyLoanVolume || null,
         loanTypesInterested: Array.isArray(req.body.loanTypesInterested) ? req.body.loanTypesInterested : null,
-        programTier: req.body.programTier || "partner",
+        lendingStates: Array.isArray(req.body.lendingStates) ? req.body.lendingStates : null,
         referralSource: req.body.referralSource || null,
       };
       

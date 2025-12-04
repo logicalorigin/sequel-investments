@@ -34,14 +34,11 @@ import {
   ArrowLeft,
   Loader2,
   CheckCircle2,
-  Star,
-  Zap,
-  Crown,
   Home,
   FileText,
-  Clock,
   Shield,
-  Users,
+  X,
+  MapPin,
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -75,104 +72,55 @@ const brokerApplicationSchema = z.object({
   companyWebsite: z.string().optional(),
   nmlsNumber: z.string().optional(),
   state: z.string().optional(),
-  yearsExperience: z.number().optional(),
+  lendingStates: z.array(z.string()).min(1, "Select at least one state"),
   monthlyLoanVolume: z.string().optional(),
-  loanTypesInterested: z.array(z.string()).optional(),
-  programTier: z.enum(["partner", "premier", "elite"]).default("partner"),
   referralSource: z.string().optional(),
 });
 
 type BrokerApplicationFormData = z.infer<typeof brokerApplicationSchema>;
 
-const programTiers = [
-  {
-    id: "partner",
-    name: "Partner",
-    icon: Star,
-    description: "Standard pricing with full loan program access",
-    features: [
-      "All Loan Programs",
-      "48-State Coverage",
-      "Standard Pricing",
-      "White-Labeled Documents",
-      "Rate Lock Available",
-    ],
-    highlight: false,
-  },
-  {
-    id: "premier",
-    name: "Premier",
-    icon: Zap,
-    description: "Enhanced pricing for experienced brokers",
-    features: [
-      "All Loan Programs",
-      "48-State Coverage",
-      "Enhanced Pricing",
-      "White-Labeled Portal",
-      "Priority Processing",
-      "Dedicated Support",
-    ],
-    highlight: true,
-  },
-  {
-    id: "elite",
-    name: "Elite",
-    icon: Crown,
-    description: "Top-tier pricing with full white-label capabilities",
-    features: [
-      "All Loan Programs",
-      "48-State Coverage",
-      "Best-in-Class Pricing",
-      "Full White-Label Experience",
-      "Table Funding Available",
-      "Executive Account Manager",
-      "Custom Co-Branding",
-    ],
-    highlight: false,
-  },
+const comparisonFeatures = [
+  { feature: "All Loan Programs", broker: true, wholesale: true },
+  { feature: "48-State Coverage", broker: true, wholesale: true },
+  { feature: "No License Required*", broker: true, wholesale: true },
+  { feature: "Close in 48 Hours", broker: true, wholesale: true },
+  { feature: "White-Labeled Docs", broker: true, wholesale: true },
+  { feature: "Rate Lock Available", broker: true, wholesale: true },
+  { feature: "Standard Pricing", broker: true, wholesale: false },
+  { feature: "Enhanced Pricing", broker: false, wholesale: true },
+  { feature: "Close in SAF Name", broker: true, wholesale: false },
+  { feature: "Close in Your Name", broker: false, wholesale: true },
 ];
 
 const benefits = [
   {
     icon: DollarSign,
-    title: "Competitive Compensation",
-    description: "Earn attractive commissions on every funded loan. Our broker program is designed to maximize your profitability with transparent fee structures and fast payment processing.",
+    title: "Profitability",
+    description: "Boost your profitability with competitive commissions and attractive returns for connecting borrowers with the right lending solutions. We reward your hard work and expertise.",
   },
   {
     icon: Palette,
-    title: "White-Label Branding",
-    description: "Present your brand professionally with white-labeled documents, term sheets, and borrower portals. Your clients see your company, building long-term relationships.",
+    title: "Branding",
+    description: "Maintain your professional brand image with white-labeled documents showcasing your logo and design. Establish yourself as a trusted, credible broker with your clients.",
   },
   {
-    icon: HeadphonesIcon,
-    title: "Dedicated Support",
-    description: "Access our broker support team for deal structuring, scenario analysis, and pipeline management. We're your behind-the-scenes lending partner.",
+    icon: Shield,
+    title: "Borrower Protection",
+    description: "Our strict broker agreement offers lifetime exclusivity and protection for your borrowers. You'll be notified if your clients ever reach out to SAF requesting information.",
   },
 ];
 
 const loanProducts = [
-  {
-    name: "DSCR Loans",
-    description: "Long-term financing for rental properties based on property cash flow",
-    features: ["Rates from 5.75%", "No income verification", "30-year fixed terms"],
-  },
-  {
-    name: "Fix & Flip",
-    description: "Short-term bridge loans for property renovations and resale",
-    features: ["Rates from 8.90%", "Up to 90% LTC", "Close in 48 hours"],
-  },
-  {
-    name: "New Construction",
-    description: "Ground-up construction financing for spec builds and new development",
-    features: ["Rates from 9.90%", "Up to 90% LTC", "9-24 month terms"],
-  },
+  { name: "DSCR Loans", rate: "5.75%", description: "Long-term rental property financing" },
+  { name: "Fix & Flip", rate: "8.90%", description: "Short-term bridge loans" },
+  { name: "Construction", rate: "9.90%", description: "Ground-up new builds" },
 ];
 
 export default function BrokerRegister() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const [selectedTier, setSelectedTier] = useState<string>("partner");
   const [submitted, setSubmitted] = useState(false);
+  const [selectedStates, setSelectedStates] = useState<string[]>([]);
 
   const form = useForm<BrokerApplicationFormData>({
     resolver: zodResolver(brokerApplicationSchema),
@@ -185,12 +133,30 @@ export default function BrokerRegister() {
       companyWebsite: "",
       nmlsNumber: "",
       state: "",
+      lendingStates: [],
       monthlyLoanVolume: "",
-      loanTypesInterested: [],
-      programTier: "partner",
       referralSource: "",
     },
   });
+
+  const toggleState = (stateValue: string) => {
+    const newStates = selectedStates.includes(stateValue)
+      ? selectedStates.filter(s => s !== stateValue)
+      : [...selectedStates, stateValue];
+    setSelectedStates(newStates);
+    form.setValue("lendingStates", newStates);
+  };
+
+  const selectAllStates = () => {
+    const allStates = US_STATES.map(s => s.value);
+    setSelectedStates(allStates);
+    form.setValue("lendingStates", allStates);
+  };
+
+  const clearAllStates = () => {
+    setSelectedStates([]);
+    form.setValue("lendingStates", []);
+  };
 
   const submitMutation = useMutation({
     mutationFn: async (data: BrokerApplicationFormData) => {
@@ -214,7 +180,7 @@ export default function BrokerRegister() {
   });
 
   const onSubmit = (data: BrokerApplicationFormData) => {
-    submitMutation.mutate({ ...data, programTier: selectedTier as "partner" | "premier" | "elite" });
+    submitMutation.mutate(data);
   };
 
   if (submitted) {
@@ -251,9 +217,9 @@ export default function BrokerRegister() {
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-primary/5 via-background to-secondary/5 py-16 lg:py-24">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex items-center gap-2 mb-6">
+      <section className="relative bg-gradient-to-br from-primary/5 via-background to-secondary/5 py-12 lg:py-16">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="flex items-center gap-2 mb-4">
             <Link href="/broker">
               <Button variant="ghost" size="sm" data-testid="button-back-broker">
                 <ArrowLeft className="h-4 w-4 mr-2" />
@@ -263,92 +229,102 @@ export default function BrokerRegister() {
           </div>
           
           <div className="text-center max-w-3xl mx-auto">
-            <Badge variant="outline" className="mb-4">Broker Partner Program</Badge>
-            <h1 className="text-3xl lg:text-5xl font-bold mb-4">
-              Grow Your Business with SAF
-            </h1>
-            <p className="text-lg text-muted-foreground mb-8">
-              Join our network of mortgage professionals and offer your clients industry-leading investment property financing. Competitive compensation, white-label capabilities, and dedicated support.
+            <h1 className="text-3xl lg:text-4xl font-bold mb-3">Mortgage Broker Program</h1>
+            <p className="text-muted-foreground mb-4">
+              <strong>Secured Asset Funding</strong> offers a broker program designed exclusively for real estate professionals seeking to expand their business. We understand the importance of fostering strong relationships with mortgage brokers who play a vital role in connecting borrowers with the right lending solutions.
             </p>
+            <div className="flex flex-wrap justify-center gap-3 text-sm">
+              <Badge variant="secondary" className="px-3 py-1">
+                <Check className="h-3 w-3 mr-1" /> No License Required*
+              </Badge>
+              <Badge variant="secondary" className="px-3 py-1">
+                <Check className="h-3 w-3 mr-1" /> No Cost, No Commitment
+              </Badge>
+              <Badge variant="secondary" className="px-3 py-1">
+                <Check className="h-3 w-3 mr-1" /> Strict Borrower Protection
+              </Badge>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Program Tiers Section */}
-      <section className="py-16 bg-muted/30">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-2xl lg:text-3xl font-bold mb-3">Choose Your Program Tier</h2>
-            <p className="text-muted-foreground">Select the partnership level that fits your business</p>
+      {/* Compare/Contrast Table */}
+      <section className="py-10 bg-muted/30">
+        <div className="max-w-4xl mx-auto px-4">
+          <h2 className="text-xl font-bold text-center mb-6">SAF Broker Programs</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr>
+                  <th className="text-left p-3 bg-muted/50 font-medium border-b"></th>
+                  <th className="text-center p-3 bg-muted/50 font-semibold border-b min-w-[120px]">Broker</th>
+                  <th className="text-center p-3 bg-primary/10 font-semibold border-b min-w-[140px]">Wholesale Partner</th>
+                </tr>
+              </thead>
+              <tbody>
+                {comparisonFeatures.map((row, idx) => (
+                  <tr key={idx} className={idx % 2 === 0 ? "bg-background" : "bg-muted/20"}>
+                    <td className="p-3 text-sm border-b">{row.feature}</td>
+                    <td className="p-3 text-center border-b">
+                      {row.broker ? (
+                        <Check className="h-4 w-4 text-primary mx-auto" />
+                      ) : (
+                        <X className="h-4 w-4 text-muted-foreground/40 mx-auto" />
+                      )}
+                    </td>
+                    <td className="p-3 text-center border-b bg-primary/5">
+                      {row.wholesale ? (
+                        <Check className="h-4 w-4 text-primary mx-auto" />
+                      ) : (
+                        <X className="h-4 w-4 text-muted-foreground/40 mx-auto" />
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-          
-          <div className="grid md:grid-cols-3 gap-6">
-            {programTiers.map((tier) => {
-              const Icon = tier.icon;
-              const isSelected = selectedTier === tier.id;
-              return (
-                <Card 
-                  key={tier.id} 
-                  className={`relative cursor-pointer transition-all hover-elevate ${
-                    isSelected ? "ring-2 ring-primary" : ""
-                  } ${tier.highlight ? "border-primary" : ""}`}
-                  onClick={() => setSelectedTier(tier.id)}
-                  data-testid={`card-tier-${tier.id}`}
-                >
-                  {tier.highlight && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                      <Badge className="bg-primary text-primary-foreground">Most Popular</Badge>
-                    </div>
-                  )}
-                  <CardHeader className="text-center pt-8">
-                    <div className={`mx-auto w-12 h-12 rounded-full flex items-center justify-center mb-3 ${
-                      isSelected ? "bg-primary text-primary-foreground" : "bg-primary/10"
-                    }`}>
-                      <Icon className={`h-6 w-6 ${isSelected ? "" : "text-primary"}`} />
-                    </div>
-                    <CardTitle>{tier.name}</CardTitle>
-                    <CardDescription>{tier.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="space-y-2">
-                      {tier.features.map((feature, idx) => (
-                        <li key={idx} className="flex items-center gap-2 text-sm">
-                          <Check className="h-4 w-4 text-primary flex-shrink-0" />
-                          <span>{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                    {isSelected && (
-                      <div className="mt-4 pt-4 border-t">
-                        <p className="text-sm text-center text-primary font-medium">Selected</p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
+          <p className="text-xs text-muted-foreground text-center mt-3">
+            *No license required excluding CA, AZ, UT, NV, OR. All tiers eligible for each SAF loan program.
+          </p>
+        </div>
+      </section>
+
+      {/* Loan Products Row */}
+      <section className="py-8 border-b">
+        <div className="max-w-5xl mx-auto px-4">
+          <div className="grid md:grid-cols-3 gap-4">
+            {loanProducts.map((product, idx) => (
+              <div key={idx} className="flex items-center gap-3 p-4 rounded-lg bg-muted/30">
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <Building2 className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="font-medium text-sm">{product.name}</p>
+                  <p className="text-xs text-muted-foreground">{product.description}</p>
+                  <p className="text-xs text-primary font-medium">From {product.rate}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
       {/* Benefits Section */}
-      <section className="py-16">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-2xl lg:text-3xl font-bold mb-3">Why Partner with SAF?</h2>
-            <p className="text-muted-foreground">Industry-leading tools and support for broker success</p>
-          </div>
-          
-          <div className="grid md:grid-cols-3 gap-8">
+      <section className="py-10">
+        <div className="max-w-5xl mx-auto px-4">
+          <div className="grid md:grid-cols-3 gap-6">
             {benefits.map((benefit, idx) => {
               const Icon = benefit.icon;
               return (
-                <div key={idx} className="text-center">
-                  <div className="mx-auto w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                    <Icon className="h-7 w-7 text-primary" />
+                <div key={idx}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Icon className="h-4 w-4 text-primary" />
+                    </div>
+                    <h3 className="font-semibold">{benefit.title}</h3>
                   </div>
-                  <h3 className="font-semibold text-lg mb-2">{benefit.title}</h3>
-                  <p className="text-muted-foreground text-sm">{benefit.description}</p>
+                  <p className="text-sm text-muted-foreground">{benefit.description}</p>
                 </div>
               );
             })}
@@ -356,258 +332,262 @@ export default function BrokerRegister() {
         </div>
       </section>
 
-      {/* Loan Products Section */}
-      <section className="py-16 bg-muted/30">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-2xl lg:text-3xl font-bold mb-3">Full Product Suite Access</h2>
-            <p className="text-muted-foreground">All brokers have access to our complete loan product lineup</p>
-          </div>
-          
-          <div className="grid md:grid-cols-3 gap-6">
-            {loanProducts.map((product, idx) => (
-              <Card key={idx}>
-                <CardHeader>
-                  <CardTitle className="text-lg">{product.name}</CardTitle>
-                  <CardDescription>{product.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2">
-                    {product.features.map((feature, fidx) => (
-                      <li key={fidx} className="flex items-center gap-2 text-sm">
-                        <Check className="h-4 w-4 text-primary flex-shrink-0" />
-                        <span>{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Registration Form Section */}
-      <section className="py-16" id="apply">
-        <div className="max-w-3xl mx-auto px-4">
+      <section className="py-10 bg-muted/30" id="apply">
+        <div className="max-w-2xl mx-auto px-4">
           <Card>
-            <CardHeader className="text-center">
-              <div className="mx-auto h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
-                <FileText className="h-6 w-6 text-primary" />
-              </div>
-              <CardTitle className="text-2xl">Apply to Join</CardTitle>
+            <CardHeader className="text-center pb-4">
+              <CardTitle className="text-xl">Broker Registration</CardTitle>
               <CardDescription>
-                Complete the form below and our team will review your application within 24-48 hours.
+                Complete the form below. We'll review your application within 24-48 hours.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  {/* Personal Information */}
-                  <div>
-                    <h3 className="font-medium mb-4">Personal Information</h3>
-                    <div className="grid sm:grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="firstName"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>First Name *</FormLabel>
-                            <FormControl>
-                              <Input placeholder="John" data-testid="input-first-name" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="lastName"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Last Name *</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Doe" data-testid="input-last-name" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    <div className="grid sm:grid-cols-2 gap-4 mt-4">
-                      <FormField
-                        control={form.control}
-                        name="email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Email *</FormLabel>
-                            <FormControl>
-                              <Input type="email" placeholder="john@company.com" data-testid="input-email" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="phone"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Phone</FormLabel>
-                            <FormControl>
-                              <Input placeholder="(555) 123-4567" data-testid="input-phone" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+                  {/* Personal Info Row */}
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <FormField
+                      control={form.control}
+                      name="firstName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>First Name *</FormLabel>
+                          <FormControl>
+                            <Input placeholder="John" data-testid="input-first-name" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="lastName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Last Name *</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Doe" data-testid="input-last-name" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
 
-                  <Separator />
-
-                  {/* Company Information */}
-                  <div>
-                    <h3 className="font-medium mb-4">Company Information</h3>
-                    <div className="grid sm:grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="companyName"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Company Name *</FormLabel>
-                            <FormControl>
-                              <Input placeholder="ABC Mortgage" data-testid="input-company-name" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="nmlsNumber"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>NMLS Number</FormLabel>
-                            <FormControl>
-                              <Input placeholder="123456" data-testid="input-nmls" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    <div className="grid sm:grid-cols-2 gap-4 mt-4">
-                      <FormField
-                        control={form.control}
-                        name="companyWebsite"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Website</FormLabel>
-                            <FormControl>
-                              <Input placeholder="https://yourcompany.com" data-testid="input-website" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="state"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Primary State</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                              <FormControl>
-                                <SelectTrigger data-testid="select-state">
-                                  <SelectValue placeholder="Select state" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {US_STATES.map((state) => (
-                                  <SelectItem key={state.value} value={state.value}>
-                                    {state.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
+                  {/* Contact Row */}
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email *</FormLabel>
+                          <FormControl>
+                            <Input type="email" placeholder="john@company.com" data-testid="input-email" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="phone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Phone</FormLabel>
+                          <FormControl>
+                            <Input placeholder="(555) 123-4567" data-testid="input-phone" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
 
-                  <Separator />
-
-                  {/* Experience */}
-                  <div>
-                    <h3 className="font-medium mb-4">Experience & Volume</h3>
-                    <div className="grid sm:grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="monthlyLoanVolume"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Monthly Loan Volume</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                              <FormControl>
-                                <SelectTrigger data-testid="select-volume">
-                                  <SelectValue placeholder="Select volume" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="1-5">1-5 loans/month</SelectItem>
-                                <SelectItem value="6-10">6-10 loans/month</SelectItem>
-                                <SelectItem value="11-20">11-20 loans/month</SelectItem>
-                                <SelectItem value="20+">20+ loans/month</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="referralSource"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>How did you hear about us?</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                              <FormControl>
-                                <SelectTrigger data-testid="select-referral">
-                                  <SelectValue placeholder="Select source" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="search">Search Engine</SelectItem>
-                                <SelectItem value="referral">Referral</SelectItem>
-                                <SelectItem value="social">Social Media</SelectItem>
-                                <SelectItem value="conference">Conference/Event</SelectItem>
-                                <SelectItem value="advertisement">Advertisement</SelectItem>
-                                <SelectItem value="other">Other</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
+                  {/* Company Row */}
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <FormField
+                      control={form.control}
+                      name="companyName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Company Name *</FormLabel>
+                          <FormControl>
+                            <Input placeholder="ABC Mortgage" data-testid="input-company-name" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="nmlsNumber"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>NMLS Number</FormLabel>
+                          <FormControl>
+                            <Input placeholder="123456" data-testid="input-nmls" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
 
-                  {/* Selected Tier Display */}
-                  <div className="bg-muted/50 rounded-lg p-4">
+                  {/* Website & Primary State */}
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <FormField
+                      control={form.control}
+                      name="companyWebsite"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Website</FormLabel>
+                          <FormControl>
+                            <Input placeholder="https://yourcompany.com" data-testid="input-website" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="state"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Primary State</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger data-testid="select-state">
+                                <SelectValue placeholder="Select state" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {US_STATES.map((state) => (
+                                <SelectItem key={state.value} value={state.value}>
+                                  {state.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  {/* Where Do You Lend - Interactive Section */}
+                  <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Selected Program</p>
-                        <p className="font-medium">
-                          {programTiers.find(t => t.id === selectedTier)?.name} Tier
-                        </p>
+                      <FormLabel className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-primary" />
+                        Where Do You Lend? *
+                      </FormLabel>
+                      <div className="flex gap-2">
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={selectAllStates}
+                          data-testid="button-select-all-states"
+                        >
+                          Select All
+                        </Button>
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={clearAllStates}
+                          data-testid="button-clear-states"
+                        >
+                          Clear
+                        </Button>
                       </div>
-                      <a href="#" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
-                        <Button variant="ghost" size="sm" type="button">Change</Button>
-                      </a>
                     </div>
+                    <div className="border rounded-lg p-3 bg-muted/20 max-h-[200px] overflow-y-auto">
+                      <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-1">
+                        {US_STATES.map((state) => {
+                          const isSelected = selectedStates.includes(state.value);
+                          return (
+                            <button
+                              key={state.value}
+                              type="button"
+                              onClick={() => toggleState(state.value)}
+                              className={`px-2 py-1.5 text-xs font-medium rounded transition-colors ${
+                                isSelected 
+                                  ? "bg-primary text-primary-foreground" 
+                                  : "bg-background hover:bg-muted border"
+                              }`}
+                              data-testid={`state-${state.value}`}
+                            >
+                              {state.value}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    {selectedStates.length > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        {selectedStates.length} state{selectedStates.length > 1 ? "s" : ""} selected
+                      </p>
+                    )}
+                    {form.formState.errors.lendingStates && (
+                      <p className="text-xs text-destructive">
+                        {form.formState.errors.lendingStates.message}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Volume & Referral */}
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <FormField
+                      control={form.control}
+                      name="monthlyLoanVolume"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Monthly Loan Volume</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger data-testid="select-volume">
+                                <SelectValue placeholder="Select volume" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="1-5">1-5 loans/month</SelectItem>
+                              <SelectItem value="6-10">6-10 loans/month</SelectItem>
+                              <SelectItem value="11-20">11-20 loans/month</SelectItem>
+                              <SelectItem value="20+">20+ loans/month</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="referralSource"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>How did you hear about us?</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger data-testid="select-referral">
+                                <SelectValue placeholder="Select source" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="search">Search Engine</SelectItem>
+                              <SelectItem value="referral">Referral</SelectItem>
+                              <SelectItem value="social">Social Media</SelectItem>
+                              <SelectItem value="conference">Conference/Event</SelectItem>
+                              <SelectItem value="advertisement">Advertisement</SelectItem>
+                              <SelectItem value="other">Other</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
 
                   <Button 
@@ -626,6 +606,10 @@ export default function BrokerRegister() {
                       "Submit Application"
                     )}
                   </Button>
+
+                  <p className="text-xs text-center text-muted-foreground">
+                    By submitting, you agree to our broker terms. No cost, no commitment.
+                  </p>
                 </form>
               </Form>
             </CardContent>
@@ -634,12 +618,12 @@ export default function BrokerRegister() {
       </section>
 
       {/* Footer CTA */}
-      <section className="py-12 bg-primary text-primary-foreground">
+      <section className="py-8 bg-primary text-primary-foreground">
         <div className="max-w-4xl mx-auto px-4 text-center">
-          <h2 className="text-2xl font-bold mb-3">Already a Partner?</h2>
-          <p className="mb-6 opacity-90">Sign in to access your broker dashboard</p>
+          <h2 className="text-xl font-bold mb-2">Already a Partner?</h2>
+          <p className="mb-4 opacity-90 text-sm">Sign in to access your broker dashboard</p>
           <Link href="/broker">
-            <Button variant="secondary" size="lg" data-testid="button-signin">
+            <Button variant="secondary" data-testid="button-signin">
               Sign In to Broker Portal
             </Button>
           </Link>
