@@ -230,7 +230,6 @@ export default function BrokerRegister() {
           </div>
         </div>
       </section>
-
       {/* Compare/Contrast Table */}
       <section className="py-10 bg-muted/30">
         <div className="max-w-4xl mx-auto px-4">
@@ -272,7 +271,6 @@ export default function BrokerRegister() {
           </p>
         </div>
       </section>
-
       {/* Loan Products Row */}
       <section className="py-8 border-b">
         <div className="max-w-5xl mx-auto px-4">
@@ -292,7 +290,6 @@ export default function BrokerRegister() {
           </div>
         </div>
       </section>
-
       {/* Benefits Section */}
       <section className="py-10">
         <div className="max-w-5xl mx-auto px-4">
@@ -314,7 +311,6 @@ export default function BrokerRegister() {
           </div>
         </div>
       </section>
-
       {/* Registration Form Section */}
       <section className="py-10 bg-muted/30" id="apply">
         <div className="max-w-2xl mx-auto px-4">
@@ -408,7 +404,7 @@ export default function BrokerRegister() {
                       name="nmlsNumber"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>NMLS Number</FormLabel>
+                          <FormLabel>NMLS Number (optional)</FormLabel>
                           <FormControl>
                             <Input placeholder="123456" data-testid="input-nmls" {...field} />
                           </FormControl>
@@ -556,7 +552,6 @@ export default function BrokerRegister() {
           </Card>
         </div>
       </section>
-
       {/* Footer CTA */}
       <section className="py-8 bg-primary text-primary-foreground">
         <div className="max-w-4xl mx-auto px-4 text-center">
