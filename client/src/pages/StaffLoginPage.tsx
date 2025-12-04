@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Shield, Lock, User } from "lucide-react";
+import { Loader2, Shield, Lock, Mail, Home } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
 export default function StaffLoginPage() {
@@ -24,7 +24,6 @@ export default function StaffLoginPage() {
       return await res.json();
     },
     onSuccess: () => {
-      // Invalidate auth query so admin dashboard can recognize the logged-in user
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       toast({
         title: "Login Successful",
@@ -35,7 +34,7 @@ export default function StaffLoginPage() {
     onError: (error: any) => {
       toast({
         title: "Login Failed",
-        description: error.message || "Invalid username or password",
+        description: error.message || "Invalid email or password",
         variant: "destructive",
       });
     },
@@ -46,7 +45,7 @@ export default function StaffLoginPage() {
     if (!username || !password) {
       toast({
         title: "Missing Credentials",
-        description: "Please enter both username and password",
+        description: "Please enter both email and password",
         variant: "destructive",
       });
       return;
@@ -55,7 +54,7 @@ export default function StaffLoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <div className="min-h-screen bg-muted/30 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
@@ -63,19 +62,19 @@ export default function StaffLoginPage() {
           </div>
           <CardTitle className="text-2xl">Staff Login</CardTitle>
           <CardDescription>
-            Sign in to access the Company Backend
+            Sign in to access the Company Backend. Staff and admin accounts only.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="username">Email</Label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="username"
                   type="text"
-                  placeholder="Enter username"
+                  placeholder="Enter email (or 'admin' for test)"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="pl-10"
@@ -83,6 +82,9 @@ export default function StaffLoginPage() {
                   autoComplete="username"
                 />
               </div>
+              <p className="text-xs text-muted-foreground">
+                Test account: admin / admin
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
@@ -116,7 +118,17 @@ export default function StaffLoginPage() {
               )}
             </Button>
           </form>
-          <div className="mt-6 pt-6 border-t text-center">
+          
+          <div className="text-center">
+            <Link href="/">
+              <Button variant="ghost" size="sm" data-testid="button-go-home">
+                <Home className="h-4 w-4 mr-2" />
+                Back to Homepage
+              </Button>
+            </Link>
+          </div>
+          
+          <div className="pt-4 border-t text-center">
             <p className="text-sm text-muted-foreground">
               Secured Asset Funding - Staff Portal
             </p>

@@ -83,7 +83,7 @@ import type { User as UserType, LoanApplication } from "@shared/schema";
 import { format } from "date-fns";
 
 const brokerLoginSchema = z.object({
-  email: z.string().min(1, "Username or email is required"),
+  email: z.string().min(1, "Email is required"),
   password: z.string().min(1, "Password is required"),
 });
 
@@ -137,15 +137,18 @@ function BrokerLoginForm() {
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Username or Email</FormLabel>
+              <FormLabel>Email</FormLabel>
               <FormControl>
                 <Input
                   type="text"
-                  placeholder="broker or admin"
+                  placeholder="Enter email (or 'broker' for test)"
                   data-testid="input-broker-email"
                   {...field}
                 />
               </FormControl>
+              <p className="text-xs text-muted-foreground mt-1">
+                Test account: broker / broker
+              </p>
               <FormMessage />
             </FormItem>
           )}
@@ -1658,11 +1661,11 @@ export default function BrokerPortal() {
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest("POST", "/api/admin/logout");
+      await apiRequest("POST", "/api/broker/logout");
     },
     onSuccess: () => {
       queryClient.invalidateQueries();
-      navigate("/");
+      navigate("/broker");
       toast({
         title: "Logged out",
         description: "You have been logged out successfully",

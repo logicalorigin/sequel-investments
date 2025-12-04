@@ -193,6 +193,16 @@ export default function ApplicationDetailPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
 
+  const logoutMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("POST", "/api/borrower/logout");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries();
+      navigate("/login");
+    },
+  });
+
   const submitMutation = useMutation({
     mutationFn: async () => {
       return apiRequest("PATCH", `/api/applications/${applicationId}/submit`);
@@ -341,12 +351,15 @@ export default function ApplicationDetailPage() {
                 {user?.firstName || user?.email || "User"}
               </span>
             </div>
-            <a href="/api/logout">
-              <Button variant="ghost" size="sm" data-testid="button-logout">
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
-              </Button>
-            </a>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              data-testid="button-logout"
+              onClick={() => logoutMutation.mutate()}
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Logout
+            </Button>
           </div>
         </div>
       </header>
