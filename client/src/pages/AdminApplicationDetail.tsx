@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams, useLocation, Link } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +12,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { 
   ArrowLeft,
   Building2,
@@ -26,9 +33,11 @@ import {
   Mail,
   Phone,
   Briefcase,
+  Eye,
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { DocumentReviewPanel } from "@/components/DocumentReviewPanel";
 import type { LoanApplication, Document, ApplicationTimelineEvent, User as UserType } from "@shared/schema";
 
 type BrokerInfo = {
@@ -90,6 +99,7 @@ export default function AdminApplicationDetail() {
   const { id } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
 
   const { data: currentUser } = useQuery<UserType>({
     queryKey: ["/api/auth/user"],
@@ -334,9 +344,19 @@ export default function AdminApplicationDetail() {
                             {doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleDateString() : "Not uploaded"}
                           </p>
                         </div>
-                        <Badge className={documentStatusColors[doc.status]}>
-                          {doc.status}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge className={documentStatusColors[doc.status]}>
+                            {doc.status}
+                          </Badge>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setSelectedDocument(doc)}
+                            data-testid={`button-review-doc-${doc.id}`}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -432,10 +452,10 @@ export default function AdminApplicationDetail() {
                     <p className="font-medium">{application.guarantor}</p>
                   </div>
                 )}
-                {application.entityName && (
+                {application.entity && (
                   <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">Entity</p>
-                    <p className="font-medium">{application.entityName}</p>
+                    <p className="font-medium">{application.entity}</p>
                   </div>
                 )}
 
@@ -568,6 +588,24 @@ export default function AdminApplicationDetail() {
           </div>
         </div>
       </main>
+
+      {/* Document Review Panel */}
+      <Sheet open={!!selectedDocument} onOpenChange={(open) => !open && setSelectedDocument(null)}>
+        <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Document Review</SheetTitle>
+          </SheetHeader>
+          {selectedDocument && (
+            <div className="mt-4 h-[calc(100vh-100px)]">
+              <DocumentReviewPanel
+                document={selectedDocument}
+                isAdmin={true}
+                onClose={() => setSelectedDocument(null)}
+              />
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
