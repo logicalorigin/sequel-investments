@@ -24,6 +24,9 @@ import {
   brokerBorrowers,
   brokerInvites,
   brokerApplications,
+  documentReviews,
+  commentAttachments,
+  notificationQueue,
   type User, 
   type UpsertUser,
   type Lead, 
@@ -74,10 +77,17 @@ import {
   type InsertBrokerInvite,
   type BrokerApplication,
   type InsertBrokerApplication,
+  type DocumentReview,
+  type InsertDocumentReview,
+  type CommentAttachment,
+  type InsertCommentAttachment,
+  type NotificationQueueItem,
+  type InsertNotificationQueueItem,
+  type StaffRole,
   DEFAULT_DOCUMENT_TYPES,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, lte, sql } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (required for Replit Auth)
@@ -255,6 +265,28 @@ export interface IStorage {
   getBrokerApplicationByEmail(email: string): Promise<BrokerApplication | undefined>;
   createBrokerApplication(application: InsertBrokerApplication): Promise<BrokerApplication>;
   updateBrokerApplication(id: string, data: Partial<BrokerApplication>): Promise<BrokerApplication | undefined>;
+  
+  // Document review operations
+  getDocumentReviews(documentId: string): Promise<(DocumentReview & { reviewer: User | null })[]>;
+  getDocumentReview(id: string): Promise<DocumentReview | undefined>;
+  createDocumentReview(review: InsertDocumentReview): Promise<DocumentReview>;
+  getLatestDocumentReview(documentId: string): Promise<DocumentReview | undefined>;
+  
+  // Comment attachment operations
+  getCommentAttachments(commentId: string, type: 'comment' | 'review'): Promise<CommentAttachment[]>;
+  createCommentAttachment(attachment: InsertCommentAttachment): Promise<CommentAttachment>;
+  deleteCommentAttachment(id: string): Promise<boolean>;
+  
+  // Notification queue operations
+  createNotificationQueueItem(item: InsertNotificationQueueItem): Promise<NotificationQueueItem>;
+  getPendingNotifications(beforeTime?: Date): Promise<NotificationQueueItem[]>;
+  getPendingNotificationsByBatchKey(batchKey: string): Promise<NotificationQueueItem[]>;
+  markNotificationSent(id: string): Promise<NotificationQueueItem | undefined>;
+  markNotificationFailed(id: string, error: string): Promise<NotificationQueueItem | undefined>;
+  cancelPendingNotifications(batchKey: string): Promise<number>;
+  
+  // Staff profile operations (for role assignment)
+  updateUserStaffRole(userId: string, staffRole: StaffRole): Promise<User | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1314,6 +1346,165 @@ export class DatabaseStorage implements IStorage {
       .update(brokerApplications)
       .set({ ...data, updatedAt: new Date() })
       .where(eq(brokerApplications.id, id))
+      .returning();
+    return updated;
+  }
+
+  // Document review operations
+  async getDocumentReviews(documentId: string): Promise<(DocumentReview & { reviewer: User | null })[]> {
+    const reviews = await db
+      .select()
+      .from(documentReviews)
+      .where(eq(documentReviews.documentId, documentId))
+      .orderBy(desc(documentReviews.createdAt));
+    
+    const reviewsWithReviewers = await Promise.all(
+      reviews.map(async (review) => {
+        const [reviewer] = await db.select().from(users).where(eq(users.id, review.reviewerId));
+        return { ...review, reviewer: reviewer || null };
+      })
+    );
+    
+    return reviewsWithReviewers;
+  }
+
+  async getDocumentReview(id: string): Promise<DocumentReview | undefined> {
+    const [review] = await db
+      .select()
+      .from(documentReviews)
+      .where(eq(documentReviews.id, id));
+    return review;
+  }
+
+  async createDocumentReview(review: InsertDocumentReview): Promise<DocumentReview> {
+    const [created] = await db
+      .insert(documentReviews)
+      .values(review)
+      .returning();
+    return created;
+  }
+
+  async getLatestDocumentReview(documentId: string): Promise<DocumentReview | undefined> {
+    const [review] = await db
+      .select()
+      .from(documentReviews)
+      .where(eq(documentReviews.documentId, documentId))
+      .orderBy(desc(documentReviews.createdAt))
+      .limit(1);
+    return review;
+  }
+
+  // Comment attachment operations
+  async getCommentAttachments(commentId: string, type: 'comment' | 'review'): Promise<CommentAttachment[]> {
+    if (type === 'comment') {
+      return await db
+        .select()
+        .from(commentAttachments)
+        .where(eq(commentAttachments.documentCommentId, commentId))
+        .orderBy(desc(commentAttachments.createdAt));
+    } else {
+      return await db
+        .select()
+        .from(commentAttachments)
+        .where(eq(commentAttachments.documentReviewId, commentId))
+        .orderBy(desc(commentAttachments.createdAt));
+    }
+  }
+
+  async createCommentAttachment(attachment: InsertCommentAttachment): Promise<CommentAttachment> {
+    const [created] = await db
+      .insert(commentAttachments)
+      .values(attachment)
+      .returning();
+    return created;
+  }
+
+  async deleteCommentAttachment(id: string): Promise<boolean> {
+    const result = await db.delete(commentAttachments).where(eq(commentAttachments.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  // Notification queue operations
+  async createNotificationQueueItem(item: InsertNotificationQueueItem): Promise<NotificationQueueItem> {
+    const [created] = await db
+      .insert(notificationQueue)
+      .values(item)
+      .returning();
+    return created;
+  }
+
+  async getPendingNotifications(beforeTime?: Date): Promise<NotificationQueueItem[]> {
+    const time = beforeTime || new Date();
+    return await db
+      .select()
+      .from(notificationQueue)
+      .where(
+        and(
+          eq(notificationQueue.status, "pending"),
+          lte(notificationQueue.sendAfter, time)
+        )
+      )
+      .orderBy(notificationQueue.sendAfter);
+  }
+
+  async getPendingNotificationsByBatchKey(batchKey: string): Promise<NotificationQueueItem[]> {
+    return await db
+      .select()
+      .from(notificationQueue)
+      .where(
+        and(
+          eq(notificationQueue.batchKey, batchKey),
+          eq(notificationQueue.status, "pending")
+        )
+      )
+      .orderBy(notificationQueue.createdAt);
+  }
+
+  async markNotificationSent(id: string): Promise<NotificationQueueItem | undefined> {
+    const [updated] = await db
+      .update(notificationQueue)
+      .set({
+        status: "sent",
+        sentAt: new Date(),
+      })
+      .where(eq(notificationQueue.id, id))
+      .returning();
+    return updated;
+  }
+
+  async markNotificationFailed(id: string, error: string): Promise<NotificationQueueItem | undefined> {
+    const [updated] = await db
+      .update(notificationQueue)
+      .set({
+        status: "failed",
+        errorMessage: error,
+      })
+      .where(eq(notificationQueue.id, id))
+      .returning();
+    return updated;
+  }
+
+  async cancelPendingNotifications(batchKey: string): Promise<number> {
+    const result = await db
+      .delete(notificationQueue)
+      .where(
+        and(
+          eq(notificationQueue.batchKey, batchKey),
+          eq(notificationQueue.status, "pending")
+        )
+      );
+    return result.rowCount ?? 0;
+  }
+
+  // Staff profile operations (for role assignment)
+  async updateUserStaffRole(userId: string, staffRole: StaffRole): Promise<User | undefined> {
+    const [updated] = await db
+      .update(users)
+      .set({
+        staffRole: staffRole,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId))
       .returning();
     return updated;
   }
