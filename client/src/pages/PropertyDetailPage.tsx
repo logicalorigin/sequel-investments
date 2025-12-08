@@ -116,7 +116,7 @@ export default function PropertyDetailPage() {
               </div>
 
               <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 bg-[#e55c2b]/10 text-[#e55c2b] px-4 py-2 rounded-lg">
+                <div className="flex items-center gap-2 bg-[#D4A01D]/10 text-[#D4A01D] px-4 py-2 rounded-lg">
                   <DollarSign className="h-5 w-5" />
                   <span className="text-2xl font-bold" data-testid="text-loan-amount">
                     {formatCurrency(property.loanAmount)}
@@ -131,7 +131,7 @@ export default function PropertyDetailPage() {
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-[#e55c2b]" />
+                    <TrendingUp className="h-5 w-5 text-[#D4A01D]" />
                     Deal Metrics
                   </CardTitle>
                 </CardHeader>
@@ -174,7 +174,7 @@ export default function PropertyDetailPage() {
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg flex items-center gap-2">
-                    <Building2 className="h-5 w-5 text-[#e55c2b]" />
+                    <Building2 className="h-5 w-5 text-[#D4A01D]" />
                     Property Details
                   </CardTitle>
                 </CardHeader>
@@ -204,7 +204,7 @@ export default function PropertyDetailPage() {
                 <Link href="/get-quote">
                   <Button 
                     size="lg" 
-                    className="w-full bg-[#e55c2b] hover:bg-[#d44d1f]" 
+                    className="w-full bg-[#D4A01D] hover:bg-[#B88A17]" 
                     data-testid="button-get-quote"
                   >
                     Get Your Rate Today
@@ -234,7 +234,7 @@ export default function PropertyDetailPage() {
                       />
                     </div>
                     <CardContent className="p-4">
-                      <h3 className="font-semibold text-sm group-hover:text-[#e55c2b] transition-colors">
+                      <h3 className="font-semibold text-sm group-hover:text-[#D4A01D] transition-colors">
                         {p.address}
                       </h3>
                       <p className="text-xs text-muted-foreground">{p.city}, {p.state}</p>

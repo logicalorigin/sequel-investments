@@ -261,7 +261,7 @@ export default function RecentFundingsPage() {
       <section className="pt-12 pb-16 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-12">
-            <Badge className="mb-4 bg-[#e55c2b]/20 text-[#e55c2b] border-[#e55c2b]/30">
+            <Badge className="mb-4 bg-[#D4A01D]/20 text-[#D4A01D] border-[#D4A01D]/30">
               Recent Closings
             </Badge>
             <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
@@ -272,11 +272,11 @@ export default function RecentFundingsPage() {
             </p>
             <div className="mt-8 flex justify-center gap-8">
               <div className="text-center">
-                <p className="text-3xl font-bold text-[#e55c2b]">{fundedProperties.length}</p>
+                <p className="text-3xl font-bold text-[#D4A01D]">{fundedProperties.length}</p>
                 <p className="text-white/60 text-sm">Properties Funded</p>
               </div>
               <div className="text-center">
-                <p className="text-3xl font-bold text-[#e55c2b]">{formatCurrency(totalFunded)}</p>
+                <p className="text-3xl font-bold text-[#D4A01D]">{formatCurrency(totalFunded)}</p>
                 <p className="text-white/60 text-sm">Total Funded</p>
               </div>
             </div>
@@ -310,7 +310,7 @@ export default function RecentFundingsPage() {
                   <CardContent className="p-5">
                     <div className="flex items-start justify-between gap-2 mb-3">
                       <div>
-                        <h3 className="font-semibold text-foreground group-hover:text-[#e55c2b] transition-colors">
+                        <h3 className="font-semibold text-foreground group-hover:text-[#D4A01D] transition-colors">
                           {property.address}
                         </h3>
                         <div className="flex items-center gap-1 text-muted-foreground text-sm">
@@ -318,11 +318,11 @@ export default function RecentFundingsPage() {
                           <span>{property.city}, {property.state} {property.zip}</span>
                         </div>
                       </div>
-                      <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-[#e55c2b] group-hover:translate-x-1 transition-all flex-shrink-0" />
+                      <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-[#D4A01D] group-hover:translate-x-1 transition-all flex-shrink-0" />
                     </div>
                     <div className="flex items-center justify-between pt-3 border-t">
                       <div className="flex items-center gap-1.5">
-                        <DollarSign className="h-4 w-4 text-[#e55c2b]" />
+                        <DollarSign className="h-4 w-4 text-[#D4A01D]" />
                         <span className="font-bold text-lg">{formatCurrency(property.loanAmount)}</span>
                       </div>
                       <span className="text-xs text-muted-foreground">{property.propertyType}</span>

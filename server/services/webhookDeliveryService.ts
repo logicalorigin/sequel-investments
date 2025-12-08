@@ -24,9 +24,9 @@ async function deliverWebhook(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-SAF-Signature": `sha256=${signature}`,
-        "X-SAF-Event": payload.event,
-        "X-SAF-Timestamp": new Date().toISOString(),
+        "X-Sequel-Signature": `sha256=${signature}`,
+        "X-Sequel-Event": payload.event,
+        "X-Sequel-Timestamp": new Date().toISOString(),
       },
       body: JSON.stringify(payload),
     });

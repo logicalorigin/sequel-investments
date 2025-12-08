@@ -14,10 +14,10 @@ export default function WhereWeLendPage() {
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    document.title = "Where We Lend - Secured Asset Funding | 48 States + DC";
+    document.title = "Where We Lend - Sequel Investments | 48 States + DC";
     const metaDescription = document.querySelector('meta[name="description"]');
     if (metaDescription) {
-      metaDescription.setAttribute("content", "Secured Asset Funding offers DSCR, Fix & Flip, and Hard Money loans across 48 states and Washington D.C. Find investment property financing in your state.");
+      metaDescription.setAttribute("content", "Sequel Investments offers DSCR, Fix & Flip, and Hard Money loans across 48 states and Washington D.C. Find investment property financing in your state.");
     }
   }, []);
 
@@ -36,7 +36,7 @@ export default function WhereWeLendPage() {
               Where We Lend
             </h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Secured Asset Funding is a nationwide private mortgage lender serving real estate investors across 48 states and Washington D.C. 
+              Sequel Investments is a nationwide private mortgage lender serving real estate investors across 48 states and Washington D.C. 
               Our innovative financing solutions help investors of all experience levels achieve their investment goals.
             </p>
           </div>

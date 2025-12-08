@@ -262,8 +262,8 @@ export default function GetQuotePage() {
         <div className="max-w-6xl mx-auto px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
           <Link href="/" data-testid="link-logo-home">
             <div className="flex items-center gap-2 cursor-pointer">
-              <img src={logoIcon} alt="SAF" className="h-8 w-8 sm:h-10 sm:w-10 object-contain brightness-0 invert" />
-              <span className="font-bold text-base sm:text-xl text-white hidden sm:inline">Secured Asset Funding</span>
+              <img src={logoIcon} alt="Sequel Investments" className="h-8 w-8 sm:h-10 sm:w-10 object-contain brightness-0 invert" />
+              <span className="font-bold text-base sm:text-xl text-white hidden sm:inline">Sequel Investments</span>
             </div>
           </Link>
           <Link href="/" data-testid="link-close">
@@ -289,9 +289,9 @@ export default function GetQuotePage() {
                     <div
                       className={`w-8 h-8 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-all ${
                         isCompleted
-                          ? "bg-[#e55c2b] text-white"
+                          ? "bg-[#D4A01D] text-white"
                           : isActive
-                          ? "bg-[#e55c2b] text-white ring-2 sm:ring-4 ring-[#e55c2b]/30"
+                          ? "bg-[#D4A01D] text-white ring-2 sm:ring-4 ring-[#D4A01D]/30"
                           : "bg-white/10 text-white/40"
                       }`}
                     >
@@ -302,7 +302,7 @@ export default function GetQuotePage() {
                     </div>
                   </div>
                   {index < steps.length - 1 && (
-                    <div className={`w-6 sm:w-16 h-0.5 mx-1 sm:mx-2 mt-[-12px] ${step > s.number ? "bg-[#e55c2b]" : "bg-white/10"}`} />
+                    <div className={`w-6 sm:w-16 h-0.5 mx-1 sm:mx-2 mt-[-12px] ${step > s.number ? "bg-[#D4A01D]" : "bg-white/10"}`} />
                   )}
                 </div>
               );
@@ -328,15 +328,15 @@ export default function GetQuotePage() {
                       key={product.id}
                       className={`relative bg-white/5 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 cursor-pointer transition-all border-2 flex flex-col min-h-[280px] sm:min-h-[380px] ${
                         isSelected
-                          ? "border-[#e55c2b] bg-[#e55c2b]/10"
+                          ? "border-[#D4A01D] bg-[#D4A01D]/10"
                           : "border-transparent hover:border-white/20 hover:bg-white/10"
                       }`}
                       onClick={() => handleLoanTypeSelect(product.id)}
                       data-testid={`option-loan-${product.id}`}
                     >
                       <div className="text-center mb-3 sm:mb-6">
-                        <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full mx-auto flex items-center justify-center mb-2 sm:mb-4 bg-[#e55c2b]/20">
-                          <Icon className="h-6 w-6 sm:h-8 sm:w-8 text-[#e55c2b]" />
+                        <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full mx-auto flex items-center justify-center mb-2 sm:mb-4 bg-[#D4A01D]/20">
+                          <Icon className="h-6 w-6 sm:h-8 sm:w-8 text-[#D4A01D]" />
                         </div>
                         <h3 className="text-lg sm:text-xl font-bold text-white">{product.title}</h3>
                         <p className="text-white/60 text-xs sm:text-sm">{product.subtitle}</p>
@@ -345,7 +345,7 @@ export default function GetQuotePage() {
                       <ul className="space-y-1.5 sm:space-y-2 flex-1">
                         {product.features.map((feature, idx) => (
                           <li key={idx} className="flex items-start gap-1.5 sm:gap-2 text-xs sm:text-sm text-white/80">
-                            <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 mt-0.5 flex-shrink-0 text-[#e55c2b]" />
+                            <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 mt-0.5 flex-shrink-0 text-[#D4A01D]" />
                             <span>{feature}</span>
                           </li>
                         ))}
@@ -354,7 +354,7 @@ export default function GetQuotePage() {
                       <Button
                         className={`w-full mt-3 sm:mt-6 h-9 sm:h-10 text-sm ${
                           isSelected
-                            ? "bg-[#e55c2b] hover:bg-[#d44d1f] text-white"
+                            ? "bg-[#D4A01D] hover:bg-[#B88A17] text-white"
                             : "bg-white/10 hover:bg-white/20 text-white"
                         }`}
                         onClick={(e) => {
@@ -373,7 +373,7 @@ export default function GetQuotePage() {
                 <Button
                   onClick={handleNextStep}
                   disabled={!formData.loanType}
-                  className="bg-[#e55c2b] hover:bg-[#d44d1f] text-white px-6 sm:px-8 h-9 sm:h-10 text-sm"
+                  className="bg-[#D4A01D] hover:bg-[#B88A17] text-white px-6 sm:px-8 h-9 sm:h-10 text-sm"
                   data-testid="button-next"
                 >
                   Save & Next
@@ -404,7 +404,7 @@ export default function GetQuotePage() {
                             key={option}
                             className={`flex items-center space-x-2 sm:space-x-3 p-3 sm:p-4 rounded-lg border cursor-pointer transition-all ${
                               formData.loanPurpose === option
-                                ? "border-[#e55c2b] bg-[#e55c2b]/10"
+                                ? "border-[#D4A01D] bg-[#D4A01D]/10"
                                 : "border-white/10 hover:border-white/20"
                             }`}
                             onClick={() => setFormData({ ...formData, loanPurpose: option })}
@@ -418,7 +418,7 @@ export default function GetQuotePage() {
                             key={option}
                             className={`flex items-center space-x-2 sm:space-x-3 p-3 sm:p-4 rounded-lg border cursor-pointer transition-all ${
                               formData.loanPurpose === option
-                                ? "border-[#e55c2b] bg-[#e55c2b]/10"
+                                ? "border-[#D4A01D] bg-[#D4A01D]/10"
                                 : "border-white/10 hover:border-white/20"
                             }`}
                             onClick={() => setFormData({ ...formData, loanPurpose: option })}
@@ -443,7 +443,7 @@ export default function GetQuotePage() {
                         key={option}
                         className={`flex items-center space-x-2 sm:space-x-3 p-3 sm:p-4 rounded-lg border cursor-pointer transition-all ${
                           formData.propertyIdentified === option
-                            ? "border-[#e55c2b] bg-[#e55c2b]/10"
+                            ? "border-[#D4A01D] bg-[#D4A01D]/10"
                             : "border-white/10 hover:border-white/20"
                         }`}
                         onClick={() => setFormData({ ...formData, propertyIdentified: option })}
@@ -479,7 +479,7 @@ export default function GetQuotePage() {
                 </Button>
                 <Button
                   onClick={handleNextStep}
-                  className="bg-[#e55c2b] hover:bg-[#d44d1f] text-white px-6 sm:px-8 h-9 sm:h-10 text-sm"
+                  className="bg-[#D4A01D] hover:bg-[#B88A17] text-white px-6 sm:px-8 h-9 sm:h-10 text-sm"
                   data-testid="button-next"
                 >
                   Save & Next
@@ -692,7 +692,7 @@ export default function GetQuotePage() {
                 </Button>
                 <Button
                   onClick={handleNextStep}
-                  className="bg-[#e55c2b] hover:bg-[#d44d1f] text-white px-8"
+                  className="bg-[#D4A01D] hover:bg-[#B88A17] text-white px-8"
                   data-testid="button-next"
                 >
                   Save & Next
@@ -805,7 +805,7 @@ export default function GetQuotePage() {
                 </Button>
                 <Button
                   onClick={handleNextStep}
-                  className="bg-[#e55c2b] hover:bg-[#d44d1f] text-white px-8"
+                  className="bg-[#D4A01D] hover:bg-[#B88A17] text-white px-8"
                   data-testid="button-next"
                 >
                   Save & Next
@@ -898,7 +898,7 @@ export default function GetQuotePage() {
                 </div>
 
                 <p className="text-xs text-white/40 pt-4 border-t border-white/10">
-                  By submitting this application, you agree to receive communications from Secured Asset Funding. 
+                  By submitting this application, you agree to receive communications from Sequel Investments. 
                   We respect your privacy and will never share your information with third parties.
                 </p>
               </div>
@@ -916,7 +916,7 @@ export default function GetQuotePage() {
                 <Button
                   onClick={handleSubmit}
                   disabled={createLeadMutation.isPending}
-                  className="bg-[#e55c2b] hover:bg-[#d44d1f] text-white px-8"
+                  className="bg-[#D4A01D] hover:bg-[#B88A17] text-white px-8"
                   data-testid="button-submit"
                 >
                   {createLeadMutation.isPending ? "Submitting..." : "Submit Application"}
@@ -928,8 +928,8 @@ export default function GetQuotePage() {
 
           {step === 6 && (
             <div className="text-center py-12">
-              <div className="w-20 h-20 bg-[#e55c2b]/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                <CheckCircle2 className="h-10 w-10 text-[#e55c2b]" />
+              <div className="w-20 h-20 bg-[#D4A01D]/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                <CheckCircle2 className="h-10 w-10 text-[#D4A01D]" />
               </div>
               <h2 className="text-3xl font-bold text-white mb-4">Application Submitted!</h2>
               <p className="text-white/60 mb-8 max-w-md mx-auto">
@@ -942,7 +942,7 @@ export default function GetQuotePage() {
                   </Button>
                 </Link>
                 <Link href="/login" data-testid="link-portal">
-                  <Button className="bg-[#e55c2b] hover:bg-[#d44d1f] text-white">
+                  <Button className="bg-[#D4A01D] hover:bg-[#B88A17] text-white">
                     Go to Client Portal
                   </Button>
                 </Link>
@@ -954,7 +954,7 @@ export default function GetQuotePage() {
 
       <footer className="border-t border-white/10 mt-12 py-6">
         <div className="max-w-6xl mx-auto px-6 flex flex-wrap justify-center gap-4 text-sm text-white/40">
-          <span>© 2025 Secured Asset Funding. All rights reserved.</span>
+          <span>© 2025 Sequel Investments. All rights reserved.</span>
           <span>|</span>
           <Link href="/terms" className="hover:text-white">Terms of Use</Link>
           <span>|</span>

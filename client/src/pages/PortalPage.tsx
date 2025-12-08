@@ -76,7 +76,7 @@ export default function PortalPage() {
   const [applicationToDelete, setApplicationToDelete] = useState<LoanApplication | null>(null);
 
   useEffect(() => {
-    document.title = "Customer Portal | Secured Asset Funding";
+    document.title = "Customer Portal | Sequel Investments";
   }, []);
 
   useEffect(() => {

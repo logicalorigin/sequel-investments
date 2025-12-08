@@ -680,7 +680,7 @@ export default function ProfilePage() {
                       onClick={() => {
                         toast({
                           title: "Account Deletion",
-                          description: "Please contact support@securedassetfunding.com to delete your account.",
+                          description: "Please contact josh@fundwithsequel.com to delete your account.",
                         });
                       }}
                       data-testid="button-confirm-delete"

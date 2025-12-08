@@ -579,7 +579,7 @@ export default function STRCalculatorPage() {
         </div>
       </section>
 
-      {/* Why STR Investors Choose SAF */}
+      {/* Why STR Investors Choose Sequel Investments */}
       <section className="py-16 bg-card">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-12">

@@ -158,7 +158,7 @@ function getTestimonials(state: StateData): Testimonial[] {
       name: "Michael R.",
       role: "Real Estate Investor",
       location: state.name,
-      quote: `Secured Asset Funding made my ${state.name} rental property purchase seamless. The DSCR loan process was incredibly fast - closed in under 2 weeks with no W2 requirements. Highly recommend for serious investors.`,
+      quote: `Sequel Investments made my ${state.name} rental property purchase seamless. The DSCR loan process was incredibly fast - closed in under 2 weeks with no W2 requirements. Highly recommend for serious investors.`,
       rating: 5,
       loanType: "DSCR Loan",
     },
@@ -166,7 +166,7 @@ function getTestimonials(state: StateData): Testimonial[] {
       name: "Sarah T.",
       role: "Fix & Flip Specialist",
       location: state.name,
-      quote: `I've done over 15 flips in ${state.name} with SAF. Their draw process is the fastest I've experienced - usually within 48 hours. The rates are competitive and the team really understands investor needs.`,
+      quote: `I've done over 15 flips in ${state.name} with Sequel Investments. Their draw process is the fastest I've experienced - usually within 48 hours. The rates are competitive and the team really understands investor needs.`,
       rating: 5,
       loanType: "Fix & Flip",
     },
@@ -174,7 +174,7 @@ function getTestimonials(state: StateData): Testimonial[] {
       name: "David L.",
       role: "Portfolio Investor",
       location: state.name,
-      quote: `After struggling with traditional lenders for my ${state.name} properties, SAF was a breath of fresh air. They focus on the property's cash flow, not my personal income. Now I own 8 rentals across the state.`,
+      quote: `After struggling with traditional lenders for my ${state.name} properties, Sequel Investments was a breath of fresh air. They focus on the property's cash flow, not my personal income. Now I own 8 rentals across the state.`,
       rating: 5,
       loanType: "DSCR Loan",
     },
@@ -278,10 +278,10 @@ export default function StateInvestmentPage() {
 
   useEffect(() => {
     if (state) {
-      document.title = `${state.name} Investment Property Loans | DSCR & Fix & Flip | Secured Asset Funding`;
+      document.title = `${state.name} Investment Property Loans | DSCR & Fix & Flip | Sequel Investments`;
       const metaDescription = document.querySelector('meta[name="description"]');
       if (metaDescription) {
-        metaDescription.setAttribute("content", `Get DSCR, Fix & Flip, and Hard Money loans in ${state.name}. Secured Asset Funding has closed ${state.loansClosed.toLocaleString()} loans totaling ${formatLoanVolume(state.loanVolume)} in ${state.abbreviation}. Fast closings, competitive rates.`);
+        metaDescription.setAttribute("content", `Get DSCR, Fix & Flip, and Hard Money loans in ${state.name}. Sequel Investments has closed ${state.loansClosed.toLocaleString()} loans totaling ${formatLoanVolume(state.loanVolume)} in ${state.abbreviation}. Fast closings, competitive rates.`);
       }
     }
   }, [state]);
@@ -422,7 +422,7 @@ export default function StateInvestmentPage() {
             {state.name} Investment Property Loans
           </h1>
           <p className="text-xl text-muted-foreground max-w-3xl mb-8">
-            Secured Asset Funding is proud to be a leading private lender in {state.name}! 
+            Sequel Investments is proud to be a leading private lender in {state.name}! 
             We offer industry-leading Hard Money and DSCR Loans for every type of {state.name} real estate investor.
           </p>
 
@@ -679,11 +679,11 @@ export default function StateInvestmentPage() {
           <div className="grid lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2">
               <h2 className="text-2xl md:text-3xl font-bold mb-6">
-                Why Choose Secured Asset Funding for Your {state.name} Investment?
+                Why Choose Sequel Investments for Your {state.name} Investment?
               </h2>
               <div className="prose prose-slate max-w-none">
                 <p className="text-muted-foreground mb-4">
-                  Secured Asset Funding is the investment property loan provider for real estate investors of all experience levels and specialties in {state.name}, 
+                  Sequel Investments is the investment property loan provider for real estate investors of all experience levels and specialties in {state.name}, 
                   including popular strategies such as Short Term Rentals, Fix and Flip, and the BRRRR Method.
                 </p>
                 <p className="text-muted-foreground mb-4">

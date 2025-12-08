@@ -99,7 +99,7 @@ export default function JoinPage() {
           </div>
           <CardTitle>You're Invited!</CardTitle>
           <CardDescription>
-            You've been invited to join Secured Asset Funding as a team member
+            You've been invited to join Sequel Investments as a team member
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">

@@ -19,7 +19,6 @@ import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { formatDistanceToNow } from "date-fns";
-import logoIcon from "@assets/logo_saf_only_removed_bg (1)_1764095523171.png";
 import type { Notification } from "@shared/schema";
 
 interface PortalHeaderProps {
@@ -122,11 +121,8 @@ export function PortalHeader({ user, title, titleExtra, backHref }: PortalHeader
         <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
           <Link href="/">
             <div className="flex items-center cursor-pointer hover-elevate active-elevate-2 px-1 py-1 rounded-md -ml-1 shrink-0">
-              <img 
-                src={logoIcon} 
-                alt="Secured Asset Funding" 
-                className="h-10 sm:h-12 w-auto object-contain"
-              />
+              <span className="text-lg font-bold text-primary">SEQUEL</span>
+              <span className="text-lg font-light text-foreground ml-1">INVESTMENTS</span>
             </div>
           </Link>
           
