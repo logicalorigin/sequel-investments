@@ -1767,6 +1767,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Helper function to map application loan type to serviced loan type
+  function mapLoanTypeToServicedType(appLoanType: string): "dscr" | "fix_flip" | "new_construction" | "bridge" {
+    const type = appLoanType.toLowerCase();
+    if (type.includes("dscr")) return "dscr";
+    if (type.includes("fix") || type.includes("flip")) return "fix_flip";
+    if (type.includes("construction") || type.includes("ground")) return "new_construction";
+    if (type.includes("bridge")) return "bridge";
+    return "dscr"; // Default to DSCR
+  }
+
+  // Generate unique loan number
+  function generateLoanNumber(loanType: string): string {
+    const prefix = loanType === "dscr" ? "DSCR" : 
+                   loanType === "fix_flip" ? "FF" : 
+                   loanType === "new_construction" ? "NC" : "BR";
+    const timestamp = Date.now().toString().slice(-6);
+    const random = Math.random().toString(36).substring(2, 5).toUpperCase();
+    return `${prefix}-${timestamp}-${random}`;
+  }
+
   // Update application (staff can update status, processing stage, etc.)
   app.patch("/api/admin/applications/:id", isAuthenticated, isStaff, async (req: any, res) => {
     try {
@@ -1777,6 +1797,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Application not found" });
       }
       
+      const previousStatus = application.status;
       const updated = await storage.updateLoanApplication(id, req.body);
       
       // Create timeline event for status/stage changes
@@ -1798,6 +1819,111 @@ export async function registerRoutes(app: Express): Promise<Server> {
           description: `Updated by ${req.staffUser.firstName || req.staffUser.email}`,
           createdByUserId: req.staffUser.id,
         });
+      }
+      
+      // AUTO-CREATE SERVICED LOAN when status changes to 'funded'
+      if (req.body.status === "funded" && previousStatus !== "funded") {
+        try {
+          const servicedLoanType = mapLoanTypeToServicedType(application.loanType);
+          const isHardMoney = servicedLoanType !== "dscr";
+          const loanNumber = generateLoanNumber(servicedLoanType);
+          
+          // Calculate loan terms
+          const originalAmount = application.loanAmount || 0;
+          const interestRate = application.interestRate ? parseFloat(application.interestRate) : (isHardMoney ? 10.5 : 7.5);
+          const termMonths = application.loanTermMonths || (isHardMoney ? 12 : 360);
+          
+          // Calculate monthly payment
+          let monthlyPayment = 0;
+          if (isHardMoney) {
+            // Interest-only payment for hard money
+            monthlyPayment = Math.round((originalAmount * (interestRate / 100)) / 12);
+          } else {
+            // Amortizing payment for DSCR
+            const monthlyRate = (interestRate / 100) / 12;
+            if (monthlyRate > 0) {
+              monthlyPayment = Math.round(originalAmount * (monthlyRate * Math.pow(1 + monthlyRate, termMonths)) / (Math.pow(1 + monthlyRate, termMonths) - 1));
+            }
+          }
+          
+          // Calculate escrow for DSCR loans
+          const annualTaxes = application.annualTaxes || 0;
+          const annualInsurance = application.annualInsurance || 0;
+          const annualHOA = application.annualHOA || 0;
+          const monthlyEscrow = !isHardMoney ? Math.round((annualTaxes + annualInsurance + annualHOA) / 12) : 0;
+          
+          const closingDate = new Date();
+          const firstPaymentDate = new Date(closingDate);
+          firstPaymentDate.setMonth(firstPaymentDate.getMonth() + 1);
+          firstPaymentDate.setDate(1); // First of next month
+          
+          const maturityDate = new Date(closingDate);
+          maturityDate.setMonth(maturityDate.getMonth() + termMonths);
+          
+          const nextPaymentDate = new Date(firstPaymentDate);
+          
+          await storage.createServicedLoan({
+            userId: application.userId,
+            loanApplicationId: application.id,
+            loanNumber,
+            loanType: servicedLoanType,
+            loanStatus: "current",
+            
+            // Property info
+            propertyAddress: application.propertyAddress || "Unknown Address",
+            propertyCity: application.propertyCity || null,
+            propertyState: application.propertyState || null,
+            propertyZip: application.propertyZip || null,
+            
+            // Loan amounts
+            originalLoanAmount: originalAmount,
+            currentBalance: originalAmount,
+            
+            // Rates and terms
+            interestRate: interestRate.toString(),
+            loanTermMonths: termMonths,
+            amortizationMonths: isHardMoney ? null : termMonths,
+            isInterestOnly: isHardMoney,
+            
+            // Payment info
+            monthlyPayment,
+            monthlyEscrowAmount: monthlyEscrow,
+            
+            // Dates
+            closingDate,
+            firstPaymentDate,
+            maturityDate,
+            nextPaymentDate,
+            
+            // Initial balances
+            totalPrincipalPaid: 0,
+            totalInterestPaid: 0,
+            escrowBalance: 0,
+            
+            // Escrow items (DSCR only)
+            annualTaxes: !isHardMoney ? annualTaxes : null,
+            annualInsurance: !isHardMoney ? annualInsurance : null,
+            annualHOA: !isHardMoney ? annualHOA : null,
+            
+            // Rehab budget (Hard money only)
+            totalRehabBudget: isHardMoney ? (application.rehabBudget || 0) : null,
+            totalDrawsFunded: 0,
+          });
+          
+          console.log(`Created serviced loan ${loanNumber} for application ${id}`);
+          
+          // Add timeline event for loan creation
+          await storage.createTimelineEvent({
+            loanApplicationId: id,
+            eventType: "status_changed",
+            title: `Serviced loan ${loanNumber} created`,
+            description: `Loan automatically created in servicing system`,
+            createdByUserId: req.staffUser.id,
+          });
+        } catch (servicedLoanError) {
+          console.error("Error creating serviced loan:", servicedLoanError);
+          // Don't fail the status update, just log the error
+        }
       }
       
       return res.json(updated);
