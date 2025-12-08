@@ -98,9 +98,15 @@ All three deal analyzers (DSCR, Fix & Flip, Construction) feature a sticky resul
 - **Join Flow** (`/join/:token`): Invited users access the join page, sign in with the invited email address, and accept the invitation to gain staff/admin access.
 - **Timeline Events**: Status and stage changes create timeline events with staff attribution.
 
-### Broker Portal (Removed)
+### Broker Portal (Fully Removed)
 
-The broker portal infrastructure has been removed from the application. Admin broker management routes remain in the backend for legacy data management purposes, but the frontend broker portal is no longer available. The platform is now designed for white-label use where mortgage brokers use the entire platform rather than having their own portal.
+The broker portal infrastructure has been completely removed from the application:
+- All broker-related tables, types, and schemas removed from `shared/schema.ts` (except legacy `brokerId` field in `loanApplications`)
+- All broker storage methods removed from `server/storage.ts`
+- All broker routes removed from `server/routes.ts` (portal routes, admin management routes, registration routes)
+- All broker UI components and admin sections removed from the frontend
+
+The platform is now designed for white-label use where mortgage brokers use the entire platform rather than having their own portal.
 
 ### Trust Indicators
 

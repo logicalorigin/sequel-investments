@@ -116,7 +116,7 @@ export const loanApplications = pgTable("loan_applications", {
   requestedClosingDate: timestamp("requested_closing_date"),
   closingDate: timestamp("closing_date"),
   
-  // Broker relationship (optional - for deals originated by a broker)
+  // Legacy broker ID field (kept for historical data, broker portal removed)
   brokerId: varchar("broker_id"),
   
   createdAt: timestamp("created_at").defaultNow().notNull(),
