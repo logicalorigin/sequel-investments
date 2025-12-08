@@ -554,15 +554,15 @@ export default function DSCRAnalyzerPage() {
             {/* Property & Transaction Type - Condensed */}
             <Card>
               <CardContent className="pt-3 sm:pt-4 space-y-3 sm:space-y-4">
-                {/* Property Type - Single Row */}
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-                  <Label className="sm:w-24 shrink-0 text-xs sm:text-sm">Property</Label>
-                  <div className="flex gap-1 sm:gap-1.5 flex-1 overflow-x-auto pb-1">
+                {/* Property Type - Responsive Grid */}
+                <div className="flex flex-col gap-2">
+                  <Label className="text-xs sm:text-sm">Property</Label>
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5 sm:gap-2">
                     {propertyTypes.map((type) => (
                       <button
                         key={type.id}
                         onClick={() => setPropertyType(type.id)}
-                        className={`flex-1 min-w-[48px] sm:min-w-0 py-1.5 sm:py-2 px-1.5 sm:px-2 rounded-md border transition-all flex flex-col items-center gap-0.5 sm:gap-1 ${
+                        className={`py-2 px-2 rounded-md border transition-all flex flex-col items-center gap-1 ${
                           propertyType === type.id
                             ? "border-primary bg-primary/10 text-primary"
                             : "border-border hover:border-primary/50"
@@ -570,21 +570,21 @@ export default function DSCRAnalyzerPage() {
                         data-testid={`button-property-type-${type.id}`}
                       >
                         <PropertyTypeIcon type={type.icon} className="w-4 h-4 sm:w-5 sm:h-5" />
-                        <span className="text-[8px] sm:text-[10px] font-medium">{type.label}</span>
+                        <span className="text-[9px] sm:text-[10px] font-medium">{type.label}</span>
                       </button>
                     ))}
                   </div>
                 </div>
 
-                {/* Transaction Type - Single Row */}
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-                  <Label className="sm:w-24 shrink-0 text-xs sm:text-sm">Transaction</Label>
-                  <div className="flex gap-1 sm:gap-1.5 flex-1">
+                {/* Transaction Type - Responsive Grid */}
+                <div className="flex flex-col gap-2">
+                  <Label className="text-xs sm:text-sm">Transaction</Label>
+                  <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
                     {transactionTypes.map((type) => (
                       <button
                         key={type.id}
                         onClick={() => setTransactionType(type.id)}
-                        className={`flex-1 py-1.5 sm:py-2 px-2 sm:px-3 rounded-md border text-[10px] sm:text-xs font-medium transition-all ${
+                        className={`py-2 px-2 rounded-md border text-[10px] sm:text-xs font-medium transition-all text-center ${
                           transactionType === type.id
                             ? "border-primary bg-primary/10 text-primary"
                             : "border-border hover:border-primary/50"
@@ -597,24 +597,24 @@ export default function DSCRAnalyzerPage() {
                   </div>
                 </div>
 
-                {/* Rental Type - Single Row */}
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-                  <Label className="sm:w-24 shrink-0 text-xs sm:text-sm">Rental Type</Label>
-                  <div className="flex gap-1 sm:gap-1.5 flex-1">
+                {/* Rental Type - Responsive Grid */}
+                <div className="flex flex-col gap-2">
+                  <Label className="text-xs sm:text-sm">Rental Type</Label>
+                  <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
                     {rentalTypes.map((type) => {
                       const Icon = type.icon;
                       return (
                         <button
                           key={type.id}
                           onClick={() => setRentalType(type.id)}
-                          className={`flex-1 py-1.5 sm:py-2 px-2 sm:px-3 rounded-md border text-[10px] sm:text-xs font-medium transition-all flex items-center justify-center gap-1 sm:gap-2 ${
+                          className={`py-2 px-2 rounded-md border text-[10px] sm:text-xs font-medium transition-all flex items-center justify-center gap-1.5 ${
                             rentalType === type.id
                               ? "border-primary bg-primary/10 text-primary"
                               : "border-border hover:border-primary/50"
                           }`}
                           data-testid={`button-rental-type-${type.id}`}
                         >
-                          <Icon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                          <Icon className="h-3.5 w-3.5" />
                           <span>{type.label}</span>
                         </button>
                       );
