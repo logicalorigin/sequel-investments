@@ -277,12 +277,12 @@ export function ScenarioManager({
   } : null;
 
   return (
-    <div className="flex items-center gap-2 print:hidden">
+    <div className="flex items-center gap-1 sm:gap-2 print:hidden">
       <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
         <DialogTrigger asChild>
-          <Button variant="outline" size="sm" data-testid="button-save-scenario">
-            <Save className="h-4 w-4 mr-2" />
-            Save
+          <Button variant="outline" size="icon" className="h-8 w-8 sm:w-auto sm:px-3" data-testid="button-save-scenario">
+            <Save className="h-4 w-4 sm:mr-1.5" />
+            <span className="hidden sm:inline text-sm">Save</span>
           </Button>
         </DialogTrigger>
         <DialogContent>
@@ -326,11 +326,11 @@ export function ScenarioManager({
 
       <Dialog open={loadDialogOpen} onOpenChange={setLoadDialogOpen}>
         <DialogTrigger asChild>
-          <Button variant="outline" size="sm" data-testid="button-load-scenario">
-            <FolderOpen className="h-4 w-4 mr-2" />
-            Load
+          <Button variant="outline" size="icon" className="h-8 w-8 sm:w-auto sm:px-3 relative" data-testid="button-load-scenario">
+            <FolderOpen className="h-4 w-4 sm:mr-1.5" />
+            <span className="hidden sm:inline text-sm">Load</span>
             {filteredScenarios.length > 0 && (
-              <span className="ml-2 bg-primary/20 text-primary text-xs px-1.5 py-0.5 rounded-full">
+              <span className="absolute -top-1 -right-1 sm:static sm:ml-1.5 bg-primary/20 text-primary text-[10px] sm:text-xs min-w-[18px] h-[18px] sm:h-auto px-1 sm:px-1.5 py-0 sm:py-0.5 rounded-full flex items-center justify-center">
                 {filteredScenarios.length}
               </span>
             )}
@@ -464,12 +464,13 @@ export function ScenarioManager({
 
       <Button 
         variant="outline" 
-        size="sm" 
+        size="icon"
+        className="h-8 w-8 sm:w-auto sm:px-3"
         onClick={handleExportPDF}
         data-testid="button-export-pdf"
       >
-        <FileDown className="h-4 w-4 mr-2" />
-        Export PDF
+        <FileDown className="h-4 w-4 sm:mr-1.5" />
+        <span className="hidden sm:inline text-sm">PDF</span>
       </Button>
 
       {/* PDF Preview Dialog for DSCR */}
