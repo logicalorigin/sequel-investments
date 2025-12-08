@@ -2187,6 +2187,182 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // =====================
+  // Admin Serviced Loans Routes (Staff/Admin)
+  // =====================
+  
+  // Get all serviced loans (admin view with borrower info)
+  app.get("/api/admin/serviced-loans", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const loans = await storage.getAllServicedLoans();
+      
+      // Enrich with borrower info
+      const enrichedLoans = await Promise.all(loans.map(async (loan) => {
+        const user = await storage.getUser(loan.userId);
+        return {
+          ...loan,
+          borrowerName: user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email : "Unknown",
+          borrowerEmail: user?.email,
+        };
+      }));
+      
+      return res.json(enrichedLoans);
+    } catch (error) {
+      console.error("Error fetching serviced loans:", error);
+      return res.status(500).json({ error: "Failed to fetch serviced loans" });
+    }
+  });
+
+  // Get single serviced loan with full details (admin view)
+  app.get("/api/admin/serviced-loans/:id", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const loan = await storage.getServicedLoan(req.params.id);
+      if (!loan) {
+        return res.status(404).json({ error: "Loan not found" });
+      }
+      
+      const user = await storage.getUser(loan.userId);
+      const payments = await storage.getLoanPayments(loan.id);
+      const draws = await storage.getLoanDraws(loan.id);
+      const escrowItems = await storage.getLoanEscrowItems(loan.id);
+      const documents = await storage.getLoanDocuments(loan.id);
+      const milestones = await storage.getLoanMilestones(loan.id);
+      
+      return res.json({
+        ...loan,
+        borrowerName: user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email : "Unknown",
+        borrowerEmail: user?.email,
+        borrowerPhone: user?.phone,
+        payments,
+        draws,
+        escrowItems,
+        documents,
+        milestones,
+      });
+    } catch (error) {
+      console.error("Error fetching serviced loan:", error);
+      return res.status(500).json({ error: "Failed to fetch serviced loan" });
+    }
+  });
+
+  // Update serviced loan (admin only)
+  app.patch("/api/admin/serviced-loans/:id", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const loan = await storage.getServicedLoan(req.params.id);
+      if (!loan) {
+        return res.status(404).json({ error: "Loan not found" });
+      }
+      
+      const updated = await storage.updateServicedLoan(req.params.id, req.body);
+      return res.json(updated);
+    } catch (error) {
+      console.error("Error updating serviced loan:", error);
+      return res.status(500).json({ error: "Failed to update serviced loan" });
+    }
+  });
+
+  // Record a payment (admin only)
+  app.post("/api/admin/serviced-loans/:id/payments", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const loan = await storage.getServicedLoan(req.params.id);
+      if (!loan) {
+        return res.status(404).json({ error: "Loan not found" });
+      }
+      
+      const payment = await storage.createLoanPayment({
+        servicedLoanId: loan.id,
+        ...req.body,
+      });
+      
+      // Update loan balances based on payment with floor guards
+      const principalAmount = Math.max(0, Number(req.body.principalAmount) || 0);
+      const interestAmount = Math.max(0, Number(req.body.interestAmount) || 0);
+      const escrowAmount = Math.max(0, Number(req.body.escrowAmount) || 0);
+      
+      // Calculate new balance with floor at 0 to prevent negative balances
+      const newBalance = Math.max(0, loan.currentBalance - principalAmount);
+      
+      await storage.updateServicedLoan(loan.id, {
+        currentBalance: newBalance,
+        totalPrincipalPaid: (loan.totalPrincipalPaid || 0) + principalAmount,
+        totalInterestPaid: (loan.totalInterestPaid || 0) + interestAmount,
+        escrowBalance: (loan.escrowBalance || 0) + escrowAmount,
+        lastPaymentDate: new Date(),
+        nextPaymentDate: new Date(new Date().setMonth(new Date().getMonth() + 1)),
+        loanStatus: newBalance === 0 ? "paid_off" : loan.loanStatus,
+      });
+      
+      return res.json(payment);
+    } catch (error) {
+      console.error("Error recording payment:", error);
+      return res.status(500).json({ error: "Failed to record payment" });
+    }
+  });
+
+  // Create/update draw request (admin only)
+  app.post("/api/admin/serviced-loans/:id/draws", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const loan = await storage.getServicedLoan(req.params.id);
+      if (!loan) {
+        return res.status(404).json({ error: "Loan not found" });
+      }
+      
+      if (loan.loanType === "dscr") {
+        return res.status(400).json({ error: "DSCR loans don't support draws" });
+      }
+      
+      const draw = await storage.createLoanDraw({
+        servicedLoanId: loan.id,
+        ...req.body,
+      });
+      
+      return res.json(draw);
+    } catch (error) {
+      console.error("Error creating draw:", error);
+      return res.status(500).json({ error: "Failed to create draw" });
+    }
+  });
+
+  // Approve/fund draw (admin only)
+  app.patch("/api/admin/serviced-loans/:loanId/draws/:drawId", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const loan = await storage.getServicedLoan(req.params.loanId);
+      if (!loan) {
+        return res.status(404).json({ error: "Loan not found" });
+      }
+      
+      const draw = await storage.getLoanDraw(req.params.drawId);
+      if (!draw || draw.servicedLoanId !== loan.id) {
+        return res.status(404).json({ error: "Draw not found" });
+      }
+      
+      const updatedDraw = await storage.updateLoanDraw(req.params.drawId, req.body);
+      
+      // If draw is funded, update loan totals with validation
+      if (req.body.status === "funded" && draw.status !== "funded") {
+        const fundedAmount = Math.max(0, Number(req.body.approvedAmount || draw.approvedAmount || draw.requestedAmount) || 0);
+        const totalBudget = loan.totalRehabBudget || 0;
+        const currentFunded = loan.totalDrawsFunded || 0;
+        
+        // Cap draw funding at remaining holdback to prevent over-funding
+        const remainingBudget = Math.max(0, totalBudget - currentFunded);
+        const actualFundedAmount = Math.min(fundedAmount, remainingBudget > 0 ? remainingBudget : fundedAmount);
+        
+        await storage.updateServicedLoan(loan.id, {
+          totalDrawsFunded: currentFunded + actualFundedAmount,
+          totalDrawsApproved: (loan.totalDrawsApproved || 0) + 1,
+          currentBalance: loan.currentBalance + actualFundedAmount,
+          remainingHoldback: totalBudget > 0 ? Math.max(0, totalBudget - currentFunded - actualFundedAmount) : null,
+        });
+      }
+      
+      return res.json(updatedDraw);
+    } catch (error) {
+      console.error("Error updating draw:", error);
+      return res.status(500).json({ error: "Failed to update draw" });
+    }
+  });
+
+  // =====================
   // Funded Deals Routes
   // =====================
   
@@ -3012,6 +3188,176 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get staff role colors/labels (public for UI)
   app.get("/api/staff-roles", async (req, res) => {
     return res.json(STAFF_ROLE_COLORS);
+  });
+
+  // =====================
+  // Test Data Seeder (Admin only)
+  // =====================
+  app.post("/api/admin/seed-test-data", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const testBorrower = await storage.getUserByEmail("borrower@test.com");
+      if (!testBorrower) {
+        return res.status(400).json({ error: "Test borrower not found. Please create borrower@test.com first." });
+      }
+      
+      const testLoans = [
+        {
+          loanType: "DSCR Loan",
+          propertyAddress: "123 Rental Avenue",
+          propertyCity: "Miami",
+          propertyState: "FL",
+          propertyZip: "33139",
+          loanAmount: 450000,
+          purchasePrice: 500000,
+          arv: 550000,
+          annualTaxes: 8000,
+          annualInsurance: 3600,
+          annualHOA: 2400,
+          loanTermMonths: 360,
+          interestRate: "7.25",
+        },
+        {
+          loanType: "Fix & Flip",
+          propertyAddress: "456 Flip Street",
+          propertyCity: "Los Angeles",
+          propertyState: "CA",
+          propertyZip: "90210",
+          loanAmount: 350000,
+          purchasePrice: 400000,
+          arv: 600000,
+          rehabBudget: 100000,
+          requestedRehabFunding: 100000,
+          loanTermMonths: 12,
+          interestRate: "10.5",
+        },
+        {
+          loanType: "New Construction",
+          propertyAddress: "789 Builder Lane",
+          propertyCity: "Austin",
+          propertyState: "TX",
+          propertyZip: "78701",
+          loanAmount: 800000,
+          purchasePrice: 150000,
+          arv: 1200000,
+          rehabBudget: 650000,
+          requestedRehabFunding: 650000,
+          loanTermMonths: 18,
+          interestRate: "9.9",
+        },
+        {
+          loanType: "Bridge",
+          propertyAddress: "321 Bridge Road",
+          propertyCity: "Phoenix",
+          propertyState: "AZ",
+          propertyZip: "85001",
+          loanAmount: 280000,
+          purchasePrice: 320000,
+          arv: 380000,
+          loanTermMonths: 6,
+          interestRate: "11.0",
+        },
+      ];
+      
+      const createdLoans = [];
+      
+      for (const loanData of testLoans) {
+        // Create application
+        const app = await storage.createLoanApplication({
+          userId: testBorrower.id,
+          status: "submitted",
+          processingStage: "account_review",
+          ...loanData,
+        });
+        
+        // Update status to funded (this triggers auto-creation of serviced loan)
+        const updated = await storage.updateLoanApplication(app.id, { status: "funded" });
+        
+        // Now create the serviced loan manually since we're bypassing the route
+        const servicedLoanType = mapLoanTypeToServicedType(loanData.loanType);
+        const isHardMoney = servicedLoanType !== "dscr";
+        const loanNumber = generateLoanNumber(servicedLoanType);
+        
+        const originalAmount = loanData.loanAmount;
+        const interestRate = parseFloat(loanData.interestRate);
+        const termMonths = loanData.loanTermMonths;
+        
+        let monthlyPayment = 0;
+        if (isHardMoney) {
+          monthlyPayment = Math.round((originalAmount * (interestRate / 100)) / 12);
+        } else {
+          const monthlyRate = (interestRate / 100) / 12;
+          if (monthlyRate > 0) {
+            monthlyPayment = Math.round(originalAmount * (monthlyRate * Math.pow(1 + monthlyRate, termMonths)) / (Math.pow(1 + monthlyRate, termMonths) - 1));
+          }
+        }
+        
+        const annualTaxes = loanData.annualTaxes || 0;
+        const annualInsurance = loanData.annualInsurance || 0;
+        const annualHOA = loanData.annualHOA || 0;
+        const monthlyEscrow = !isHardMoney ? Math.round((annualTaxes + annualInsurance + annualHOA) / 12) : 0;
+        
+        const closingDate = new Date();
+        closingDate.setDate(closingDate.getDate() - 30); // Closed 30 days ago
+        
+        const firstPaymentDate = new Date(closingDate);
+        firstPaymentDate.setMonth(firstPaymentDate.getMonth() + 1);
+        firstPaymentDate.setDate(1);
+        
+        const maturityDate = new Date(closingDate);
+        maturityDate.setMonth(maturityDate.getMonth() + termMonths);
+        
+        const nextPaymentDate = new Date();
+        nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 1);
+        nextPaymentDate.setDate(1);
+        
+        const servicedLoan = await storage.createServicedLoan({
+          userId: testBorrower.id,
+          loanApplicationId: app.id,
+          loanNumber,
+          loanType: servicedLoanType,
+          loanStatus: "current",
+          propertyAddress: loanData.propertyAddress,
+          propertyCity: loanData.propertyCity,
+          propertyState: loanData.propertyState,
+          propertyZip: loanData.propertyZip,
+          originalLoanAmount: originalAmount,
+          currentBalance: originalAmount,
+          interestRate: loanData.interestRate,
+          loanTermMonths: termMonths,
+          amortizationMonths: isHardMoney ? null : termMonths,
+          isInterestOnly: isHardMoney,
+          monthlyPayment,
+          monthlyEscrowAmount: monthlyEscrow,
+          closingDate,
+          firstPaymentDate,
+          maturityDate,
+          nextPaymentDate,
+          totalPrincipalPaid: 0,
+          totalInterestPaid: 0,
+          escrowBalance: 0,
+          annualTaxes: !isHardMoney ? annualTaxes : null,
+          annualInsurance: !isHardMoney ? annualInsurance : null,
+          annualHOA: !isHardMoney ? annualHOA : null,
+          totalRehabBudget: isHardMoney ? (loanData.rehabBudget || 0) : null,
+          totalDrawsFunded: 0,
+        });
+        
+        createdLoans.push({
+          applicationId: app.id,
+          loanNumber: servicedLoan.loanNumber,
+          loanType: servicedLoan.loanType,
+          amount: servicedLoan.originalLoanAmount,
+        });
+      }
+      
+      return res.json({
+        message: "Test data seeded successfully",
+        loans: createdLoans,
+      });
+    } catch (error) {
+      console.error("Error seeding test data:", error);
+      return res.status(500).json({ error: "Failed to seed test data" });
+    }
   });
 
   const httpServer = createServer(app);

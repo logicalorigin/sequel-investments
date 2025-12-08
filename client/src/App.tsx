@@ -43,6 +43,8 @@ import FundedDealDetailPage from "@/pages/FundedDealDetailPage";
 import LoginPage from "@/pages/LoginPage";
 import AdminDashboard from "@/pages/AdminDashboard";
 import AdminApplicationDetail from "@/pages/AdminApplicationDetail";
+import AdminServicingPage from "@/pages/AdminServicingPage";
+import AdminLoanDetailPage from "@/pages/AdminLoanDetailPage";
 import BorrowerProfilePage from "@/pages/BorrowerProfilePage";
 import JoinPage from "@/pages/JoinPage";
 import StaffLoginPage from "@/pages/StaffLoginPage";
@@ -83,6 +85,8 @@ function Router() {
       <Route path="/admin/login" component={StaffLoginPage} />
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/admin/application/:id" component={AdminApplicationDetail} />
+      <Route path="/admin/servicing" component={AdminServicingPage} />
+      <Route path="/admin/servicing/:id" component={AdminLoanDetailPage} />
       <Route path="/admin/borrower/:id" component={BorrowerProfilePage} />
       <Route path="/join/:token" component={JoinPage} />
       <Route path="/resources" component={ResourcesPage} />
