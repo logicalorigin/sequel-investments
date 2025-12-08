@@ -118,28 +118,28 @@ export function PortalHeader({ user, title, titleExtra, backHref }: PortalHeader
   return (
     <header className="border-b bg-card sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 flex items-center justify-between gap-2 sm:gap-4">
-        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
           <Link href="/">
             <div className="flex items-center cursor-pointer hover-elevate active-elevate-2 px-1 py-1 rounded-md -ml-1 shrink-0">
-              <span className="text-lg font-bold text-primary">SEQUEL</span>
-              <span className="text-lg font-light text-foreground ml-1">INVESTMENTS</span>
+              <span className="text-base sm:text-lg font-bold text-primary">SEQUEL</span>
+              <span className="text-base sm:text-lg font-light text-foreground ml-1 hidden sm:inline">INVESTMENTS</span>
             </div>
           </Link>
           
           {title && (
-            <div className="flex items-center gap-2 min-w-0">
+            <div className="flex items-center gap-1.5 min-w-0">
               {backHref && (
                 <Link href={backHref}>
-                  <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8" data-testid="button-back">
+                  <Button variant="ghost" size="icon" className="shrink-0 h-7 w-7" data-testid="button-back">
                     <ArrowLeft className="h-4 w-4" />
                   </Button>
                 </Link>
               )}
-              <h1 className="text-sm sm:text-lg font-bold truncate" data-testid="text-page-title">
+              <h1 className="text-xs sm:text-sm lg:text-lg font-bold truncate" data-testid="text-page-title">
                 {title}
               </h1>
               {titleExtra && (
-                <div className="hidden sm:block shrink-0">
+                <div className="shrink-0">
                   {titleExtra}
                 </div>
               )}
@@ -147,12 +147,12 @@ export function PortalHeader({ user, title, titleExtra, backHref }: PortalHeader
           )}
         </div>
         
-        <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
           <Link href="/portal">
             <Button 
               variant="ghost" 
               size="sm" 
-              className={isPortfolio ? "bg-primary/10" : ""} 
+              className={`hidden sm:flex ${isPortfolio ? "bg-primary/10" : ""}`} 
               data-testid="link-portfolio"
             >
               Portfolio
@@ -162,13 +162,13 @@ export function PortalHeader({ user, title, titleExtra, backHref }: PortalHeader
             <DropdownMenuTrigger asChild>
               <Button 
                 variant="ghost" 
-                size="sm" 
-                className={`flex items-center gap-1 ${isAnalysis ? "bg-primary/10" : ""}`}
+                size="icon"
+                className={`sm:w-auto sm:px-3 ${isAnalysis ? "bg-primary/10" : ""}`}
                 data-testid="link-investment-analysis"
               >
-                <Calculator className="h-4 w-4" />
-                <span className="hidden sm:inline">Analyzers</span>
-                <ChevronDown className="h-3 w-3" />
+                <Calculator className="h-4 w-4 sm:mr-1" />
+                <span className="hidden sm:inline text-sm">Analyzers</span>
+                <ChevronDown className="h-3 w-3 hidden sm:block" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
@@ -309,6 +309,12 @@ export function PortalHeader({ user, title, titleExtra, backHref }: PortalHeader
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem asChild className="sm:hidden">
+                <Link href="/portal" className="flex items-center gap-2 cursor-pointer">
+                  <Home className="h-4 w-4" />
+                  Portfolio
+                </Link>
+              </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/portal/profile" className="flex items-center gap-2 cursor-pointer">
                   <User className="h-4 w-4" />
