@@ -68,12 +68,12 @@ import {
   MapPin,
   Search,
   User,
-  Briefcase,
   Calendar,
   ChevronRight,
   ChevronDown,
   ChevronLeft,
   LogOut,
+  Briefcase,
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -739,6 +739,17 @@ export default function AdminDashboard() {
               Recently Funded
               <Badge variant="secondary" className="ml-1.5 text-[10px] h-4 px-1">{stats.totalDeals}</Badge>
             </Button>
+            <Link href="/admin/servicing">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 text-xs shrink-0"
+                data-testid="link-servicing"
+              >
+                <Briefcase className="h-3.5 w-3.5 mr-1.5" />
+                Loan Servicing
+              </Button>
+            </Link>
             {currentUser.role === "admin" && (
               <Button
                 variant="ghost"
@@ -1152,7 +1163,7 @@ export default function AdminDashboard() {
                               <SelectValue placeholder="Select subtype (optional)" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="">None</SelectItem>
+                              <SelectItem value="none">None</SelectItem>
                               {loanSubtypeOptions[dealForm.loanType]?.map((subtype) => (
                                 <SelectItem key={subtype} value={subtype}>{subtype}</SelectItem>
                               ))}
