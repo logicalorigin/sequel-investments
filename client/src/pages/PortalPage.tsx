@@ -323,9 +323,17 @@ export default function PortalPage() {
           </div>
         </div>
 
-        {/* Closed Loans Section */}
+        {/* Active Loans Section */}
         <div className="mb-6 sm:mb-10">
-          <h2 className="text-lg sm:text-xl font-bold mb-2 sm:mb-4">Closed Loans</h2>
+          <div className="flex items-center justify-between mb-2 sm:mb-4">
+            <h2 className="text-lg sm:text-xl font-bold">Active Loans</h2>
+            {servicedLoans && servicedLoans.length > 0 && (
+              <Button variant="ghost" size="sm" onClick={() => setLocation("/portal/loans")} data-testid="button-view-all-loans">
+                View All
+                <ArrowRight className="h-4 w-4 ml-1" />
+              </Button>
+            )}
+          </div>
           
           {loansLoading ? (
             <div className="animate-pulse space-y-3 sm:space-y-4">
@@ -335,8 +343,8 @@ export default function PortalPage() {
             </div>
           ) : servicedLoans && servicedLoans.length > 0 ? (
             <div className="space-y-3 sm:space-y-4">
-              {servicedLoans.map((loan) => (
-                <Link key={loan.id} href={`/portal/loan/${loan.id}`}>
+              {servicedLoans.slice(0, 3).map((loan) => (
+                <Link key={loan.id} href={`/portal/loans/${loan.id}`}>
                   <Card className="hover-elevate cursor-pointer" data-testid={`card-loan-${loan.id}`}>
                     <CardContent className="py-3 sm:py-4 px-3 sm:px-6">
                       <div className="flex items-center justify-between gap-2 sm:gap-4 flex-wrap">

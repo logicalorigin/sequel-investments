@@ -244,49 +244,151 @@ export const DEFAULT_DOCUMENT_TYPES = [
   { name: "Experience Resume", description: "Track record of completed real estate transactions", category: "Borrower Documentation", loanTypes: ["Fix & Flip", "New Construction"], isRequired: "if_applicable", sortOrder: 13 },
 ];
 
-// Closed/Serviced Loans table
+// ============================================
+// ACTIVE LOANS / SERVICED LOANS SYSTEM
+// ============================================
+
+// Loan servicing type enum
+export const servicedLoanTypeEnum = pgEnum("serviced_loan_type", [
+  "dscr",           // DSCR - amortizing, long-term
+  "fix_flip",       // Fix & Flip - interest-only, draws
+  "new_construction", // New Construction - interest-only, draws
+  "bridge"          // Bridge - interest-only, draws
+]);
+export type ServicedLoanType = "dscr" | "fix_flip" | "new_construction" | "bridge";
+
+// Loan servicing status enum
+export const servicedLoanStatusEnum = pgEnum("serviced_loan_status", [
+  "current",        // On-time with payments
+  "grace_period",   // Within grace period
+  "late",           // Past due
+  "default",        // In default
+  "paid_off",       // Loan fully paid
+  "foreclosure",    // In foreclosure process
+  "matured"         // Term ended, awaiting payoff
+]);
+export type ServicedLoanStatus = "current" | "grace_period" | "late" | "default" | "paid_off" | "foreclosure" | "matured";
+
+// Payment status enum
+export const paymentStatusEnum = pgEnum("payment_status", [
+  "scheduled",      // Future payment
+  "pending",        // Payment initiated
+  "completed",      // Payment received
+  "late",           // Overdue
+  "partial",        // Partial payment received
+  "waived",         // Fee waived
+  "reversed"        // Payment reversed
+]);
+export type PaymentStatus = "scheduled" | "pending" | "completed" | "late" | "partial" | "waived" | "reversed";
+
+// Draw request status enum
+export const drawStatusEnum = pgEnum("draw_status", [
+  "draft",          // Not yet submitted
+  "submitted",      // Submitted for review
+  "inspection_scheduled", // Inspection scheduled
+  "inspection_complete", // Inspection done
+  "approved",       // Draw approved
+  "funded",         // Funds disbursed
+  "denied",         // Draw denied
+  "cancelled"       // Draw cancelled
+]);
+export type DrawStatus = "draft" | "submitted" | "inspection_scheduled" | "inspection_complete" | "approved" | "funded" | "denied" | "cancelled";
+
+// Serviced Loans table - expanded for DSCR and Hard Money
 export const servicedLoans = pgTable("serviced_loans", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id),
-  loanNumber: varchar("loan_number").notNull(),
-  loanType: text("loan_type").notNull(),
+  loanApplicationId: varchar("loan_application_id").references(() => loanApplications.id),
+  loanNumber: varchar("loan_number").notNull().unique(),
+  loanType: servicedLoanTypeEnum("loan_type").notNull(),
+  
+  // Property Info
   propertyAddress: text("property_address").notNull(),
   propertyCity: text("property_city"),
   propertyState: text("property_state"),
   propertyZip: text("property_zip"),
+  propertyType: text("property_type"), // sfr, multi, condo, etc.
   
-  // Loan Terms
+  // Core Loan Terms
   originalLoanAmount: integer("original_loan_amount").notNull(),
   currentBalance: integer("current_balance").notNull(),
-  interestRate: text("interest_rate").notNull(),
-  monthlyPayment: integer("monthly_payment").notNull(),
-  loanTermMonths: integer("loan_term_months"),
+  interestRate: text("interest_rate").notNull(), // Stored as decimal string e.g. "7.25"
+  loanTermMonths: integer("loan_term_months").notNull(),
+  amortizationMonths: integer("amortization_months"), // For DSCR (30yr = 360)
+  isInterestOnly: boolean("is_interest_only").default(false).notNull(),
   
   // Payment Info
+  monthlyPayment: integer("monthly_payment").notNull(), // P&I or I-only amount
+  paymentDueDay: integer("payment_due_day").default(1).notNull(), // Day of month
+  gracePeriodDays: integer("grace_period_days").default(15),
+  lateFeePercent: text("late_fee_percent").default("5"), // e.g. "5" for 5%
+  lateFeeFlat: integer("late_fee_flat"), // Flat late fee in cents
+  
+  // Current Status
+  loanStatus: servicedLoanStatusEnum("loan_status").default("current").notNull(),
   nextPaymentDate: timestamp("next_payment_date"),
+  nextPaymentAmount: integer("next_payment_amount"),
   lastPaymentDate: timestamp("last_payment_date"),
   lastPaymentAmount: integer("last_payment_amount"),
   paymentsDue: integer("payments_due").default(0),
+  totalPastDue: integer("total_past_due").default(0),
   
-  // Status
-  loanStatus: text("loan_status").default("current").notNull(), // current, late, paid_off
-  closingDate: timestamp("closing_date"),
-  maturityDate: timestamp("maturity_date"),
+  // DSCR-Specific: Escrow & Amortization
+  hasEscrow: boolean("has_escrow").default(false),
+  escrowBalance: integer("escrow_balance").default(0),
+  monthlyEscrowAmount: integer("monthly_escrow_amount").default(0),
+  annualTaxes: integer("annual_taxes"),
+  annualInsurance: integer("annual_insurance"),
+  annualHOA: integer("annual_hoa"),
+  totalInterestPaid: integer("total_interest_paid").default(0),
+  totalPrincipalPaid: integer("total_principal_paid").default(0),
+  
+  // Hard Money Specific: Draws & Budget
+  totalRehabBudget: integer("total_rehab_budget"),
+  totalDrawsApproved: integer("total_draws_approved").default(0),
+  totalDrawsFunded: integer("total_draws_funded").default(0),
+  remainingHoldback: integer("remaining_holdback"),
+  projectCompletionPercent: integer("project_completion_percent").default(0),
+  
+  // Key Dates
+  closingDate: timestamp("closing_date").notNull(),
+  firstPaymentDate: timestamp("first_payment_date"),
+  maturityDate: timestamp("maturity_date").notNull(),
+  extensionDate: timestamp("extension_date"), // If extended
+  
+  // Payoff Info
+  payoffAmount: integer("payoff_amount"),
+  payoffValidUntil: timestamp("payoff_valid_until"),
+  perDiemInterest: integer("per_diem_interest"),
   
   // Servicer Info
   servicerName: text("servicer_name"),
   servicerPhone: text("servicer_phone"),
   servicerEmail: text("servicer_email"),
   
+  // ARV and Property Value
+  purchasePrice: integer("purchase_price"),
+  currentValue: integer("current_value"),
+  arv: integer("arv"),
+  
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const servicedLoansRelations = relations(servicedLoans, ({ one }) => ({
+export const servicedLoansRelations = relations(servicedLoans, ({ one, many }) => ({
   user: one(users, {
     fields: [servicedLoans.userId],
     references: [users.id],
   }),
+  loanApplication: one(loanApplications, {
+    fields: [servicedLoans.loanApplicationId],
+    references: [loanApplications.id],
+  }),
+  payments: many(loanPayments),
+  draws: many(loanDraws),
+  escrowItems: many(loanEscrowItems),
+  loanDocuments: many(loanDocuments),
+  milestones: many(loanMilestones),
 }));
 
 export type ServicedLoan = typeof servicedLoans.$inferSelect;
@@ -297,6 +399,334 @@ export const insertServicedLoanSchema = createInsertSchema(servicedLoans).omit({
   createdAt: true,
   updatedAt: true,
 });
+
+// ============================================
+// LOAN PAYMENTS (Payment History & Schedule)
+// ============================================
+export const loanPayments = pgTable("loan_payments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  servicedLoanId: varchar("serviced_loan_id").notNull().references(() => servicedLoans.id),
+  
+  // Payment Details
+  paymentNumber: integer("payment_number").notNull(),
+  dueDate: timestamp("due_date").notNull(),
+  paidDate: timestamp("paid_date"),
+  status: paymentStatusEnum("status").default("scheduled").notNull(),
+  
+  // Amounts
+  scheduledAmount: integer("scheduled_amount").notNull(),
+  paidAmount: integer("paid_amount"),
+  principalAmount: integer("principal_amount").default(0),
+  interestAmount: integer("interest_amount").default(0),
+  escrowAmount: integer("escrow_amount").default(0),
+  lateFee: integer("late_fee").default(0),
+  otherFees: integer("other_fees").default(0),
+  
+  // Balance after payment
+  balanceAfterPayment: integer("balance_after_payment"),
+  
+  // Payment method
+  paymentMethod: text("payment_method"), // ach, wire, check
+  confirmationNumber: text("confirmation_number"),
+  notes: text("notes"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const loanPaymentsRelations = relations(loanPayments, ({ one }) => ({
+  servicedLoan: one(servicedLoans, {
+    fields: [loanPayments.servicedLoanId],
+    references: [servicedLoans.id],
+  }),
+}));
+
+export type LoanPayment = typeof loanPayments.$inferSelect;
+export type InsertLoanPayment = typeof loanPayments.$inferInsert;
+
+export const insertLoanPaymentSchema = createInsertSchema(loanPayments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// ============================================
+// LOAN DRAWS (For Hard Money / Construction)
+// ============================================
+export const loanDraws = pgTable("loan_draws", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  servicedLoanId: varchar("serviced_loan_id").notNull().references(() => servicedLoans.id),
+  
+  // Draw Details
+  drawNumber: integer("draw_number").notNull(),
+  status: drawStatusEnum("status").default("draft").notNull(),
+  requestedAmount: integer("requested_amount").notNull(),
+  approvedAmount: integer("approved_amount"),
+  fundedAmount: integer("funded_amount"),
+  
+  // Purpose/Scope
+  description: text("description"),
+  workCompleted: text("work_completed"), // Description of work done
+  completionPercent: integer("completion_percent"), // % of project this represents
+  
+  // Inspection
+  inspectionDate: timestamp("inspection_date"),
+  inspectorName: text("inspector_name"),
+  inspectionNotes: text("inspection_notes"),
+  inspectionPhotos: text("inspection_photos").array(), // URLs to photos
+  
+  // Timeline
+  requestedDate: timestamp("requested_date").defaultNow(),
+  approvedDate: timestamp("approved_date"),
+  fundedDate: timestamp("funded_date"),
+  deniedDate: timestamp("denied_date"),
+  denialReason: text("denial_reason"),
+  
+  // Running totals after this draw
+  totalDisbursedAfter: integer("total_disbursed_after"),
+  remainingHoldbackAfter: integer("remaining_holdback_after"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const loanDrawsRelations = relations(loanDraws, ({ one }) => ({
+  servicedLoan: one(servicedLoans, {
+    fields: [loanDraws.servicedLoanId],
+    references: [servicedLoans.id],
+  }),
+}));
+
+export type LoanDraw = typeof loanDraws.$inferSelect;
+export type InsertLoanDraw = typeof loanDraws.$inferInsert;
+
+export const insertLoanDrawSchema = createInsertSchema(loanDraws).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// ============================================
+// LOAN ESCROW ITEMS (For DSCR Loans)
+// ============================================
+export const escrowItemTypeEnum = pgEnum("escrow_item_type", [
+  "property_tax",
+  "hazard_insurance",
+  "flood_insurance",
+  "hoa_dues",
+  "pmi",
+  "other"
+]);
+
+export const loanEscrowItems = pgTable("loan_escrow_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  servicedLoanId: varchar("serviced_loan_id").notNull().references(() => servicedLoans.id),
+  
+  itemType: escrowItemTypeEnum("item_type").notNull(),
+  description: text("description"),
+  
+  // Amounts
+  annualAmount: integer("annual_amount").notNull(),
+  monthlyAmount: integer("monthly_amount").notNull(),
+  currentBalance: integer("current_balance").default(0),
+  
+  // Due dates
+  nextDueDate: timestamp("next_due_date"),
+  lastPaidDate: timestamp("last_paid_date"),
+  lastPaidAmount: integer("last_paid_amount"),
+  
+  // Payee info
+  payeeName: text("payee_name"),
+  accountNumber: text("account_number"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const loanEscrowItemsRelations = relations(loanEscrowItems, ({ one }) => ({
+  servicedLoan: one(servicedLoans, {
+    fields: [loanEscrowItems.servicedLoanId],
+    references: [servicedLoans.id],
+  }),
+}));
+
+export type LoanEscrowItem = typeof loanEscrowItems.$inferSelect;
+export type InsertLoanEscrowItem = typeof loanEscrowItems.$inferInsert;
+
+export const insertLoanEscrowItemSchema = createInsertSchema(loanEscrowItems).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// ============================================
+// LOAN DOCUMENTS (Servicing Documents)
+// ============================================
+export const loanDocumentCategoryEnum = pgEnum("loan_document_category", [
+  "closing",        // Closing documents
+  "payment",        // Payment receipts
+  "escrow",         // Escrow statements
+  "draw",           // Draw documentation
+  "inspection",     // Inspection reports
+  "insurance",      // Insurance documents
+  "tax",            // Tax documents
+  "correspondence", // Letters/notices
+  "other"
+]);
+
+export const loanDocuments = pgTable("loan_documents", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  servicedLoanId: varchar("serviced_loan_id").notNull().references(() => servicedLoans.id),
+  
+  category: loanDocumentCategoryEnum("category").notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  
+  fileName: text("file_name").notNull(),
+  fileUrl: text("file_url").notNull(),
+  fileSize: integer("file_size"),
+  mimeType: text("mime_type"),
+  
+  uploadedById: varchar("uploaded_by_id").references(() => users.id),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const loanDocumentsRelations = relations(loanDocuments, ({ one }) => ({
+  servicedLoan: one(servicedLoans, {
+    fields: [loanDocuments.servicedLoanId],
+    references: [servicedLoans.id],
+  }),
+  uploadedBy: one(users, {
+    fields: [loanDocuments.uploadedById],
+    references: [users.id],
+  }),
+}));
+
+export type LoanDocument = typeof loanDocuments.$inferSelect;
+export type InsertLoanDocument = typeof loanDocuments.$inferInsert;
+
+export const insertLoanDocumentSchema = createInsertSchema(loanDocuments).omit({
+  id: true,
+  createdAt: true,
+});
+
+// ============================================
+// LOAN MILESTONES (For Construction/Renovation)
+// ============================================
+export const milestoneStatusEnum = pgEnum("milestone_status", [
+  "not_started",
+  "in_progress",
+  "completed",
+  "delayed"
+]);
+
+export const loanMilestones = pgTable("loan_milestones", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  servicedLoanId: varchar("serviced_loan_id").notNull().references(() => servicedLoans.id),
+  
+  name: text("name").notNull(),
+  description: text("description"),
+  sortOrder: integer("sort_order").default(0),
+  status: milestoneStatusEnum("status").default("not_started").notNull(),
+  
+  budgetAmount: integer("budget_amount"),
+  actualAmount: integer("actual_amount"),
+  
+  targetDate: timestamp("target_date"),
+  completedDate: timestamp("completed_date"),
+  
+  notes: text("notes"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const loanMilestonesRelations = relations(loanMilestones, ({ one }) => ({
+  servicedLoan: one(servicedLoans, {
+    fields: [loanMilestones.servicedLoanId],
+    references: [servicedLoans.id],
+  }),
+}));
+
+export type LoanMilestone = typeof loanMilestones.$inferSelect;
+export type InsertLoanMilestone = typeof loanMilestones.$inferInsert;
+
+export const insertLoanMilestoneSchema = createInsertSchema(loanMilestones).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// ============================================
+// HELPER FUNCTIONS FOR LOAN CALCULATIONS
+// ============================================
+
+// Calculate amortization schedule for DSCR loans
+export interface AmortizationRow {
+  paymentNumber: number;
+  paymentDate: Date;
+  payment: number;
+  principal: number;
+  interest: number;
+  balance: number;
+  cumulativeInterest: number;
+  cumulativePrincipal: number;
+}
+
+export function calculateAmortizationSchedule(
+  principal: number,
+  annualRate: number,
+  termMonths: number,
+  startDate: Date
+): AmortizationRow[] {
+  const monthlyRate = annualRate / 100 / 12;
+  const monthlyPayment = principal * (monthlyRate * Math.pow(1 + monthlyRate, termMonths)) / (Math.pow(1 + monthlyRate, termMonths) - 1);
+  
+  const schedule: AmortizationRow[] = [];
+  let balance = principal;
+  let cumulativeInterest = 0;
+  let cumulativePrincipal = 0;
+  
+  for (let i = 1; i <= termMonths; i++) {
+    const interest = balance * monthlyRate;
+    const principalPart = monthlyPayment - interest;
+    balance = Math.max(0, balance - principalPart);
+    cumulativeInterest += interest;
+    cumulativePrincipal += principalPart;
+    
+    const paymentDate = new Date(startDate);
+    paymentDate.setMonth(paymentDate.getMonth() + i - 1);
+    
+    schedule.push({
+      paymentNumber: i,
+      paymentDate,
+      payment: Math.round(monthlyPayment),
+      principal: Math.round(principalPart),
+      interest: Math.round(interest),
+      balance: Math.round(balance),
+      cumulativeInterest: Math.round(cumulativeInterest),
+      cumulativePrincipal: Math.round(cumulativePrincipal),
+    });
+  }
+  
+  return schedule;
+}
+
+// Calculate interest-only payment for hard money loans
+export function calculateInterestOnlyPayment(principal: number, annualRate: number): number {
+  return Math.round(principal * (annualRate / 100 / 12));
+}
+
+// Calculate payoff amount
+export function calculatePayoffAmount(
+  currentBalance: number,
+  perDiemInterest: number,
+  daysUntilPayoff: number,
+  outstandingFees: number = 0
+): number {
+  return currentBalance + (perDiemInterest * daysUntilPayoff) + outstandingFees;
+}
 
 // State data for "Where We Lend" section and state-specific SEO pages
 export interface StateData {

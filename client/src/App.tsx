@@ -34,6 +34,8 @@ import DSCRAnalyzerPage from "@/pages/DSCRAnalyzerPage";
 import FixFlipAnalyzerPage from "@/pages/FixFlipAnalyzerPage";
 import ConstructionAnalyzerPage from "@/pages/ConstructionAnalyzerPage";
 import ProfilePage from "@/pages/ProfilePage";
+import ActiveLoansPage from "@/pages/ActiveLoansPage";
+import LoanDetailPage from "@/pages/LoanDetailPage";
 import STRCalculatorPage from "@/pages/STRCalculatorPage";
 import RecentFundingsPage from "@/pages/RecentFundingsPage";
 import PropertyDetailPage from "@/pages/PropertyDetailPage";
@@ -71,6 +73,8 @@ function Router() {
       <Route path="/portal/fixflip-analyzer" component={FixFlipAnalyzerPage} />
       <Route path="/portal/construction-analyzer" component={ConstructionAnalyzerPage} />
       <Route path="/portal/profile" component={ProfilePage} />
+      <Route path="/portal/loans" component={ActiveLoansPage} />
+      <Route path="/portal/loans/:id" component={LoanDetailPage} />
       <Route path="/str-calculator" component={STRCalculatorPage} />
       <Route path="/fundings" component={RecentFundingsPage} />
       <Route path="/fundings/:propertyId" component={PropertyDetailPage} />

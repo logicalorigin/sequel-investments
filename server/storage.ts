@@ -5,6 +5,11 @@ import {
   documents, 
   documentTypes,
   servicedLoans,
+  loanPayments,
+  loanDraws,
+  loanEscrowItems,
+  loanDocuments,
+  loanMilestones,
   notifications,
   savedScenarios,
   userPreferences,
@@ -34,6 +39,16 @@ import {
   type InsertDocumentType,
   type ServicedLoan,
   type InsertServicedLoan,
+  type LoanPayment,
+  type InsertLoanPayment,
+  type LoanDraw,
+  type InsertLoanDraw,
+  type LoanEscrowItem,
+  type InsertLoanEscrowItem,
+  type LoanDocument,
+  type InsertLoanDocument,
+  type LoanMilestone,
+  type InsertLoanMilestone,
   type Notification,
   type InsertNotification,
   type SavedScenario,
@@ -113,9 +128,45 @@ export interface IStorage {
   
   // Serviced loans operations
   getServicedLoans(userId: string): Promise<ServicedLoan[]>;
+  getAllServicedLoans(): Promise<ServicedLoan[]>;
   getServicedLoan(id: string): Promise<ServicedLoan | undefined>;
+  getServicedLoanByNumber(loanNumber: string): Promise<ServicedLoan | undefined>;
   createServicedLoan(loan: InsertServicedLoan): Promise<ServicedLoan>;
   updateServicedLoan(id: string, data: Partial<InsertServicedLoan>): Promise<ServicedLoan | undefined>;
+  deleteServicedLoan(id: string): Promise<boolean>;
+  
+  // Loan payment operations
+  getLoanPayments(servicedLoanId: string): Promise<LoanPayment[]>;
+  getLoanPayment(id: string): Promise<LoanPayment | undefined>;
+  createLoanPayment(payment: InsertLoanPayment): Promise<LoanPayment>;
+  updateLoanPayment(id: string, data: Partial<InsertLoanPayment>): Promise<LoanPayment | undefined>;
+  
+  // Loan draw operations (for hard money loans)
+  getLoanDraws(servicedLoanId: string): Promise<LoanDraw[]>;
+  getLoanDraw(id: string): Promise<LoanDraw | undefined>;
+  createLoanDraw(draw: InsertLoanDraw): Promise<LoanDraw>;
+  updateLoanDraw(id: string, data: Partial<InsertLoanDraw>): Promise<LoanDraw | undefined>;
+  deleteLoanDraw(id: string): Promise<boolean>;
+  
+  // Loan escrow operations (for DSCR loans)
+  getLoanEscrowItems(servicedLoanId: string): Promise<LoanEscrowItem[]>;
+  getLoanEscrowItem(id: string): Promise<LoanEscrowItem | undefined>;
+  createLoanEscrowItem(item: InsertLoanEscrowItem): Promise<LoanEscrowItem>;
+  updateLoanEscrowItem(id: string, data: Partial<InsertLoanEscrowItem>): Promise<LoanEscrowItem | undefined>;
+  deleteLoanEscrowItem(id: string): Promise<boolean>;
+  
+  // Loan documents operations
+  getLoanDocuments(servicedLoanId: string): Promise<LoanDocument[]>;
+  getLoanDocument(id: string): Promise<LoanDocument | undefined>;
+  createLoanDocument(doc: InsertLoanDocument): Promise<LoanDocument>;
+  deleteLoanDocument(id: string): Promise<boolean>;
+  
+  // Loan milestones operations (for construction)
+  getLoanMilestones(servicedLoanId: string): Promise<LoanMilestone[]>;
+  getLoanMilestone(id: string): Promise<LoanMilestone | undefined>;
+  createLoanMilestone(milestone: InsertLoanMilestone): Promise<LoanMilestone>;
+  updateLoanMilestone(id: string, data: Partial<InsertLoanMilestone>): Promise<LoanMilestone | undefined>;
+  deleteLoanMilestone(id: string): Promise<boolean>;
   
   // Notification operations
   getNotifications(userId: string): Promise<Notification[]>;
@@ -513,6 +564,173 @@ export class DatabaseStorage implements IStorage {
       .where(eq(servicedLoans.id, id))
       .returning();
     return updated;
+  }
+
+  async getAllServicedLoans(): Promise<ServicedLoan[]> {
+    return await db
+      .select()
+      .from(servicedLoans)
+      .orderBy(desc(servicedLoans.closingDate));
+  }
+
+  async getServicedLoanByNumber(loanNumber: string): Promise<ServicedLoan | undefined> {
+    const [loan] = await db.select().from(servicedLoans).where(eq(servicedLoans.loanNumber, loanNumber));
+    return loan;
+  }
+
+  async deleteServicedLoan(id: string): Promise<boolean> {
+    const result = await db.delete(servicedLoans).where(eq(servicedLoans.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  // Loan payment operations
+  async getLoanPayments(servicedLoanId: string): Promise<LoanPayment[]> {
+    return await db
+      .select()
+      .from(loanPayments)
+      .where(eq(loanPayments.servicedLoanId, servicedLoanId))
+      .orderBy(desc(loanPayments.dueDate));
+  }
+
+  async getLoanPayment(id: string): Promise<LoanPayment | undefined> {
+    const [payment] = await db.select().from(loanPayments).where(eq(loanPayments.id, id));
+    return payment;
+  }
+
+  async createLoanPayment(payment: InsertLoanPayment): Promise<LoanPayment> {
+    const [created] = await db.insert(loanPayments).values(payment).returning();
+    return created;
+  }
+
+  async updateLoanPayment(id: string, data: Partial<InsertLoanPayment>): Promise<LoanPayment | undefined> {
+    const [updated] = await db
+      .update(loanPayments)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(loanPayments.id, id))
+      .returning();
+    return updated;
+  }
+
+  // Loan draw operations
+  async getLoanDraws(servicedLoanId: string): Promise<LoanDraw[]> {
+    return await db
+      .select()
+      .from(loanDraws)
+      .where(eq(loanDraws.servicedLoanId, servicedLoanId))
+      .orderBy(desc(loanDraws.drawNumber));
+  }
+
+  async getLoanDraw(id: string): Promise<LoanDraw | undefined> {
+    const [draw] = await db.select().from(loanDraws).where(eq(loanDraws.id, id));
+    return draw;
+  }
+
+  async createLoanDraw(draw: InsertLoanDraw): Promise<LoanDraw> {
+    const [created] = await db.insert(loanDraws).values(draw).returning();
+    return created;
+  }
+
+  async updateLoanDraw(id: string, data: Partial<InsertLoanDraw>): Promise<LoanDraw | undefined> {
+    const [updated] = await db
+      .update(loanDraws)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(loanDraws.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteLoanDraw(id: string): Promise<boolean> {
+    const result = await db.delete(loanDraws).where(eq(loanDraws.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  // Loan escrow operations
+  async getLoanEscrowItems(servicedLoanId: string): Promise<LoanEscrowItem[]> {
+    return await db
+      .select()
+      .from(loanEscrowItems)
+      .where(eq(loanEscrowItems.servicedLoanId, servicedLoanId));
+  }
+
+  async getLoanEscrowItem(id: string): Promise<LoanEscrowItem | undefined> {
+    const [item] = await db.select().from(loanEscrowItems).where(eq(loanEscrowItems.id, id));
+    return item;
+  }
+
+  async createLoanEscrowItem(item: InsertLoanEscrowItem): Promise<LoanEscrowItem> {
+    const [created] = await db.insert(loanEscrowItems).values(item).returning();
+    return created;
+  }
+
+  async updateLoanEscrowItem(id: string, data: Partial<InsertLoanEscrowItem>): Promise<LoanEscrowItem | undefined> {
+    const [updated] = await db
+      .update(loanEscrowItems)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(loanEscrowItems.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteLoanEscrowItem(id: string): Promise<boolean> {
+    const result = await db.delete(loanEscrowItems).where(eq(loanEscrowItems.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  // Loan documents operations
+  async getLoanDocuments(servicedLoanId: string): Promise<LoanDocument[]> {
+    return await db
+      .select()
+      .from(loanDocuments)
+      .where(eq(loanDocuments.servicedLoanId, servicedLoanId))
+      .orderBy(desc(loanDocuments.createdAt));
+  }
+
+  async getLoanDocument(id: string): Promise<LoanDocument | undefined> {
+    const [doc] = await db.select().from(loanDocuments).where(eq(loanDocuments.id, id));
+    return doc;
+  }
+
+  async createLoanDocument(doc: InsertLoanDocument): Promise<LoanDocument> {
+    const [created] = await db.insert(loanDocuments).values(doc).returning();
+    return created;
+  }
+
+  async deleteLoanDocument(id: string): Promise<boolean> {
+    const result = await db.delete(loanDocuments).where(eq(loanDocuments.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  // Loan milestones operations
+  async getLoanMilestones(servicedLoanId: string): Promise<LoanMilestone[]> {
+    return await db
+      .select()
+      .from(loanMilestones)
+      .where(eq(loanMilestones.servicedLoanId, servicedLoanId))
+      .orderBy(loanMilestones.sortOrder);
+  }
+
+  async getLoanMilestone(id: string): Promise<LoanMilestone | undefined> {
+    const [milestone] = await db.select().from(loanMilestones).where(eq(loanMilestones.id, id));
+    return milestone;
+  }
+
+  async createLoanMilestone(milestone: InsertLoanMilestone): Promise<LoanMilestone> {
+    const [created] = await db.insert(loanMilestones).values(milestone).returning();
+    return created;
+  }
+
+  async updateLoanMilestone(id: string, data: Partial<InsertLoanMilestone>): Promise<LoanMilestone | undefined> {
+    const [updated] = await db
+      .update(loanMilestones)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(loanMilestones.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteLoanMilestone(id: string): Promise<boolean> {
+    const result = await db.delete(loanMilestones).where(eq(loanMilestones.id, id));
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Notification operations
