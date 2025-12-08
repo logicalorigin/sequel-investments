@@ -284,6 +284,10 @@ export interface IStorage {
   
   // Staff profile operations (for role assignment)
   updateUserStaffRole(userId: string, staffRole: StaffRole): Promise<User | undefined>;
+  
+  // Test data operations (for seeding/clearing)
+  clearTestData(): Promise<void>;
+  deleteUserByEmail(email: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1444,6 +1448,49 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, userId))
       .returning();
     return updated;
+  }
+
+  // Test data operations (for seeding/clearing)
+  async clearTestData(): Promise<void> {
+    // Clear in order: dependent tables first, then parent tables
+    // 1. Clear notification-related tables
+    await db.delete(notificationQueue);
+    await db.delete(notifications);
+    
+    // 2. Clear loan-related child tables
+    await db.delete(loanPayments);
+    await db.delete(loanDraws);
+    await db.delete(loanEscrowItems);
+    await db.delete(loanDocuments);
+    await db.delete(loanMilestones);
+    
+    // 3. Clear serviced loans
+    await db.delete(servicedLoans);
+    
+    // 4. Clear application-related child tables
+    await db.delete(applicationTimeline);
+    await db.delete(coBorrowers);
+    await db.delete(documentSignatures);
+    await db.delete(documentReviews);
+    await db.delete(documentComments);
+    await db.delete(commentAttachments);
+    await db.delete(documents);
+    
+    // 5. Clear loan applications
+    await db.delete(loanApplications);
+    
+    // 6. Clear leads
+    await db.delete(leads);
+    
+    // 7. Clear saved scenarios
+    await db.delete(savedScenarios);
+    
+    console.log("Cleared all test data from database");
+  }
+  
+  async deleteUserByEmail(email: string): Promise<boolean> {
+    const result = await db.delete(users).where(eq(users.email, email));
+    return (result.rowCount ?? 0) > 0;
   }
 }
 

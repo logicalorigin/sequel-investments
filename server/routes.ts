@@ -3195,84 +3195,119 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // =====================
   app.post("/api/admin/seed-test-data", isAuthenticated, isAdmin, async (req: any, res) => {
     try {
-      const testBorrower = await storage.getUserByEmail("borrower@test.com");
-      if (!testBorrower) {
-        return res.status(400).json({ error: "Test borrower not found. Please create borrower@test.com first." });
+      // Step 1: Clear all existing test data
+      console.log("Clearing existing test data...");
+      await storage.clearTestData();
+      
+      // Step 2: Delete existing test borrower accounts (if they exist)
+      const testEmails = [
+        "dscr.borrower@test.com",
+        "flipper@test.com", 
+        "builder@test.com",
+        "bridge.investor@test.com"
+      ];
+      for (const email of testEmails) {
+        await storage.deleteUserByEmail(email);
       }
       
-      const testLoans = [
+      // Step 3: Create 4 distinct test borrowers
+      const borrowerData = [
+        { email: "dscr.borrower@test.com", firstName: "Sarah", lastName: "Johnson", username: "sarahjohnson" },
+        { email: "flipper@test.com", firstName: "Michael", lastName: "Chen", username: "michaelchen" },
+        { email: "builder@test.com", firstName: "David", lastName: "Martinez", username: "davidmartinez" },
+        { email: "bridge.investor@test.com", firstName: "Emily", lastName: "Williams", username: "emilywilliams" },
+      ];
+      
+      const borrowers = [];
+      for (const data of borrowerData) {
+        const borrower = await storage.createLocalUser({
+          ...data,
+          password: await bcrypt.hash("testpass123", 10),
+          role: "borrower",
+        });
+        borrowers.push(borrower);
+      }
+      
+      // Step 4: Define loan data for each borrower
+      const loanConfigs = [
         {
+          borrower: borrowers[0],
           loanType: "DSCR Loan",
-          propertyAddress: "123 Rental Avenue",
-          propertyCity: "Miami",
+          propertyAddress: "4521 Oceanview Terrace",
+          propertyCity: "Miami Beach",
           propertyState: "FL",
           propertyZip: "33139",
-          loanAmount: 450000,
-          purchasePrice: 500000,
-          arv: 550000,
-          annualTaxes: 8000,
-          annualInsurance: 3600,
-          annualHOA: 2400,
+          loanAmount: 625000,
+          purchasePrice: 750000,
+          arv: 825000,
+          annualTaxes: 12500,
+          annualInsurance: 4800,
+          annualHOA: 3600,
           loanTermMonths: 360,
-          interestRate: "7.25",
+          interestRate: "7.125",
         },
         {
+          borrower: borrowers[1],
           loanType: "Fix & Flip",
-          propertyAddress: "456 Flip Street",
+          propertyAddress: "1847 Sunset Boulevard",
           propertyCity: "Los Angeles",
           propertyState: "CA",
-          propertyZip: "90210",
-          loanAmount: 350000,
-          purchasePrice: 400000,
-          arv: 600000,
-          rehabBudget: 100000,
-          requestedRehabFunding: 100000,
+          propertyZip: "90028",
+          loanAmount: 485000,
+          purchasePrice: 550000,
+          arv: 825000,
+          rehabBudget: 175000,
+          requestedRehabFunding: 175000,
           loanTermMonths: 12,
-          interestRate: "10.5",
+          interestRate: "10.25",
         },
         {
+          borrower: borrowers[2],
           loanType: "New Construction",
-          propertyAddress: "789 Builder Lane",
+          propertyAddress: "2901 Hill Country Drive",
           propertyCity: "Austin",
           propertyState: "TX",
-          propertyZip: "78701",
-          loanAmount: 800000,
-          purchasePrice: 150000,
-          arv: 1200000,
-          rehabBudget: 650000,
-          requestedRehabFunding: 650000,
+          propertyZip: "78746",
+          loanAmount: 1250000,
+          purchasePrice: 275000,
+          arv: 1850000,
+          rehabBudget: 975000,
+          requestedRehabFunding: 975000,
           loanTermMonths: 18,
-          interestRate: "9.9",
+          interestRate: "9.75",
         },
         {
+          borrower: borrowers[3],
           loanType: "Bridge",
-          propertyAddress: "321 Bridge Road",
-          propertyCity: "Phoenix",
+          propertyAddress: "8734 Desert Rose Lane",
+          propertyCity: "Scottsdale",
           propertyState: "AZ",
-          propertyZip: "85001",
-          loanAmount: 280000,
-          purchasePrice: 320000,
-          arv: 380000,
-          loanTermMonths: 6,
-          interestRate: "11.0",
+          propertyZip: "85255",
+          loanAmount: 390000,
+          purchasePrice: 450000,
+          arv: 520000,
+          loanTermMonths: 9,
+          interestRate: "10.75",
         },
       ];
       
       const createdLoans = [];
       
-      for (const loanData of testLoans) {
-        // Create application
+      for (const config of loanConfigs) {
+        const { borrower, ...loanData } = config;
+        
+        // Create application for this borrower
         const app = await storage.createLoanApplication({
-          userId: testBorrower.id,
+          userId: borrower.id,
           status: "submitted",
           processingStage: "account_review",
           ...loanData,
         });
         
-        // Update status to funded (this triggers auto-creation of serviced loan)
-        const updated = await storage.updateLoanApplication(app.id, { status: "funded" });
+        // Update status to funded
+        await storage.updateLoanApplication(app.id, { status: "funded" });
         
-        // Now create the serviced loan manually since we're bypassing the route
+        // Create the serviced loan
         const servicedLoanType = mapLoanTypeToServicedType(loanData.loanType);
         const isHardMoney = servicedLoanType !== "dscr";
         const loanNumber = generateLoanNumber(servicedLoanType);
@@ -3297,7 +3332,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const monthlyEscrow = !isHardMoney ? Math.round((annualTaxes + annualInsurance + annualHOA) / 12) : 0;
         
         const closingDate = new Date();
-        closingDate.setDate(closingDate.getDate() - 30); // Closed 30 days ago
+        closingDate.setDate(closingDate.getDate() - 45);
         
         const firstPaymentDate = new Date(closingDate);
         firstPaymentDate.setMonth(firstPaymentDate.getMonth() + 1);
@@ -3311,7 +3346,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         nextPaymentDate.setDate(1);
         
         const servicedLoan = await storage.createServicedLoan({
-          userId: testBorrower.id,
+          userId: borrower.id,
           loanApplicationId: app.id,
           loanNumber,
           loanType: servicedLoanType,
@@ -3340,23 +3375,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
           annualHOA: !isHardMoney ? annualHOA : null,
           totalRehabBudget: isHardMoney ? (loanData.rehabBudget || 0) : null,
           totalDrawsFunded: 0,
+          purchasePrice: loanData.purchasePrice,
+          arv: loanData.arv,
         });
         
         createdLoans.push({
           applicationId: app.id,
+          servicedLoanId: servicedLoan.id,
           loanNumber: servicedLoan.loanNumber,
           loanType: servicedLoan.loanType,
+          borrowerName: `${borrower.firstName} ${borrower.lastName}`,
+          borrowerEmail: borrower.email,
+          propertyAddress: servicedLoan.propertyAddress,
           amount: servicedLoan.originalLoanAmount,
         });
       }
       
       return res.json({
-        message: "Test data seeded successfully",
+        message: "Test data seeded successfully - 4 borrowers with 4 loans created",
+        borrowers: borrowerData.map(b => ({ email: b.email, name: `${b.firstName} ${b.lastName}` })),
         loans: createdLoans,
       });
     } catch (error) {
       console.error("Error seeding test data:", error);
-      return res.status(500).json({ error: "Failed to seed test data" });
+      return res.status(500).json({ error: "Failed to seed test data", details: String(error) });
     }
   });
 
