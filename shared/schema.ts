@@ -480,7 +480,7 @@ export const loanDraws = pgTable("loan_draws", {
   approvedDate: timestamp("approved_date"),
   fundedDate: timestamp("funded_date"),
   deniedDate: timestamp("denied_date"),
-  denialReason: text("denial_reason"),
+  deniedReason: text("denied_reason"),
   
   // Running totals after this draw
   totalDisbursedAfter: integer("total_disbursed_after"),
