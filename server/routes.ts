@@ -2231,7 +2231,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...loan,
         borrowerName: user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email : "Unknown",
         borrowerEmail: user?.email,
-        borrowerPhone: user?.phone,
         payments,
         draws,
         escrowItems,
