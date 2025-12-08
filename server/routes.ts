@@ -531,13 +531,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/serviced-loans/:id", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
       const loan = await storage.getServicedLoan(req.params.id);
       
       if (!loan) {
         return res.status(404).json({ error: "Loan not found" });
       }
       
-      if (loan.userId !== userId) {
+      // Staff/admin can view any loan, borrowers can only view their own
+      if (loan.userId !== userId && user?.role === "borrower") {
         return res.status(403).json({ error: "Access denied" });
       }
       
@@ -545,6 +547,364 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching serviced loan:", error);
       return res.status(500).json({ error: "Failed to fetch serviced loan" });
+    }
+  });
+
+  // Get full loan details with payments, draws, escrow, documents, milestones
+  app.get("/api/serviced-loans/:id/details", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const loan = await storage.getServicedLoan(req.params.id);
+      
+      if (!loan) {
+        return res.status(404).json({ error: "Loan not found" });
+      }
+      
+      if (loan.userId !== userId && user?.role === "borrower") {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      // Fetch all related data
+      const [payments, draws, escrowItems, documents, milestones] = await Promise.all([
+        storage.getLoanPayments(loan.id),
+        storage.getLoanDraws(loan.id),
+        storage.getLoanEscrowItems(loan.id),
+        storage.getLoanDocuments(loan.id),
+        storage.getLoanMilestones(loan.id),
+      ]);
+      
+      return res.json({
+        ...loan,
+        payments,
+        draws,
+        escrowItems,
+        documents,
+        milestones,
+      });
+    } catch (error) {
+      console.error("Error fetching loan details:", error);
+      return res.status(500).json({ error: "Failed to fetch loan details" });
+    }
+  });
+
+  // ============================================
+  // LOAN PAYMENTS ROUTES
+  // ============================================
+  app.get("/api/serviced-loans/:loanId/payments", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const loan = await storage.getServicedLoan(req.params.loanId);
+      
+      if (!loan) {
+        return res.status(404).json({ error: "Loan not found" });
+      }
+      
+      if (loan.userId !== userId && user?.role === "borrower") {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const payments = await storage.getLoanPayments(loan.id);
+      return res.json(payments);
+    } catch (error) {
+      console.error("Error fetching payments:", error);
+      return res.status(500).json({ error: "Failed to fetch payments" });
+    }
+  });
+
+  app.post("/api/serviced-loans/:loanId/payments", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      // Only staff/admin can create payments
+      if (user?.role === "borrower") {
+        return res.status(403).json({ error: "Only staff can record payments" });
+      }
+      
+      const payment = await storage.createLoanPayment({
+        ...req.body,
+        servicedLoanId: req.params.loanId,
+      });
+      return res.status(201).json(payment);
+    } catch (error) {
+      console.error("Error creating payment:", error);
+      return res.status(500).json({ error: "Failed to create payment" });
+    }
+  });
+
+  app.patch("/api/loan-payments/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (user?.role === "borrower") {
+        return res.status(403).json({ error: "Only staff can update payments" });
+      }
+      
+      const payment = await storage.updateLoanPayment(req.params.id, req.body);
+      return res.json(payment);
+    } catch (error) {
+      console.error("Error updating payment:", error);
+      return res.status(500).json({ error: "Failed to update payment" });
+    }
+  });
+
+  // ============================================
+  // LOAN DRAWS ROUTES (For Hard Money Loans)
+  // ============================================
+  app.get("/api/serviced-loans/:loanId/draws", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const loan = await storage.getServicedLoan(req.params.loanId);
+      
+      if (!loan) {
+        return res.status(404).json({ error: "Loan not found" });
+      }
+      
+      if (loan.userId !== userId && user?.role === "borrower") {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const draws = await storage.getLoanDraws(loan.id);
+      return res.json(draws);
+    } catch (error) {
+      console.error("Error fetching draws:", error);
+      return res.status(500).json({ error: "Failed to fetch draws" });
+    }
+  });
+
+  app.post("/api/serviced-loans/:loanId/draws", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const loan = await storage.getServicedLoan(req.params.loanId);
+      
+      if (!loan) {
+        return res.status(404).json({ error: "Loan not found" });
+      }
+      
+      // Borrowers can only create draws for their own loans
+      if (loan.userId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      // Get existing draws to determine next draw number
+      const existingDraws = await storage.getLoanDraws(loan.id);
+      const nextDrawNumber = existingDraws.length + 1;
+      
+      const draw = await storage.createLoanDraw({
+        ...req.body,
+        servicedLoanId: loan.id,
+        drawNumber: nextDrawNumber,
+        status: "draft",
+      });
+      return res.status(201).json(draw);
+    } catch (error) {
+      console.error("Error creating draw:", error);
+      return res.status(500).json({ error: "Failed to create draw" });
+    }
+  });
+
+  app.patch("/api/loan-draws/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const draw = await storage.getLoanDraw(req.params.id);
+      
+      if (!draw) {
+        return res.status(404).json({ error: "Draw not found" });
+      }
+      
+      const loan = await storage.getServicedLoan(draw.servicedLoanId);
+      
+      // Borrowers can only update draft draws for their own loans
+      if (user?.role === "borrower") {
+        if (loan?.userId !== userId) {
+          return res.status(403).json({ error: "Access denied" });
+        }
+        if (draw.status !== "draft" && draw.status !== "submitted") {
+          return res.status(403).json({ error: "Can only modify draft or submitted draws" });
+        }
+      }
+      
+      const updated = await storage.updateLoanDraw(req.params.id, req.body);
+      return res.json(updated);
+    } catch (error) {
+      console.error("Error updating draw:", error);
+      return res.status(500).json({ error: "Failed to update draw" });
+    }
+  });
+
+  // Submit a draw for review
+  app.post("/api/loan-draws/:id/submit", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const draw = await storage.getLoanDraw(req.params.id);
+      
+      if (!draw) {
+        return res.status(404).json({ error: "Draw not found" });
+      }
+      
+      const loan = await storage.getServicedLoan(draw.servicedLoanId);
+      
+      if (loan?.userId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      if (draw.status !== "draft") {
+        return res.status(400).json({ error: "Can only submit draft draws" });
+      }
+      
+      const updated = await storage.updateLoanDraw(req.params.id, {
+        status: "submitted",
+        requestedDate: new Date(),
+      });
+      return res.json(updated);
+    } catch (error) {
+      console.error("Error submitting draw:", error);
+      return res.status(500).json({ error: "Failed to submit draw" });
+    }
+  });
+
+  app.delete("/api/loan-draws/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const draw = await storage.getLoanDraw(req.params.id);
+      
+      if (!draw) {
+        return res.status(404).json({ error: "Draw not found" });
+      }
+      
+      const loan = await storage.getServicedLoan(draw.servicedLoanId);
+      
+      if (loan?.userId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      if (draw.status !== "draft") {
+        return res.status(400).json({ error: "Can only delete draft draws" });
+      }
+      
+      await storage.deleteLoanDraw(req.params.id);
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting draw:", error);
+      return res.status(500).json({ error: "Failed to delete draw" });
+    }
+  });
+
+  // ============================================
+  // LOAN ESCROW ROUTES (For DSCR Loans)
+  // ============================================
+  app.get("/api/serviced-loans/:loanId/escrow", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const loan = await storage.getServicedLoan(req.params.loanId);
+      
+      if (!loan) {
+        return res.status(404).json({ error: "Loan not found" });
+      }
+      
+      if (loan.userId !== userId && user?.role === "borrower") {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const escrowItems = await storage.getLoanEscrowItems(loan.id);
+      return res.json(escrowItems);
+    } catch (error) {
+      console.error("Error fetching escrow items:", error);
+      return res.status(500).json({ error: "Failed to fetch escrow items" });
+    }
+  });
+
+  // ============================================
+  // LOAN DOCUMENTS ROUTES
+  // ============================================
+  app.get("/api/serviced-loans/:loanId/documents", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const loan = await storage.getServicedLoan(req.params.loanId);
+      
+      if (!loan) {
+        return res.status(404).json({ error: "Loan not found" });
+      }
+      
+      if (loan.userId !== userId && user?.role === "borrower") {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const documents = await storage.getLoanDocuments(loan.id);
+      return res.json(documents);
+    } catch (error) {
+      console.error("Error fetching loan documents:", error);
+      return res.status(500).json({ error: "Failed to fetch documents" });
+    }
+  });
+
+  app.post("/api/serviced-loans/:loanId/documents", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const loan = await storage.getServicedLoan(req.params.loanId);
+      
+      if (!loan) {
+        return res.status(404).json({ error: "Loan not found" });
+      }
+      
+      const document = await storage.createLoanDocument({
+        ...req.body,
+        servicedLoanId: loan.id,
+        uploadedById: userId,
+      });
+      return res.status(201).json(document);
+    } catch (error) {
+      console.error("Error creating loan document:", error);
+      return res.status(500).json({ error: "Failed to create document" });
+    }
+  });
+
+  // ============================================
+  // LOAN MILESTONES ROUTES (For Construction)
+  // ============================================
+  app.get("/api/serviced-loans/:loanId/milestones", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const loan = await storage.getServicedLoan(req.params.loanId);
+      
+      if (!loan) {
+        return res.status(404).json({ error: "Loan not found" });
+      }
+      
+      if (loan.userId !== userId && user?.role === "borrower") {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const milestones = await storage.getLoanMilestones(loan.id);
+      return res.json(milestones);
+    } catch (error) {
+      console.error("Error fetching milestones:", error);
+      return res.status(500).json({ error: "Failed to fetch milestones" });
+    }
+  });
+
+  app.patch("/api/loan-milestones/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (user?.role === "borrower") {
+        return res.status(403).json({ error: "Only staff can update milestones" });
+      }
+      
+      const milestone = await storage.updateLoanMilestone(req.params.id, req.body);
+      return res.json(milestone);
+    } catch (error) {
+      console.error("Error updating milestone:", error);
+      return res.status(500).json({ error: "Failed to update milestone" });
     }
   });
 
