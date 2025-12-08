@@ -30,10 +30,10 @@ import newConstructionCardImage from "@assets/image_1764097000811.png";
 import testimonial1 from "@assets/generated_images/Investor_testimonial_headshot_1_2a222601.png";
 import testimonial2 from "@assets/generated_images/Investor_testimonial_headshot_2_bb13b1a2.png";
 import testimonial3 from "@assets/generated_images/Investor_testimonial_headshot_3_a4e6c79b.png";
-import tempeAZProperty from "@assets/stock_images/investment_rental_pr_734e4eb6.jpg";
-import fortWorthTXProperty from "@assets/stock_images/investment_property__f60ec7c8.jpg";
-import doverDEProperty from "@assets/stock_images/investment_rental_ho_757cf226.jpg";
-import postFallsIDProperty from "@assets/stock_images/investment_property__fdbf9598.jpg";
+import tempeAZProperty from "@assets/stock_images/luxury_single_family_efde7a4e.jpg";
+import fortWorthTXProperty from "@assets/stock_images/luxury_single_family_91c2c6a3.jpg";
+import doverDEProperty from "@assets/stock_images/luxury_single_family_a38e4174.jpg";
+import postFallsIDProperty from "@assets/stock_images/luxury_single_family_c32ea781.jpg";
 import { useToast } from "@/hooks/use-toast";
 import { GeometricPattern } from "@/components/GeometricPattern";
 
