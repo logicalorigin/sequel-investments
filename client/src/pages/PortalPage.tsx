@@ -272,50 +272,50 @@ export default function PortalPage() {
           <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
             Select a loan type to begin analyzing your next investment opportunity.
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6">
-            <Card className="hover-elevate cursor-pointer" onClick={() => setLocation("/portal/dscr-analyzer")} data-testid="card-analyze-dscr">
-              <CardHeader className="p-3 sm:p-6 pb-2 sm:pb-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+            <Card className="hover-elevate cursor-pointer flex flex-col h-full" onClick={() => setLocation("/portal/dscr-analyzer")} data-testid="card-analyze-dscr">
+              <CardHeader className="p-4 pb-2 flex-1">
                 <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
-                  <Home className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                  <Home className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0" />
                   DSCR Loan
                 </CardTitle>
-                <CardDescription className="text-xs sm:text-sm">Long-term rental property financing</CardDescription>
+                <CardDescription className="text-xs sm:text-sm mt-1">Long-term rental property financing</CardDescription>
               </CardHeader>
-              <CardContent className="p-3 sm:p-6 pt-2 sm:pt-2">
-                <Button variant="outline" size="sm" className="w-full h-8 text-xs sm:text-sm">
-                  <Calculator className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <CardContent className="p-4 pt-2">
+                <Button variant="outline" size="sm" className="w-full">
+                  <Calculator className="h-4 w-4 mr-2" />
                   Analyze
                 </Button>
               </CardContent>
             </Card>
 
-            <Card className="hover-elevate cursor-pointer" onClick={() => setLocation("/portal/fixflip-analyzer")} data-testid="card-analyze-fixflip">
-              <CardHeader className="p-3 sm:p-6 pb-2 sm:pb-2">
+            <Card className="hover-elevate cursor-pointer flex flex-col h-full" onClick={() => setLocation("/portal/fixflip-analyzer")} data-testid="card-analyze-fixflip">
+              <CardHeader className="p-4 pb-2 flex-1">
                 <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
-                  <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                  <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0" />
                   Fix & Flip
                 </CardTitle>
-                <CardDescription className="text-xs sm:text-sm">Short-term renovation financing</CardDescription>
+                <CardDescription className="text-xs sm:text-sm mt-1">Short-term renovation financing</CardDescription>
               </CardHeader>
-              <CardContent className="p-3 sm:p-6 pt-2 sm:pt-2">
-                <Button variant="outline" size="sm" className="w-full h-8 text-xs sm:text-sm">
-                  <Calculator className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <CardContent className="p-4 pt-2">
+                <Button variant="outline" size="sm" className="w-full">
+                  <Calculator className="h-4 w-4 mr-2" />
                   Analyze
                 </Button>
               </CardContent>
             </Card>
 
-            <Card className="hover-elevate cursor-pointer" onClick={() => setLocation("/portal/construction-analyzer")} data-testid="card-analyze-construction">
-              <CardHeader className="p-3 sm:p-6 pb-2 sm:pb-2">
+            <Card className="hover-elevate cursor-pointer flex flex-col h-full" onClick={() => setLocation("/portal/construction-analyzer")} data-testid="card-analyze-construction">
+              <CardHeader className="p-4 pb-2 flex-1">
                 <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
-                  <Building2 className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                  <Building2 className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0" />
                   New Construction
                 </CardTitle>
-                <CardDescription className="text-xs sm:text-sm">Ground-up development financing</CardDescription>
+                <CardDescription className="text-xs sm:text-sm mt-1">Ground-up development financing</CardDescription>
               </CardHeader>
-              <CardContent className="p-3 sm:p-6 pt-2 sm:pt-2">
-                <Button variant="outline" size="sm" className="w-full h-8 text-xs sm:text-sm">
-                  <Calculator className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <CardContent className="p-4 pt-2">
+                <Button variant="outline" size="sm" className="w-full">
+                  <Calculator className="h-4 w-4 mr-2" />
                   Analyze
                 </Button>
               </CardContent>
