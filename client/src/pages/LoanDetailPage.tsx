@@ -652,7 +652,7 @@ function EscrowSummary({ loan, escrowItems }: { loan: ServicedLoan; escrowItems:
               <div key={item.id} className="flex items-center justify-between p-2 rounded border">
                 <div>
                   <p className="font-medium capitalize">{item.itemType.replace("_", " ")}</p>
-                  <p className="text-xs text-muted-foreground">{item.description}</p>
+                  <p className="text-xs text-muted-foreground">{item.vendorName || item.notes}</p>
                 </div>
                 <div className="text-right">
                   <p className="font-medium">{formatCurrency(item.monthlyAmount)}/mo</p>
@@ -852,7 +852,7 @@ export default function LoanDetailPage() {
                             )}
                           </div>
                           <div className="flex-1">
-                            <p className="font-medium">{milestone.name}</p>
+                            <p className="font-medium">{milestone.title}</p>
                             {milestone.description && (
                               <p className="text-xs text-muted-foreground">{milestone.description}</p>
                             )}
@@ -889,9 +889,9 @@ export default function LoanDetailPage() {
                           <div className="flex items-center gap-3">
                             <FileText className="h-5 w-5 text-muted-foreground" />
                             <div>
-                              <p className="font-medium">{doc.name}</p>
+                              <p className="font-medium">{doc.title}</p>
                               <p className="text-xs text-muted-foreground">
-                                {doc.category} • {format(new Date(doc.createdAt), "MMM d, yyyy")}
+                                {doc.documentType} • {format(new Date(doc.createdAt), "MMM d, yyyy")}
                               </p>
                             </div>
                           </div>
@@ -948,9 +948,9 @@ export default function LoanDetailPage() {
                           <div className="flex items-center gap-3">
                             <FileText className="h-5 w-5 text-muted-foreground" />
                             <div>
-                              <p className="font-medium">{doc.name}</p>
+                              <p className="font-medium">{doc.title}</p>
                               <p className="text-xs text-muted-foreground">
-                                {doc.category} • {format(new Date(doc.createdAt), "MMM d, yyyy")}
+                                {doc.documentType} • {format(new Date(doc.createdAt), "MMM d, yyyy")}
                               </p>
                             </div>
                           </div>
