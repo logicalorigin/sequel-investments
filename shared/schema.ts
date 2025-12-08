@@ -523,21 +523,19 @@ export const loanEscrowItems = pgTable("loan_escrow_items", {
   servicedLoanId: varchar("serviced_loan_id").notNull().references(() => servicedLoans.id),
   
   itemType: escrowItemTypeEnum("item_type").notNull(),
-  description: text("description"),
+  vendorName: text("vendor_name"),
   
   // Amounts
   annualAmount: integer("annual_amount").notNull(),
   monthlyAmount: integer("monthly_amount").notNull(),
-  currentBalance: integer("current_balance").default(0),
   
   // Due dates
-  nextDueDate: timestamp("next_due_date"),
+  dueDate: timestamp("due_date"),
   lastPaidDate: timestamp("last_paid_date"),
   lastPaidAmount: integer("last_paid_amount"),
+  nextDueDate: timestamp("next_due_date"),
   
-  // Payee info
-  payeeName: text("payee_name"),
-  accountNumber: text("account_number"),
+  notes: text("notes"),
   
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -578,18 +576,19 @@ export const loanDocuments = pgTable("loan_documents", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   servicedLoanId: varchar("serviced_loan_id").notNull().references(() => servicedLoans.id),
   
-  category: loanDocumentCategoryEnum("category").notNull(),
-  name: text("name").notNull(),
-  description: text("description"),
+  documentType: text("document_type").notNull(),
+  title: text("title").notNull(),
   
   fileName: text("file_name").notNull(),
   fileUrl: text("file_url").notNull(),
   fileSize: integer("file_size"),
   mimeType: text("mime_type"),
   
-  uploadedById: varchar("uploaded_by_id").references(() => users.id),
+  uploadedBy: varchar("uploaded_by").references(() => users.id),
+  notes: text("notes"),
   
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 export const loanDocumentsRelations = relations(loanDocuments, ({ one }) => ({
@@ -597,8 +596,8 @@ export const loanDocumentsRelations = relations(loanDocuments, ({ one }) => ({
     fields: [loanDocuments.servicedLoanId],
     references: [servicedLoans.id],
   }),
-  uploadedBy: one(users, {
-    fields: [loanDocuments.uploadedById],
+  uploader: one(users, {
+    fields: [loanDocuments.uploadedBy],
     references: [users.id],
   }),
 }));
@@ -625,16 +624,20 @@ export const loanMilestones = pgTable("loan_milestones", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   servicedLoanId: varchar("serviced_loan_id").notNull().references(() => servicedLoans.id),
   
-  name: text("name").notNull(),
+  milestoneNumber: integer("milestone_number").notNull(),
+  title: text("title").notNull(),
   description: text("description"),
-  sortOrder: integer("sort_order").default(0),
   status: milestoneStatusEnum("status").default("not_started").notNull(),
   
-  budgetAmount: integer("budget_amount"),
-  actualAmount: integer("actual_amount"),
+  targetCompletionPercent: integer("target_completion_percent"),
+  actualCompletionPercent: integer("actual_completion_percent"),
   
   targetDate: timestamp("target_date"),
   completedDate: timestamp("completed_date"),
+  
+  budgetAmount: integer("budget_amount"),
+  actualAmount: integer("actual_amount"),
+  inspectionRequired: boolean("inspection_required").default(false),
   
   notes: text("notes"),
   
