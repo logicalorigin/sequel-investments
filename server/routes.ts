@@ -508,36 +508,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: req.body.fileName || "Document uploaded successfully",
       });
       
-      // Queue notification to assigned staff member(s) for the application
-      // Notify account executive and/or processor when borrower uploads a document
-      if (application.assignedAccountExecutive) {
-        const sendAfter = new Date(Date.now() + 30 * 60 * 1000);
-        await storage.createNotificationQueueItem({
-          recipientId: application.assignedAccountExecutive,
-          notificationType: "document_uploaded",
-          title: "Document Uploaded",
-          message: `${docType?.name || "A document"} was uploaded for ${application.propertyAddress || "an application"}.`,
-          linkUrl: `/admin/applications/${application.id}`,
-          relatedApplicationId: application.id,
-          relatedDocumentId: doc.id,
-          batchKey: `doc_upload:staff:${application.id}`,
-          sendAfter,
-        });
-      }
-      if (application.assignedProcessor && application.assignedProcessor !== application.assignedAccountExecutive) {
-        const sendAfter = new Date(Date.now() + 30 * 60 * 1000);
-        await storage.createNotificationQueueItem({
-          recipientId: application.assignedProcessor,
-          notificationType: "document_uploaded",
-          title: "Document Uploaded",
-          message: `${docType?.name || "A document"} was uploaded for ${application.propertyAddress || "an application"}.`,
-          linkUrl: `/admin/applications/${application.id}`,
-          relatedApplicationId: application.id,
-          relatedDocumentId: doc.id,
-          batchKey: `doc_upload:staff:${application.id}`,
-          sendAfter,
-        });
-      }
 
       res.status(200).json(updated);
     } catch (error) {
