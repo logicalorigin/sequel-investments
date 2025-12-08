@@ -104,7 +104,7 @@ export default function ApplicationDetailPage() {
   const applicationId = params.id;
 
   useEffect(() => {
-    document.title = "Loan Application | Secured Asset Funding";
+    document.title = "Loan Application | Sequel Investments";
   }, []);
 
   useEffect(() => {
@@ -327,7 +327,7 @@ export default function ApplicationDetailPage() {
           <Link href="/">
             <div className="flex items-center gap-2 cursor-pointer">
               <Building2 className="h-6 w-6 text-primary" />
-              <span className="font-bold text-lg">Secured Asset Funding</span>
+              <span className="font-bold text-lg">Sequel Investments</span>
             </div>
           </Link>
           

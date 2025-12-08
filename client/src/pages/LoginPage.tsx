@@ -75,7 +75,7 @@ export default function LoginPage() {
       <Card className="max-w-md w-full">
         <CardHeader className="text-center">
           <div className="mx-auto h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-2">
-            <img src={logoIcon} alt="SAF" className="h-10 w-10 object-contain" />
+            <img src={logoIcon} alt="Sequel Investments" className="h-10 w-10 object-contain" />
           </div>
           <CardTitle className="text-2xl">Client Portal</CardTitle>
           <CardDescription>

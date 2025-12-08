@@ -152,7 +152,7 @@ export default function InvestmentAnalysisPage() {
   const [monthlyRent, setMonthlyRent] = useState("3500");
 
   useEffect(() => {
-    document.title = "Investment Analysis | Secured Asset Funding";
+    document.title = "Investment Analysis | Sequel Investments";
   }, []);
 
   useEffect(() => {

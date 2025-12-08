@@ -58,11 +58,11 @@ export default function ContactPage() {
                 </CardHeader>
                 <CardContent>
                   <a 
-                    href="tel:+18887253863" 
+                    href="tel:+13023888860" 
                     className="text-lg font-semibold text-primary hover:underline"
                     data-testid="link-phone"
                   >
-                    (888) 725-3863
+                    302.388.8860
                   </a>
                   <p className="text-sm text-muted-foreground mt-2">
                     Monday - Friday: 8am - 8pm EST<br />
@@ -78,11 +78,11 @@ export default function ContactPage() {
                 </CardHeader>
                 <CardContent>
                   <a 
-                    href="mailto:info@securedassetfunding.com" 
+                    href="mailto:josh@fundwithsequel.com" 
                     className="text-lg font-semibold text-primary hover:underline"
                     data-testid="link-email"
                   >
-                    info@securedassetfunding.com
+                    josh@fundwithsequel.com
                   </a>
                   <p className="text-sm text-muted-foreground mt-2">
                     We respond to all emails within 4 business hours
@@ -97,9 +97,9 @@ export default function ContactPage() {
                 </CardHeader>
                 <CardContent>
                   <address className="not-italic text-muted-foreground">
-                    1201 E Cesar Chavez Street<br />
-                    Suite 1<br />
-                    Austin, TX 78702
+                    800 5th Avenue<br />
+                    Suite 4100<br />
+                    Miami Beach, FL 33139
                   </address>
                   <p className="text-sm text-muted-foreground mt-3">
                     Office visits by appointment only

@@ -29,7 +29,7 @@ import {
 } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { setupStaffAuth, createAdminUser, createTestBrokerUser, createTestBorrowerUser } from "./staffAuth";
+import { setupStaffAuth, createAdminUser, createTestBorrowerUser } from "./staffAuth";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { ObjectPermission } from "./objectAcl";
 import crypto from "crypto";
@@ -48,7 +48,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // In production, use environment variables or a proper user management system
   if (process.env.NODE_ENV !== 'production') {
     await createAdminUser("admin", "admin");
-    await createTestBrokerUser("broker", "broker");
     await createTestBorrowerUser("borrower", "borrower");
   }
   
@@ -2063,7 +2062,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const testPayload = {
         event: "test.ping",
         data: {
-          message: "This is a test webhook from Secured Asset Funding",
+          message: "This is a test webhook from Sequel Investments",
           timestamp: new Date().toISOString(),
         },
         timestamp: new Date().toISOString(),
@@ -2080,8 +2079,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "X-SAF-Signature": `sha256=${signature}`,
-            "X-SAF-Event": "test.ping",
+            "X-Sequel-Signature": `sha256=${signature}`,
+            "X-Sequel-Event": "test.ping",
           },
           body: JSON.stringify(testPayload),
         });
@@ -2219,7 +2218,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Create a temporary broker profile for admin testing
           brokerProfile = await storage.createBrokerProfile({
             userId: userId,
-            companyName: "SAF Admin Test",
+            companyName: "Sequel Admin Test",
             companySlug: `admin-test-${userId.slice(0, 8)}`,
             companyEmail: user.email,
           });

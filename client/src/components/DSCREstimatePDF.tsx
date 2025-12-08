@@ -70,18 +70,18 @@ export const DSCREstimatePDF = forwardRef<HTMLDivElement, DSCREstimatePDFProps>(
         style={{ fontFamily: "Inter, system-ui, sans-serif" }}
       >
         {/* Letterhead */}
-        <div className="flex justify-between items-start mb-6 pb-4 border-b-2 border-[#e55c2b]">
+        <div className="flex justify-between items-start mb-6 pb-4 border-b-2 border-[#D4A01D]">
           <div className="flex items-center gap-3">
-            <img src={logoUrl} alt="Secured Asset Funding" className="h-14 w-auto" />
+            <img src={logoUrl} alt="Sequel Investments" className="h-14 w-auto" />
             <div>
-              <h1 className="text-xl font-bold text-[#1a1a2e]">Secured Asset Funding</h1>
+              <h1 className="text-xl font-bold text-[#1a1a2e]">Sequel Investments</h1>
               <p className="text-xs text-gray-600">Investor-Focused Real Estate Lending</p>
             </div>
           </div>
           <div className="text-right text-xs text-gray-600">
-            <p>www.securedassetfunding.com</p>
-            <p>info@securedassetfunding.com</p>
-            <p>(888) 725-3863</p>
+            <p>www.fundwithsequel.com</p>
+            <p>josh@fundwithsequel.com</p>
+            <p>302.388.8860</p>
           </div>
         </div>
 
@@ -97,7 +97,7 @@ export const DSCREstimatePDF = forwardRef<HTMLDivElement, DSCREstimatePDFProps>(
 
         {/* Property Information */}
         <div className="mb-5">
-          <h3 className="text-sm font-semibold text-[#e55c2b] uppercase tracking-wide mb-2 pb-1 border-b border-gray-200">
+          <h3 className="text-sm font-semibold text-[#D4A01D] uppercase tracking-wide mb-2 pb-1 border-b border-gray-200">
             Property Information
           </h3>
           <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm">
@@ -122,7 +122,7 @@ export const DSCREstimatePDF = forwardRef<HTMLDivElement, DSCREstimatePDFProps>(
 
         {/* Loan Terms */}
         <div className="mb-5">
-          <h3 className="text-sm font-semibold text-[#e55c2b] uppercase tracking-wide mb-2 pb-1 border-b border-gray-200">
+          <h3 className="text-sm font-semibold text-[#D4A01D] uppercase tracking-wide mb-2 pb-1 border-b border-gray-200">
             Loan Terms
           </h3>
           <div className="grid grid-cols-3 gap-4">
@@ -140,9 +140,9 @@ export const DSCREstimatePDF = forwardRef<HTMLDivElement, DSCREstimatePDFProps>(
             </div>
           </div>
           <div className="grid grid-cols-3 gap-4 mt-3">
-            <div className="bg-[#e55c2b]/10 rounded-lg p-3 text-center">
+            <div className="bg-[#D4A01D]/10 rounded-lg p-3 text-center">
               <p className="text-xs text-gray-600 uppercase">Interest Rate</p>
-              <p className="text-xl font-bold text-[#e55c2b]">{data.calculatedRate.toFixed(3)}%</p>
+              <p className="text-xl font-bold text-[#D4A01D]">{data.calculatedRate.toFixed(3)}%</p>
             </div>
             <div className="bg-green-50 rounded-lg p-3 text-center">
               <p className="text-xs text-gray-600 uppercase">DSCR</p>
@@ -157,7 +157,7 @@ export const DSCREstimatePDF = forwardRef<HTMLDivElement, DSCREstimatePDFProps>(
 
         {/* Monthly Cash Flow Analysis */}
         <div className="mb-5">
-          <h3 className="text-sm font-semibold text-[#e55c2b] uppercase tracking-wide mb-2 pb-1 border-b border-gray-200">
+          <h3 className="text-sm font-semibold text-[#D4A01D] uppercase tracking-wide mb-2 pb-1 border-b border-gray-200">
             Monthly Cash Flow Analysis
           </h3>
           <div className="grid grid-cols-2 gap-8">
@@ -204,11 +204,11 @@ export const DSCREstimatePDF = forwardRef<HTMLDivElement, DSCREstimatePDFProps>(
                     <td className="py-1.5 text-gray-600">Annual HOA</td>
                     <td className="py-1.5 text-right font-medium">{formatCurrency(data.annualHOA)}</td>
                   </tr>
-                  <tr className="bg-[#e55c2b]/10">
+                  <tr className="bg-[#D4A01D]/10">
                     <td className="py-2 font-semibold">
                       {data.transactionType === "purchase" ? "Cash to Close" : "Cash to Borrower"}
                     </td>
-                    <td className="py-2 text-right font-bold text-[#e55c2b]">
+                    <td className="py-2 text-right font-bold text-[#D4A01D]">
                       {formatCurrency(data.transactionType === "purchase" ? data.cashToClose : data.cashToBorrower)}
                     </td>
                   </tr>
@@ -223,16 +223,16 @@ export const DSCREstimatePDF = forwardRef<HTMLDivElement, DSCREstimatePDFProps>(
           <p className="text-[10px] text-gray-500 leading-relaxed">
             <strong>Disclaimer:</strong> This DSCR Estimate is for illustrative purposes only and does not constitute a loan commitment, 
             pre-approval, or guarantee of terms. Actual loan terms, rates, and eligibility are subject to credit approval, property 
-            appraisal, and underwriting review. Interest rates and loan programs are subject to change without notice. Secured Asset 
-            Funding reserves the right to modify or discontinue any loan program at any time. Contact a loan specialist for current 
+            appraisal, and underwriting review. Interest rates and loan programs are subject to change without notice. Sequel 
+            Investments reserves the right to modify or discontinue any loan program at any time. Contact a loan specialist for current 
             rates and personalized loan options. NMLS #2394066
           </p>
         </div>
 
         {/* Footer */}
-        <div className="mt-4 pt-3 border-t border-[#e55c2b] flex justify-between items-center text-xs text-gray-500">
-          <span>© {new Date().getFullYear()} Secured Asset Funding. All rights reserved.</span>
-          <span className="text-[#e55c2b] font-medium">securedassetfunding.com</span>
+        <div className="mt-4 pt-3 border-t border-[#D4A01D] flex justify-between items-center text-xs text-gray-500">
+          <span>© {new Date().getFullYear()} Sequel Investments. All rights reserved.</span>
+          <span className="text-[#D4A01D] font-medium">fundwithsequel.com</span>
         </div>
       </div>
     );

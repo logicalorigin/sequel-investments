@@ -1832,7 +1832,7 @@ export default function AdminDashboard() {
                     placeholder="company-name"
                     data-testid="input-approve-slug"
                   />
-                  <span className="text-xs text-muted-foreground whitespace-nowrap">.securedassetfunding.com</span>
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">.fundwithsequel.com</span>
                 </div>
               </div>
               <div className="space-y-2">
@@ -2037,7 +2037,7 @@ export default function AdminDashboard() {
                           </div>
                           {brokerForm.companySlug && (
                             <p className="text-xs text-muted-foreground">
-                              Portal URL: {brokerForm.companySlug}.securedassetfunding.com
+                              Portal URL: {brokerForm.companySlug}.fundwithsequel.com
                             </p>
                           )}
                         </div>
@@ -2139,7 +2139,7 @@ export default function AdminDashboard() {
                                   </div>
                                   <div>
                                     <p className="font-medium text-sm">{broker.companyName}</p>
-                                    <p className="text-xs text-muted-foreground">{broker.companySlug}.securedassetfunding.com</p>
+                                    <p className="text-xs text-muted-foreground">{broker.companySlug}.fundwithsequel.com</p>
                                   </div>
                                 </div>
                               </TableCell>

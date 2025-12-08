@@ -2,7 +2,6 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Facebook, Twitter, Linkedin, Mail } from "lucide-react";
-import logoIcon from "@assets/logo_saf_only_removed_bg (1)_1764095523171.png";
 import { GeometricPattern } from "@/components/GeometricPattern";
 
 export function Footer() {
@@ -17,15 +16,18 @@ export function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 md:gap-12 mb-8 sm:mb-12">
           <div className="col-span-2 lg:col-span-1">
             <div className="flex items-center mb-4 sm:mb-6">
-              <img 
-                src={logoIcon} 
-                alt="Secured Asset Funding" 
-                className="h-10 sm:h-14 w-auto object-contain"
-              />
+              <span className="text-lg font-bold text-primary">SEQUEL</span>
+              <span className="text-lg font-light text-foreground ml-1">INVESTMENTS</span>
             </div>
             <p className="text-sm sm:text-base text-muted-foreground mb-3 sm:mb-4">
-              Investor-focused financing solutions for DSCR, Fix & Flip, and New Construction loans nationwide.
+              Private financing solutions for real estate investors. DSCR, Fix & Flip, and New Construction loans nationwide.
             </p>
+            <div className="text-xs sm:text-sm text-muted-foreground space-y-1 mb-3 sm:mb-4">
+              <p>302.388.8860</p>
+              <p>josh@fundwithsequel.com</p>
+              <p>800 5th Avenue, Suite 4100</p>
+              <p>Miami Beach, FL 33139</p>
+            </div>
             <div className="flex gap-2 sm:gap-3">
               <Button size="icon" variant="outline" className="h-8 w-8 sm:h-9 sm:w-9" data-testid="button-social-facebook">
                 <Facebook className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
@@ -134,7 +136,7 @@ export function Footer() {
         <div className="pt-6 sm:pt-8 border-t">
           <div className="flex flex-col md:flex-row justify-between items-center gap-2 sm:gap-4">
             <p className="text-muted-foreground text-xs sm:text-sm text-center md:text-left">
-              © 2024 Secured Asset Funding. All rights reserved. NMLS #123456
+              © 2024 Sequel Investments. All rights reserved.
             </p>
             <p className="text-muted-foreground text-xs sm:text-sm">
               Licensed in 48 states + DC

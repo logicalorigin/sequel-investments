@@ -130,7 +130,7 @@ export default function StaffLoginPage() {
           
           <div className="pt-4 border-t text-center">
             <p className="text-sm text-muted-foreground">
-              Secured Asset Funding - Staff Portal
+              Sequel Investments - Staff Portal
             </p>
           </div>
         </CardContent>

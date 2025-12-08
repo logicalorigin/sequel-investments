@@ -511,7 +511,7 @@ export default function HomePage() {
                 </span>
               </h2>
               <p className="text-base sm:text-lg md:text-xl text-muted-foreground mb-6 sm:mb-8 max-w-lg mx-auto lg:mx-0">
-                Secured Asset Funding is a nationwide private lender serving real estate investors across 48 states + DC. 
+                Sequel Investments is a nationwide private lender serving real estate investors across 48 states + DC. 
                 Click on a state to explore our loan programs in your area.
               </p>
 
@@ -542,7 +542,7 @@ export default function HomePage() {
       <section className="py-12 sm:py-16 md:py-24 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-8 sm:mb-12 md:mb-16">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">Why Choose Secured Asset Funding</h2>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">Why Choose Sequel Investments</h2>
             <p className="text-base sm:text-lg md:text-xl text-muted-foreground">
               What makes us the trusted choice for real estate investors
             </p>

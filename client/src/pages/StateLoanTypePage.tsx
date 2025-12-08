@@ -148,10 +148,10 @@ export default function StateLoanTypePage() {
 
   useEffect(() => {
     if (state && config) {
-      document.title = `${state.name} ${config.fullTitle} | Rates from ${config.rates} | Secured Asset Funding`;
+      document.title = `${state.name} ${config.fullTitle} | Rates from ${config.rates} | Sequel Investments`;
       const metaDescription = document.querySelector('meta[name="description"]');
       if (metaDescription) {
-        metaDescription.setAttribute("content", `${config.title} in ${state.name} with rates from ${config.rates} and up to ${config.ltv}. ${config.description}. Fast approvals and competitive terms from Secured Asset Funding.`);
+        metaDescription.setAttribute("content", `${config.title} in ${state.name} with rates from ${config.rates} and up to ${config.ltv}. ${config.description}. Fast approvals and competitive terms from Sequel Investments.`);
       }
     }
   }, [state, config]);
@@ -232,7 +232,7 @@ export default function StateLoanTypePage() {
           </div>
           
           <p className="text-xl text-muted-foreground max-w-3xl mb-8">
-            {config.description}. Secured Asset Funding offers competitive {config.title.toLowerCase()} for 
+            {config.description}. Sequel Investments offers competitive {config.title.toLowerCase()} for 
             real estate investors throughout {state.name}.
           </p>
 

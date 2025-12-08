@@ -14,7 +14,7 @@ export default function AboutPage() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="max-w-3xl mx-auto text-center">
             <h1 className="text-4xl md:text-5xl font-bold mb-6" data-testid="text-about-title">
-              About Secured Asset Funding
+              About Sequel Investments
             </h1>
             <p className="text-xl text-muted-foreground">
               Your trusted partner in investor-focused real estate financing
@@ -29,7 +29,7 @@ export default function AboutPage() {
             <div className="prose prose-lg max-w-none">
               <h2 className="text-3xl font-bold mb-6">Our Story</h2>
               <p className="text-lg text-muted-foreground mb-4">
-                Secured Asset Funding was founded with a simple observation: traditional mortgage lending wasn't serving the needs of real estate investors. Experienced investors with strong portfolios were being turned away because they couldn't provide W2s or traditional income documentation.
+                Sequel Investments was founded with a simple observation: traditional mortgage lending wasn't serving the needs of real estate investors. Experienced investors with strong portfolios were being turned away because they couldn't provide W2s or traditional income documentation.
               </p>
               <p className="text-lg text-muted-foreground mb-4">
                 We set out to change that by specializing in investor-focused financing that focuses on what matters most for investment properties: cash flow and property value. Today, we've helped over 1,500 investors fund more than $500 million in real estate acquisitions, renovations, and new construction projects across 48 states.
@@ -131,7 +131,7 @@ export default function AboutPage() {
             <Card>
               <CardContent className="p-8 space-y-4">
                 <p className="text-muted-foreground">
-                  Secured Asset Funding is a licensed mortgage lender operating under NMLS #123456. We are licensed to originate loans in 48 states plus Washington D.C. and comply with all federal and state lending regulations.
+                  Sequel Investments is a licensed mortgage lender operating under NMLS #123456. We are licensed to originate loans in 48 states plus Washington D.C. and comply with all federal and state lending regulations.
                 </p>
                 <p className="text-muted-foreground">
                   Our loan officers are individually licensed and undergo continuing education to stay current with lending laws and best practices. We maintain all required insurance and bonding to protect our clients.
@@ -156,7 +156,7 @@ export default function AboutPage() {
             Ready to Work Together?
           </h2>
           <p className="text-xl text-primary-foreground/90 mb-8">
-            Join over 1,500 investors who trust Secured Asset Funding for their financing needs
+            Join over 1,500 investors who trust Sequel Investments for their financing needs
           </p>
           <Link href="/get-quote">
             <Button size="lg" variant="secondary" className="text-lg px-8" data-testid="button-about-getrate">

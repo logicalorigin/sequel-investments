@@ -8,7 +8,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import logoIcon from "@assets/logo_saf_only_removed_bg (1)_1764095523171.png";
 
 export function Navigation() {
   const [location] = useLocation();
@@ -37,11 +36,8 @@ export function Navigation() {
         <div className="flex items-center justify-between h-20">
           <Link href="/" data-testid="link-home">
             <div className="flex items-center cursor-pointer hover-elevate active-elevate-2 px-2 py-1 rounded-md -ml-2">
-              <img 
-                src={logoIcon} 
-                alt="Secured Asset Funding" 
-                className="h-16 w-auto object-contain"
-              />
+              <span className="text-xl font-bold text-primary">SEQUEL</span>
+              <span className="text-xl font-light text-foreground ml-1">INVESTMENTS</span>
             </div>
           </Link>
 
@@ -107,13 +103,10 @@ export function Navigation() {
             <Link href="/portal" data-testid="link-nav-portal">
               <Button 
                 size="default"
-                className="bg-primary text-white hover:bg-primary/90"
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
               >
                 Client Portal
               </Button>
-            </Link>
-            <Link href="/broker" data-testid="link-nav-broker-portal">
-              <Button size="default" variant="outline">Broker Portal</Button>
             </Link>
           </div>
 
@@ -196,13 +189,8 @@ export function Navigation() {
 
             <div className="flex flex-col gap-3 pt-2">
               <Link href="/portal" data-testid="link-mobile-portal">
-                <Button className="w-full bg-primary text-white hover:bg-primary/90" onClick={() => setIsMobileMenuOpen(false)}>
+                <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => setIsMobileMenuOpen(false)}>
                   Client Portal
-                </Button>
-              </Link>
-              <Link href="/broker" data-testid="link-mobile-broker-portal">
-                <Button variant="outline" className="w-full" onClick={() => setIsMobileMenuOpen(false)}>
-                  Broker Portal
                 </Button>
               </Link>
             </div>

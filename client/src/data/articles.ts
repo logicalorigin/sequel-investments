@@ -19,7 +19,7 @@ export const articles: Article[] = [
     title: "The Complete Guide to DSCR Rental Property Loans",
     metaDescription: "Learn everything about DSCR loans for rental property investors. Discover how debt service coverage ratio works, qualification requirements, and how to scale your portfolio without income verification.",
     category: "Guide",
-    author: "Secured Asset Funding",
+    author: "Sequel Investments",
     publishDate: "2024-11-15",
     readTime: "12 min read",
     heroImage: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=1200&h=600&fit=crop&auto=format",
@@ -53,7 +53,7 @@ A DSCR of 1.25 means the property generates 25% more income than its debt obliga
 | 1.0 - 1.25 | Positive cash flow | Standard terms |
 | Above 1.25 | Strong cash flow | Best rates available |
 
-At Secured Asset Funding, we have **no minimum DSCR requirement** and can close deals even when the ratio falls below 1.0—something most lenders won't do.
+At Sequel Investments, we have **no minimum DSCR requirement** and can close deals even when the ratio falls below 1.0—something most lenders won't do.
 
 ## Why Real Estate Investors Choose DSCR Loans
 
@@ -81,7 +81,7 @@ DSCR loans accommodate Airbnb, VRBO, and vacation rental properties. We can qual
 
 ### 5. BRRRR Strategy Compatible
 
-The Buy, Rehab, Rent, Refinance, Repeat strategy works seamlessly with DSCR loans. With no seasoning requirements at Secured Asset Funding, you can refinance immediately after completing your rehab.
+The Buy, Rehab, Rent, Refinance, Repeat strategy works seamlessly with DSCR loans. With no seasoning requirements at Sequel Investments, you can refinance immediately after completing your rehab.
 
 ## DSCR Loan Requirements
 
@@ -109,7 +109,7 @@ While income verification isn't required, you'll still need:
 - Bank statements for reserves
 - Credit authorization
 
-## DSCR Loan Terms at Secured Asset Funding
+## DSCR Loan Terms at Sequel Investments
 
 | Term | Details |
 |------|---------|
@@ -180,7 +180,7 @@ It depends on the loan product. We offer options both with and without prepaymen
 
 ## Get Started with Your DSCR Loan
 
-Ready to scale your rental portfolio without the hassle of traditional income verification? Secured Asset Funding offers competitive DSCR loan programs with no minimum DSCR requirement, rates starting at 5.75%, and closings as fast as 10 days.
+Ready to scale your rental portfolio without the hassle of traditional income verification? Sequel Investments offers competitive DSCR loan programs with no minimum DSCR requirement, rates starting at 5.75%, and closings as fast as 10 days.
 
 [Get Your Rate Today →](/get-quote)
 
@@ -192,7 +192,7 @@ Our team of investment property specialists is ready to help you analyze your de
     title: "What Every Real Estate Investor Should Know About ADUs",
     metaDescription: "Discover how Accessory Dwelling Units (ADUs) can boost your real estate investment returns. Learn about ADU types, financing options, zoning considerations, and ROI potential.",
     category: "Article",
-    author: "Secured Asset Funding",
+    author: "Sequel Investments",
     publishDate: "2024-10-22",
     readTime: "10 min read",
     heroImage: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200&h=600&fit=crop&auto=format",
@@ -375,7 +375,7 @@ ADUs aren't for every investor or every property. Consider:
 
 ## Get Started with ADU Financing
 
-Secured Asset Funding offers multiple financing solutions for ADU projects:
+Sequel Investments offers multiple financing solutions for ADU projects:
 
 - **DSCR Loans** for properties with existing ADUs
 - **Fix and Flip Loans** for ADU addition projects
@@ -391,7 +391,7 @@ Our team can help you analyze your ADU project and find the right financing stru
     title: "Top Renovations to Maximize Profits for Real Estate Investors",
     metaDescription: "Discover which home renovations offer the best ROI for real estate investors. Learn budget-smart upgrade strategies for kitchens, bathrooms, curb appeal, and more.",
     category: "Article",
-    author: "Secured Asset Funding",
+    author: "Sequel Investments",
     publishDate: "2024-09-18",
     readTime: "8 min read",
     heroImage: "https://images.unsplash.com/photo-1484154218962-a197022b5858?w=1200&h=600&fit=crop&auto=format",
@@ -646,7 +646,7 @@ Evaluate contractors on:
 
 ## Finance Your Renovation
 
-Secured Asset Funding offers flexible financing for renovation projects:
+Sequel Investments offers flexible financing for renovation projects:
 
 - **Fix & Flip Loans**: Up to 90% of purchase + 100% of rehab
 - **Bridge Loans**: Short-term financing for value-add projects
@@ -662,7 +662,7 @@ Our team can help you structure the right loan for your project scope and timeli
     title: "The Ins and Outs of Your Scope of Work",
     metaDescription: "Learn how to create a professional Scope of Work (SOW) for your fix and flip project. A detailed SOW ensures accurate budgeting, contractor accountability, and lender confidence.",
     category: "Guide",
-    author: "Secured Asset Funding",
+    author: "Sequel Investments",
     publishDate: "2024-08-12",
     readTime: "9 min read",
     heroImage: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=1200&h=600&fit=crop&auto=format",
@@ -937,7 +937,7 @@ Tools like Buildertrend, Procore, or Houzz Pro offer:
 - Timeline tracking
 
 ### Lender Portals
-Many lenders provide digital SOW submission and tracking. At Secured Asset Funding, our online portal allows you to:
+Many lenders provide digital SOW submission and tracking. At Sequel Investments, our online portal allows you to:
 - Submit your SOW digitally
 - Track project status
 - Request draws
@@ -959,7 +959,7 @@ Before submitting your SOW to a lender, ensure you have:
 
 ## Get Your Fix & Flip Funded
 
-A professional SOW demonstrates you're a serious investor ready to execute. At Secured Asset Funding, we review every SOW carefully to ensure your project is set up for success.
+A professional SOW demonstrates you're a serious investor ready to execute. At Sequel Investments, we review every SOW carefully to ensure your project is set up for success.
 
 Our fix and flip loans offer:
 - Up to 90% of purchase price

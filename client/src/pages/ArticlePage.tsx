@@ -24,7 +24,7 @@ export default function ArticlePage() {
 
   useEffect(() => {
     if (article) {
-      document.title = `${article.title} | Secured Asset Funding`;
+      document.title = `${article.title} | Sequel Investments`;
       const metaDescription = document.querySelector('meta[name="description"]');
       if (metaDescription) {
         metaDescription.setAttribute("content", article.metaDescription);

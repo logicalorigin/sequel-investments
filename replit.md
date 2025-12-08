@@ -1,8 +1,13 @@
-# Secured Asset Funding - Real Estate Investment Lending Platform
+# Sequel Investments - Real Estate Investment Lending Platform
 
 ## Overview
 
-Secured Asset Funding (SAF) is a professional marketing and lead generation website for an investor-focused real estate lender specializing in DSCR Loans, Fix & Flip Loans, and New Construction financing. The platform provides educational content, interactive calculators, a multi-step quote application, and lead capture forms to connect borrowers with loan specialists. The design is inspired by leading fintech lenders, featuring modern aesthetics, trust indicators, and conversion-focused layouts.
+Sequel Investments is a professional marketing and lead generation website for an investor-focused real estate lender specializing in DSCR Loans, Fix & Flip Loans, and New Construction financing. The platform provides educational content, interactive calculators, a multi-step quote application, and lead capture forms to connect borrowers with loan specialists. The platform is designed for white-label use by mortgage brokers, featuring a dark theme with gold/amber accents, modern aesthetics, trust indicators, and conversion-focused layouts.
+
+**Primary Contact:**
+- Phone: 302.388.8860
+- Email: josh@fundwithsequel.com
+- Address: 800 5th Avenue, Suite 4100, Miami Beach, FL 33139
 
 ## User Preferences
 
@@ -93,28 +98,9 @@ All three deal analyzers (DSCR, Fix & Flip, Construction) feature a sticky resul
 - **Join Flow** (`/join/:token`): Invited users access the join page, sign in with the invited email address, and accept the invitation to gain staff/admin access.
 - **Timeline Events**: Status and stage changes create timeline events with staff attribution.
 
-### Broker Portal (White-Label System)
+### Broker Portal (Removed)
 
-- **Role-Based Access Control**: Extended user roles to include "broker" role alongside borrower, staff, and admin.
-- **Admin Broker Management** (`/admin` → Brokers tab): Admin can create, edit, and delete broker accounts with company name, slug, contact info, and license details.
-- **Broker Portal** (`/broker`): Dedicated portal for brokers to manage their borrowers and deals.
-  - **Dashboard**: Overview stats (borrowers, active deals, funded deals, pending invites), recent deals/borrowers lists, portal branding preview.
-  - **Borrowers Page**: List of linked borrowers with application counts, active deals, and funded loans. Password reset assistance for borrowers.
-  - **Deals Page**: Track all deals from linked borrowers with status filters (All, Submitted, In Review, Approved, Funded).
-  - **Invites Page**: Create and manage borrower invitations with 7-day expiry, copy invite links, revoke pending invites.
-  - **Settings Page** (`/broker/settings`): White-label branding customization with:
-    - Portal Information display (company name, phone, license, website, white-label URL)
-    - Logo upload section with preview
-    - Color scheme customization (primary/secondary/accent colors in HSL format)
-    - Typography selection (Inter, Roboto, Open Sans, Lato, Montserrat, Poppins)
-    - Footer & Legal section (footer text, privacy policy URL, terms of service URL)
-    - Live preview panel showing real-time branding appearance
-    - Publish/Unpublish toggle for branding visibility to borrowers
-- **White-Label Theming**: BrokerBrandingContext provider (`client/src/context/BrokerBrandingContext.tsx`) injects custom CSS variables for colors and logos when accessing via broker subdomain or URL parameter.
-  - **Development Access**: Use `?broker=slug` query parameter to test white-label branding locally
-  - **Production Access**: Brokers access via `{companySlug}.securedassetfunding.com`
-- **Broker Borrower Relationship**: Brokers can link borrowers to their accounts, track deal activity, and assist with account management.
-- **Broker Invites**: Token-based invite system with prefilled data support for seamless borrower onboarding.
+The broker portal infrastructure has been removed from the application. Admin broker management routes remain in the backend for legacy data management purposes, but the frontend broker portal is no longer available. The platform is now designed for white-label use where mortgage brokers use the entire platform rather than having their own portal.
 
 ### Trust Indicators
 

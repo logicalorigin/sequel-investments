@@ -131,7 +131,7 @@ export default function USMap({ onStateClick }: USMapProps) {
     
     // If hovered and eligible, return theme color (orange)
     if (isHovered && stateData?.isEligible) {
-      return "#e55c2b"; // Theme orange color
+      return "#D4A01D"; // Theme orange color
     }
     
     // All states are grey by default
