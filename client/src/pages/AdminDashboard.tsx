@@ -288,8 +288,8 @@ export default function AdminDashboard() {
       await apiRequest("POST", "/api/admin/logout");
     },
     onSuccess: () => {
-      queryClient.invalidateQueries();
-      navigate("/admin");
+      queryClient.clear();
+      window.location.href = "/admin";
     },
   });
 

@@ -491,7 +491,7 @@ export default function HomePage() {
             <div className="order-1 lg:order-2 text-center lg:text-left">
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 sm:mb-6">
                 <span className="text-foreground">Where Are You </span>
-                <span className="inline-block border-b-2 border-foreground pb-0.5">
+                <span className="inline-block">
                   <span 
                     className="inline-block overflow-hidden align-bottom"
                     style={{ height: '1.15em' }}
