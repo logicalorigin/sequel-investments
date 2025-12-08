@@ -710,7 +710,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(loanMilestones)
       .where(eq(loanMilestones.servicedLoanId, servicedLoanId))
-      .orderBy(loanMilestones.sortOrder);
+      .orderBy(loanMilestones.milestoneNumber);
   }
 
   async getLoanMilestone(id: string): Promise<LoanMilestone | undefined> {
