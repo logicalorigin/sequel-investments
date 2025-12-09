@@ -151,16 +151,17 @@ export default function HomePage() {
     <div className="min-h-screen bg-background">
       <Navigation />
 
-      <section className="relative pt-8 pb-12 md:pt-12 md:pb-16 overflow-hidden bg-background">
+      <section className="relative pt-4 pb-6 sm:pt-8 sm:pb-12 md:pt-12 md:pb-16 overflow-hidden bg-background">
         <GeometricPattern 
           variant="orbs" 
           className="text-primary" 
           opacity={0.08}
         />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="grid lg:grid-cols-[0.4fr_0.6fr] gap-8 lg:gap-8 items-center">
-            <div className="space-y-6 md:space-y-8 order-1">
-              <div className="flex flex-wrap items-center gap-3">
+          <div className="grid lg:grid-cols-[0.4fr_0.6fr] gap-4 sm:gap-8 lg:gap-8 items-center">
+            <div className="space-y-3 sm:space-y-6 md:space-y-8 order-1">
+              {/* Trust badges - hidden on mobile for space */}
+              <div className="hidden sm:flex flex-wrap items-center gap-3">
                 <div className="flex -space-x-2">
                   <img src={testimonial1} alt="Investor" className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 border-background object-cover" />
                   <img src={testimonial2} alt="Investor" className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 border-background object-cover" />
@@ -176,64 +177,75 @@ export default function HomePage() {
                 </div>
               </div>
 
-              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight" data-testid="text-hero-title">
+              <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight" data-testid="text-hero-title">
                 Funding Solutions.
-                <br />
-                <span className="block mt-2 text-primary">For Investors. By Investors.</span>
+                <span className="block mt-1 sm:mt-2 text-primary">For Investors. By Investors.</span>
               </h1>
 
-              <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-lg">
+              <p className="text-sm sm:text-lg md:text-xl text-muted-foreground max-w-lg">
                 DSCR, Fix & Flip, and Construction loans — fast, flexible financing with no tax returns required.
               </p>
 
-              <div className="flex flex-col sm:flex-row items-start gap-4">
+              <div className="flex flex-row items-center gap-3">
                 <Link href="/get-quote">
-                  <Button size="lg" className="text-base sm:text-lg w-full sm:w-auto" data-testid="button-hero-apply">
+                  <Button size="default" className="text-sm sm:text-lg sm:h-11 sm:px-6" data-testid="button-hero-apply">
                     Apply Now
-                    <ArrowRight className="ml-2 h-5 w-5" />
+                    <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
                   </Button>
                 </Link>
+                {/* Mobile inline trust indicator */}
+                <div className="flex sm:hidden items-center gap-1">
+                  <div className="flex -space-x-1">
+                    <img src={testimonial1} alt="Investor" className="w-6 h-6 rounded-full border border-background object-cover" />
+                    <img src={testimonial2} alt="Investor" className="w-6 h-6 rounded-full border border-background object-cover" />
+                  </div>
+                  <div className="flex">
+                    {[1,2,3,4,5].map((i) => (
+                      <Star key={i} className="w-2.5 h-2.5 fill-yellow-400 text-yellow-400" />
+                    ))}
+                  </div>
+                </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-3 sm:gap-4 md:gap-6 pt-2 md:pt-4">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-                  <span className="text-xs sm:text-sm font-medium">$500M+ Funded</span>
+              <div className="flex flex-wrap items-center gap-2 sm:gap-4 md:gap-6 pt-1 sm:pt-2 md:pt-4">
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <CheckCircle2 className="h-3 w-3 sm:h-5 sm:w-5 text-primary" />
+                  <span className="text-[10px] sm:text-sm font-medium">$500M+ Funded</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-                  <span className="text-xs sm:text-sm font-medium">48 States + DC</span>
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <CheckCircle2 className="h-3 w-3 sm:h-5 sm:w-5 text-primary" />
+                  <span className="text-[10px] sm:text-sm font-medium">48 States + DC</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-                  <span className="text-xs sm:text-sm font-medium">48hr Closings</span>
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <CheckCircle2 className="h-3 w-3 sm:h-5 sm:w-5 text-primary" />
+                  <span className="text-[10px] sm:text-sm font-medium">48hr Closings</span>
                 </div>
               </div>
             </div>
 
             <div className="relative order-2 lg:pl-8">
-              <div className="relative rounded-xl sm:rounded-2xl overflow-hidden shadow-xl sm:shadow-2xl">
+              <div className="relative rounded-lg sm:rounded-2xl overflow-hidden shadow-lg sm:shadow-2xl">
                 {heroSlides.map((slide, index) => (
                   <img 
                     key={slide.id}
                     src={slide.image} 
                     alt={slide.loanType}
-                    className={`w-full h-[280px] sm:h-[350px] md:h-[400px] lg:h-[500px] object-cover absolute inset-0 transition-opacity duration-700 ${
+                    className={`w-full h-[180px] sm:h-[350px] md:h-[400px] lg:h-[500px] object-cover absolute inset-0 transition-opacity duration-700 ${
                       index === currentSlide ? "opacity-100" : "opacity-0"
                     }`}
                   />
                 ))}
-                <div className="w-full h-[280px] sm:h-[350px] md:h-[400px] lg:h-[500px]" />
+                <div className="w-full h-[180px] sm:h-[350px] md:h-[400px] lg:h-[500px]" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
               </div>
 
-              <div className="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+              <div className="absolute bottom-2 sm:bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 sm:gap-2 z-10">
                 {heroSlides.map((slide, index) => (
                   <button
                     key={slide.id}
                     onClick={() => setCurrentSlide(index)}
-                    className={`w-2 h-2 rounded-full transition-all ${
-                      index === currentSlide ? "bg-white w-6" : "bg-white/50"
+                    className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full transition-all ${
+                      index === currentSlide ? "bg-white w-4 sm:w-6" : "bg-white/50"
                     }`}
                     data-testid={`button-carousel-${slide.id}`}
                   />
@@ -271,35 +283,11 @@ export default function HomePage() {
                 </div>
               </div>
               
-              {/* Mobile: Compact card in bottom right corner */}
-              <div className="sm:hidden absolute bottom-8 right-2 bg-card/95 backdrop-blur-sm rounded-lg shadow-lg p-2 border max-w-[160px]" data-testid="card-funded-mobile">
-                <div className="flex items-center gap-1.5 mb-1.5">
-                  <div className="w-6 h-6 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
-                    <CheckCircle2 className="h-3 w-3 text-green-500" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-[10px] leading-tight">Funded</p>
-                    <p className="text-[9px] text-muted-foreground">{activeSlide.loanType}</p>
-                  </div>
-                </div>
-                <div className="space-y-0.5 text-[10px]">
-                  <div className="flex justify-between gap-2">
-                    <span className="text-muted-foreground">Location</span>
-                    <span className="font-semibold">{activeSlide.location}</span>
-                  </div>
-                  <div className="flex justify-between gap-2">
-                    <span className="text-muted-foreground">Amount</span>
-                    <span className="font-semibold">{activeSlide.loanAmount}</span>
-                  </div>
-                  <div className="flex justify-between gap-2">
-                    <span className="text-muted-foreground">Rate</span>
-                    <span className="font-semibold text-primary">{activeSlide.rate}</span>
-                  </div>
-                  <div className="flex justify-between gap-2">
-                    <span className="text-muted-foreground">Closed</span>
-                    <span className="font-semibold text-green-600">{activeSlide.closedIn}</span>
-                  </div>
-                </div>
+              {/* Mobile: Compact inline funded badge - bottom left */}
+              <div className="sm:hidden absolute bottom-6 left-2 bg-card/95 backdrop-blur-sm rounded-md shadow-md px-2 py-1 border flex items-center gap-1.5" data-testid="card-funded-mobile">
+                <CheckCircle2 className="h-3 w-3 text-green-500 shrink-0" />
+                <span className="text-[10px] font-semibold">{activeSlide.loanAmount}</span>
+                <span className="text-[10px] text-muted-foreground">in {activeSlide.closedIn}</span>
               </div>
             </div>
           </div>
@@ -335,16 +323,75 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="py-12 sm:py-16 md:py-24 bg-background">
+      <section className="py-6 sm:py-16 md:py-24 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-8 sm:mb-12 md:mb-16">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">Our Loan Products</h2>
-            <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
+          <div className="text-center mb-4 sm:mb-12 md:mb-16">
+            <h2 className="text-xl sm:text-3xl md:text-4xl font-bold mb-2 sm:mb-4">Our Loan Products</h2>
+            <p className="text-sm sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
               Flexible financing solutions for every stage of your investment journey
             </p>
           </div>
 
-          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
+          {/* Mobile: Horizontal scroll compact cards */}
+          <div className="sm:hidden flex gap-3 overflow-x-auto pb-4 -mx-4 px-4 snap-x snap-mandatory scrollbar-hide">
+            <Link href="/dscr-loans" className="flex-shrink-0 w-[75vw] snap-start">
+              <Card className="overflow-hidden h-full" data-testid="card-product-dscr-mobile">
+                <div className="h-24 overflow-hidden">
+                  <img src={dscrCardImage} alt="DSCR Loan" className="w-full h-full object-cover" />
+                </div>
+                <CardContent className="p-3">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Home className="h-4 w-4 text-primary" />
+                    <span className="font-semibold text-sm">DSCR Loans</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-2">Rental financing, no W2</p>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">From</span>
+                    <span className="font-semibold text-primary">5.75%</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+            <Link href="/fix-flip" className="flex-shrink-0 w-[75vw] snap-start">
+              <Card className="overflow-hidden h-full" data-testid="card-product-fixflip-mobile">
+                <div className="h-24 overflow-hidden">
+                  <img src={fixFlipCardImage} alt="Fix & Flip" className="w-full h-full object-cover" />
+                </div>
+                <CardContent className="p-3">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <TrendingUp className="h-4 w-4 text-primary" />
+                    <span className="font-semibold text-sm">Fix & Flip</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-2">Bridge financing for flips</p>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">From</span>
+                    <span className="font-semibold text-primary">8.90%</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+            <Link href="/new-construction" className="flex-shrink-0 w-[75vw] snap-start">
+              <Card className="overflow-hidden h-full" data-testid="card-product-construction-mobile">
+                <div className="h-24 overflow-hidden">
+                  <img src={newConstructionCardImage} alt="New Construction" className="w-full h-full object-cover" />
+                </div>
+                <CardContent className="p-3">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Building2 className="h-4 w-4 text-primary" />
+                    <span className="font-semibold text-sm">New Construction</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-2">Ground-up financing</p>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">From</span>
+                    <span className="font-semibold text-primary">9.90%</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          </div>
+
+          {/* Desktop: Full cards grid */}
+          <div className="hidden sm:grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
             <Card className="overflow-hidden hover-elevate active-elevate-2 transition-all" data-testid="card-product-dscr">
               <div className="aspect-video overflow-hidden">
                 <img 
@@ -477,78 +524,167 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="py-12 sm:py-16 md:py-24 bg-card" data-testid="section-where-we-lend">
+      <section className="py-6 sm:py-16 md:py-24 bg-card" data-testid="section-where-we-lend">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-            {/* Map on left - as large as possible */}
-            <div className="order-2 lg:order-1 overflow-visible">
+          {/* Mobile: Vertical layout with text, map, then states */}
+          <div className="lg:hidden flex flex-col gap-4">
+            {/* Header and description */}
+            <div className="text-center">
+              <h2 className="text-xl sm:text-3xl font-bold mb-2 sm:mb-4">
+                <span className="text-foreground">Where Are You </span>
+                <span 
+                  className="inline-block overflow-hidden align-baseline"
+                  style={{ height: '1.2em', verticalAlign: 'baseline' }}
+                >
+                  <span 
+                    className="flex flex-col"
+                    style={{ animation: 'wordTickerDown 12s ease-in-out infinite' }}
+                  >
+                    <span className="text-primary leading-[1.2]">Investing?</span>
+                    <span className="text-primary leading-[1.2]">Flipping?</span>
+                    <span className="text-primary leading-[1.2]">Building?</span>
+                    <span className="text-primary leading-[1.2]">Investing?</span>
+                  </span>
+                </span>
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                We lend nationwide in 48 states + DC. Tap a state to explore.
+              </p>
+            </div>
+
+            {/* Map */}
+            <div className="w-full overflow-visible">
+              <USMap onStateClick={handleStateClick} />
+            </div>
+
+            {/* States grid below map on mobile */}
+            <div className="grid grid-cols-4 gap-2">
+              {eligibleStates.slice(0, 8).map((state) => (
+                <Link key={state.slug} href={`/states/${state.slug}`}>
+                  <div className="text-center py-1.5 px-1 rounded-md border bg-background hover-elevate transition-all cursor-pointer" data-testid={`state-link-mobile-${state.slug}`}>
+                    <p className="font-semibold text-primary text-xs">{state.abbreviation}</p>
+                    <p className="text-[8px] text-muted-foreground truncate">{state.name}</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+
+            <div className="text-center">
+              <Link href="/where-we-lend">
+                <Button variant="outline" size="sm" data-testid="button-view-all-states-mobile">
+                  <MapPin className="mr-1.5 h-3 w-3" />
+                  View All States
+                </Button>
+              </Link>
+            </div>
+          </div>
+
+          {/* Desktop: Side by side layout */}
+          <div className="hidden lg:grid lg:grid-cols-2 gap-12 items-center">
+            {/* Map on left */}
+            <div className="overflow-visible">
               <div className="w-full overflow-visible">
                 <USMap onStateClick={handleStateClick} />
               </div>
             </div>
 
             {/* Text on right */}
-            <div className="order-1 lg:order-2 text-center lg:text-left">
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 sm:mb-6">
+            <div className="text-left">
+              <h2 className="text-3xl md:text-4xl font-bold mb-6">
                 <span className="text-foreground">Where Are You </span>
-                <span className="inline-block">
+                <span 
+                  className="inline-block overflow-hidden align-baseline"
+                  style={{ height: '1.2em', verticalAlign: 'baseline' }}
+                >
                   <span 
-                    className="inline-block overflow-hidden align-bottom"
-                    style={{ height: '1.15em' }}
+                    className="flex flex-col"
+                    style={{ animation: 'wordTickerDown 12s ease-in-out infinite' }}
                   >
-                    <span 
-                      className="flex flex-col"
-                      style={{ 
-                        animation: 'wordTickerDown 12s ease-in-out infinite',
-                      }}
-                    >
-                      <span className="block text-primary leading-tight">Investing?</span>
-                      <span className="block text-primary leading-tight">Flipping?</span>
-                      <span className="block text-primary leading-tight">Building?</span>
-                      <span className="block text-primary leading-tight">Investing?</span>
-                    </span>
+                    <span className="text-primary leading-[1.2]">Investing?</span>
+                    <span className="text-primary leading-[1.2]">Flipping?</span>
+                    <span className="text-primary leading-[1.2]">Building?</span>
+                    <span className="text-primary leading-[1.2]">Investing?</span>
                   </span>
                 </span>
               </h2>
-              <p className="text-base sm:text-lg md:text-xl text-muted-foreground mb-6 sm:mb-8 max-w-lg mx-auto lg:mx-0">
+              <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-lg">
                 Sequel Investments is a nationwide private lender serving real estate investors across 48 states + DC. 
                 Click on a state to explore our loan programs in your area.
               </p>
 
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 sm:gap-3 mb-6">
+              <div className="grid grid-cols-4 gap-3 mb-6">
                 {eligibleStates.slice(0, 8).map((state) => (
                   <Link key={state.slug} href={`/states/${state.slug}`}>
-                    <div className="text-center p-2 sm:p-3 rounded-lg border bg-background hover-elevate transition-all cursor-pointer" data-testid={`state-link-${state.slug}`}>
-                      <p className="font-semibold text-primary text-sm sm:text-base">{state.abbreviation}</p>
-                      <p className="text-[10px] sm:text-xs text-muted-foreground">{state.name}</p>
+                    <div className="text-center p-3 rounded-lg border bg-background hover-elevate transition-all cursor-pointer" data-testid={`state-link-${state.slug}`}>
+                      <p className="font-semibold text-primary text-base">{state.abbreviation}</p>
+                      <p className="text-xs text-muted-foreground">{state.name}</p>
                     </div>
                   </Link>
                 ))}
               </div>
 
-              <div className="text-center lg:text-left">
-                <Link href="/where-we-lend">
-                  <Button variant="outline" size="default" className="sm:text-base" data-testid="button-view-all-states">
-                    <MapPin className="mr-2 h-4 w-4" />
-                    View All States
-                  </Button>
-                </Link>
-              </div>
+              <Link href="/where-we-lend">
+                <Button variant="outline" size="default" data-testid="button-view-all-states">
+                  <MapPin className="mr-2 h-4 w-4" />
+                  View All States
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="py-12 sm:py-16 md:py-24 bg-background">
+      <section className="py-6 sm:py-16 md:py-24 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-8 sm:mb-12 md:mb-16">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">Why Choose Sequel Investments</h2>
-            <p className="text-base sm:text-lg md:text-xl text-muted-foreground">
+          <div className="text-center mb-4 sm:mb-12 md:mb-16">
+            <h2 className="text-xl sm:text-3xl md:text-4xl font-bold mb-2 sm:mb-4">Why Choose Sequel Investments</h2>
+            <p className="text-sm sm:text-lg md:text-xl text-muted-foreground">
               What makes us the trusted choice for real estate investors
             </p>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+          {/* Mobile: Compact 2-column grid with minimal text */}
+          <div className="grid grid-cols-2 sm:hidden gap-3">
+            <div className="flex flex-col items-center text-center p-3 rounded-lg border bg-card" data-testid="benefit-speed-mobile">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
+                <Zap className="h-5 w-5 text-primary" />
+              </div>
+              <h3 className="font-semibold text-xs">48hr Closings</h3>
+            </div>
+            <div className="flex flex-col items-center text-center p-3 rounded-lg border bg-card" data-testid="benefit-platform-mobile">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
+                <Target className="h-5 w-5 text-primary" />
+              </div>
+              <h3 className="font-semibold text-xs">No W2 Required</h3>
+            </div>
+            <div className="flex flex-col items-center text-center p-3 rounded-lg border bg-card" data-testid="benefit-pricing-mobile">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
+                <DollarSign className="h-5 w-5 text-primary" />
+              </div>
+              <h3 className="font-semibold text-xs">Best Rates</h3>
+            </div>
+            <div className="flex flex-col items-center text-center p-3 rounded-lg border bg-card" data-testid="benefit-hassle-mobile">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
+                <Shield className="h-5 w-5 text-primary" />
+              </div>
+              <h3 className="font-semibold text-xs">In-House Servicing</h3>
+            </div>
+            <div className="flex flex-col items-center text-center p-3 rounded-lg border bg-card" data-testid="benefit-support-mobile">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
+                <Headphones className="h-5 w-5 text-primary" />
+              </div>
+              <h3 className="font-semibold text-xs">Dedicated Support</h3>
+            </div>
+            <div className="flex flex-col items-center text-center p-3 rounded-lg border bg-card" data-testid="benefit-trusted-mobile">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
+                <Users className="h-5 w-5 text-primary" />
+              </div>
+              <h3 className="font-semibold text-xs">1,500+ Investors</h3>
+            </div>
+          </div>
+
+          {/* Desktop: Full layout with descriptions */}
+          <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             <div className="flex gap-3 sm:gap-4" data-testid="benefit-speed">
               <div className="flex-shrink-0">
                 <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-primary/10 flex items-center justify-center">
