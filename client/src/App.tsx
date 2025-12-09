@@ -53,6 +53,7 @@ import JoinPage from "@/pages/JoinPage";
 import StaffLoginPage from "@/pages/StaffLoginPage";
 import ResourcesPage from "@/pages/ResourcesPage";
 import ArticlePage from "@/pages/ArticlePage";
+import AirDNACalculatorPage from "@/pages/AirDNACalculatorPage";
 import AdminWhiteLabelPage from "@/pages/AdminWhiteLabelPage";
 import AdminEmailLogPage from "@/pages/AdminEmailLogPage";
 import AdminSmsLogPage from "@/pages/AdminSmsLogPage";
@@ -108,6 +109,7 @@ function Router() {
       <Route path="/join/:token" component={JoinPage} />
       <Route path="/sign/:token" component={SignDocumentPage} />
       <Route path="/resources" component={ResourcesPage} />
+      <Route path="/resources/str-calculator" component={AirDNACalculatorPage} />
       <Route path="/resources/:slug" component={ArticlePage} />
       <Route component={NotFound} />
     </Switch>

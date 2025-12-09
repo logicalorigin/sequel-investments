@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { StateMapGlobe } from "@/components/StateMapGlobe";
 import { MarketDetailDrawer } from "@/components/MarketDetailDrawer";
+import { AirDNAModalTrigger } from "@/components/AirDNAModal";
 import { 
   getMarketDetails, 
   generateMarketDetailFromBasicData,
@@ -154,9 +155,20 @@ function MarketCard({
                     {market.universities.length} Universities
                   </span>
                 )}
-                <span className="ml-auto text-primary flex items-center gap-1">
-                  View Details <ChevronRight className="w-3 h-3" />
-                </span>
+                <div className="ml-auto flex items-center gap-2">
+                  <AirDNAModalTrigger
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 text-xs"
+                    data-testid={`button-estimate-str-${market.name.toLowerCase().replace(/\s+/g, '-')}`}
+                  >
+                    <TrendingUp className="w-3 h-3 mr-1" />
+                    Estimate STR
+                  </AirDNAModalTrigger>
+                  <span className="text-primary flex items-center gap-1">
+                    View Details <ChevronRight className="w-3 h-3" />
+                  </span>
+                </div>
               </div>
             )}
           </div>
