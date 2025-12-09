@@ -6,7 +6,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { Skeleton } from "@/components/ui/skeleton";
+import { AirDNAEmbed } from "@/components/AirDNAEmbed";
 import { cn } from "@/lib/utils";
 
 interface AirDNACollapsibleProps {
@@ -19,7 +19,6 @@ export function AirDNACollapsible({
   className,
 }: AirDNACollapsibleProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
-  const [isLoading, setIsLoading] = useState(true);
 
   return (
     <Collapsible
@@ -47,19 +46,7 @@ export function AirDNACollapsible({
         </Button>
       </CollapsibleTrigger>
       <CollapsibleContent className="mt-4">
-        <div className="relative w-full" style={{ height: "500px" }}>
-          {isLoading && (
-            <Skeleton className="absolute inset-0 w-full h-full rounded-md" />
-          )}
-          <iframe
-            src="https://www.airdna.co/airbnb-calculator"
-            className="w-full h-full border-0 rounded-md"
-            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation"
-            loading="lazy"
-            onLoad={() => setIsLoading(false)}
-            title="AirDNA Rentalizer Calculator"
-          />
-        </div>
+        <AirDNAEmbed height="500px" />
       </CollapsibleContent>
     </Collapsible>
   );

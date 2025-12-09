@@ -8,7 +8,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Skeleton } from "@/components/ui/skeleton";
+import { AirDNAEmbed } from "@/components/AirDNAEmbed";
 
 interface AirDNAModalTriggerProps {
   children?: React.ReactNode;
@@ -23,7 +23,6 @@ export function AirDNAModalTrigger({
   size = "default",
   className,
 }: AirDNAModalTriggerProps) {
-  const [isLoading, setIsLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -53,18 +52,8 @@ export function AirDNAModalTrigger({
             Estimate STR Income with AirDNA
           </DialogTitle>
         </DialogHeader>
-        <div className="relative flex-1 min-h-0">
-          {isLoading && (
-            <Skeleton className="absolute inset-0 w-full h-full" />
-          )}
-          <iframe
-            src="https://www.airdna.co/airbnb-calculator"
-            className="w-full h-full border-0 rounded-md"
-            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation"
-            loading="lazy"
-            onLoad={() => setIsLoading(false)}
-            title="AirDNA Rentalizer Calculator"
-          />
+        <div className="flex-1 min-h-0">
+          <AirDNAEmbed height="100%" />
         </div>
       </DialogContent>
     </Dialog>
