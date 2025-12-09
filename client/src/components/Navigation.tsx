@@ -30,10 +30,10 @@ export function Navigation() {
 
   return (
     <nav
-      className="bg-background border-b"
+      className="bg-background border-b sticky top-0 z-50"
     >
       <div className="max-w-7xl mx-auto px-6">
-        <div className="flex items-center justify-between h-20">
+        <div className="flex items-center justify-between h-14 lg:h-20">
           <Link href="/" data-testid="link-home">
             <div className="flex items-center cursor-pointer hover-elevate active-elevate-2 px-2 py-1 rounded-md -ml-2">
               <span className="text-xl font-bold text-primary">SEQUEL</span>

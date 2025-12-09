@@ -69,6 +69,7 @@ interface USMapProps {
 
 export default function USMap({ onStateClick }: USMapProps) {
   const [hoveredState, setHoveredState] = useState<StateData | null>(null);
+  const [selectedState, setSelectedState] = useState<StateData | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const [tooltipPlacement, setTooltipPlacement] = useState<'top' | 'bottom' | 'left' | 'right'>('top');
   const containerRef = useRef<HTMLDivElement>(null);
@@ -119,19 +120,35 @@ export default function USMap({ onStateClick }: USMapProps) {
     setHoveredState(null);
   };
 
-  const handleClick = (stateAbbr: string) => {
+  const handleClick = (e: React.MouseEvent, stateAbbr: string) => {
     const stateData = statesData.find(s => s.abbreviation === stateAbbr);
-    if (stateData && onStateClick) {
-      onStateClick(stateData);
+    if (!stateData?.isEligible) return;
+    
+    // Two-click behavior: first click selects/highlights, second click navigates
+    if (selectedState?.abbreviation === stateAbbr) {
+      // Second click on same state - navigate
+      if (onStateClick) {
+        onStateClick(stateData);
+      }
+    } else {
+      // First click - select and highlight the state
+      e.preventDefault();
+      setSelectedState(stateData);
     }
   };
 
   const getStateColor = (stateAbbr: string, isHovered: boolean = false): string => {
     const stateData = statesData.find(s => s.abbreviation === stateAbbr);
+    const isSelected = selectedState?.abbreviation === stateAbbr;
     
-    // If hovered and eligible, return theme color (orange)
+    // If selected, return bright theme color
+    if (isSelected && stateData?.isEligible) {
+      return "#D4A01D"; // Theme gold color for selected
+    }
+    
+    // If hovered and eligible, return slightly lighter theme color
     if (isHovered && stateData?.isEligible) {
-      return "#D4A01D"; // Theme orange color
+      return "#e8b82e"; // Lighter gold for hover
     }
     
     // All states are grey by default
@@ -158,11 +175,18 @@ export default function USMap({ onStateClick }: USMapProps) {
           const isEligible = stateData?.isEligible ?? false;
           const isHovered = hoveredState?.abbreviation === stateAbbr;
           
+          const isSelected = selectedState?.abbreviation === stateAbbr;
+          
           return (
             <Link
               key={stateAbbr}
-              href={isEligible && stateData ? `/states/${stateData.slug}` : '#'}
+              href={isEligible && stateData && isSelected ? `/states/${stateData.slug}` : '#'}
               className="no-underline"
+              onClick={(e) => {
+                if (!isSelected && isEligible) {
+                  e.preventDefault();
+                }
+              }}
             >
               <path
                 d={path}
@@ -172,7 +196,7 @@ export default function USMap({ onStateClick }: USMapProps) {
                 className={`transition-all duration-200 ${isEligible ? 'cursor-pointer' : 'cursor-default'}`}
                 onMouseEnter={(e) => handleMouseEnter(e, stateAbbr)}
                 onMouseLeave={handleMouseLeave}
-                onClick={() => handleClick(stateAbbr)}
+                onClick={(e) => handleClick(e, stateAbbr)}
                 data-testid={`state-${stateAbbr}`}
                 style={{ textDecoration: 'none' }}
               />
@@ -182,7 +206,7 @@ export default function USMap({ onStateClick }: USMapProps) {
       </svg>
 
       {/* Tooltip */}
-      {hoveredState && (
+      {(hoveredState || selectedState) && (
         <div
           className={`absolute z-50 pointer-events-none bg-white dark:bg-gray-800 shadow-lg rounded-lg p-3 text-sm transform ${getTooltipTransform()}`}
           style={{
@@ -192,16 +216,21 @@ export default function USMap({ onStateClick }: USMapProps) {
           data-testid="state-tooltip"
         >
           <div className="font-semibold text-gray-900 dark:text-white whitespace-nowrap">
-            {hoveredState.name}
+            {(hoveredState || selectedState)?.name}
           </div>
-          {hoveredState.isEligible ? (
+          {(hoveredState || selectedState)?.isEligible ? (
             <div className="flex flex-col gap-0.5 mt-1">
               <div className="text-gray-600 dark:text-gray-300 text-xs whitespace-nowrap">
-                Loans Closed: <span className="font-semibold">{hoveredState.loansClosed}</span>
+                Loans Closed: <span className="font-semibold">{(hoveredState || selectedState)?.loansClosed}</span>
               </div>
               <div className="text-gray-600 dark:text-gray-300 text-xs whitespace-nowrap">
-                Loan Volume: <span className="font-semibold">{formatLoanVolume(hoveredState.loanVolume)}</span>
+                Loan Volume: <span className="font-semibold">{formatLoanVolume((hoveredState || selectedState)?.loanVolume || 0)}</span>
               </div>
+              {selectedState?.abbreviation === (hoveredState || selectedState)?.abbreviation && (
+                <div className="text-primary text-xs mt-1 whitespace-nowrap font-medium">
+                  Click again to view details
+                </div>
+              )}
             </div>
           ) : (
             <div className="text-gray-500 dark:text-gray-400 text-xs mt-1 whitespace-nowrap">
