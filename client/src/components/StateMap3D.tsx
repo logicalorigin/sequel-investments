@@ -153,17 +153,6 @@ export function StateMap3D({
             
             <rect x="0" y="0" width="100%" height="100%" fill="#e8e8e8" />
             
-            {backgroundPaths.map(({ slug, path }) => (
-              <path
-                key={slug}
-                d={path}
-                fill="none"
-                stroke="#c8c8c8"
-                strokeWidth="1"
-                strokeLinejoin="round"
-              />
-            ))}
-            
             <path
               d={focusPathData}
               fill={`url(#focus-state-gradient-${stateSlug})`}

@@ -180,18 +180,6 @@ export function StateMapGlobe({
             </defs>
 
             <rect x="0" y="0" width="100%" height="100%" fill="#e8e8e8" />
-
-            {usBackgroundPaths.map(({ slug, path }) => (
-              <path
-                key={slug}
-                d={path}
-                fill="none"
-                stroke="#c8c8c8"
-                strokeWidth="1"
-                strokeLinejoin="round"
-                className="transition-opacity duration-500"
-              />
-            ))}
             
             <path
               d={pathData}
