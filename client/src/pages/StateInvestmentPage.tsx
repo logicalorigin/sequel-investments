@@ -15,8 +15,7 @@ import {
   TrendingUp, 
   Building2, 
   Hammer, 
-  Check, 
-  ArrowRight,
+  Check,
   DollarSign,
   Percent,
   Calendar,
@@ -35,7 +34,7 @@ import rentalProperty from "@assets/stock_images/residential_investme_a188ab28.j
 import suburbanHome from "@assets/stock_images/suburban_single_fami_544678ca.jpg";
 import multiFamilyHome from "@assets/stock_images/multi-family_apartme_e7cec58d.jpg";
 import { TopMarketsSection } from "@/components/TopMarketsSection";
-import { StateMap3D } from "@/components/StateMap3D";
+import { StatePageHero } from "@/components/StatePageHero";
 
 const fundingImages = [luxuryHome, renovationHome, newConstruction, rentalProperty, suburbanHome, multiFamilyHome];
 import { useToast } from "@/hooks/use-toast";
@@ -409,55 +408,7 @@ export default function StateInvestmentPage() {
     <div className="min-h-screen bg-background">
       <Navigation />
 
-      <section className="relative pt-12 pb-20 overflow-hidden bg-gradient-to-b from-primary/10 to-background">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex items-center gap-2 text-muted-foreground mb-4">
-            <Link href="/where-we-lend" className="hover:text-primary transition-colors">
-              Where We Lend
-            </Link>
-            <ArrowRight className="h-4 w-4" />
-            <span className="text-foreground">{state.name}</span>
-          </div>
-
-          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-            <div>
-              <h1 className="text-4xl md:text-5xl font-bold mb-6" data-testid="text-state-title">
-                {state.name} Investment Property Loans
-              </h1>
-              <p className="text-xl text-muted-foreground max-w-3xl mb-8">
-                Sequel Investments is proud to be a leading private lender in {state.name}! 
-                We offer industry-leading Hard Money and DSCR Loans for every type of {state.name} real estate investor.
-              </p>
-
-              <div className="flex flex-wrap gap-6 mb-8">
-                <div className="bg-card rounded-lg px-6 py-4 border">
-                  <p className="text-3xl font-bold text-primary">{state.loansClosed.toLocaleString()}</p>
-                  <p className="text-sm text-muted-foreground">Loans Closed in {state.abbreviation}</p>
-                </div>
-                <div className="bg-card rounded-lg px-6 py-4 border">
-                  <p className="text-3xl font-bold text-primary">{formatLoanVolume(state.loanVolume)}</p>
-                  <p className="text-sm text-muted-foreground">Total Volume Funded</p>
-                </div>
-              </div>
-
-              <Link href="/get-quote">
-                <Button size="lg" data-testid="button-get-quote">
-                  Get Your Rate
-                </Button>
-              </Link>
-            </div>
-
-            <div className="hidden lg:block">
-              <StateMap3D
-                stateSlug={state.slug}
-                stateName={state.name}
-                showMarkers={false}
-                className="max-w-md mx-auto"
-              />
-            </div>
-          </div>
-        </div>
-      </section>
+      <StatePageHero state={state} formatLoanVolume={formatLoanVolume} />
 
       <section className="py-12 bg-background">
         <div className="max-w-7xl mx-auto px-6">
