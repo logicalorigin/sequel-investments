@@ -36,6 +36,7 @@ import { ObjectPermission } from "./objectAcl";
 import crypto from "crypto";
 import { getMarketData, refreshAllMarketData, getMarketDataStatus, getPropertyValue, getPropertyLookup } from "./services/marketDataService";
 import { sendEmail, emailTemplates, getPortalUrl, shouldSendEmail } from "./email";
+import stripeRoutes from "./stripe-routes";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Serve state map SVGs statically
@@ -4127,6 +4128,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "Failed to reset white-label settings" });
     }
   });
+
+  // Register Stripe routes
+  app.use('/api/stripe', stripeRoutes);
 
   const httpServer = createServer(app);
 

@@ -75,6 +75,7 @@ import {
   LogOut,
   Briefcase,
   BarChart3,
+  CreditCard,
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -912,6 +913,7 @@ export default function AdminDashboard() {
                           <TableHead className="text-xs hidden sm:table-cell">Loan Type</TableHead>
                           <TableHead className="text-xs hidden md:table-cell">Amount</TableHead>
                           <TableHead className="text-xs">Status</TableHead>
+                          <TableHead className="text-xs hidden md:table-cell">Fees</TableHead>
                           <TableHead className="text-xs hidden lg:table-cell">Stage</TableHead>
                           <TableHead className="text-xs hidden lg:table-cell">Date</TableHead>
                         </TableRow>
@@ -940,6 +942,31 @@ export default function AdminDashboard() {
                               <Badge className={`text-[10px] ${statusColors[app.status]}`}>
                                 {statusLabels[app.status]}
                               </Badge>
+                            </TableCell>
+                            <TableCell className="py-3 hidden md:table-cell">
+                              <div className="flex items-center gap-1">
+                                {app.applicationFeePaid || app.commitmentFeePaid || app.appraisalFeePaid ? (
+                                  <>
+                                    {app.applicationFeePaid && (
+                                      <Badge variant="outline" className="text-[9px] px-1 py-0 bg-green-50 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-400 dark:border-green-700">
+                                        App
+                                      </Badge>
+                                    )}
+                                    {app.commitmentFeePaid && (
+                                      <Badge variant="outline" className="text-[9px] px-1 py-0 bg-green-50 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-400 dark:border-green-700">
+                                        Com
+                                      </Badge>
+                                    )}
+                                    {app.appraisalFeePaid && (
+                                      <Badge variant="outline" className="text-[9px] px-1 py-0 bg-green-50 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-400 dark:border-green-700">
+                                        Apr
+                                      </Badge>
+                                    )}
+                                  </>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">—</span>
+                                )}
+                              </div>
                             </TableCell>
                             <TableCell className="py-3 hidden lg:table-cell">
                               <span className="text-xs text-muted-foreground">{app.processingStage ? stageLabels[app.processingStage] : "—"}</span>
