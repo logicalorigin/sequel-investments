@@ -26,10 +26,12 @@ export const users = pgTable("users", {
   password: varchar("password"),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
+  phone: varchar("phone"),
   profileImageUrl: varchar("profile_image_url"),
   role: userRoleEnum("role").default("borrower").notNull(),
   staffRole: text("staff_role"), // For color-coding: account_executive, processor, underwriter, management
   emailNotificationsEnabled: boolean("email_notifications_enabled").default(true).notNull(),
+  smsNotificationsEnabled: boolean("sms_notifications_enabled").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -1017,6 +1019,72 @@ export const insertDocumentSignatureSchema = createInsertSchema(documentSignatur
 });
 
 // ============================================
+// SIGNATURE REQUESTS (E-Signature Workflow)
+// ============================================
+export const signatureRequestStatusEnum = pgEnum("signature_request_status", [
+  "pending",
+  "viewed",
+  "signed",
+  "declined",
+  "expired"
+]);
+export type SignatureRequestStatus = "pending" | "viewed" | "signed" | "declined" | "expired";
+
+export const signatureRequests = pgTable("signature_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  loanApplicationId: varchar("loan_application_id").notNull().references(() => loanApplications.id),
+  documentId: varchar("document_id").notNull().references(() => documents.id),
+  requestedByUserId: varchar("requested_by_user_id").notNull().references(() => users.id),
+  signerUserId: varchar("signer_user_id").references(() => users.id),
+  signerEmail: text("signer_email").notNull(),
+  signerName: text("signer_name").notNull(),
+  status: signatureRequestStatusEnum("status").default("pending").notNull(),
+  accessToken: varchar("access_token").notNull().unique(),
+  signatureType: text("signature_type"),
+  signatureImageUrl: text("signature_image_url"),
+  declineReason: text("decline_reason"),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  requestedAt: timestamp("requested_at").defaultNow().notNull(),
+  viewedAt: timestamp("viewed_at"),
+  signedAt: timestamp("signed_at"),
+  declinedAt: timestamp("declined_at"),
+  expiresAt: timestamp("expires_at").notNull(),
+});
+
+export const signatureRequestsRelations = relations(signatureRequests, ({ one }) => ({
+  loanApplication: one(loanApplications, {
+    fields: [signatureRequests.loanApplicationId],
+    references: [loanApplications.id],
+  }),
+  document: one(documents, {
+    fields: [signatureRequests.documentId],
+    references: [documents.id],
+  }),
+  requestedBy: one(users, {
+    fields: [signatureRequests.requestedByUserId],
+    references: [users.id],
+    relationName: "requestedBy",
+  }),
+  signer: one(users, {
+    fields: [signatureRequests.signerUserId],
+    references: [users.id],
+    relationName: "signer",
+  }),
+}));
+
+export type SignatureRequest = typeof signatureRequests.$inferSelect;
+export type InsertSignatureRequest = typeof signatureRequests.$inferInsert;
+
+export const insertSignatureRequestSchema = createInsertSchema(signatureRequests).omit({
+  id: true,
+  requestedAt: true,
+  viewedAt: true,
+  signedAt: true,
+  declinedAt: true,
+});
+
+// ============================================
 // DOCUMENT COMMENTS
 // ============================================
 export const documentComments = pgTable("document_comments", {
@@ -1108,7 +1176,8 @@ export const timelineEventTypeEnum = pgEnum("timeline_event_type", [
   "stage_advanced",
   "note_added",
   "loan_funded",
-  "loan_closed"
+  "loan_closed",
+  "payment_received"
 ]);
 
 export const applicationTimeline = pgTable("application_timeline", {
@@ -1666,3 +1735,162 @@ export const insertEmailLogSchema = createInsertSchema(emailLogs).omit({
   id: true,
   sentAt: true,
 });
+
+// ============================================
+// SMS LOGS (For tracking sent SMS messages)
+// ============================================
+export const smsStatusEnum = pgEnum("sms_status", [
+  "sent",
+  "failed",
+  "demo"
+]);
+
+export const smsTypeEnum = pgEnum("sms_type", [
+  "application_submitted",
+  "status_change",
+  "document_request",
+  "draw_approved",
+  "payment_reminder",
+  "approval_notification"
+]);
+
+export const smsLogs = pgTable("sms_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  recipientPhone: text("recipient_phone").notNull(),
+  recipientUserId: varchar("recipient_user_id").references(() => users.id),
+  message: text("message").notNull(),
+  smsType: smsTypeEnum("sms_type").notNull(),
+  status: smsStatusEnum("status").notNull(),
+  errorMessage: text("error_message"),
+  relatedApplicationId: varchar("related_application_id").references(() => loanApplications.id),
+  relatedLoanId: varchar("related_loan_id").references(() => servicedLoans.id),
+  metadata: jsonb("metadata"),
+  sentAt: timestamp("sent_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_sms_logs_recipient").on(table.recipientPhone),
+  index("idx_sms_logs_sent_at").on(table.sentAt),
+]);
+
+export const smsLogsRelations = relations(smsLogs, ({ one }) => ({
+  recipient: one(users, {
+    fields: [smsLogs.recipientUserId],
+    references: [users.id],
+  }),
+  application: one(loanApplications, {
+    fields: [smsLogs.relatedApplicationId],
+    references: [loanApplications.id],
+  }),
+  loan: one(servicedLoans, {
+    fields: [smsLogs.relatedLoanId],
+    references: [servicedLoans.id],
+  }),
+}));
+
+export type SmsLog = typeof smsLogs.$inferSelect;
+export type InsertSmsLog = typeof smsLogs.$inferInsert;
+
+export const insertSmsLogSchema = createInsertSchema(smsLogs).omit({
+  id: true,
+  sentAt: true,
+});
+
+// ============================================
+// APPOINTMENTS (Calendar Booking System)
+// ============================================
+export const appointmentStatusEnum = pgEnum("appointment_status", [
+  "scheduled",
+  "completed",
+  "cancelled",
+  "no_show"
+]);
+export type AppointmentStatus = "scheduled" | "completed" | "cancelled" | "no_show";
+
+export const appointments = pgTable("appointments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  borrowerUserId: varchar("borrower_user_id").notNull().references(() => users.id),
+  staffUserId: varchar("staff_user_id").notNull().references(() => users.id),
+  title: text("title").notNull(),
+  description: text("description"),
+  scheduledAt: timestamp("scheduled_at").notNull(),
+  durationMinutes: integer("duration_minutes").default(30).notNull(),
+  status: appointmentStatusEnum("status").default("scheduled").notNull(),
+  meetingUrl: text("meeting_url"),
+  relatedApplicationId: varchar("related_application_id").references(() => loanApplications.id),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_appointments_borrower").on(table.borrowerUserId),
+  index("idx_appointments_staff").on(table.staffUserId),
+  index("idx_appointments_scheduled").on(table.scheduledAt),
+]);
+
+export const appointmentsRelations = relations(appointments, ({ one }) => ({
+  borrower: one(users, {
+    fields: [appointments.borrowerUserId],
+    references: [users.id],
+    relationName: "borrowerAppointments",
+  }),
+  staff: one(users, {
+    fields: [appointments.staffUserId],
+    references: [users.id],
+    relationName: "staffAppointments",
+  }),
+  application: one(loanApplications, {
+    fields: [appointments.relatedApplicationId],
+    references: [loanApplications.id],
+  }),
+}));
+
+export type Appointment = typeof appointments.$inferSelect;
+export type InsertAppointment = typeof appointments.$inferInsert;
+
+export const insertAppointmentSchema = createInsertSchema(appointments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// ============================================
+// STAFF AVAILABILITY (For Scheduling)
+// ============================================
+export const staffAvailability = pgTable("staff_availability", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  staffUserId: varchar("staff_user_id").notNull().references(() => users.id),
+  dayOfWeek: integer("day_of_week").notNull(), // 0 = Sunday, 6 = Saturday
+  startTime: text("start_time").notNull(), // e.g., "09:00"
+  endTime: text("end_time").notNull(), // e.g., "17:00"
+  isAvailable: boolean("is_available").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_staff_availability_user").on(table.staffUserId),
+  index("idx_staff_availability_day").on(table.dayOfWeek),
+]);
+
+export const staffAvailabilityRelations = relations(staffAvailability, ({ one }) => ({
+  staff: one(users, {
+    fields: [staffAvailability.staffUserId],
+    references: [users.id],
+  }),
+}));
+
+export type StaffAvailability = typeof staffAvailability.$inferSelect;
+export type InsertStaffAvailability = typeof staffAvailability.$inferInsert;
+
+export const insertStaffAvailabilitySchema = createInsertSchema(staffAvailability).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Default business hours for staff (Mon-Fri 9AM-5PM)
+export const DEFAULT_BUSINESS_HOURS = [
+  { dayOfWeek: 1, startTime: "09:00", endTime: "17:00", isAvailable: true }, // Monday
+  { dayOfWeek: 2, startTime: "09:00", endTime: "17:00", isAvailable: true }, // Tuesday
+  { dayOfWeek: 3, startTime: "09:00", endTime: "17:00", isAvailable: true }, // Wednesday
+  { dayOfWeek: 4, startTime: "09:00", endTime: "17:00", isAvailable: true }, // Thursday
+  { dayOfWeek: 5, startTime: "09:00", endTime: "17:00", isAvailable: true }, // Friday
+  { dayOfWeek: 0, startTime: "09:00", endTime: "17:00", isAvailable: false }, // Sunday
+  { dayOfWeek: 6, startTime: "09:00", endTime: "17:00", isAvailable: false }, // Saturday
+];

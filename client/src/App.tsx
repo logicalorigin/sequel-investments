@@ -55,6 +55,11 @@ import ResourcesPage from "@/pages/ResourcesPage";
 import ArticlePage from "@/pages/ArticlePage";
 import AdminWhiteLabelPage from "@/pages/AdminWhiteLabelPage";
 import AdminEmailLogPage from "@/pages/AdminEmailLogPage";
+import AdminSmsLogPage from "@/pages/AdminSmsLogPage";
+import AdminAppointmentsPage from "@/pages/AdminAppointmentsPage";
+import BookConsultationPage from "@/pages/BookConsultationPage";
+import MyAppointmentsPage from "@/pages/MyAppointmentsPage";
+import SignDocumentPage from "@/pages/SignDocumentPage";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -96,7 +101,12 @@ function Router() {
       <Route path="/admin/borrower/:id" component={BorrowerProfilePage} />
       <Route path="/admin/white-label" component={AdminWhiteLabelPage} />
       <Route path="/admin/email-log" component={AdminEmailLogPage} />
+      <Route path="/admin/sms-log" component={AdminSmsLogPage} />
+      <Route path="/admin/appointments" component={AdminAppointmentsPage} />
+      <Route path="/portal/book-consultation" component={BookConsultationPage} />
+      <Route path="/portal/appointments" component={MyAppointmentsPage} />
       <Route path="/join/:token" component={JoinPage} />
+      <Route path="/sign/:token" component={SignDocumentPage} />
       <Route path="/resources" component={ResourcesPage} />
       <Route path="/resources/:slug" component={ArticlePage} />
       <Route component={NotFound} />

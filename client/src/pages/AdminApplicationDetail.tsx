@@ -45,6 +45,7 @@ import { format } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { DocumentReviewPanel } from "@/components/DocumentReviewPanel";
+import { SignatureRequestsSection } from "@/components/SignatureRequestsSection";
 import type { LoanApplication, Document, ApplicationTimelineEvent, User as UserType } from "@shared/schema";
 
 type BrokerInfo = {
@@ -421,6 +422,14 @@ export default function AdminApplicationDetail() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Signature Requests */}
+            <SignatureRequestsSection
+              applicationId={id!}
+              documents={application.documents || []}
+              borrowerName={application.borrowerName}
+              borrowerEmail={application.borrowerEmail}
+            />
 
             {/* Timeline */}
             <Card>

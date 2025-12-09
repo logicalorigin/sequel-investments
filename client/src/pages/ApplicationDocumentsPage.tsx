@@ -47,6 +47,17 @@ import {
 import { SignatureCanvas } from "@/components/SignatureCanvas";
 import type { LoanApplication, Document, DocumentType, DocumentSignature } from "@shared/schema";
 
+interface SignatureRequest {
+  id: string;
+  documentId: string;
+  signerName: string;
+  signerEmail: string;
+  status: "pending" | "viewed" | "signed" | "declined" | "expired";
+  requestedAt: string;
+  expiresAt: string;
+  token: string;
+}
+
 interface DocumentWithType extends Document {
   documentType?: DocumentType;
 }
@@ -111,6 +122,11 @@ export default function ApplicationDocumentsPage() {
 
   const { data: signatures = [] } = useQuery<DocumentSignature[]>({
     queryKey: ["/api/applications", applicationId, "signatures"],
+    enabled: isAuthenticated && !!applicationId,
+  });
+
+  const { data: signatureRequests = [] } = useQuery<SignatureRequest[]>({
+    queryKey: ["/api/applications", applicationId, "signature-requests"],
     enabled: isAuthenticated && !!applicationId,
   });
 
@@ -259,6 +275,16 @@ export default function ApplicationDocumentsPage() {
 
   const getDocumentSignature = (docId: string) => {
     return signatures.find(sig => sig.documentId === docId);
+  };
+
+  const getPendingSignatureRequest = (docId: string) => {
+    return signatureRequests.find(
+      req => req.documentId === docId && (req.status === "pending" || req.status === "viewed")
+    );
+  };
+
+  const getSignatureRequestForDoc = (docId: string) => {
+    return signatureRequests.find(req => req.documentId === docId);
   };
 
   if (authLoading || appLoading) {
@@ -420,24 +446,58 @@ export default function ApplicationDocumentsPage() {
                               )}
                             </TableCell>
                             <TableCell>
-                              {isDocumentSigned(doc.id) ? (
-                                <Badge className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
-                                  <CheckCircle2 className="h-3 w-3 mr-1" />
-                                  Signed
-                                </Badge>
-                              ) : doc.documentType?.requiresSignature ? (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => openSignDialog(doc)}
-                                  data-testid={`button-sign-${doc.id}`}
-                                >
-                                  <PenTool className="h-3 w-3 mr-1" />
-                                  Sign
-                                </Button>
-                              ) : (
-                                <span className="text-xs text-muted-foreground">N/A</span>
-                              )}
+                              {(() => {
+                                const pendingRequest = getPendingSignatureRequest(doc.id);
+                                const signedRequest = getSignatureRequestForDoc(doc.id);
+                                
+                                if (isDocumentSigned(doc.id)) {
+                                  return (
+                                    <Badge className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+                                      <CheckCircle2 className="h-3 w-3 mr-1" />
+                                      Signed
+                                    </Badge>
+                                  );
+                                }
+                                
+                                if (signedRequest?.status === "signed") {
+                                  return (
+                                    <Badge className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+                                      <CheckCircle2 className="h-3 w-3 mr-1" />
+                                      Signed
+                                    </Badge>
+                                  );
+                                }
+                                
+                                if (pendingRequest) {
+                                  return (
+                                    <Link href={`/sign/${pendingRequest.token}`}>
+                                      <Badge 
+                                        className="bg-primary/10 text-primary border-primary/30 cursor-pointer hover-elevate"
+                                        data-testid={`badge-sign-pending-${doc.id}`}
+                                      >
+                                        <PenTool className="h-3 w-3 mr-1" />
+                                        Sign Now
+                                      </Badge>
+                                    </Link>
+                                  );
+                                }
+                                
+                                if (doc.documentType?.requiresSignature) {
+                                  return (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => openSignDialog(doc)}
+                                      data-testid={`button-sign-${doc.id}`}
+                                    >
+                                      <PenTool className="h-3 w-3 mr-1" />
+                                      Sign
+                                    </Button>
+                                  );
+                                }
+                                
+                                return <span className="text-xs text-muted-foreground">N/A</span>;
+                              })()}
                             </TableCell>
                             <TableCell>
                               <div className="flex items-center gap-2">
