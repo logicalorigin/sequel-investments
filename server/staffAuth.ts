@@ -156,6 +156,42 @@ export async function setupStaffAuth(app: Express) {
     });
   });
 
+  // Dev-only quick login endpoint (no credentials required)
+  app.post("/api/admin/dev-login", async (req, res) => {
+    // Get the admin user
+    const adminUser = await storage.getUserByUsername("admin");
+    if (!adminUser) {
+      return res.status(404).json({ error: "Admin user not found. Please restart the server." });
+    }
+    
+    const user = {
+      claims: {
+        sub: adminUser.id,
+        email: adminUser.email,
+        first_name: adminUser.firstName,
+        last_name: adminUser.lastName,
+      },
+      expires_at: Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60),
+      portal: "admin",
+    };
+    
+    req.logIn(user, (loginErr) => {
+      if (loginErr) {
+        return res.status(500).json({ error: "Login error" });
+      }
+      return res.json({ 
+        success: true, 
+        message: "Dev login successful",
+        user: {
+          id: user.claims.sub,
+          email: user.claims.email,
+          firstName: user.claims.first_name,
+          lastName: user.claims.last_name,
+        }
+      });
+    });
+  });
+
   // Borrower login endpoint (for test accounts only - regular users use OAuth)
   app.post("/api/borrower/login", (req, res, next) => {
     passport.authenticate("borrower-local", (err: any, user: any, info: any) => {
@@ -192,6 +228,42 @@ export async function setupStaffAuth(app: Express) {
         }
         res.clearCookie("connect.sid");
         res.json({ success: true, message: "Logged out successfully" });
+      });
+    });
+  });
+
+  // Dev-only quick login endpoint for borrower (no credentials required)
+  app.post("/api/borrower/dev-login", async (req, res) => {
+    // Get the borrower test user
+    const borrowerUser = await storage.getUserByUsername("borrower");
+    if (!borrowerUser) {
+      return res.status(404).json({ error: "Borrower test user not found. Please restart the server." });
+    }
+    
+    const user = {
+      claims: {
+        sub: borrowerUser.id,
+        email: borrowerUser.email,
+        first_name: borrowerUser.firstName,
+        last_name: borrowerUser.lastName,
+      },
+      expires_at: Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60),
+      portal: "borrower",
+    };
+    
+    req.logIn(user, (loginErr) => {
+      if (loginErr) {
+        return res.status(500).json({ error: "Login error" });
+      }
+      return res.json({ 
+        success: true, 
+        message: "Dev login successful",
+        user: {
+          id: user.claims.sub,
+          email: user.claims.email,
+          firstName: user.claims.first_name,
+          lastName: user.claims.last_name,
+        }
       });
     });
   });
