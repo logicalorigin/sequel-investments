@@ -41,20 +41,21 @@ export function StatePageHero({ state, formatLoanVolume }: StatePageHeroProps) {
 
   return (
     <section className="relative pt-12 pb-20 overflow-hidden min-h-[500px]">
-      {/* US Map Background - subtle, full width */}
+      {/* US Map Background with highlighted focus state */}
       <div className="absolute inset-0 pointer-events-none">
         <svg
           viewBox="0 0 1000 600"
-          className="w-full h-full opacity-10"
+          className="w-full h-full opacity-20"
           preserveAspectRatio="xMidYMid slice"
         >
           {Object.entries(statePaths).map(([abbr, pathD]) => (
             <path
               key={abbr}
               d={pathD}
-              fill="hsl(var(--muted-foreground) / 0.15)"
-              stroke="hsl(var(--muted-foreground) / 0.2)"
-              strokeWidth={0.5}
+              fill={abbr === state.abbreviation ? "hsl(var(--primary))" : "hsl(var(--muted-foreground) / 0.15)"}
+              stroke={abbr === state.abbreviation ? "hsl(var(--primary))" : "hsl(var(--muted-foreground) / 0.3)"}
+              strokeWidth={abbr === state.abbreviation ? 2 : 0.5}
+              className={abbr === state.abbreviation ? "opacity-100" : "opacity-60"}
             />
           ))}
         </svg>
