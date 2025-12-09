@@ -97,7 +97,7 @@ export function StateMap3D({
       >
         <div
           style={{
-            transform: "rotateX(15deg)",
+            transform: "rotateX(-12deg) scale(1.15)",
             transformStyle: "preserve-3d",
           }}
         >
@@ -177,9 +177,6 @@ export function StateMap3D({
         </div>
       </div>
       
-      <div className="absolute bottom-2 left-2 text-xs text-muted-foreground/60">
-        {stateName}
-      </div>
     </div>
   );
 }
