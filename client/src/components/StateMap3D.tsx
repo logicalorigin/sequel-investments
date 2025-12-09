@@ -1,0 +1,185 @@
+import { useMemo } from "react";
+import { STATE_BOUNDARIES } from "@/data/stateBoundaries";
+import type { MarketDetail } from "@/data/marketDetails";
+
+interface StateMap3DProps {
+  stateSlug: string;
+  stateName: string;
+  markets?: MarketDetail[];
+  selectedMarket?: MarketDetail | null;
+  hoveredMarket?: MarketDetail | null;
+  onMarkerClick?: (market: MarketDetail) => void;
+  onMarkerHover?: (market: MarketDetail | null) => void;
+  className?: string;
+  showMarkers?: boolean;
+}
+
+export function StateMap3D({
+  stateSlug,
+  stateName,
+  markets = [],
+  selectedMarket,
+  hoveredMarket,
+  onMarkerClick,
+  onMarkerHover,
+  className = "",
+  showMarkers = true,
+}: StateMap3DProps) {
+  const boundary = STATE_BOUNDARIES[stateSlug];
+
+  const { pathData, viewBox, markerPositions, bounds } = useMemo(() => {
+    if (!boundary || !boundary.coordinates || boundary.coordinates.length === 0) {
+      return { pathData: "", viewBox: "0 0 100 100", markerPositions: [], bounds: null };
+    }
+
+    const coords = boundary.coordinates;
+    
+    const lats = coords.map(c => c.lat);
+    const lngs = coords.map(c => c.lng);
+    
+    const minLat = Math.min(...lats);
+    const maxLat = Math.max(...lats);
+    const minLng = Math.min(...lngs);
+    const maxLng = Math.max(...lngs);
+    
+    const latRange = maxLat - minLat;
+    const lngRange = maxLng - minLng;
+    
+    const padding = 0.05;
+    const paddedLatRange = latRange * (1 + padding * 2);
+    const paddedLngRange = lngRange * (1 + padding * 2);
+    const paddedMinLat = minLat - latRange * padding;
+    const paddedMinLng = minLng - lngRange * padding;
+    
+    const width = 400;
+    const height = 400 * (paddedLatRange / paddedLngRange);
+    
+    const toSvgX = (lng: number) => ((lng - paddedMinLng) / paddedLngRange) * width;
+    const toSvgY = (lat: number) => height - ((lat - paddedMinLat) / paddedLatRange) * height;
+    
+    const pathPoints = coords.map((c, i) => {
+      const x = toSvgX(c.lng);
+      const y = toSvgY(c.lat);
+      return i === 0 ? `M ${x} ${y}` : `L ${x} ${y}`;
+    });
+    pathPoints.push("Z");
+    
+    const markerPos = markets.map(market => ({
+      market,
+      x: toSvgX(market.lng),
+      y: toSvgY(market.lat),
+    }));
+
+    return {
+      pathData: pathPoints.join(" "),
+      viewBox: `0 0 ${width} ${height}`,
+      markerPositions: markerPos,
+      bounds: { width, height, minLat: paddedMinLat, maxLat: paddedMinLat + paddedLatRange, minLng: paddedMinLng, maxLng: paddedMinLng + paddedLngRange },
+    };
+  }, [boundary, markets]);
+
+  if (!boundary || !pathData) {
+    return (
+      <div className={`flex items-center justify-center bg-muted/20 rounded-lg ${className}`}>
+        <p className="text-muted-foreground">Map not available for {stateName}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`relative ${className}`}>
+      <div
+        className="relative w-full"
+        style={{
+          perspective: "1000px",
+          perspectiveOrigin: "50% 50%",
+        }}
+      >
+        <div
+          style={{
+            transform: "rotateX(15deg)",
+            transformStyle: "preserve-3d",
+          }}
+        >
+          <svg
+            viewBox={viewBox}
+            className="w-full h-auto"
+            style={{
+              filter: "drop-shadow(0 20px 30px rgba(0, 0, 0, 0.4)) drop-shadow(0 10px 15px rgba(0, 0, 0, 0.3))",
+            }}
+          >
+            <defs>
+              <linearGradient id={`state-gradient-${stateSlug}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="hsl(var(--muted))" stopOpacity="1" />
+                <stop offset="100%" stopColor="hsl(var(--muted-foreground) / 0.3)" stopOpacity="1" />
+              </linearGradient>
+              <filter id={`state-shadow-${stateSlug}`} x="-50%" y="-50%" width="200%" height="200%">
+                <feDropShadow dx="0" dy="4" stdDeviation="3" floodColor="rgba(0,0,0,0.3)" />
+              </filter>
+            </defs>
+            
+            <path
+              d={pathData}
+              fill={`url(#state-gradient-${stateSlug})`}
+              stroke="hsl(var(--border))"
+              strokeWidth="1.5"
+              strokeLinejoin="round"
+              filter={`url(#state-shadow-${stateSlug})`}
+            />
+            
+            {showMarkers && markerPositions.map(({ market, x, y }) => {
+              const isSelected = selectedMarket?.name === market.name;
+              const isHovered = hoveredMarket?.name === market.name;
+              const baseRadius = bounds ? Math.min(bounds.width, bounds.height) * 0.015 : 5;
+              const radius = isSelected ? baseRadius * 1.5 : isHovered ? baseRadius * 1.3 : baseRadius;
+              
+              return (
+                <g key={market.name}>
+                  <circle
+                    cx={x}
+                    cy={y}
+                    r={radius + 2}
+                    fill="hsl(var(--background))"
+                    opacity="0.8"
+                  />
+                  <circle
+                    cx={x}
+                    cy={y}
+                    r={radius}
+                    fill={isSelected ? "hsl(var(--primary))" : isHovered ? "hsl(var(--primary) / 0.8)" : "hsl(var(--primary) / 0.6)"}
+                    stroke="hsl(var(--primary-foreground))"
+                    strokeWidth={isSelected || isHovered ? 2 : 1}
+                    className="cursor-pointer transition-all duration-200"
+                    style={{ 
+                      filter: isSelected || isHovered ? "drop-shadow(0 2px 4px rgba(212, 160, 29, 0.5))" : undefined,
+                    }}
+                    onClick={() => onMarkerClick?.(market)}
+                    onMouseEnter={() => onMarkerHover?.(market)}
+                    onMouseLeave={() => onMarkerHover?.(null)}
+                  />
+                  {(isSelected || isHovered) && (
+                    <text
+                      x={x}
+                      y={y - radius - 8}
+                      textAnchor="middle"
+                      className="fill-foreground text-[10px] font-medium pointer-events-none"
+                      style={{ 
+                        filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.8))",
+                      }}
+                    >
+                      {market.name}
+                    </text>
+                  )}
+                </g>
+              );
+            })}
+          </svg>
+        </div>
+      </div>
+      
+      <div className="absolute bottom-2 left-2 text-xs text-muted-foreground/60">
+        {stateName}
+      </div>
+    </div>
+  );
+}

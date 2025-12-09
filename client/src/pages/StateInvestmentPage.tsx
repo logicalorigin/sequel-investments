@@ -35,6 +35,7 @@ import rentalProperty from "@assets/stock_images/residential_investme_a188ab28.j
 import suburbanHome from "@assets/stock_images/suburban_single_fami_544678ca.jpg";
 import multiFamilyHome from "@assets/stock_images/multi-family_apartme_e7cec58d.jpg";
 import { TopMarketsSection } from "@/components/TopMarketsSection";
+import { StateMap3D } from "@/components/StateMap3D";
 
 const fundingImages = [luxuryHome, renovationHome, newConstruction, rentalProperty, suburbanHome, multiFamilyHome];
 import { useToast } from "@/hooks/use-toast";
@@ -418,30 +419,43 @@ export default function StateInvestmentPage() {
             <span className="text-foreground">{state.name}</span>
           </div>
 
-          <h1 className="text-4xl md:text-5xl font-bold mb-6" data-testid="text-state-title">
-            {state.name} Investment Property Loans
-          </h1>
-          <p className="text-xl text-muted-foreground max-w-3xl mb-8">
-            Sequel Investments is proud to be a leading private lender in {state.name}! 
-            We offer industry-leading Hard Money and DSCR Loans for every type of {state.name} real estate investor.
-          </p>
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+            <div>
+              <h1 className="text-4xl md:text-5xl font-bold mb-6" data-testid="text-state-title">
+                {state.name} Investment Property Loans
+              </h1>
+              <p className="text-xl text-muted-foreground max-w-3xl mb-8">
+                Sequel Investments is proud to be a leading private lender in {state.name}! 
+                We offer industry-leading Hard Money and DSCR Loans for every type of {state.name} real estate investor.
+              </p>
 
-          <div className="flex flex-wrap gap-6 mb-8">
-            <div className="bg-card rounded-lg px-6 py-4 border">
-              <p className="text-3xl font-bold text-primary">{state.loansClosed.toLocaleString()}</p>
-              <p className="text-sm text-muted-foreground">Loans Closed in {state.abbreviation}</p>
+              <div className="flex flex-wrap gap-6 mb-8">
+                <div className="bg-card rounded-lg px-6 py-4 border">
+                  <p className="text-3xl font-bold text-primary">{state.loansClosed.toLocaleString()}</p>
+                  <p className="text-sm text-muted-foreground">Loans Closed in {state.abbreviation}</p>
+                </div>
+                <div className="bg-card rounded-lg px-6 py-4 border">
+                  <p className="text-3xl font-bold text-primary">{formatLoanVolume(state.loanVolume)}</p>
+                  <p className="text-sm text-muted-foreground">Total Volume Funded</p>
+                </div>
+              </div>
+
+              <Link href="/get-quote">
+                <Button size="lg" data-testid="button-get-quote">
+                  Get Your Rate
+                </Button>
+              </Link>
             </div>
-            <div className="bg-card rounded-lg px-6 py-4 border">
-              <p className="text-3xl font-bold text-primary">{formatLoanVolume(state.loanVolume)}</p>
-              <p className="text-sm text-muted-foreground">Total Volume Funded</p>
+
+            <div className="hidden lg:block">
+              <StateMap3D
+                stateSlug={state.slug}
+                stateName={state.name}
+                showMarkers={false}
+                className="max-w-md mx-auto"
+              />
             </div>
           </div>
-
-          <Link href="/get-quote">
-            <Button size="lg" data-testid="button-get-quote">
-              Get Your Rate
-            </Button>
-          </Link>
         </div>
       </section>
 
