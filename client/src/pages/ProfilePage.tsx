@@ -77,6 +77,40 @@ export default function ProfilePage() {
     smsAlerts: false,
   });
 
+  useEffect(() => {
+    if (user?.emailNotificationsEnabled !== undefined) {
+      setNotificationSettings(prev => ({
+        ...prev,
+        emailUpdates: user.emailNotificationsEnabled,
+        applicationStatus: user.emailNotificationsEnabled,
+        documentRequests: user.emailNotificationsEnabled,
+      }));
+    }
+  }, [user?.emailNotificationsEnabled]);
+
+  const updateEmailPreferencesMutation = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      const response = await apiRequest("PATCH", "/api/users/me/email-preferences", {
+        emailNotificationsEnabled: enabled,
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      toast({
+        title: "Preferences Updated",
+        description: "Your email notification settings have been saved.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update email preferences. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const [newEntity, setNewEntity] = useState("");
   const [entities, setEntities] = useState<{ id: string; name: string; type: string }[]>([]);
 
@@ -483,37 +517,24 @@ export default function ProfilePage() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label className="font-medium">Email Updates</Label>
-                    <p className="text-sm text-muted-foreground">Receive general updates via email</p>
+                    <Label className="font-medium">Email Notifications</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Receive email notifications for loan status changes, document requests, and important updates
+                    </p>
                   </div>
                   <Switch
                     checked={notificationSettings.emailUpdates}
-                    onCheckedChange={(checked) => setNotificationSettings(prev => ({ ...prev, emailUpdates: checked }))}
+                    disabled={updateEmailPreferencesMutation.isPending}
+                    onCheckedChange={(checked) => {
+                      setNotificationSettings(prev => ({
+                        ...prev,
+                        emailUpdates: checked,
+                        applicationStatus: checked,
+                        documentRequests: checked,
+                      }));
+                      updateEmailPreferencesMutation.mutate(checked);
+                    }}
                     data-testid="switch-email-updates"
-                  />
-                </div>
-                <Separator />
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label className="font-medium">Application Status</Label>
-                    <p className="text-sm text-muted-foreground">Get notified when your application status changes</p>
-                  </div>
-                  <Switch
-                    checked={notificationSettings.applicationStatus}
-                    onCheckedChange={(checked) => setNotificationSettings(prev => ({ ...prev, applicationStatus: checked }))}
-                    data-testid="switch-application-status"
-                  />
-                </div>
-                <Separator />
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label className="font-medium">Document Requests</Label>
-                    <p className="text-sm text-muted-foreground">Get notified when documents are needed</p>
-                  </div>
-                  <Switch
-                    checked={notificationSettings.documentRequests}
-                    onCheckedChange={(checked) => setNotificationSettings(prev => ({ ...prev, documentRequests: checked }))}
-                    data-testid="switch-document-requests"
                   />
                 </div>
                 <Separator />

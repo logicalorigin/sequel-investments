@@ -74,6 +74,7 @@ import {
   ChevronLeft,
   LogOut,
   Briefcase,
+  BarChart3,
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -748,6 +749,17 @@ export default function AdminDashboard() {
               >
                 <Briefcase className="h-3.5 w-3.5 mr-1.5" />
                 Loan Servicing
+              </Button>
+            </Link>
+            <Link href="/admin/analytics">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 text-xs shrink-0"
+                data-testid="link-analytics"
+              >
+                <BarChart3 className="h-3.5 w-3.5 mr-1.5" />
+                Analytics
               </Button>
             </Link>
             {currentUser.role === "admin" && (

@@ -573,11 +573,59 @@ function InterestPaymentTracker({ loan, payments }: { loan: ServicedLoan; paymen
   );
 }
 
-function PaymentHistory({ payments }: { payments: LoanPayment[] }) {
+function PaymentHistoryPanel({ payments, loan }: { payments: LoanPayment[]; loan: ServicedLoan }) {
+  const [sortField, setSortField] = useState<"paymentNumber" | "paidDate" | "paidAmount">("paymentNumber");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+  
   const completedPayments = payments.filter(p => p.status === "completed" || p.status === "partial");
   
+  const sortedPayments = useMemo(() => {
+    return [...completedPayments].sort((a, b) => {
+      let aVal: number | string = 0;
+      let bVal: number | string = 0;
+      
+      if (sortField === "paymentNumber") {
+        aVal = a.paymentNumber || 0;
+        bVal = b.paymentNumber || 0;
+      } else if (sortField === "paidDate") {
+        aVal = a.paidDate ? new Date(a.paidDate).getTime() : 0;
+        bVal = b.paidDate ? new Date(b.paidDate).getTime() : 0;
+      } else if (sortField === "paidAmount") {
+        aVal = a.paidAmount || 0;
+        bVal = b.paidAmount || 0;
+      }
+      
+      if (sortDir === "asc") return aVal > bVal ? 1 : -1;
+      return aVal < bVal ? 1 : -1;
+    });
+  }, [completedPayments, sortField, sortDir]);
+  
+  const totalPages = Math.ceil(sortedPayments.length / pageSize);
+  const paginatedPayments = sortedPayments.slice((page - 1) * pageSize, page * pageSize);
+  
+  const totalPaid = completedPayments.reduce((sum, p) => sum + (p.paidAmount || 0), 0);
+  const totalPrincipal = completedPayments.reduce((sum, p) => sum + (p.principalAmount || 0), 0);
+  const totalInterest = completedPayments.reduce((sum, p) => sum + (p.interestAmount || 0), 0);
+  
+  const handleSort = (field: typeof sortField) => {
+    if (sortField === field) {
+      setSortDir(sortDir === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDir("desc");
+    }
+  };
+  
+  const SortIndicator = ({ field }: { field: typeof sortField }) => (
+    sortField === field ? (
+      sortDir === "asc" ? <ChevronUp className="h-3 w-3 ml-1 inline" /> : <ChevronDown className="h-3 w-3 ml-1 inline" />
+    ) : null
+  );
+  
   return (
-    <Card>
+    <Card data-testid="payment-history-panel">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <BarChart3 className="h-5 w-5" />
@@ -586,37 +634,251 @@ function PaymentHistory({ payments }: { payments: LoanPayment[] }) {
         <CardDescription>{completedPayments.length} payments on record</CardDescription>
       </CardHeader>
       <CardContent>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div className="text-center p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+            <p className="text-xl font-bold text-emerald-400" data-testid="stat-total-paid">{formatCurrency(totalPaid)}</p>
+            <p className="text-xs text-muted-foreground">Total Paid</p>
+          </div>
+          <div className="text-center p-3 rounded-lg bg-primary/10 border border-primary/20">
+            <p className="text-xl font-bold text-primary" data-testid="stat-remaining-balance">{formatCurrency(loan.currentBalance)}</p>
+            <p className="text-xs text-muted-foreground">Remaining Balance</p>
+          </div>
+          <div className="text-center p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+            <p className="text-xl font-bold text-amber-400">{formatCurrency(totalPrincipal)}</p>
+            <p className="text-xs text-muted-foreground">Principal Paid</p>
+          </div>
+          <div className="text-center p-3 rounded-lg bg-muted/50">
+            <p className="text-xl font-bold">{formatCurrency(totalInterest)}</p>
+            <p className="text-xs text-muted-foreground">Interest Paid</p>
+          </div>
+        </div>
+        
+        {loan.nextPaymentDate && (
+          <div className="mb-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-blue-400" />
+              <span className="text-sm">Next Payment Due:</span>
+            </div>
+            <div className="text-right">
+              <span className="font-medium">{format(new Date(loan.nextPaymentDate), "MMM d, yyyy")}</span>
+              <span className="text-muted-foreground ml-2">({formatCurrency(loan.nextPaymentAmount || loan.monthlyPayment)})</span>
+            </div>
+          </div>
+        )}
+        
         {completedPayments.length === 0 ? (
           <div className="text-center py-8">
             <PiggyBank className="h-10 w-10 mx-auto text-muted-foreground/50 mb-2" />
             <p className="text-muted-foreground">No payment history yet</p>
           </div>
         ) : (
-          <div className="rounded-lg border overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>#</TableHead>
-                  <TableHead>Date Paid</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead className="text-right">Principal</TableHead>
-                  <TableHead className="text-right">Interest</TableHead>
-                  <TableHead className="text-right">Balance</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {completedPayments.map((payment) => (
-                  <TableRow key={payment.id}>
-                    <TableCell className="font-mono text-xs">{payment.paymentNumber}</TableCell>
-                    <TableCell>{payment.paidDate ? format(new Date(payment.paidDate), "MMM d, yyyy") : "-"}</TableCell>
-                    <TableCell className="text-right font-medium">{formatCurrency(payment.paidAmount)}</TableCell>
-                    <TableCell className="text-right text-emerald-500">{formatCurrency(payment.principalAmount)}</TableCell>
-                    <TableCell className="text-right text-muted-foreground">{formatCurrency(payment.interestAmount)}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(payment.balanceAfterPayment)}</TableCell>
+          <>
+            <div className="rounded-lg border overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead 
+                      className="cursor-pointer hover-elevate"
+                      onClick={() => handleSort("paymentNumber")}
+                      data-testid="sort-payment-number"
+                    >
+                      # <SortIndicator field="paymentNumber" />
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover-elevate"
+                      onClick={() => handleSort("paidDate")}
+                      data-testid="sort-paid-date"
+                    >
+                      Date Paid <SortIndicator field="paidDate" />
+                    </TableHead>
+                    <TableHead 
+                      className="text-right cursor-pointer hover-elevate"
+                      onClick={() => handleSort("paidAmount")}
+                      data-testid="sort-paid-amount"
+                    >
+                      Amount <SortIndicator field="paidAmount" />
+                    </TableHead>
+                    <TableHead className="text-right">Principal</TableHead>
+                    <TableHead className="text-right">Interest</TableHead>
+                    <TableHead className="text-right">Balance After</TableHead>
+                    <TableHead>Status</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {paginatedPayments.map((payment) => (
+                    <TableRow key={payment.id} data-testid={`row-payment-history-${payment.id}`}>
+                      <TableCell className="font-mono text-xs">{payment.paymentNumber}</TableCell>
+                      <TableCell>{payment.paidDate ? format(new Date(payment.paidDate), "MMM d, yyyy") : "-"}</TableCell>
+                      <TableCell className="text-right font-medium">{formatCurrency(payment.paidAmount)}</TableCell>
+                      <TableCell className="text-right text-emerald-500">{formatCurrency(payment.principalAmount)}</TableCell>
+                      <TableCell className="text-right text-muted-foreground">{formatCurrency(payment.interestAmount)}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(payment.balanceAfterPayment)}</TableCell>
+                      <TableCell>{getPaymentStatusBadge(payment.status)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between mt-4">
+                <p className="text-sm text-muted-foreground">
+                  Showing {(page - 1) * pageSize + 1}-{Math.min(page * pageSize, sortedPayments.length)} of {sortedPayments.length}
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    disabled={page === 1}
+                    onClick={() => setPage(page - 1)}
+                    data-testid="button-prev-page"
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-sm">Page {page} of {totalPages}</span>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    disabled={page === totalPages}
+                    onClick={() => setPage(page + 1)}
+                    data-testid="button-next-page"
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function PayoffCalculator({ loan }: { loan: ServicedLoan }) {
+  const { toast } = useToast();
+  const [payoffDate, setPayoffDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  
+  const { data: payoffData, isLoading, refetch } = useQuery<{
+    payoffDate: string;
+    daysUntilPayoff: number;
+    outstandingPrincipal: number;
+    perDiemInterest: number;
+    accruedInterest: number;
+    outstandingFees: number;
+    totalPayoff: number;
+    validUntil: string;
+  }>({
+    queryKey: ["/api/servicing", loan.id, "payoff", payoffDate],
+    queryFn: async () => {
+      const res = await fetch(`/api/servicing/${loan.id}/payoff?payoffDate=${payoffDate}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to calculate payoff");
+      return res.json();
+    },
+    enabled: !!loan.id,
+  });
+  
+  const requestPayoffMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", `/api/servicing/${loan.id}/payoff-request`, { payoffDate });
+    },
+    onSuccess: () => {
+      toast({ title: "Payoff statement requested", description: "You will be notified when it's ready." });
+    },
+    onError: () => {
+      toast({ title: "Failed to request payoff statement", variant: "destructive" });
+    },
+  });
+  
+  return (
+    <Card data-testid="payoff-calculator">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Calculator className="h-5 w-5" />
+          Payoff Calculator
+        </CardTitle>
+        <CardDescription>Calculate total payoff amount for a specific date</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="mb-6">
+          <Label htmlFor="payoffDate">Payoff Date</Label>
+          <div className="flex gap-2 mt-1">
+            <Input
+              id="payoffDate"
+              type="date"
+              value={payoffDate}
+              onChange={(e) => setPayoffDate(e.target.value)}
+              className="max-w-xs"
+              data-testid="input-payoff-date"
+            />
+            <Button variant="outline" onClick={() => refetch()} data-testid="button-recalculate">
+              Calculate
+            </Button>
+          </div>
+        </div>
+        
+        {isLoading ? (
+          <div className="space-y-3">
+            <Skeleton className="h-20 w-full" />
+            <Skeleton className="h-32 w-full" />
+          </div>
+        ) : payoffData ? (
+          <>
+            <div className="p-4 rounded-lg bg-primary/10 border border-primary/20 mb-6">
+              <p className="text-xs text-muted-foreground mb-1">Total Payoff Amount</p>
+              <p className="text-3xl font-bold text-primary" data-testid="stat-total-payoff">
+                {formatCurrencyPrecise(payoffData.totalPayoff)}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Good through {format(new Date(payoffData.validUntil), "MMM d, yyyy")}
+              </p>
+            </div>
+            
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 rounded-lg border">
+                <span className="text-muted-foreground">Outstanding Principal</span>
+                <span className="font-medium" data-testid="payoff-principal">{formatCurrency(payoffData.outstandingPrincipal)}</span>
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg border">
+                <div>
+                  <span className="text-muted-foreground">Accrued Interest</span>
+                  <p className="text-xs text-muted-foreground">
+                    ({payoffData.daysUntilPayoff} days @ {formatCurrencyPrecise(payoffData.perDiemInterest)}/day)
+                  </p>
+                </div>
+                <span className="font-medium" data-testid="payoff-interest">{formatCurrency(payoffData.accruedInterest)}</span>
+              </div>
+              {payoffData.outstandingFees > 0 && (
+                <div className="flex items-center justify-between p-3 rounded-lg border border-amber-500/20 bg-amber-500/5">
+                  <span className="text-amber-400">Outstanding Fees</span>
+                  <span className="font-medium text-amber-400" data-testid="payoff-fees">{formatCurrency(payoffData.outstandingFees)}</span>
+                </div>
+              )}
+            </div>
+            
+            <div className="mt-4 p-3 rounded-lg bg-muted/30 border">
+              <div className="flex items-center gap-2 text-sm">
+                <TrendingDown className="h-4 w-4 text-muted-foreground" />
+                <span>Daily Interest Accrual: <span className="font-medium text-amber-400" data-testid="stat-per-diem">{formatCurrencyPrecise(payoffData.perDiemInterest)}</span>/day</span>
+              </div>
+            </div>
+            
+            <Separator className="my-6" />
+            
+            <Button 
+              className="w-full" 
+              onClick={() => requestPayoffMutation.mutate()}
+              disabled={requestPayoffMutation.isPending}
+              data-testid="button-request-payoff"
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Request Official Payoff Statement
+            </Button>
+          </>
+        ) : (
+          <div className="text-center py-8">
+            <Calculator className="h-10 w-10 mx-auto text-muted-foreground/50 mb-2" />
+            <p className="text-muted-foreground">Select a date to calculate payoff</p>
           </div>
         )}
       </CardContent>
@@ -811,9 +1073,10 @@ export default function LoanDetailPage() {
         
         {isHardMoney ? (
           <Tabs defaultValue="draws" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="draws" data-testid="tab-draws">Draws</TabsTrigger>
               <TabsTrigger value="payments" data-testid="tab-payments">Payments</TabsTrigger>
+              <TabsTrigger value="payoff" data-testid="tab-payoff">Payoff</TabsTrigger>
               <TabsTrigger value="milestones" data-testid="tab-milestones">Milestones</TabsTrigger>
               <TabsTrigger value="documents" data-testid="tab-documents">Documents</TabsTrigger>
             </TabsList>
@@ -824,6 +1087,10 @@ export default function LoanDetailPage() {
             
             <TabsContent value="payments">
               <InterestPaymentTracker loan={loan} payments={loanDetails.payments} />
+            </TabsContent>
+            
+            <TabsContent value="payoff">
+              <PayoffCalculator loan={loan} />
             </TabsContent>
             
             <TabsContent value="milestones">
@@ -910,9 +1177,10 @@ export default function LoanDetailPage() {
           </Tabs>
         ) : (
           <Tabs defaultValue="amortization" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="amortization" data-testid="tab-amortization">Amortization</TabsTrigger>
               <TabsTrigger value="payments" data-testid="tab-payments">Payment History</TabsTrigger>
+              <TabsTrigger value="payoff" data-testid="tab-payoff">Payoff</TabsTrigger>
               <TabsTrigger value="escrow" data-testid="tab-escrow">Escrow</TabsTrigger>
               <TabsTrigger value="documents" data-testid="tab-documents">Documents</TabsTrigger>
             </TabsList>
@@ -922,7 +1190,11 @@ export default function LoanDetailPage() {
             </TabsContent>
             
             <TabsContent value="payments">
-              <PaymentHistory payments={loanDetails.payments} />
+              <PaymentHistoryPanel payments={loanDetails.payments} loan={loan} />
+            </TabsContent>
+            
+            <TabsContent value="payoff">
+              <PayoffCalculator loan={loan} />
             </TabsContent>
             
             <TabsContent value="escrow">

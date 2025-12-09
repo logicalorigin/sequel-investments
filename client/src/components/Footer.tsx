@@ -3,8 +3,26 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Facebook, Twitter, Linkedin, Mail } from "lucide-react";
 import { GeometricPattern } from "@/components/GeometricPattern";
+import { useWhiteLabel } from "@/context/WhiteLabelContext";
 
 export function Footer() {
+  const { settings, isDemoMode } = useWhiteLabel();
+  
+  const companyName = settings?.companyName || "SEQUEL INVESTMENTS";
+  const logoUrl = settings?.logoUrl;
+  const contactPhone = settings?.contactPhone || "302.388.8860";
+  const contactEmail = settings?.contactEmail || "josh@fundwithsequel.com";
+  const contactAddress = settings?.contactAddress || "800 5th Avenue, Suite 4100, Miami Beach, FL 33139";
+  const footerText = settings?.footerText;
+  
+  const nameParts = companyName.split(" ");
+  const firstName = nameParts[0];
+  const restOfName = nameParts.slice(1).join(" ");
+  
+  const addressParts = contactAddress.split(", ");
+  const addressLine1 = addressParts.slice(0, 2).join(", ");
+  const addressLine2 = addressParts.slice(2).join(", ");
+
   return (
     <footer className="bg-card border-t relative overflow-hidden">
       <GeometricPattern 
@@ -16,17 +34,28 @@ export function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 md:gap-12 mb-8 sm:mb-12">
           <div className="col-span-2 lg:col-span-1">
             <div className="flex items-center mb-4 sm:mb-6">
-              <span className="text-lg font-bold text-primary">SEQUEL</span>
-              <span className="text-lg font-light text-foreground ml-1">INVESTMENTS</span>
+              {logoUrl ? (
+                <img 
+                  src={logoUrl} 
+                  alt={companyName}
+                  className="h-8 max-w-[150px] object-contain"
+                  data-testid="img-footer-logo"
+                />
+              ) : (
+                <>
+                  <span className="text-lg font-bold text-primary" data-testid="text-footer-company-first">{firstName}</span>
+                  {restOfName && <span className="text-lg font-light text-foreground ml-1" data-testid="text-footer-company-rest">{restOfName}</span>}
+                </>
+              )}
             </div>
             <p className="text-sm sm:text-base text-muted-foreground mb-3 sm:mb-4">
               Private financing solutions for real estate investors. DSCR, Fix & Flip, and New Construction loans nationwide.
             </p>
-            <div className="text-xs sm:text-sm text-muted-foreground space-y-1 mb-3 sm:mb-4">
-              <p>302.388.8860</p>
-              <p>josh@fundwithsequel.com</p>
-              <p>800 5th Avenue, Suite 4100</p>
-              <p>Miami Beach, FL 33139</p>
+            <div className="text-xs sm:text-sm text-muted-foreground space-y-1 mb-3 sm:mb-4" data-testid="footer-contact-info">
+              <p data-testid="text-footer-phone">{contactPhone}</p>
+              <p data-testid="text-footer-email">{contactEmail}</p>
+              <p data-testid="text-footer-address-1">{addressLine1}</p>
+              {addressLine2 && <p data-testid="text-footer-address-2">{addressLine2}</p>}
             </div>
             <div className="flex gap-2 sm:gap-3">
               <Button size="icon" variant="outline" className="h-8 w-8 sm:h-9 sm:w-9" data-testid="button-social-facebook">
@@ -134,9 +163,19 @@ export function Footer() {
         </div>
 
         <div className="pt-6 sm:pt-8 border-t">
+          {footerText && (
+            <p className="text-muted-foreground text-xs sm:text-sm mb-4 text-center" data-testid="text-custom-footer">
+              {footerText}
+            </p>
+          )}
           <div className="flex flex-col md:flex-row justify-between items-center gap-2 sm:gap-4">
-            <p className="text-muted-foreground text-xs sm:text-sm text-center md:text-left">
-              © 2024 Sequel Investments. All rights reserved.
+            <p className="text-muted-foreground text-xs sm:text-sm text-center md:text-left" data-testid="text-footer-copyright">
+              © {new Date().getFullYear()} {isDemoMode ? companyName : "Sequel Investments"}. All rights reserved.
+              {isDemoMode && (
+                <span className="ml-2 text-primary" data-testid="text-powered-by-footer">
+                  Powered by Sequel Investments
+                </span>
+              )}
             </p>
             <p className="text-muted-foreground text-xs sm:text-sm">
               Licensed in 48 states + DC
