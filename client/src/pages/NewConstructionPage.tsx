@@ -159,24 +159,9 @@ export default function NewConstructionPage() {
 
             {/* Text on right */}
             <div className="order-1 lg:order-2 text-center lg:text-left">
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 sm:mb-6 flex items-baseline flex-wrap justify-center lg:justify-start">
-                <span className="text-foreground">Where Are You&nbsp;</span>
-                <span className="inline-block border-b-2 border-primary pb-0.5">
-                  <span 
-                    className="inline-block overflow-hidden"
-                    style={{ height: '1em', lineHeight: '1' }}
-                  >
-                    <span 
-                      className="flex flex-col"
-                      style={{ animation: 'wordTickerDown 12s ease-in-out infinite' }}
-                    >
-                      <span className="text-primary" style={{ lineHeight: '1' }}>Investing?</span>
-                      <span className="text-primary" style={{ lineHeight: '1' }}>Flipping?</span>
-                      <span className="text-primary" style={{ lineHeight: '1' }}>Building?</span>
-                      <span className="text-primary" style={{ lineHeight: '1' }}>Investing?</span>
-                    </span>
-                  </span>
-                </span>
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 sm:mb-6">
+                <span className="text-foreground">Where Are You </span>
+                <span className="text-primary">Building?</span>
               </h2>
               <p className="text-base sm:text-lg md:text-xl text-muted-foreground mb-6 sm:mb-8 max-w-lg mx-auto lg:mx-0">
                 We offer New Construction loans in 48 states + DC. Click on a state to explore our ground-up financing in your area.
