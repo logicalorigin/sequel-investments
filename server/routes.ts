@@ -1088,6 +1088,327 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ============================================
+  // DRAW PHOTOS ROUTES (Photo Verification)
+  // ============================================
+  
+  // Get photos for a draw
+  app.get("/api/loan-draws/:drawId/photos", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const draw = await storage.getLoanDraw(req.params.drawId);
+      
+      if (!draw) {
+        return res.status(404).json({ error: "Draw not found" });
+      }
+      
+      const loan = await storage.getServicedLoan(draw.servicedLoanId);
+      if (!loan) {
+        return res.status(404).json({ error: "Loan not found" });
+      }
+      
+      if (loan.userId !== userId && user?.role === "borrower") {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const photos = await storage.getDrawPhotos(draw.id);
+      return res.json(photos);
+    } catch (error) {
+      console.error("Error fetching draw photos:", error);
+      return res.status(500).json({ error: "Failed to fetch photos" });
+    }
+  });
+  
+  // Get upload URL for draw photo
+  app.post("/api/loan-draws/:drawId/photos/upload-url", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { fileName } = req.body;
+      
+      if (!fileName) {
+        return res.status(400).json({ error: "fileName is required" });
+      }
+      
+      const draw = await storage.getLoanDraw(req.params.drawId);
+      if (!draw) {
+        return res.status(404).json({ error: "Draw not found" });
+      }
+      
+      const loan = await storage.getServicedLoan(draw.servicedLoanId);
+      if (!loan) {
+        return res.status(404).json({ error: "Loan not found" });
+      }
+      
+      if (loan.userId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const objectStorageService = new ObjectStorageService();
+      const dealName = [loan.propertyAddress, loan.propertyCity, loan.propertyState]
+        .filter(Boolean)
+        .join(", ") || `Loan ${loan.loanNumber}`;
+      
+      const photoPath = `draw-photos/draw-${draw.drawNumber}/${fileName}`;
+      const uploadURL = await objectStorageService.getApplicationDocumentUploadURL(dealName, photoPath);
+      
+      res.json({ uploadURL });
+    } catch (error: any) {
+      console.error("Error getting photo upload URL:", error);
+      if (error.message?.includes("PRIVATE_OBJECT_DIR")) {
+        res.status(503).json({ error: "File storage not configured" });
+      } else {
+        res.status(500).json({ error: "Failed to get upload URL" });
+      }
+    }
+  });
+  
+  // Create draw photo with server-side EXIF verification
+  app.post("/api/loan-draws/:drawId/photos", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const draw = await storage.getLoanDraw(req.params.drawId);
+      
+      if (!draw) {
+        return res.status(404).json({ error: "Draw not found" });
+      }
+      
+      const loan = await storage.getServicedLoan(draw.servicedLoanId);
+      if (!loan) {
+        return res.status(404).json({ error: "Loan not found" });
+      }
+      
+      if (loan.userId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const {
+        fileKey,
+        fileName,
+        fileSizeBytes,
+        mimeType,
+        browserLatitude,
+        browserLongitude,
+        scopeOfWorkItemId,
+        caption,
+      } = req.body;
+      
+      if (!fileKey || !fileName) {
+        return res.status(400).json({ error: "fileKey and fileName are required" });
+      }
+      
+      // Parse EXIF from the uploaded image server-side (never trust client data)
+      const { parseExifFromUrl } = await import("./services/exifService");
+      const { getOrCreatePropertyLocation, verifyPhotoLocation } = await import("./services/geocodingService");
+      const { PHOTO_VERIFICATION_CONFIG } = await import("@shared/schema");
+      
+      // Construct the full URL to fetch the uploaded image
+      const baseUrl = process.env.REPLIT_DEV_DOMAIN 
+        ? `https://${process.env.REPLIT_DEV_DOMAIN}`
+        : `http://localhost:${process.env.PORT || 5000}`;
+      const imageUrl = `${baseUrl}${fileKey.startsWith('/') ? fileKey : '/objects/' + fileKey}`;
+      
+      // Parse EXIF from the actual uploaded image
+      const exifData = await parseExifFromUrl(imageUrl);
+      
+      const fullAddress = [loan.propertyAddress, loan.propertyCity, loan.propertyState, loan.propertyZip]
+        .filter(Boolean)
+        .join(", ");
+      
+      let verificationStatus: "pending" | "verified" | "outside_geofence" | "stale_timestamp" | "metadata_missing" = "pending";
+      let distanceFromPropertyMeters: number | undefined;
+      let verificationDetails: string | undefined;
+      
+      if (fullAddress) {
+        const propertyLocation = await getOrCreatePropertyLocation(loan.id, fullAddress);
+        
+        if (propertyLocation) {
+          const verification = verifyPhotoLocation(
+            exifData.latitude,
+            exifData.longitude,
+            exifData.timestamp,
+            parseFloat(propertyLocation.latitude),
+            parseFloat(propertyLocation.longitude),
+            propertyLocation.geofenceRadiusMeters,
+            PHOTO_VERIFICATION_CONFIG.MAX_PHOTO_AGE_HOURS
+          );
+          
+          verificationStatus = verification.status;
+          distanceFromPropertyMeters = verification.distanceMeters;
+          verificationDetails = verification.details;
+        } else {
+          // Property location could not be geocoded
+          verificationStatus = "pending";
+          verificationDetails = "Property location could not be determined - manual review required";
+        }
+      } else {
+        verificationStatus = "pending";
+        verificationDetails = "No property address available - manual review required";
+      }
+      
+      const photo = await storage.createDrawPhoto({
+        loanDrawId: draw.id,
+        uploadedByUserId: userId,
+        fileKey,
+        fileName,
+        fileSizeBytes,
+        mimeType,
+        exifLatitude: exifData.latitude?.toString(),
+        exifLongitude: exifData.longitude?.toString(),
+        exifTimestamp: exifData.timestamp || undefined,
+        exifCameraModel: exifData.cameraModel,
+        browserLatitude,
+        browserLongitude,
+        scopeOfWorkItemId,
+        caption,
+        verificationStatus,
+        distanceFromPropertyMeters,
+        verificationDetails,
+        verifiedAt: verificationStatus !== "pending" ? new Date() : undefined,
+      });
+      
+      return res.status(201).json(photo);
+    } catch (error) {
+      console.error("Error creating draw photo:", error);
+      return res.status(500).json({ error: "Failed to create photo" });
+    }
+  });
+  
+  // Update draw photo (manual verification override by staff)
+  app.patch("/api/draw-photos/:id/verify", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      // Only staff/admin can manually verify photos
+      if (user?.role === "borrower") {
+        return res.status(403).json({ error: "Only staff can manually verify photos" });
+      }
+      
+      const photo = await storage.getDrawPhoto(req.params.id);
+      if (!photo) {
+        return res.status(404).json({ error: "Photo not found" });
+      }
+      
+      const { newStatus, reason } = req.body;
+      
+      if (!newStatus || !["manual_approved", "manual_rejected"].includes(newStatus)) {
+        return res.status(400).json({ error: "newStatus must be 'manual_approved' or 'manual_rejected'" });
+      }
+      
+      // Create audit record
+      await storage.createPhotoVerificationAudit({
+        drawPhotoId: photo.id,
+        performedByUserId: userId,
+        previousStatus: photo.verificationStatus,
+        newStatus,
+        reason,
+      });
+      
+      // Update photo status
+      const updated = await storage.updateDrawPhoto(photo.id, {
+        verificationStatus: newStatus,
+        verificationDetails: reason || `Manually ${newStatus === "manual_approved" ? "approved" : "rejected"} by staff`,
+        verifiedAt: new Date(),
+      });
+      
+      return res.json(updated);
+    } catch (error) {
+      console.error("Error updating photo verification:", error);
+      return res.status(500).json({ error: "Failed to update photo verification" });
+    }
+  });
+  
+  // Delete draw photo
+  app.delete("/api/draw-photos/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const photo = await storage.getDrawPhoto(req.params.id);
+      
+      if (!photo) {
+        return res.status(404).json({ error: "Photo not found" });
+      }
+      
+      const draw = await storage.getLoanDraw(photo.loanDrawId);
+      const loan = draw ? await storage.getServicedLoan(draw.servicedLoanId) : null;
+      
+      if (!loan) {
+        return res.status(404).json({ error: "Loan not found" });
+      }
+      
+      const user = await storage.getUser(userId);
+      
+      // Owner can delete their own photos, staff can delete any
+      if (photo.uploadedByUserId !== userId && user?.role === "borrower") {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      await storage.deleteDrawPhoto(photo.id);
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting draw photo:", error);
+      return res.status(500).json({ error: "Failed to delete photo" });
+    }
+  });
+  
+  // Get photo verification audits
+  app.get("/api/draw-photos/:id/audits", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      // Only staff/admin can view audit history
+      if (user?.role === "borrower") {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const audits = await storage.getPhotoVerificationAudits(req.params.id);
+      return res.json(audits);
+    } catch (error) {
+      console.error("Error fetching photo audits:", error);
+      return res.status(500).json({ error: "Failed to fetch audits" });
+    }
+  });
+  
+  // Get property location for a loan
+  app.get("/api/serviced-loans/:loanId/property-location", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const loan = await storage.getServicedLoan(req.params.loanId);
+      
+      if (!loan) {
+        return res.status(404).json({ error: "Loan not found" });
+      }
+      
+      if (loan.userId !== userId && user?.role === "borrower") {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const location = await storage.getPropertyLocation(loan.id);
+      
+      if (!location) {
+        // Try to geocode if no location exists
+        const { getOrCreatePropertyLocation } = await import("./services/geocodingService");
+        const fullAddress = [loan.propertyAddress, loan.propertyCity, loan.propertyState, loan.propertyZip]
+          .filter(Boolean)
+          .join(", ");
+        
+        if (fullAddress) {
+          const newLocation = await getOrCreatePropertyLocation(loan.id, fullAddress);
+          return res.json(newLocation);
+        }
+        
+        return res.status(404).json({ error: "Property location not available" });
+      }
+      
+      return res.json(location);
+    } catch (error) {
+      console.error("Error fetching property location:", error);
+      return res.status(500).json({ error: "Failed to fetch property location" });
+    }
+  });
+
+  // ============================================
   // LOAN ESCROW ROUTES (For DSCR Loans)
   // ============================================
   app.get("/api/serviced-loans/:loanId/escrow", isAuthenticated, async (req: any, res) => {
