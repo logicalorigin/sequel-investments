@@ -14,7 +14,6 @@ import AddressAutocomplete from "@/components/AddressAutocomplete";
 import { PropertyMapPreview } from "@/components/PropertyMapPreview";
 import { PortalHeader } from "@/components/PortalHeader";
 import { ScenarioManager } from "@/components/ScenarioManager";
-import { AirDNAModalTrigger } from "@/components/AirDNAModal";
 import { 
   Calculator,
   TrendingUp,
@@ -622,32 +621,6 @@ export default function DSCRAnalyzerPage() {
                     })}
                   </div>
                 </div>
-
-                {/* STR Income Tip - shows when Short-Term Rental is selected */}
-                {rentalType === "short_term" && (
-                  <div 
-                    className="p-3 rounded-lg border border-primary/20 bg-primary/5"
-                    data-testid="card-str-income-tip"
-                  >
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">Need STR Income Estimates?</p>
-                        <p className="text-xs text-muted-foreground">
-                          Use AirDNA's Rentalizer to get accurate short-term rental projections for your property
-                        </p>
-                      </div>
-                      <AirDNAModalTrigger
-                        variant="outline"
-                        size="sm"
-                        className="shrink-0"
-                        data-testid="button-airdna-str-tip"
-                      >
-                        <TrendingUp className="w-3.5 h-3.5 mr-1.5" />
-                        Estimate STR Income
-                      </AirDNAModalTrigger>
-                    </div>
-                  </div>
-                )}
 
                 {/* Credit Score Slider */}
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
