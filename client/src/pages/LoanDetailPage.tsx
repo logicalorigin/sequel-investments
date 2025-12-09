@@ -465,17 +465,21 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
         </div>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+          <div className="text-center p-3 rounded-lg bg-muted/50">
+            <p className="text-xl font-bold" data-testid="text-total-budget">{formatCurrency(grandTotalBudget || loan.totalRehabBudget)}</p>
+            <p className="text-xs text-muted-foreground">Total Budget</p>
+          </div>
           <div className="text-center p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-            <p className="text-2xl font-bold text-emerald-400" data-testid="text-total-funded">{formatCurrency(totalFunded)}</p>
+            <p className="text-xl font-bold text-emerald-400" data-testid="text-total-funded">{formatCurrency(totalFunded)}</p>
             <p className="text-xs text-muted-foreground">Total Funded</p>
           </div>
           <div className="text-center p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
-            <p className="text-2xl font-bold text-amber-400" data-testid="text-pending-amount">{formatCurrency(pendingDraws.reduce((s, d) => s + d.requestedAmount, 0))}</p>
+            <p className="text-xl font-bold text-amber-400" data-testid="text-pending-amount">{formatCurrency(pendingDraws.reduce((s, d) => s + d.requestedAmount, 0))}</p>
             <p className="text-xs text-muted-foreground">Pending</p>
           </div>
           <div className="text-center p-3 rounded-lg bg-muted/50">
-            <p className="text-2xl font-bold" data-testid="text-remaining">{formatCurrency(remaining)}</p>
+            <p className="text-xl font-bold" data-testid="text-remaining">{formatCurrency(remaining)}</p>
             <p className="text-xs text-muted-foreground">Remaining</p>
           </div>
         </div>
@@ -517,27 +521,6 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
               </div>
             ) : (
               <>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="grid grid-cols-4 gap-4 flex-1">
-                    <div className="text-center p-2 rounded-lg bg-muted/50">
-                      <p className="text-lg font-bold" data-testid="text-grand-total-budget">{formatCurrency(grandTotalBudget)}</p>
-                      <p className="text-xs text-muted-foreground">Total Budget</p>
-                    </div>
-                    <div className="text-center p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                      <p className="text-lg font-bold text-emerald-400" data-testid="text-grand-total-funded">{formatCurrency(grandTotalFunded)}</p>
-                      <p className="text-xs text-muted-foreground">Total Funded</p>
-                    </div>
-                    <div className="text-center p-2 rounded-lg bg-muted/50">
-                      <p className="text-lg font-bold" data-testid="text-grand-remaining">{formatCurrency(grandTotalBudget - grandTotalFunded)}</p>
-                      <p className="text-xs text-muted-foreground">Remaining</p>
-                    </div>
-                    <div className="text-center p-2 rounded-lg bg-muted/50">
-                      <p className="text-lg font-bold">{grandTotalBudget > 0 ? ((grandTotalFunded / grandTotalBudget) * 100).toFixed(0) : 0}%</p>
-                      <p className="text-xs text-muted-foreground">% Complete</p>
-                    </div>
-                  </div>
-                </div>
-
                 <Accordion type="multiple" defaultValue={categoryOrder} className="space-y-2">
                   {categorySummaries.map((cs) => {
                     const categoryPercent = cs.totalBudget > 0 ? (cs.totalFunded / cs.totalBudget) * 100 : 0;
