@@ -224,8 +224,18 @@ export function StateMapGlobe({
             {hasLoaded && markerPositions.map(({ market, x, y }, index) => {
               const isSelected = selectedMarket?.name === market.name;
               const isHovered = hoveredMarket?.name === market.name;
-              const baseRadius = 8;
-              const radius = isSelected ? baseRadius * 1.6 : isHovered ? baseRadius * 1.3 : baseRadius;
+              
+              const population = market.demographics?.population || 500000;
+              const minRadius = 6;
+              let sizeMultiplier = 1;
+              if (population >= 2000000) sizeMultiplier = 1.8;
+              else if (population >= 1000000) sizeMultiplier = 1.5;
+              else if (population >= 500000) sizeMultiplier = 1.2;
+              
+              const baseRadius = minRadius * sizeMultiplier;
+              const radius = isSelected ? baseRadius * 1.4 : isHovered ? baseRadius * 1.2 : baseRadius;
+              const ringWidth = radius * 0.4;
+              const outerRadius = radius + ringWidth;
               const delay = index * 0.1;
               
               return (
@@ -235,14 +245,14 @@ export function StateMapGlobe({
                   onClick={() => onMarkerClick?.(market)}
                   onMouseEnter={() => onMarkerHover?.(market)}
                   onMouseLeave={() => onMarkerHover?.(null)}
-                  data-testid={`marker-${market.name.toLowerCase().replace(/\s+/g, '-')}`}
+                  data-testid={`marker-${market.id || market.name.toLowerCase().replace(/\s+/g, '-')}`}
                 >
                   {(isSelected || isHovered) && (
                     <>
                       <circle
                         cx={x}
                         cy={y}
-                        r={radius * 2.5}
+                        r={outerRadius * 2.2}
                         fill="none"
                         stroke="hsl(var(--primary))"
                         strokeWidth="1"
@@ -253,7 +263,7 @@ export function StateMapGlobe({
                       <circle
                         cx={x}
                         cy={y}
-                        r={radius * 1.8}
+                        r={outerRadius * 1.6}
                         fill="none"
                         stroke="hsl(var(--primary))"
                         strokeWidth="1.5"
@@ -267,12 +277,26 @@ export function StateMapGlobe({
                   <circle
                     cx={x}
                     cy={y}
-                    r={radius + 3}
-                    fill="hsl(var(--background))"
-                    opacity="0.9"
-                    filter={isSelected || isHovered ? `url(#marker-glow-${stateSlug})` : undefined}
+                    r={outerRadius + 4}
+                    fill="hsl(var(--primary) / 0.15)"
                     className="transition-all duration-300"
                     style={{
+                      filter: isSelected || isHovered ? "blur(4px)" : "blur(3px)",
+                      opacity: isSelected ? 0.8 : isHovered ? 0.6 : 0.4,
+                      animation: `fadeIn 0.5s ease-out ${delay}s both`,
+                    }}
+                  />
+                  
+                  <circle
+                    cx={x}
+                    cy={y}
+                    r={outerRadius}
+                    fill="white"
+                    className="transition-all duration-300"
+                    style={{
+                      filter: isSelected || isHovered 
+                        ? "drop-shadow(0 3px 8px rgba(0,0,0,0.35))" 
+                        : "drop-shadow(0 2px 4px rgba(0,0,0,0.25))",
                       animation: `fadeIn 0.5s ease-out ${delay}s both`,
                     }}
                   />
@@ -281,12 +305,13 @@ export function StateMapGlobe({
                     cx={x}
                     cy={y}
                     r={radius}
-                    fill={isSelected ? "hsl(var(--primary))" : isHovered ? "hsl(var(--primary) / 0.9)" : "hsl(var(--primary) / 0.7)"}
-                    stroke="hsl(var(--primary-foreground))"
-                    strokeWidth={isSelected || isHovered ? 2.5 : 2}
+                    fill="hsl(var(--primary))"
                     className="transition-all duration-300"
                     style={{
-                      animation: `fadeIn 0.5s ease-out ${delay}s both, pulse 2s ease-in-out ${delay + 0.5}s infinite`,
+                      filter: isSelected || isHovered 
+                        ? "drop-shadow(0 0 6px hsl(var(--primary) / 0.6))" 
+                        : undefined,
+                      animation: `fadeIn 0.5s ease-out ${delay}s both`,
                     }}
                   />
                   
@@ -296,7 +321,7 @@ export function StateMapGlobe({
                       y={y}
                       textAnchor="middle"
                       dominantBaseline="central"
-                      className="fill-primary-foreground font-bold text-[10px] pointer-events-none select-none"
+                      className="fill-primary-foreground font-bold text-[8px] pointer-events-none select-none"
                       style={{
                         animation: `fadeIn 0.5s ease-out ${delay + 0.2}s both`,
                       }}
@@ -307,7 +332,7 @@ export function StateMapGlobe({
                   
                   <text
                     x={x}
-                    y={y - radius - 10}
+                    y={y - outerRadius - 8}
                     textAnchor="middle"
                     className={`font-semibold text-[11px] pointer-events-none select-none transition-all duration-300 ${
                       isSelected || isHovered 

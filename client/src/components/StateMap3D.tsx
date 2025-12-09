@@ -130,37 +130,72 @@ export function StateMap3D({
             {showMarkers && markerPositions.map(({ market, x, y }) => {
               const isSelected = selectedMarket?.name === market.name;
               const isHovered = hoveredMarket?.name === market.name;
-              const baseRadius = bounds ? Math.min(bounds.width, bounds.height) * 0.015 : 5;
-              const radius = isSelected ? baseRadius * 1.5 : isHovered ? baseRadius * 1.3 : baseRadius;
+              
+              const population = market.demographics?.population || 500000;
+              const minRadius = bounds ? Math.min(bounds.width, bounds.height) * 0.012 : 4;
+              let sizeMultiplier = 1;
+              if (population >= 2000000) sizeMultiplier = 1.8;
+              else if (population >= 1000000) sizeMultiplier = 1.5;
+              else if (population >= 500000) sizeMultiplier = 1.2;
+              
+              const baseRadius = minRadius * sizeMultiplier;
+              const radius = isSelected ? baseRadius * 1.4 : isHovered ? baseRadius * 1.2 : baseRadius;
+              const ringWidth = radius * 0.35;
+              const outerRadius = radius + ringWidth;
               
               return (
-                <g key={market.name}>
+                <g 
+                  key={market.name}
+                  className="cursor-pointer"
+                  onClick={() => onMarkerClick?.(market)}
+                  onMouseEnter={() => onMarkerHover?.(market)}
+                  onMouseLeave={() => onMarkerHover?.(null)}
+                  data-testid={`marker-${market.id}`}
+                >
                   <circle
                     cx={x}
                     cy={y}
-                    r={radius + 2}
-                    fill="hsl(var(--background))"
-                    opacity="0.8"
+                    r={outerRadius + 3}
+                    fill="hsl(var(--primary) / 0.15)"
+                    className="transition-all duration-200"
+                    style={{
+                      filter: isSelected || isHovered 
+                        ? "blur(3px)" 
+                        : "blur(2px)",
+                      opacity: isSelected ? 0.8 : isHovered ? 0.6 : 0.4,
+                    }}
                   />
+                  
+                  <circle
+                    cx={x}
+                    cy={y}
+                    r={outerRadius}
+                    fill="white"
+                    className="transition-all duration-200"
+                    style={{
+                      filter: isSelected || isHovered 
+                        ? "drop-shadow(0 2px 6px rgba(0,0,0,0.3))" 
+                        : "drop-shadow(0 1px 3px rgba(0,0,0,0.2))",
+                    }}
+                  />
+                  
                   <circle
                     cx={x}
                     cy={y}
                     r={radius}
-                    fill={isSelected ? "hsl(var(--primary))" : isHovered ? "hsl(var(--primary) / 0.8)" : "hsl(var(--primary) / 0.6)"}
-                    stroke="hsl(var(--primary-foreground))"
-                    strokeWidth={isSelected || isHovered ? 2 : 1}
-                    className="cursor-pointer transition-all duration-200"
-                    style={{ 
-                      filter: isSelected || isHovered ? "drop-shadow(0 2px 4px rgba(212, 160, 29, 0.5))" : undefined,
+                    fill="hsl(var(--primary))"
+                    className="transition-all duration-200"
+                    style={{
+                      filter: isSelected || isHovered 
+                        ? "drop-shadow(0 0 4px hsl(var(--primary) / 0.6))" 
+                        : undefined,
                     }}
-                    onClick={() => onMarkerClick?.(market)}
-                    onMouseEnter={() => onMarkerHover?.(market)}
-                    onMouseLeave={() => onMarkerHover?.(null)}
                   />
+                  
                   {(isSelected || isHovered) && (
                     <text
                       x={x}
-                      y={y - radius - 8}
+                      y={y - outerRadius - 6}
                       textAnchor="middle"
                       className="fill-foreground text-[10px] font-medium pointer-events-none"
                       style={{ 
