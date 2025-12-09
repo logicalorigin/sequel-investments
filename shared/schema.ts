@@ -2065,3 +2065,174 @@ export const DEFAULT_BUSINESS_HOURS = [
   { dayOfWeek: 0, startTime: "09:00", endTime: "17:00", isAvailable: false }, // Sunday
   { dayOfWeek: 6, startTime: "09:00", endTime: "17:00", isAvailable: false }, // Saturday
 ];
+
+// ============================================
+// PHOTO VERIFICATION SYSTEM (Pruvan-style)
+// ============================================
+
+// Photo verification status enum
+export const photoVerificationStatusEnum = pgEnum("photo_verification_status", [
+  "pending",           // Just uploaded, not verified yet
+  "verified",          // GPS + timestamp verified
+  "outside_geofence",  // Photo taken outside property location
+  "stale_timestamp",   // Photo is too old (>24 hours)
+  "metadata_missing",  // No EXIF GPS/timestamp data
+  "manual_approved",   // Staff manually approved despite issues
+  "manual_rejected"    // Staff manually rejected
+]);
+export type PhotoVerificationStatus = "pending" | "verified" | "outside_geofence" | "stale_timestamp" | "metadata_missing" | "manual_approved" | "manual_rejected";
+
+// Property locations table - stores geocoded lat/lng for job sites
+export const propertyLocations = pgTable("property_locations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  servicedLoanId: varchar("serviced_loan_id").notNull().references(() => servicedLoans.id).unique(),
+  
+  // Geocoded coordinates
+  latitude: text("latitude").notNull(),  // Stored as string for precision
+  longitude: text("longitude").notNull(),
+  
+  // Geofence settings
+  geofenceRadiusMeters: integer("geofence_radius_meters").default(100).notNull(), // Default 100m radius
+  
+  // Address used for geocoding (for reference)
+  geocodedAddress: text("geocoded_address"),
+  geocodedAt: timestamp("geocoded_at"),
+  geocodeSource: text("geocode_source"), // "google", "mapbox", etc.
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_property_locations_loan").on(table.servicedLoanId),
+]);
+
+export const propertyLocationsRelations = relations(propertyLocations, ({ one }) => ({
+  servicedLoan: one(servicedLoans, {
+    fields: [propertyLocations.servicedLoanId],
+    references: [servicedLoans.id],
+  }),
+}));
+
+export type PropertyLocation = typeof propertyLocations.$inferSelect;
+export type InsertPropertyLocation = typeof propertyLocations.$inferInsert;
+
+export const insertPropertyLocationSchema = createInsertSchema(propertyLocations).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Draw photos table - stores photos with EXIF data and verification status
+export const drawPhotos = pgTable("draw_photos", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  loanDrawId: varchar("loan_draw_id").notNull().references(() => loanDraws.id),
+  scopeOfWorkItemId: varchar("scope_of_work_item_id").references(() => scopeOfWorkItems.id),
+  uploadedByUserId: varchar("uploaded_by_user_id").notNull().references(() => users.id),
+  
+  // File storage
+  fileKey: text("file_key").notNull(), // Key in object storage / file path
+  fileName: text("file_name").notNull(),
+  fileSizeBytes: integer("file_size_bytes"),
+  mimeType: text("mime_type"),
+  
+  // EXIF metadata extracted from photo
+  exifLatitude: text("exif_latitude"),
+  exifLongitude: text("exif_longitude"),
+  exifTimestamp: timestamp("exif_timestamp"),
+  exifCameraModel: text("exif_camera_model"),
+  exifOrientation: integer("exif_orientation"),
+  
+  // Browser-reported location (for comparison/fallback)
+  browserLatitude: text("browser_latitude"),
+  browserLongitude: text("browser_longitude"),
+  
+  // Verification results
+  verificationStatus: photoVerificationStatusEnum("verification_status").default("pending").notNull(),
+  distanceFromPropertyMeters: integer("distance_from_property_meters"),
+  verificationDetails: text("verification_details"), // JSON with detailed verification info
+  verifiedAt: timestamp("verified_at"),
+  
+  // Photo caption/notes from borrower
+  caption: text("caption"),
+  
+  // Sort order within the draw
+  sortOrder: integer("sort_order").default(0),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_draw_photos_draw").on(table.loanDrawId),
+  index("idx_draw_photos_scope_item").on(table.scopeOfWorkItemId),
+  index("idx_draw_photos_status").on(table.verificationStatus),
+]);
+
+export const drawPhotosRelations = relations(drawPhotos, ({ one, many }) => ({
+  loanDraw: one(loanDraws, {
+    fields: [drawPhotos.loanDrawId],
+    references: [loanDraws.id],
+  }),
+  scopeOfWorkItem: one(scopeOfWorkItems, {
+    fields: [drawPhotos.scopeOfWorkItemId],
+    references: [scopeOfWorkItems.id],
+  }),
+  uploadedBy: one(users, {
+    fields: [drawPhotos.uploadedByUserId],
+    references: [users.id],
+  }),
+  audits: many(photoVerificationAudits),
+}));
+
+export type DrawPhoto = typeof drawPhotos.$inferSelect;
+export type InsertDrawPhoto = typeof drawPhotos.$inferInsert;
+
+export const insertDrawPhotoSchema = createInsertSchema(drawPhotos).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Photo verification audit trail - tracks manual overrides and reviews
+export const photoVerificationAudits = pgTable("photo_verification_audits", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  drawPhotoId: varchar("draw_photo_id").notNull().references(() => drawPhotos.id),
+  performedByUserId: varchar("performed_by_user_id").notNull().references(() => users.id),
+  
+  // What changed
+  previousStatus: photoVerificationStatusEnum("previous_status").notNull(),
+  newStatus: photoVerificationStatusEnum("new_status").notNull(),
+  
+  // Why it was changed
+  reason: text("reason"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_photo_audits_photo").on(table.drawPhotoId),
+  index("idx_photo_audits_user").on(table.performedByUserId),
+]);
+
+export const photoVerificationAuditsRelations = relations(photoVerificationAudits, ({ one }) => ({
+  drawPhoto: one(drawPhotos, {
+    fields: [photoVerificationAudits.drawPhotoId],
+    references: [drawPhotos.id],
+  }),
+  performedBy: one(users, {
+    fields: [photoVerificationAudits.performedByUserId],
+    references: [users.id],
+  }),
+}));
+
+export type PhotoVerificationAudit = typeof photoVerificationAudits.$inferSelect;
+export type InsertPhotoVerificationAudit = typeof photoVerificationAudits.$inferInsert;
+
+export const insertPhotoVerificationAuditSchema = createInsertSchema(photoVerificationAudits).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Helper constants for photo verification
+export const PHOTO_VERIFICATION_CONFIG = {
+  DEFAULT_GEOFENCE_RADIUS_METERS: 100, // 100 meter radius around property
+  MAX_PHOTO_AGE_HOURS: 72, // Photos must be taken within 72 hours
+  MIN_PHOTOS_PER_DRAW: 1, // Minimum photos required per draw request
+  MAX_PHOTO_SIZE_MB: 10, // Maximum file size
+  ALLOWED_MIME_TYPES: ["image/jpeg", "image/png", "image/heic", "image/heif"],
+};
