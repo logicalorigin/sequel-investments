@@ -35,6 +35,9 @@ import {
   smsLogs,
   appointments,
   staffAvailability,
+  propertyLocations,
+  drawPhotos,
+  photoVerificationAudits,
   type User, 
   type UpsertUser,
   type Lead, 
@@ -111,6 +114,12 @@ import {
   type InsertStaffAvailability,
   type AppointmentStatus,
   type SignatureRequestStatus,
+  type PropertyLocation,
+  type InsertPropertyLocation,
+  type DrawPhoto,
+  type InsertDrawPhoto,
+  type PhotoVerificationAudit,
+  type InsertPhotoVerificationAudit,
   DEFAULT_DOCUMENT_TYPES,
   DEFAULT_BUSINESS_HOURS,
 } from "@shared/schema";
@@ -365,6 +374,23 @@ export interface IStorage {
   
   // User SMS preferences
   updateUserSmsPreferences(userId: string, data: { phone?: string; smsNotificationsEnabled?: boolean }): Promise<User | undefined>;
+  
+  // Property location operations (for photo verification)
+  getPropertyLocation(servicedLoanId: string): Promise<PropertyLocation | undefined>;
+  createPropertyLocation(data: InsertPropertyLocation): Promise<PropertyLocation>;
+  updatePropertyLocation(id: string, data: Partial<InsertPropertyLocation>): Promise<PropertyLocation | undefined>;
+  
+  // Draw photo operations
+  getDrawPhotos(loanDrawId: string): Promise<DrawPhoto[]>;
+  getDrawPhoto(id: string): Promise<DrawPhoto | undefined>;
+  createDrawPhoto(data: InsertDrawPhoto): Promise<DrawPhoto>;
+  updateDrawPhoto(id: string, data: Partial<InsertDrawPhoto>): Promise<DrawPhoto | undefined>;
+  deleteDrawPhoto(id: string): Promise<boolean>;
+  getDrawPhotosByScopeItem(scopeOfWorkItemId: string): Promise<DrawPhoto[]>;
+  
+  // Photo verification audit operations
+  getPhotoVerificationAudits(drawPhotoId: string): Promise<PhotoVerificationAudit[]>;
+  createPhotoVerificationAudit(data: InsertPhotoVerificationAudit): Promise<PhotoVerificationAudit>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2186,6 +2212,102 @@ export class DatabaseStorage implements IStorage {
     }
     
     return slots;
+  }
+
+  // ============================================
+  // PHOTO VERIFICATION OPERATIONS
+  // ============================================
+
+  // Property location operations
+  async getPropertyLocation(servicedLoanId: string): Promise<PropertyLocation | undefined> {
+    const [location] = await db
+      .select()
+      .from(propertyLocations)
+      .where(eq(propertyLocations.servicedLoanId, servicedLoanId));
+    return location;
+  }
+
+  async createPropertyLocation(data: InsertPropertyLocation): Promise<PropertyLocation> {
+    const [location] = await db
+      .insert(propertyLocations)
+      .values(data)
+      .returning();
+    return location;
+  }
+
+  async updatePropertyLocation(id: string, data: Partial<InsertPropertyLocation>): Promise<PropertyLocation | undefined> {
+    const [updated] = await db
+      .update(propertyLocations)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(propertyLocations.id, id))
+      .returning();
+    return updated;
+  }
+
+  // Draw photo operations
+  async getDrawPhotos(loanDrawId: string): Promise<DrawPhoto[]> {
+    return await db
+      .select()
+      .from(drawPhotos)
+      .where(eq(drawPhotos.loanDrawId, loanDrawId))
+      .orderBy(drawPhotos.sortOrder);
+  }
+
+  async getDrawPhoto(id: string): Promise<DrawPhoto | undefined> {
+    const [photo] = await db
+      .select()
+      .from(drawPhotos)
+      .where(eq(drawPhotos.id, id));
+    return photo;
+  }
+
+  async createDrawPhoto(data: InsertDrawPhoto): Promise<DrawPhoto> {
+    const [photo] = await db
+      .insert(drawPhotos)
+      .values(data)
+      .returning();
+    return photo;
+  }
+
+  async updateDrawPhoto(id: string, data: Partial<InsertDrawPhoto>): Promise<DrawPhoto | undefined> {
+    const [updated] = await db
+      .update(drawPhotos)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(drawPhotos.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteDrawPhoto(id: string): Promise<boolean> {
+    const result = await db
+      .delete(drawPhotos)
+      .where(eq(drawPhotos.id, id));
+    return true;
+  }
+
+  async getDrawPhotosByScopeItem(scopeOfWorkItemId: string): Promise<DrawPhoto[]> {
+    return await db
+      .select()
+      .from(drawPhotos)
+      .where(eq(drawPhotos.scopeOfWorkItemId, scopeOfWorkItemId))
+      .orderBy(drawPhotos.sortOrder);
+  }
+
+  // Photo verification audit operations
+  async getPhotoVerificationAudits(drawPhotoId: string): Promise<PhotoVerificationAudit[]> {
+    return await db
+      .select()
+      .from(photoVerificationAudits)
+      .where(eq(photoVerificationAudits.drawPhotoId, drawPhotoId))
+      .orderBy(desc(photoVerificationAudits.createdAt));
+  }
+
+  async createPhotoVerificationAudit(data: InsertPhotoVerificationAudit): Promise<PhotoVerificationAudit> {
+    const [audit] = await db
+      .insert(photoVerificationAudits)
+      .values(data)
+      .returning();
+    return audit;
   }
 }
 
