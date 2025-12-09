@@ -283,32 +283,32 @@ export default function HomePage() {
                 </div>
               </div>
               
-              {/* Mobile: Full card style matching desktop - lower right corner inside image */}
-              <div className="sm:hidden absolute bottom-3 right-3 bg-card rounded-lg shadow-lg p-3 border z-10 max-w-[200px]" data-testid="card-funded-mobile">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-7 h-7 rounded-full bg-green-500/10 flex items-center justify-center">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+              {/* Mobile: Compact card - 50% smaller than before */}
+              <div className="sm:hidden absolute bottom-2 right-2 bg-card rounded-md shadow-md p-1.5 border z-10 max-w-[100px]" data-testid="card-funded-mobile">
+                <div className="flex items-center gap-1 mb-1">
+                  <div className="w-3.5 h-3.5 rounded-full bg-green-500/10 flex items-center justify-center">
+                    <CheckCircle2 className="h-2 w-2 text-green-500" />
                   </div>
                   <div>
-                    <p className="font-semibold text-xs">Funded</p>
-                    <p className="text-[10px] text-muted-foreground">{activeSlide.loanType}</p>
+                    <p className="font-semibold text-[6px] leading-tight">Funded</p>
+                    <p className="text-[5px] leading-tight text-muted-foreground">{activeSlide.loanType}</p>
                   </div>
                 </div>
-                <div className="space-y-1">
-                  <div className="flex justify-between gap-2 text-xs">
+                <div className="space-y-0.5">
+                  <div className="flex justify-between gap-1 text-[5px]">
                     <span className="text-muted-foreground">Location</span>
                     <span className="font-semibold">{activeSlide.location}</span>
                   </div>
-                  <div className="flex justify-between gap-2 text-xs">
-                    <span className="text-muted-foreground">Loan Amount</span>
+                  <div className="flex justify-between gap-1 text-[5px]">
+                    <span className="text-muted-foreground">Amount</span>
                     <span className="font-semibold">{activeSlide.loanAmount}</span>
                   </div>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">Interest Rate</span>
+                  <div className="flex justify-between text-[5px]">
+                    <span className="text-muted-foreground">Rate</span>
                     <span className="font-semibold text-primary">{activeSlide.rate}</span>
                   </div>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">Closed In</span>
+                  <div className="flex justify-between text-[5px]">
+                    <span className="text-muted-foreground">Closed</span>
                     <span className="font-semibold text-green-600">{activeSlide.closedIn}</span>
                   </div>
                 </div>
