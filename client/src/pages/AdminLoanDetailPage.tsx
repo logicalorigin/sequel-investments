@@ -68,11 +68,21 @@ import {
   Wallet,
   Send,
   Trash2,
+  Camera,
+  MapPin,
+  Image,
+  Eye,
+  ThumbsUp,
+  ThumbsDown,
+  Navigation,
+  CircleAlert,
+  HelpCircle,
+  Maximize2,
 } from "lucide-react";
 import { useState } from "react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { ServicedLoan, LoanPayment, LoanDraw, ScopeOfWorkItem, DrawLineItem, ScopeOfWorkCategory } from "@shared/schema";
+import type { ServicedLoan, LoanPayment, LoanDraw, ScopeOfWorkItem, DrawLineItem, ScopeOfWorkCategory, DrawPhoto, PropertyLocation, PhotoVerificationStatus } from "@shared/schema";
 import { SCOPE_OF_WORK_CATEGORY_NAMES } from "@shared/schema";
 
 type EnrichedServicedLoan = ServicedLoan & {
@@ -123,6 +133,21 @@ const drawStatusConfig = {
   funded: { label: "Funded", color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/30" },
   denied: { label: "Denied", color: "bg-red-500/10 text-red-600 border-red-500/30" },
   cancelled: { label: "Cancelled", color: "bg-gray-500/10 text-gray-500 border-gray-500/30" },
+};
+
+const photoVerificationStatusConfig: Record<PhotoVerificationStatus, { label: string; icon: typeof CheckCircle2; color: string }> = {
+  pending: { label: "Pending", icon: Clock, color: "bg-gray-500/10 text-gray-600 border-gray-500/30" },
+  verified: { label: "Verified", icon: CheckCircle2, color: "bg-green-500/10 text-green-600 border-green-500/30" },
+  outside_geofence: { label: "Outside Geofence", icon: Navigation, color: "bg-orange-500/10 text-orange-600 border-orange-500/30" },
+  stale_timestamp: { label: "Stale Photo", icon: Clock, color: "bg-yellow-500/10 text-yellow-600 border-yellow-500/30" },
+  metadata_missing: { label: "No Location Data", icon: HelpCircle, color: "bg-gray-500/10 text-gray-500 border-gray-500/30" },
+  manual_approved: { label: "Manually Approved", icon: ThumbsUp, color: "bg-blue-500/10 text-blue-600 border-blue-500/30" },
+  manual_rejected: { label: "Manually Rejected", icon: ThumbsDown, color: "bg-red-500/10 text-red-600 border-red-500/30" },
+};
+
+type EnrichedDrawPhoto = DrawPhoto & {
+  drawNumber: number;
+  drawStatus: string;
 };
 
 function formatCurrency(amount: number | null | undefined): string {
@@ -193,6 +218,43 @@ export default function AdminLoanDetailPage() {
   const { data: allDrawLineItems = [] } = useQuery<DrawLineItem[]>({
     queryKey: ["/api/serviced-loans", loan?.id, "all-draw-line-items"],
     enabled: !!loan?.id && (loan?.draws?.length || 0) > 0,
+  });
+
+  const { data: allPhotos = [], isLoading: photosLoading } = useQuery<EnrichedDrawPhoto[]>({
+    queryKey: ["/api/serviced-loans", loan?.id, "all-photos"],
+    enabled: !!loan?.id && loan?.loanType !== "dscr",
+  });
+
+  const { data: propertyLocation } = useQuery<PropertyLocation>({
+    queryKey: ["/api/serviced-loans", loan?.id, "property-location"],
+    enabled: !!loan?.id && loan?.loanType !== "dscr",
+  });
+
+  const [selectedPhoto, setSelectedPhoto] = useState<EnrichedDrawPhoto | null>(null);
+  const [photoReviewDialog, setPhotoReviewDialog] = useState<{
+    open: boolean;
+    photo: EnrichedDrawPhoto | null;
+    action: "approve" | "reject" | null;
+    reason: string;
+  }>({
+    open: false,
+    photo: null,
+    action: null,
+    reason: "",
+  });
+
+  const photoVerifyMutation = useMutation({
+    mutationFn: async ({ photoId, newStatus, reason }: { photoId: string; newStatus: PhotoVerificationStatus; reason: string }) => {
+      return await apiRequest("PATCH", `/api/draw-photos/${photoId}/verify`, { newStatus, reason });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/serviced-loans", loan?.id, "all-photos"] });
+      toast({ title: "Photo verification updated" });
+      setPhotoReviewDialog({ open: false, photo: null, action: null, reason: "" });
+    },
+    onError: () => {
+      toast({ title: "Failed to update verification", variant: "destructive" });
+    },
   });
 
   const recordPaymentMutation = useMutation({
@@ -508,6 +570,12 @@ export default function AdminLoanDetailPage() {
                 {isHardMoney && (
                   <TabsTrigger value="draws" data-testid="tab-draws">
                     Draws ({loan.draws?.length || 0})
+                  </TabsTrigger>
+                )}
+                {isHardMoney && (
+                  <TabsTrigger value="photos" data-testid="tab-photos">
+                    <Camera className="h-4 w-4 mr-1" />
+                    Photos ({allPhotos.length})
                   </TabsTrigger>
                 )}
                 <TabsTrigger value="details" data-testid="tab-details">Details</TabsTrigger>
@@ -1067,6 +1135,150 @@ export default function AdminLoanDetailPage() {
                 </TabsContent>
               )}
 
+              {isHardMoney && (
+                <TabsContent value="photos" className="mt-4">
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between gap-2">
+                      <div>
+                        <CardTitle className="flex items-center gap-2">
+                          <Camera className="h-5 w-5" />
+                          Photo Verification
+                        </CardTitle>
+                        <CardDescription>
+                          Review construction progress photos with GPS and timestamp verification
+                        </CardDescription>
+                      </div>
+                      {propertyLocation && (
+                        <div className="text-right text-xs text-muted-foreground">
+                          <div className="flex items-center gap-1">
+                            <MapPin className="h-3 w-3" />
+                            Geofence: {propertyLocation.geofenceRadiusMeters}m radius
+                          </div>
+                        </div>
+                      )}
+                    </CardHeader>
+                    <CardContent>
+                      {photosLoading ? (
+                        <div className="flex items-center justify-center py-12">
+                          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                        </div>
+                      ) : allPhotos.length === 0 ? (
+                        <div className="text-center py-12">
+                          <Image className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                          <p className="text-muted-foreground">No photos uploaded yet</p>
+                          <p className="text-sm text-muted-foreground">Borrowers can upload progress photos when submitting draw requests</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-6">
+                          <div className="flex items-center gap-4 flex-wrap">
+                            <div className="flex items-center gap-2">
+                              <div className="w-3 h-3 rounded-full bg-green-500" />
+                              <span className="text-sm">Verified ({allPhotos.filter(p => p.verificationStatus === "verified").length})</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="w-3 h-3 rounded-full bg-blue-500" />
+                              <span className="text-sm">Manually Approved ({allPhotos.filter(p => p.verificationStatus === "manual_approved").length})</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="w-3 h-3 rounded-full bg-orange-500" />
+                              <span className="text-sm">Needs Review ({allPhotos.filter(p => ["outside_geofence", "stale_timestamp", "metadata_missing", "pending"].includes(p.verificationStatus)).length})</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="w-3 h-3 rounded-full bg-red-500" />
+                              <span className="text-sm">Rejected ({allPhotos.filter(p => p.verificationStatus === "manual_rejected").length})</span>
+                            </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                            {allPhotos.map((photo) => {
+                              const statusConfig = photoVerificationStatusConfig[photo.verificationStatus];
+                              const StatusIcon = statusConfig.icon;
+                              const needsReview = ["outside_geofence", "stale_timestamp", "metadata_missing", "pending"].includes(photo.verificationStatus);
+                              
+                              return (
+                                <div
+                                  key={photo.id}
+                                  className="relative group border rounded-lg overflow-hidden cursor-pointer hover-elevate"
+                                  onClick={() => setSelectedPhoto(photo)}
+                                  data-testid={`photo-card-${photo.id}`}
+                                >
+                                  <div className="aspect-square bg-muted relative">
+                                    <img
+                                      src={photo.fileKey.startsWith('http') ? photo.fileKey : `/api/uploads/${photo.fileKey}`}
+                                      alt={photo.caption || `Draw ${photo.drawNumber} photo`}
+                                      className="w-full h-full object-cover"
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>';
+                                      }}
+                                    />
+                                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                      <Maximize2 className="h-6 w-6 text-white" />
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="absolute top-2 left-2 right-2 flex items-center justify-between">
+                                    <Badge variant="outline" className={`${statusConfig.color} text-xs`}>
+                                      <StatusIcon className="h-3 w-3 mr-1" />
+                                      {statusConfig.label}
+                                    </Badge>
+                                    <Badge variant="secondary" className="text-xs">
+                                      Draw #{photo.drawNumber}
+                                    </Badge>
+                                  </div>
+                                  
+                                  {needsReview && (
+                                    <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/70 to-transparent">
+                                      <div className="flex gap-1">
+                                        <Button
+                                          size="sm"
+                                          variant="secondary"
+                                          className="flex-1 h-7 text-xs"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setPhotoReviewDialog({
+                                              open: true,
+                                              photo,
+                                              action: "approve",
+                                              reason: "",
+                                            });
+                                          }}
+                                          data-testid={`button-approve-photo-${photo.id}`}
+                                        >
+                                          <ThumbsUp className="h-3 w-3 mr-1" />
+                                          Approve
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="secondary"
+                                          className="flex-1 h-7 text-xs"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setPhotoReviewDialog({
+                                              open: true,
+                                              photo,
+                                              action: "reject",
+                                              reason: "",
+                                            });
+                                          }}
+                                          data-testid={`button-reject-photo-${photo.id}`}
+                                        >
+                                          <ThumbsDown className="h-3 w-3 mr-1" />
+                                          Reject
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              )}
+
               <TabsContent value="details" className="mt-4">
                 <Card>
                   <CardHeader>
@@ -1355,6 +1567,244 @@ export default function AdminLoanDetailPage() {
               >
                 {updateDrawMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 {drawActionDialog.action === "approve" ? "Approve Draw" : "Deny Draw"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={!!selectedPhoto} onOpenChange={(open) => !open && setSelectedPhoto(null)}>
+          <DialogContent className="max-w-4xl">
+            {selectedPhoto && (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <Image className="h-5 w-5" />
+                    Photo Details - Draw #{selectedPhoto.drawNumber}
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="aspect-square bg-muted rounded-lg overflow-hidden">
+                    <img
+                      src={selectedPhoto.fileKey.startsWith('http') ? selectedPhoto.fileKey : `/api/uploads/${selectedPhoto.fileKey}`}
+                      alt={selectedPhoto.caption || "Progress photo"}
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                  <div className="space-y-4">
+                    <div>
+                      <Label className="text-muted-foreground">Verification Status</Label>
+                      <div className="mt-1">
+                        {(() => {
+                          const cfg = photoVerificationStatusConfig[selectedPhoto.verificationStatus];
+                          const Icon = cfg.icon;
+                          return (
+                            <Badge variant="outline" className={cfg.color}>
+                              <Icon className="h-4 w-4 mr-1" />
+                              {cfg.label}
+                            </Badge>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                    
+                    {selectedPhoto.caption && (
+                      <div>
+                        <Label className="text-muted-foreground">Caption</Label>
+                        <p className="mt-1">{selectedPhoto.caption}</p>
+                      </div>
+                    )}
+                    
+                    <div>
+                      <Label className="text-muted-foreground">Location Verification</Label>
+                      <div className="mt-2 space-y-3 text-sm">
+                        {propertyLocation && (
+                          <div className="p-3 rounded-lg bg-muted/50 border">
+                            <div className="flex items-center gap-2 mb-1">
+                              <MapPin className="h-4 w-4 text-primary" />
+                              <span className="font-medium">Property Location</span>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              {propertyLocation.latitude.toFixed(6)}, {propertyLocation.longitude.toFixed(6)}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Geofence: {propertyLocation.geofenceRadiusMeters}m radius
+                            </p>
+                          </div>
+                        )}
+                        
+                        <div className={`p-3 rounded-lg border ${
+                          selectedPhoto.exifLatitude && selectedPhoto.exifLongitude
+                            ? selectedPhoto.distanceFromPropertyMeters !== null && selectedPhoto.distanceFromPropertyMeters <= (propertyLocation?.geofenceRadiusMeters || 100)
+                              ? "bg-green-500/10 border-green-500/30"
+                              : "bg-orange-500/10 border-orange-500/30"
+                            : "bg-gray-500/10 border-gray-500/30"
+                        }`}>
+                          <div className="flex items-center gap-2 mb-1">
+                            <Camera className="h-4 w-4" />
+                            <span className="font-medium">Photo Location (EXIF)</span>
+                          </div>
+                          {selectedPhoto.exifLatitude && selectedPhoto.exifLongitude ? (
+                            <>
+                              <p className="text-xs">
+                                {selectedPhoto.exifLatitude.toFixed(6)}, {selectedPhoto.exifLongitude.toFixed(6)}
+                              </p>
+                              {selectedPhoto.distanceFromPropertyMeters !== null && (
+                                <p className={`text-xs font-medium mt-1 ${
+                                  selectedPhoto.distanceFromPropertyMeters <= (propertyLocation?.geofenceRadiusMeters || 100)
+                                    ? "text-green-600"
+                                    : "text-orange-600"
+                                }`}>
+                                  {selectedPhoto.distanceFromPropertyMeters <= (propertyLocation?.geofenceRadiusMeters || 100)
+                                    ? `Within geofence (${selectedPhoto.distanceFromPropertyMeters}m from property)`
+                                    : `Outside geofence (${selectedPhoto.distanceFromPropertyMeters}m from property)`
+                                  }
+                                </p>
+                              )}
+                            </>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">No GPS data embedded in photo</p>
+                          )}
+                        </div>
+                        
+                        {selectedPhoto.browserLatitude && selectedPhoto.browserLongitude && (
+                          <div className="p-3 rounded-lg bg-muted/50 border">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Navigation className="h-4 w-4 text-muted-foreground" />
+                              <span className="font-medium text-muted-foreground">Browser Location (Fallback)</span>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              {selectedPhoto.browserLatitude.toFixed(6)}, {selectedPhoto.browserLongitude.toFixed(6)}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <Label className="text-muted-foreground">Timestamp</Label>
+                      <div className="mt-1 text-sm">
+                        {selectedPhoto.exifTimestamp ? (
+                          <p>EXIF: {formatDate(selectedPhoto.exifTimestamp)}</p>
+                        ) : (
+                          <p className="text-muted-foreground">No timestamp in photo metadata</p>
+                        )}
+                        <p className="text-muted-foreground">Uploaded: {formatDate(selectedPhoto.createdAt)}</p>
+                      </div>
+                    </div>
+                    
+                    {selectedPhoto.exifCameraModel && (
+                      <div>
+                        <Label className="text-muted-foreground">Camera</Label>
+                        <p className="mt-1 text-sm">{selectedPhoto.exifCameraModel}</p>
+                      </div>
+                    )}
+                    
+                    {["outside_geofence", "stale_timestamp", "metadata_missing", "pending"].includes(selectedPhoto.verificationStatus) && (
+                      <div className="pt-4 border-t flex gap-2">
+                        <Button
+                          onClick={() => {
+                            setSelectedPhoto(null);
+                            setPhotoReviewDialog({
+                              open: true,
+                              photo: selectedPhoto,
+                              action: "approve",
+                              reason: "",
+                            });
+                          }}
+                          data-testid="button-modal-approve-photo"
+                        >
+                          <ThumbsUp className="h-4 w-4 mr-2" />
+                          Approve Photo
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="text-red-600"
+                          onClick={() => {
+                            setSelectedPhoto(null);
+                            setPhotoReviewDialog({
+                              open: true,
+                              photo: selectedPhoto,
+                              action: "reject",
+                              reason: "",
+                            });
+                          }}
+                          data-testid="button-modal-reject-photo"
+                        >
+                          <ThumbsDown className="h-4 w-4 mr-2" />
+                          Reject Photo
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={photoReviewDialog.open} onOpenChange={(open) => {
+          if (!open) setPhotoReviewDialog({ open: false, photo: null, action: null, reason: "" });
+        }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                {photoReviewDialog.action === "approve" ? (
+                  <>
+                    <ThumbsUp className="h-5 w-5 text-green-600" />
+                    Approve Photo
+                  </>
+                ) : (
+                  <>
+                    <ThumbsDown className="h-5 w-5 text-red-600" />
+                    Reject Photo
+                  </>
+                )}
+              </DialogTitle>
+              <DialogDescription>
+                {photoReviewDialog.action === "approve"
+                  ? "Manually approve this photo despite verification issues"
+                  : "Reject this photo and require a new submission"}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div>
+                <Label>{photoReviewDialog.action === "approve" ? "Reason for Approval (Optional)" : "Reason for Rejection"}</Label>
+                <Textarea
+                  value={photoReviewDialog.reason}
+                  onChange={(e) => setPhotoReviewDialog({
+                    ...photoReviewDialog,
+                    reason: e.target.value
+                  })}
+                  placeholder={photoReviewDialog.action === "approve"
+                    ? "Why are you approving this photo despite issues?"
+                    : "Explain why this photo is being rejected..."}
+                  data-testid="input-photo-review-reason"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setPhotoReviewDialog({ open: false, photo: null, action: null, reason: "" })}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant={photoReviewDialog.action === "approve" ? "default" : "destructive"}
+                onClick={() => {
+                  if (photoReviewDialog.photo && photoReviewDialog.action) {
+                    photoVerifyMutation.mutate({
+                      photoId: photoReviewDialog.photo.id,
+                      newStatus: photoReviewDialog.action === "approve" ? "manual_approved" : "manual_rejected",
+                      reason: photoReviewDialog.reason,
+                    });
+                  }
+                }}
+                disabled={photoVerifyMutation.isPending || (photoReviewDialog.action === "reject" && !photoReviewDialog.reason)}
+                data-testid="button-confirm-photo-review"
+              >
+                {photoVerifyMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                {photoReviewDialog.action === "approve" ? "Approve Photo" : "Reject Photo"}
               </Button>
             </DialogFooter>
           </DialogContent>
