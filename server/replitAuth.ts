@@ -162,48 +162,35 @@ export async function setupAuth(app: Express) {
   });
 }
 
-// TESTING MODE: Set to true to bypass authentication
-const BYPASS_AUTH_FOR_TESTING = true;
-
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
-  // Bypass auth for testing - inject mock user
-  if (BYPASS_AUTH_FOR_TESTING) {
-    (req as any).user = {
-      claims: {
-        sub: "test-user-123",
-        email: "test@example.com",
-        first_name: "Test",
-        last_name: "User",
-      },
-      expires_at: Math.floor(Date.now() / 1000) + 3600,
-    };
-    return next();
-  }
-
   const user = req.user as any;
 
-  if (!req.isAuthenticated() || !user.expires_at) {
-    return res.status(401).json({ message: "Unauthorized" });
+  // Check if user is authenticated via session (staff auth or OAuth)
+  if (req.isAuthenticated() && user?.claims?.sub) {
+    // Check if session is expired
+    if (user.expires_at) {
+      const now = Math.floor(Date.now() / 1000);
+      if (now <= user.expires_at) {
+        return next();
+      }
+      
+      // Try to refresh OAuth token if available
+      const refreshToken = user.refresh_token;
+      if (refreshToken) {
+        try {
+          const config = await getOidcConfig();
+          const tokenResponse = await client.refreshTokenGrant(config, refreshToken);
+          updateUserSession(user, tokenResponse);
+          return next();
+        } catch (error) {
+          return res.status(401).json({ message: "Unauthorized" });
+        }
+      }
+    } else {
+      // Staff auth sessions don't have refresh tokens, just check if authenticated
+      return next();
+    }
   }
 
-  const now = Math.floor(Date.now() / 1000);
-  if (now <= user.expires_at) {
-    return next();
-  }
-
-  const refreshToken = user.refresh_token;
-  if (!refreshToken) {
-    res.status(401).json({ message: "Unauthorized" });
-    return;
-  }
-
-  try {
-    const config = await getOidcConfig();
-    const tokenResponse = await client.refreshTokenGrant(config, refreshToken);
-    updateUserSession(user, tokenResponse);
-    return next();
-  } catch (error) {
-    res.status(401).json({ message: "Unauthorized" });
-    return;
-  }
+  return res.status(401).json({ message: "Unauthorized" });
 };
