@@ -10,6 +10,8 @@ import {
   loanEscrowItems,
   loanDocuments,
   loanMilestones,
+  scopeOfWorkItems,
+  drawLineItems,
   notifications,
   savedScenarios,
   userPreferences,
@@ -55,6 +57,11 @@ import {
   type InsertLoanDocument,
   type LoanMilestone,
   type InsertLoanMilestone,
+  type ScopeOfWorkItem,
+  type InsertScopeOfWorkItem,
+  type DrawLineItem,
+  type InsertDrawLineItem,
+  DEFAULT_SCOPE_OF_WORK_ITEMS,
   type Notification,
   type InsertNotification,
   type SavedScenario,
@@ -188,6 +195,22 @@ export interface IStorage {
   createLoanMilestone(milestone: InsertLoanMilestone): Promise<LoanMilestone>;
   updateLoanMilestone(id: string, data: Partial<InsertLoanMilestone>): Promise<LoanMilestone | undefined>;
   deleteLoanMilestone(id: string): Promise<boolean>;
+  
+  // Scope of work operations (for draws)
+  getScopeOfWorkItems(servicedLoanId: string): Promise<ScopeOfWorkItem[]>;
+  getScopeOfWorkItem(id: string): Promise<ScopeOfWorkItem | undefined>;
+  createScopeOfWorkItem(item: InsertScopeOfWorkItem): Promise<ScopeOfWorkItem>;
+  updateScopeOfWorkItem(id: string, data: Partial<InsertScopeOfWorkItem>): Promise<ScopeOfWorkItem | undefined>;
+  deleteScopeOfWorkItem(id: string): Promise<boolean>;
+  initializeScopeOfWork(servicedLoanId: string): Promise<ScopeOfWorkItem[]>;
+  
+  // Draw line items operations
+  getDrawLineItems(loanDrawId: string): Promise<DrawLineItem[]>;
+  getAllDrawLineItemsByLoan(servicedLoanId: string): Promise<DrawLineItem[]>;
+  getDrawLineItem(id: string): Promise<DrawLineItem | undefined>;
+  createDrawLineItem(item: InsertDrawLineItem): Promise<DrawLineItem>;
+  updateDrawLineItem(id: string, data: Partial<InsertDrawLineItem>): Promise<DrawLineItem | undefined>;
+  deleteDrawLineItem(id: string): Promise<boolean>;
   
   // Notification operations
   getNotifications(userId: string): Promise<Notification[]>;
@@ -788,6 +811,109 @@ export class DatabaseStorage implements IStorage {
 
   async deleteLoanMilestone(id: string): Promise<boolean> {
     const result = await db.delete(loanMilestones).where(eq(loanMilestones.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  // Scope of work operations
+  async getScopeOfWorkItems(servicedLoanId: string): Promise<ScopeOfWorkItem[]> {
+    return await db
+      .select()
+      .from(scopeOfWorkItems)
+      .where(eq(scopeOfWorkItems.servicedLoanId, servicedLoanId))
+      .orderBy(scopeOfWorkItems.sortOrder);
+  }
+
+  async getScopeOfWorkItem(id: string): Promise<ScopeOfWorkItem | undefined> {
+    const [item] = await db.select().from(scopeOfWorkItems).where(eq(scopeOfWorkItems.id, id));
+    return item;
+  }
+
+  async createScopeOfWorkItem(item: InsertScopeOfWorkItem): Promise<ScopeOfWorkItem> {
+    const [created] = await db.insert(scopeOfWorkItems).values(item).returning();
+    return created;
+  }
+
+  async updateScopeOfWorkItem(id: string, data: Partial<InsertScopeOfWorkItem>): Promise<ScopeOfWorkItem | undefined> {
+    const [updated] = await db
+      .update(scopeOfWorkItems)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(scopeOfWorkItems.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteScopeOfWorkItem(id: string): Promise<boolean> {
+    const result = await db.delete(scopeOfWorkItems).where(eq(scopeOfWorkItems.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async initializeScopeOfWork(servicedLoanId: string): Promise<ScopeOfWorkItem[]> {
+    const existing = await this.getScopeOfWorkItems(servicedLoanId);
+    if (existing.length > 0) {
+      return existing;
+    }
+    
+    const items: ScopeOfWorkItem[] = [];
+    for (const template of DEFAULT_SCOPE_OF_WORK_ITEMS) {
+      const created = await this.createScopeOfWorkItem({
+        servicedLoanId,
+        category: template.category,
+        itemName: template.itemName,
+        sortOrder: template.sortOrder,
+        budgetAmount: 0,
+      });
+      items.push(created);
+    }
+    return items;
+  }
+
+  // Draw line items operations
+  async getDrawLineItems(loanDrawId: string): Promise<DrawLineItem[]> {
+    return await db
+      .select()
+      .from(drawLineItems)
+      .where(eq(drawLineItems.loanDrawId, loanDrawId));
+  }
+
+  async getAllDrawLineItemsByLoan(servicedLoanId: string): Promise<DrawLineItem[]> {
+    return await db
+      .select({
+        id: drawLineItems.id,
+        loanDrawId: drawLineItems.loanDrawId,
+        scopeOfWorkItemId: drawLineItems.scopeOfWorkItemId,
+        requestedAmount: drawLineItems.requestedAmount,
+        approvedAmount: drawLineItems.approvedAmount,
+        status: drawLineItems.status,
+        notes: drawLineItems.notes,
+        createdAt: drawLineItems.createdAt,
+        updatedAt: drawLineItems.updatedAt,
+      })
+      .from(drawLineItems)
+      .innerJoin(loanDraws, eq(drawLineItems.loanDrawId, loanDraws.id))
+      .where(eq(loanDraws.servicedLoanId, servicedLoanId));
+  }
+
+  async getDrawLineItem(id: string): Promise<DrawLineItem | undefined> {
+    const [item] = await db.select().from(drawLineItems).where(eq(drawLineItems.id, id));
+    return item;
+  }
+
+  async createDrawLineItem(item: InsertDrawLineItem): Promise<DrawLineItem> {
+    const [created] = await db.insert(drawLineItems).values(item).returning();
+    return created;
+  }
+
+  async updateDrawLineItem(id: string, data: Partial<InsertDrawLineItem>): Promise<DrawLineItem | undefined> {
+    const [updated] = await db
+      .update(drawLineItems)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(drawLineItems.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteDrawLineItem(id: string): Promise<boolean> {
+    const result = await db.delete(drawLineItems).where(eq(drawLineItems.id, id));
     return (result.rowCount ?? 0) > 0;
   }
 

@@ -401,6 +401,7 @@ export const servicedLoansRelations = relations(servicedLoans, ({ one, many }) =
   escrowItems: many(loanEscrowItems),
   loanDocuments: many(loanDocuments),
   milestones: many(loanMilestones),
+  scopeOfWorkItems: many(scopeOfWorkItems),
 }));
 
 export type ServicedLoan = typeof servicedLoans.$inferSelect;
@@ -502,11 +503,12 @@ export const loanDraws = pgTable("loan_draws", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const loanDrawsRelations = relations(loanDraws, ({ one }) => ({
+export const loanDrawsRelations = relations(loanDraws, ({ one, many }) => ({
   servicedLoan: one(servicedLoans, {
     fields: [loanDraws.servicedLoanId],
     references: [servicedLoans.id],
   }),
+  lineItems: many(drawLineItems),
 }));
 
 export type LoanDraw = typeof loanDraws.$inferSelect;
@@ -672,6 +674,175 @@ export const insertLoanMilestoneSchema = createInsertSchema(loanMilestones).omit
   createdAt: true,
   updatedAt: true,
 });
+
+// ============================================
+// SCOPE OF WORK (For Construction/Rehab Draws)
+// ============================================
+
+// Scope of work category enum
+export const scopeOfWorkCategoryEnum = pgEnum("scope_of_work_category", [
+  "soft_costs",
+  "demo_foundation",
+  "hvac_plumbing_electrical",
+  "interior",
+  "exterior"
+]);
+export type ScopeOfWorkCategory = "soft_costs" | "demo_foundation" | "hvac_plumbing_electrical" | "interior" | "exterior";
+
+// Scope of work items table - tracks individual budget line items
+export const scopeOfWorkItems = pgTable("scope_of_work_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  servicedLoanId: varchar("serviced_loan_id").notNull().references(() => servicedLoans.id),
+  
+  category: scopeOfWorkCategoryEnum("category").notNull(),
+  itemName: text("item_name").notNull(),
+  details: text("details"),
+  sortOrder: integer("sort_order").default(0).notNull(),
+  
+  // Budget
+  budgetAmount: integer("budget_amount").default(0).notNull(),
+  
+  // Notes
+  notes: text("notes"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const scopeOfWorkItemsRelations = relations(scopeOfWorkItems, ({ one, many }) => ({
+  servicedLoan: one(servicedLoans, {
+    fields: [scopeOfWorkItems.servicedLoanId],
+    references: [servicedLoans.id],
+  }),
+  drawLineItems: many(drawLineItems),
+}));
+
+export type ScopeOfWorkItem = typeof scopeOfWorkItems.$inferSelect;
+export type InsertScopeOfWorkItem = typeof scopeOfWorkItems.$inferInsert;
+
+export const insertScopeOfWorkItemSchema = createInsertSchema(scopeOfWorkItems).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Draw line items - tracks amounts per scope item per draw
+export const drawLineItems = pgTable("draw_line_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  loanDrawId: varchar("loan_draw_id").notNull().references(() => loanDraws.id),
+  scopeOfWorkItemId: varchar("scope_of_work_item_id").notNull().references(() => scopeOfWorkItems.id),
+  
+  // Amounts
+  requestedAmount: integer("requested_amount").default(0).notNull(),
+  approvedAmount: integer("approved_amount"),
+  fundedAmount: integer("funded_amount"),
+  
+  // Notes for this specific line item in this draw
+  notes: text("notes"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const drawLineItemsRelations = relations(drawLineItems, ({ one }) => ({
+  loanDraw: one(loanDraws, {
+    fields: [drawLineItems.loanDrawId],
+    references: [loanDraws.id],
+  }),
+  scopeOfWorkItem: one(scopeOfWorkItems, {
+    fields: [drawLineItems.scopeOfWorkItemId],
+    references: [scopeOfWorkItems.id],
+  }),
+}));
+
+export type DrawLineItem = typeof drawLineItems.$inferSelect;
+export type InsertDrawLineItem = typeof drawLineItems.$inferInsert;
+
+export const insertDrawLineItemSchema = createInsertSchema(drawLineItems).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Default scope of work items template
+export const DEFAULT_SCOPE_OF_WORK_ITEMS: { category: ScopeOfWorkCategory; itemName: string; sortOrder: number }[] = [
+  // Soft Costs
+  { category: "soft_costs", itemName: "Permits", sortOrder: 1 },
+  { category: "soft_costs", itemName: "Architectural", sortOrder: 2 },
+  { category: "soft_costs", itemName: "Engineering", sortOrder: 3 },
+  { category: "soft_costs", itemName: "Legal", sortOrder: 4 },
+  { category: "soft_costs", itemName: "Other - Soft Costs", sortOrder: 5 },
+  
+  // Demo, Foundation
+  { category: "demo_foundation", itemName: "Demolition", sortOrder: 10 },
+  { category: "demo_foundation", itemName: "Foundation", sortOrder: 11 },
+  { category: "demo_foundation", itemName: "Other - Demo/Foundation", sortOrder: 12 },
+  
+  // HVAC, Plumbing, Electrical
+  { category: "hvac_plumbing_electrical", itemName: "HVAC Rough", sortOrder: 20 },
+  { category: "hvac_plumbing_electrical", itemName: "HVAC Trim Out", sortOrder: 21 },
+  { category: "hvac_plumbing_electrical", itemName: "HVAC Service/Repair", sortOrder: 22 },
+  { category: "hvac_plumbing_electrical", itemName: "Electrical Service", sortOrder: 23 },
+  { category: "hvac_plumbing_electrical", itemName: "Electrical Rough", sortOrder: 24 },
+  { category: "hvac_plumbing_electrical", itemName: "Electrical Final/Fixtures", sortOrder: 25 },
+  { category: "hvac_plumbing_electrical", itemName: "Plumbing Rough", sortOrder: 26 },
+  { category: "hvac_plumbing_electrical", itemName: "Plumbing Top Out", sortOrder: 27 },
+  { category: "hvac_plumbing_electrical", itemName: "Plumbing Final/Fixtures", sortOrder: 28 },
+  { category: "hvac_plumbing_electrical", itemName: "Other - MEP", sortOrder: 29 },
+  
+  // Interior
+  { category: "interior", itemName: "Windows", sortOrder: 40 },
+  { category: "interior", itemName: "Interior Doors", sortOrder: 41 },
+  { category: "interior", itemName: "Interior Trim", sortOrder: 42 },
+  { category: "interior", itemName: "Insulation", sortOrder: 43 },
+  { category: "interior", itemName: "Drywall", sortOrder: 44 },
+  { category: "interior", itemName: "Interior Paint", sortOrder: 45 },
+  { category: "interior", itemName: "Tile Flooring", sortOrder: 46 },
+  { category: "interior", itemName: "Carpet", sortOrder: 47 },
+  { category: "interior", itemName: "Wood Flooring", sortOrder: 48 },
+  { category: "interior", itemName: "Kitchen Countertops", sortOrder: 49 },
+  { category: "interior", itemName: "Kitchen Cabinets", sortOrder: 50 },
+  { category: "interior", itemName: "Backsplash", sortOrder: 51 },
+  { category: "interior", itemName: "Appliances", sortOrder: 52 },
+  { category: "interior", itemName: "Other - Kitchen", sortOrder: 53 },
+  { category: "interior", itemName: "Bathroom Cabinets", sortOrder: 54 },
+  { category: "interior", itemName: "Bathroom Vanity Tops", sortOrder: 55 },
+  { category: "interior", itemName: "Showers Tile", sortOrder: 56 },
+  { category: "interior", itemName: "Tubs", sortOrder: 57 },
+  { category: "interior", itemName: "Door and Cabinet Handles", sortOrder: 58 },
+  { category: "interior", itemName: "Mirrors", sortOrder: 59 },
+  { category: "interior", itemName: "Shower Glass", sortOrder: 60 },
+  { category: "interior", itemName: "Fireplace", sortOrder: 61 },
+  { category: "interior", itemName: "Other - Interior", sortOrder: 62 },
+  
+  // Exterior
+  { category: "exterior", itemName: "Masonry/Stucco", sortOrder: 70 },
+  { category: "exterior", itemName: "Roofing", sortOrder: 71 },
+  { category: "exterior", itemName: "Framing", sortOrder: 72 },
+  { category: "exterior", itemName: "Siding", sortOrder: 73 },
+  { category: "exterior", itemName: "Exterior Paint", sortOrder: 74 },
+  { category: "exterior", itemName: "Exterior Doors", sortOrder: 75 },
+  { category: "exterior", itemName: "Garage Doors", sortOrder: 76 },
+  { category: "exterior", itemName: "Driveway/Flatwork", sortOrder: 77 },
+  { category: "exterior", itemName: "Pressure Wash", sortOrder: 78 },
+  { category: "exterior", itemName: "Landscaping", sortOrder: 79 },
+  { category: "exterior", itemName: "Decks/Patio", sortOrder: 80 },
+  { category: "exterior", itemName: "Rain Gutters", sortOrder: 81 },
+  { category: "exterior", itemName: "Sprinkler System", sortOrder: 82 },
+  { category: "exterior", itemName: "Fencing", sortOrder: 83 },
+  { category: "exterior", itemName: "Rough Clean", sortOrder: 84 },
+  { category: "exterior", itemName: "Final Clean", sortOrder: 85 },
+  { category: "exterior", itemName: "Other - Exterior", sortOrder: 86 },
+];
+
+// Helper to get category display name
+export const SCOPE_OF_WORK_CATEGORY_NAMES: Record<ScopeOfWorkCategory, string> = {
+  soft_costs: "Soft Costs",
+  demo_foundation: "Demo, Foundation",
+  hvac_plumbing_electrical: "HVAC, Plumbing, Electrical",
+  interior: "Interior",
+  exterior: "Exterior",
+};
 
 // ============================================
 // HELPER FUNCTIONS FOR LOAN CALCULATIONS
