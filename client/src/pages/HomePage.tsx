@@ -283,8 +283,8 @@ export default function HomePage() {
                 </div>
               </div>
               
-              {/* Mobile: Full card style matching desktop */}
-              <div className="sm:hidden absolute -bottom-4 left-2 right-2 bg-card rounded-lg shadow-lg p-3 border z-10" data-testid="card-funded-mobile">
+              {/* Mobile: Full card style matching desktop - lower right corner inside image */}
+              <div className="sm:hidden absolute bottom-3 right-3 bg-card rounded-lg shadow-lg p-3 border z-10 max-w-[200px]" data-testid="card-funded-mobile">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-7 h-7 rounded-full bg-green-500/10 flex items-center justify-center">
                     <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
