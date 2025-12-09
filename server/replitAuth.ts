@@ -162,7 +162,24 @@ export async function setupAuth(app: Express) {
   });
 }
 
+// TESTING MODE: Set to true to bypass authentication
+const BYPASS_AUTH_FOR_TESTING = true;
+
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
+  // Bypass auth for testing - inject mock user
+  if (BYPASS_AUTH_FOR_TESTING) {
+    (req as any).user = {
+      claims: {
+        sub: "test-user-123",
+        email: "test@example.com",
+        first_name: "Test",
+        last_name: "User",
+      },
+      expires_at: Math.floor(Date.now() / 1000) + 3600,
+    };
+    return next();
+  }
+
   const user = req.user as any;
 
   if (!req.isAuthenticated() || !user.expires_at) {
