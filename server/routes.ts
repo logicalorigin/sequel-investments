@@ -1394,6 +1394,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const photos = await storage.getDrawPhotos(draw.id);
         allPhotos.push(...photos.map(photo => ({
           ...photo,
+          loanDrawId: photo.loanDrawId, // Explicitly include for frontend filtering
           drawNumber: draw.drawNumber,
           drawStatus: draw.status,
         })));
@@ -1761,6 +1762,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
           updateData.approvedAmount = req.body.approvedAmount || draw.requestedAmount;
         }
         if (req.body.status === "funded") {
+          // Check photo verification gate - all photos must be verified or manually approved
+          const drawPhotos = await storage.getDrawPhotos(draw.id);
+          const unverifiedPhotos = drawPhotos.filter(p => 
+            !["verified", "manual_approved"].includes(p.verificationStatus)
+          );
+          
+          if (unverifiedPhotos.length > 0) {
+            const rejectedCount = unverifiedPhotos.filter(p => p.verificationStatus === "manual_rejected").length;
+            const pendingCount = unverifiedPhotos.filter(p => 
+              ["pending", "outside_geofence", "stale_timestamp", "metadata_missing"].includes(p.verificationStatus)
+            ).length;
+            
+            let message = "Cannot fund draw - photo verification required. ";
+            if (rejectedCount > 0) {
+              message += `${rejectedCount} photo(s) have been rejected. `;
+            }
+            if (pendingCount > 0) {
+              message += `${pendingCount} photo(s) need review/approval.`;
+            }
+            
+            return res.status(400).json({ 
+              error: "Photo verification required",
+              message,
+              unverifiedCount: unverifiedPhotos.length,
+              rejectedCount,
+              pendingCount,
+            });
+          }
+          
           updateData.fundedDate = new Date();
           updateData.fundedAmount = req.body.fundedAmount || updateData.approvedAmount || draw.requestedAmount;
           

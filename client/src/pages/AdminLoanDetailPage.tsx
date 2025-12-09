@@ -146,6 +146,7 @@ const photoVerificationStatusConfig: Record<PhotoVerificationStatus, { label: st
 };
 
 type EnrichedDrawPhoto = DrawPhoto & {
+  loanDrawId: string; // Explicitly typed for filtering
   drawNumber: number;
   drawStatus: string;
 };
@@ -312,10 +313,40 @@ export default function AdminLoanDetailPage() {
       toast({ title: "Draw updated successfully" });
       setDrawActionDialog({ open: false, action: null, draw: null, approvedAmount: 0, notes: "" });
     },
-    onError: () => {
-      toast({ title: "Failed to update draw", variant: "destructive" });
+    onError: (error: any) => {
+      // Check for photo verification error
+      if (error?.message?.includes("Photo verification required") || error?.message?.includes("photo")) {
+        toast({ 
+          title: "Photo Verification Required", 
+          description: error?.message || "All photos must be verified or manually approved before funding.",
+          variant: "destructive" 
+        });
+      } else {
+        toast({ title: "Failed to update draw", variant: "destructive" });
+      }
     },
   });
+
+  // Helper to get photo verification status for a draw
+  const getDrawPhotoStatus = (drawId: string) => {
+    const drawPhotos = allPhotos.filter(p => p.loanDrawId === drawId);
+    if (drawPhotos.length === 0) {
+      return { hasPhotos: false, allVerified: true, verifiedCount: 0, totalCount: 0, needsReviewCount: 0, rejectedCount: 0 };
+    }
+    const verifiedPhotos = drawPhotos.filter(p => ["verified", "manual_approved"].includes(p.verificationStatus));
+    const rejectedPhotos = drawPhotos.filter(p => p.verificationStatus === "manual_rejected");
+    const needsReview = drawPhotos.filter(p => 
+      ["pending", "outside_geofence", "stale_timestamp", "metadata_missing"].includes(p.verificationStatus)
+    );
+    return {
+      hasPhotos: true,
+      allVerified: verifiedPhotos.length === drawPhotos.length,
+      verifiedCount: verifiedPhotos.length,
+      totalCount: drawPhotos.length,
+      needsReviewCount: needsReview.length,
+      rejectedCount: rejectedPhotos.length,
+    };
+  };
 
   const initializeScopeMutation = useMutation({
     mutationFn: async () => {
@@ -1099,19 +1130,55 @@ export default function AdminLoanDetailPage() {
                                           </Button>
                                         </div>
                                       )}
-                                      {draw.status === "approved" && (
-                                        <Button
-                                          size="sm"
-                                          onClick={() => updateDrawMutation.mutate({
-                                            drawId: draw.id,
-                                            status: "funded",
-                                          })}
-                                          disabled={updateDrawMutation.isPending}
-                                          data-testid={`button-fund-draw-${draw.id}`}
-                                        >
-                                          Fund
-                                        </Button>
-                                      )}
+                                      {draw.status === "approved" && (() => {
+                                        const photoStatus = getDrawPhotoStatus(draw.id);
+                                        const canFund = photoStatus.allVerified;
+                                        
+                                        return (
+                                          <div className="flex items-center gap-2">
+                                            {photoStatus.hasPhotos && !canFund && (
+                                              <div className="flex items-center gap-1 text-xs">
+                                                {photoStatus.needsReviewCount > 0 && (
+                                                  <Badge variant="outline" className="bg-orange-500/10 text-orange-600 border-orange-500/30 text-xs">
+                                                    <CircleAlert className="h-3 w-3 mr-1" />
+                                                    {photoStatus.needsReviewCount} needs review
+                                                  </Badge>
+                                                )}
+                                                {photoStatus.rejectedCount > 0 && (
+                                                  <Badge variant="outline" className="bg-red-500/10 text-red-600 border-red-500/30 text-xs">
+                                                    <ThumbsDown className="h-3 w-3 mr-1" />
+                                                    {photoStatus.rejectedCount} rejected
+                                                  </Badge>
+                                                )}
+                                              </div>
+                                            )}
+                                            {photoStatus.hasPhotos && canFund && (
+                                              <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/30 text-xs">
+                                                <CheckCircle2 className="h-3 w-3 mr-1" />
+                                                {photoStatus.verifiedCount}/{photoStatus.totalCount} verified
+                                              </Badge>
+                                            )}
+                                            <Button
+                                              size="sm"
+                                              onClick={() => updateDrawMutation.mutate({
+                                                drawId: draw.id,
+                                                status: "funded",
+                                              })}
+                                              disabled={updateDrawMutation.isPending || !canFund}
+                                              data-testid={`button-fund-draw-${draw.id}`}
+                                            >
+                                              {updateDrawMutation.isPending ? (
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                              ) : (
+                                                <>
+                                                  {!canFund && photoStatus.hasPhotos && <Camera className="h-3 w-3 mr-1" />}
+                                                  Fund
+                                                </>
+                                              )}
+                                            </Button>
+                                          </div>
+                                        );
+                                      })()}
                                       {draw.status === "funded" && draw.fundedDate && (
                                         <span className="text-xs text-muted-foreground">
                                           {format(new Date(draw.fundedDate), "MMM d, yyyy")}
