@@ -65,7 +65,7 @@ export function StateMapGlobe({
     const latRange = maxLat - minLat;
     const lngRange = maxLng - minLng;
     
-    const padding = 0.5;
+    const padding = 0.2;
     const paddedLatRange = latRange * (1 + padding * 2);
     const paddedLngRange = lngRange * (1 + padding * 2);
     const paddedMinLat = minLat - latRange * padding;
