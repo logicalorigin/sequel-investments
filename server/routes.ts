@@ -85,7 +85,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // In production, use environment variables or a proper user management system
   if (process.env.NODE_ENV !== 'production') {
     await createAdminUser("admin", "admin");
-    await createTestBorrowerUser("borrower", "borrower");
+    const testBorrower = await createTestBorrowerUser("borrower", "borrower");
+    
+    // Ensure test borrower has a sample loan for testing
+    const existingLoans = await storage.getServicedLoans(testBorrower.id);
+    if (existingLoans.length === 0) {
+      console.log("Creating test loan for borrower user...");
+      
+      // Create a serviced loan directly (without application to avoid schema issues)
+      const closingDate = new Date();
+      closingDate.setDate(closingDate.getDate() - 30);
+      const maturityDate = new Date(closingDate);
+      maturityDate.setMonth(maturityDate.getMonth() + 12);
+      const nextPaymentDate = new Date();
+      nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 1);
+      nextPaymentDate.setDate(1);
+      
+      const testLoan = await storage.createServicedLoan({
+        userId: testBorrower.id,
+        loanNumber: `FF-TEST-${Date.now().toString().slice(-6)}`,
+        loanType: "fix_flip",
+        loanStatus: "current",
+        propertyAddress: "123 Test Property Lane",
+        propertyCity: "Los Angeles",
+        propertyState: "CA",
+        propertyZip: "90001",
+        originalLoanAmount: 350000,
+        currentBalance: 350000,
+        interestRate: "10.5",
+        loanTermMonths: 12,
+        isInterestOnly: true,
+        monthlyPayment: Math.round((350000 * 0.105) / 12),
+        closingDate,
+        firstPaymentDate: nextPaymentDate,
+        maturityDate,
+        nextPaymentDate,
+        totalPrincipalPaid: 0,
+        totalInterestPaid: 0,
+        escrowBalance: 0,
+        totalRehabBudget: 75000,
+        totalDrawsFunded: 0,
+        purchasePrice: 400000,
+        arv: 600000,
+      });
+      
+      console.log("Test loan created:", testLoan.loanNumber);
+    }
   }
   
   // Seed document types on startup
