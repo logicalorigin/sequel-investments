@@ -15,6 +15,20 @@ export interface Article {
 
 export const articles: Article[] = [
   {
+    slug: "str-calculator",
+    title: "Short-Term Rental Income Calculator",
+    metaDescription: "Estimate your Airbnb or vacation rental income potential using real market data from AirDNA. Get accurate projections to qualify for STR-friendly DSCR loans.",
+    category: "Calculator",
+    author: "Sequel Investments",
+    publishDate: "2024-12-01",
+    readTime: "Interactive Tool",
+    heroImage: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1200&h=600&fit=crop&auto=format",
+    excerpt: "Use AirDNA's market data to estimate your short-term rental income and see if your property qualifies for our DSCR loan programs.",
+    tags: ["STR", "Airbnb", "Calculator", "DSCR Loans", "Vacation Rentals"],
+    relatedArticles: ["complete-guide-to-dscr-loans"],
+    content: ""
+  },
+  {
     slug: "complete-guide-to-dscr-loans",
     title: "The Complete Guide to DSCR Rental Property Loans",
     metaDescription: "Learn everything about DSCR loans for rental property investors. Discover how debt service coverage ratio works, qualification requirements, and how to scale your portfolio without income verification.",

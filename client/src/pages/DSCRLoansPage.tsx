@@ -32,6 +32,7 @@ import {
 import dscrImage from "@assets/stock_images/luxury_modern_single_2639d1bd.jpg";
 import { useToast } from "@/hooks/use-toast";
 import { GeometricPattern } from "@/components/GeometricPattern";
+import { AirDNACollapsible } from "@/components/AirDNACollapsible";
 
 const ratesTermsItems: RateTermItem[] = [
   { label: "Rates as low as", value: "5.75%*", icon: "percent" },
@@ -372,6 +373,14 @@ export default function DSCRLoansPage() {
               <div>
                 <h2 className="text-3xl font-bold mb-6">DSCR Calculator</h2>
                 <TeaserDSCRCalculator />
+              </div>
+
+              <div data-testid="section-str-income-estimator">
+                <h2 className="text-3xl font-bold mb-4">STR Income Estimator</h2>
+                <p className="text-muted-foreground mb-6">
+                  Planning to finance a short-term rental? Use AirDNA's market data to estimate potential income for your Airbnb or vacation rental property.
+                </p>
+                <AirDNACollapsible />
               </div>
 
               <div>

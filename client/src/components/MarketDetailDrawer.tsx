@@ -34,6 +34,7 @@ import {
   Navigation,
 } from "lucide-react";
 import type { MarketDetail, STRFriendliness } from "@/data/marketDetails";
+import { AirDNAModalTrigger } from "@/components/AirDNAModal";
 
 interface NearbyUniversity {
   name: string;
@@ -565,6 +566,14 @@ function STRTab({ market }: { market: MarketDetail }) {
           </p>
         </div>
       )}
+
+      <AirDNAModalTrigger 
+        variant="default" 
+        className="w-full mt-4"
+        data-testid="button-estimate-income-market"
+      >
+        Estimate Income for This Market
+      </AirDNAModalTrigger>
     </div>
   );
 }
