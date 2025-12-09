@@ -29,7 +29,16 @@ import {
   BarChart3,
   PiggyBank,
   TrendingDown,
-  Activity
+  Activity,
+  Camera,
+  ImagePlus,
+  X,
+  Upload,
+  Loader2,
+  Eye,
+  ShieldCheck,
+  ShieldX,
+  ShieldAlert
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { PortalHeader } from "@/components/PortalHeader";
@@ -78,7 +87,9 @@ import type {
   AmortizationRow,
   ScopeOfWorkItem,
   DrawLineItem,
-  ScopeOfWorkCategory
+  ScopeOfWorkCategory,
+  DrawPhoto,
+  PhotoVerificationStatus
 } from "@shared/schema";
 import { calculateAmortizationSchedule, calculateInterestOnlyPayment, SCOPE_OF_WORK_CATEGORY_NAMES } from "@shared/schema";
 
@@ -181,6 +192,399 @@ const getDrawStatusBadge = (status: string) => {
 const isHardMoneyLoan = (type: string): boolean => {
   return type === "fix_flip" || type === "new_construction" || type === "bridge";
 };
+
+const getPhotoVerificationBadge = (status: PhotoVerificationStatus) => {
+  switch (status) {
+    case "verified":
+      return <Badge variant="secondary" className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30"><ShieldCheck className="h-3 w-3 mr-1" /> Verified</Badge>;
+    case "outside_geofence":
+      return <Badge variant="secondary" className="bg-amber-500/20 text-amber-400 border-amber-500/30"><ShieldAlert className="h-3 w-3 mr-1" /> Outside Area</Badge>;
+    case "stale_timestamp":
+      return <Badge variant="secondary" className="bg-amber-500/20 text-amber-400 border-amber-500/30"><Clock className="h-3 w-3 mr-1" /> Photo Too Old</Badge>;
+    case "metadata_missing":
+      return <Badge variant="secondary" className="bg-gray-500/20 text-gray-400 border-gray-500/30"><ShieldX className="h-3 w-3 mr-1" /> No GPS Data</Badge>;
+    case "manual_approved":
+      return <Badge variant="secondary" className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30"><CheckCircle2 className="h-3 w-3 mr-1" /> Approved</Badge>;
+    case "manual_rejected":
+      return <Badge variant="destructive"><X className="h-3 w-3 mr-1" /> Rejected</Badge>;
+    case "pending":
+    default:
+      return <Badge variant="outline"><Clock className="h-3 w-3 mr-1" /> Pending</Badge>;
+  }
+};
+
+function DrawPhotoUpload({ draw, loanId, scopeOfWorkItems }: { draw: LoanDraw; loanId: string; scopeOfWorkItems: ScopeOfWorkItem[] }) {
+  const { toast } = useToast();
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [selectedScopeItemId, setSelectedScopeItemId] = useState<string>("");
+  const [caption, setCaption] = useState("");
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [showGalleryDialog, setShowGalleryDialog] = useState(false);
+
+  const { data: photos = [], isLoading: photosLoading } = useQuery<DrawPhoto[]>({
+    queryKey: ["/api/loan-draws", draw.id, "photos"],
+  });
+
+  const uploadPhotoMutation = useMutation({
+    mutationFn: async (file: File) => {
+      setIsUploading(true);
+      setUploadProgress(10);
+
+      // Get upload URL
+      const uploadUrlRes = await apiRequest("POST", `/api/loan-draws/${draw.id}/photos/upload-url`, {
+        fileName: file.name,
+      });
+      const { uploadURL } = uploadUrlRes as { uploadURL: string };
+      setUploadProgress(30);
+
+      // Upload file to storage
+      const uploadRes = await fetch(uploadURL, {
+        method: "PUT",
+        body: file,
+        headers: {
+          "Content-Type": file.type,
+        },
+      });
+      
+      if (!uploadRes.ok) {
+        throw new Error("Failed to upload file");
+      }
+      setUploadProgress(70);
+
+      // Extract file key from upload URL
+      const urlParts = new URL(uploadURL);
+      const fileKey = urlParts.pathname;
+
+      // Get browser location if available
+      let browserLatitude: string | undefined;
+      let browserLongitude: string | undefined;
+      
+      if (navigator.geolocation) {
+        try {
+          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
+          });
+          browserLatitude = position.coords.latitude.toString();
+          browserLongitude = position.coords.longitude.toString();
+        } catch (e) {
+          // Browser location not available, that's OK
+        }
+      }
+
+      setUploadProgress(85);
+
+      // Create photo record (server will parse EXIF and verify)
+      const photo = await apiRequest("POST", `/api/loan-draws/${draw.id}/photos`, {
+        fileKey,
+        fileName: file.name,
+        fileSizeBytes: file.size,
+        mimeType: file.type,
+        browserLatitude,
+        browserLongitude,
+        scopeOfWorkItemId: selectedScopeItemId || undefined,
+        caption: caption || undefined,
+      });
+
+      setUploadProgress(100);
+      return photo;
+    },
+    onSuccess: (photo: DrawPhoto) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/loan-draws", draw.id, "photos"] });
+      setIsUploading(false);
+      setUploadProgress(0);
+      setSelectedFile(null);
+      setPreviewUrl(null);
+      setSelectedScopeItemId("");
+      setCaption("");
+      setShowUploadDialog(false);
+      
+      // Show appropriate toast based on verification result
+      if (photo.verificationStatus === "verified") {
+        toast({ title: "Photo uploaded and verified", description: "GPS location confirmed at property" });
+      } else if (photo.verificationStatus === "metadata_missing") {
+        toast({ title: "Photo uploaded", description: "No GPS data found - staff review required", variant: "default" });
+      } else if (photo.verificationStatus === "outside_geofence") {
+        toast({ title: "Photo uploaded", description: "Photo taken outside property area - staff review required", variant: "default" });
+      } else if (photo.verificationStatus === "stale_timestamp") {
+        toast({ title: "Photo uploaded", description: "Photo is older than allowed - staff review required", variant: "default" });
+      } else {
+        toast({ title: "Photo uploaded successfully" });
+      }
+    },
+    onError: (error: Error) => {
+      setIsUploading(false);
+      setUploadProgress(0);
+      toast({ title: "Failed to upload photo", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const deletePhotoMutation = useMutation({
+    mutationFn: async (photoId: string) => {
+      return apiRequest("DELETE", `/api/draw-photos/${photoId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/loan-draws", draw.id, "photos"] });
+      toast({ title: "Photo deleted" });
+    },
+    onError: () => {
+      toast({ title: "Failed to delete photo", variant: "destructive" });
+    },
+  });
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type and size
+      const allowedTypes = ["image/jpeg", "image/png", "image/heic", "image/heif"];
+      if (!allowedTypes.includes(file.type)) {
+        toast({ title: "Invalid file type", description: "Please upload a JPEG, PNG, or HEIC image", variant: "destructive" });
+        return;
+      }
+      
+      if (file.size > 10 * 1024 * 1024) {
+        toast({ title: "File too large", description: "Maximum file size is 10MB", variant: "destructive" });
+        return;
+      }
+      
+      setSelectedFile(file);
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+    }
+  };
+
+  const handleUpload = () => {
+    if (selectedFile) {
+      uploadPhotoMutation.mutate(selectedFile);
+    }
+  };
+
+  const verifiedCount = photos.filter(p => p.verificationStatus === "verified" || p.verificationStatus === "manual_approved").length;
+  const pendingCount = photos.filter(p => p.verificationStatus === "pending").length;
+  const issueCount = photos.filter(p => ["outside_geofence", "stale_timestamp", "metadata_missing"].includes(p.verificationStatus)).length;
+
+  return (
+    <div className="flex items-center gap-2">
+      {/* Photo count summary */}
+      {photos.length > 0 && (
+        <div className="flex items-center gap-1">
+          {verifiedCount > 0 && (
+            <Badge variant="secondary" className="bg-emerald-500/20 text-emerald-400 text-xs" data-testid={`badge-verified-count-${draw.id}`}>
+              <ShieldCheck className="h-3 w-3 mr-1" />{verifiedCount}
+            </Badge>
+          )}
+          {pendingCount > 0 && (
+            <Badge variant="outline" className="text-xs" data-testid={`badge-pending-count-${draw.id}`}>
+              <Clock className="h-3 w-3 mr-1" />{pendingCount}
+            </Badge>
+          )}
+          {issueCount > 0 && (
+            <Badge variant="secondary" className="bg-amber-500/20 text-amber-400 text-xs" data-testid={`badge-issue-count-${draw.id}`}>
+              <ShieldAlert className="h-3 w-3 mr-1" />{issueCount}
+            </Badge>
+          )}
+        </div>
+      )}
+
+      {/* View gallery button */}
+      {photos.length > 0 && (
+        <Dialog open={showGalleryDialog} onOpenChange={setShowGalleryDialog}>
+          <DialogTrigger asChild>
+            <Button size="sm" variant="outline" data-testid={`button-view-photos-${draw.id}`}>
+              <Eye className="h-4 w-4 mr-1" />
+              {photos.length}
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Draw #{draw.drawNumber} Photos</DialogTitle>
+              <DialogDescription>
+                {verifiedCount} verified, {pendingCount} pending review, {issueCount} need attention
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {photos.map((photo) => (
+                <div key={photo.id} className="relative group rounded-lg overflow-hidden border" data-testid={`photo-card-${photo.id}`}>
+                  <img 
+                    src={photo.fileKey.startsWith('/') ? photo.fileKey : `/objects/${photo.fileKey}`} 
+                    alt={photo.fileName}
+                    className="w-full h-32 object-cover"
+                  />
+                  <div className="absolute bottom-0 left-0 right-0 bg-black/60 p-2">
+                    <div className="flex items-center justify-between">
+                      {getPhotoVerificationBadge(photo.verificationStatus)}
+                      {draw.status === "draft" && (
+                        <Button 
+                          size="icon" 
+                          variant="ghost" 
+                          className="text-white hover:text-red-400 opacity-0 group-hover:opacity-100"
+                          onClick={() => deletePhotoMutation.mutate(photo.id)}
+                          data-testid={`button-delete-photo-${photo.id}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                    {photo.caption && (
+                      <p className="text-xs text-white/80 mt-1 truncate">{photo.caption}</p>
+                    )}
+                  </div>
+                  {photo.distanceFromPropertyMeters !== null && photo.distanceFromPropertyMeters !== undefined && (
+                    <div className="absolute top-2 right-2 bg-black/60 rounded px-1.5 py-0.5 text-[10px] text-white">
+                      {photo.distanceFromPropertyMeters}m away
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Upload button - only for draft draws */}
+      {draw.status === "draft" && (
+        <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
+          <DialogTrigger asChild>
+            <Button size="sm" variant="outline" data-testid={`button-upload-photo-${draw.id}`}>
+              <Camera className="h-4 w-4 mr-1" />
+              Add Photo
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Upload Progress Photo</DialogTitle>
+              <DialogDescription>
+                Take a photo at the property to verify work completion. Photos should include GPS location data.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              {/* File input with camera capture for mobile */}
+              {!selectedFile ? (
+                <div className="border-2 border-dashed rounded-lg p-8 text-center">
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/heic,image/heif"
+                    capture="environment"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                    id={`photo-upload-${draw.id}`}
+                    data-testid={`input-photo-file-${draw.id}`}
+                  />
+                  <label 
+                    htmlFor={`photo-upload-${draw.id}`}
+                    className="cursor-pointer flex flex-col items-center gap-2"
+                  >
+                    <div className="p-4 rounded-full bg-primary/10">
+                      <Camera className="h-8 w-8 text-primary" />
+                    </div>
+                    <p className="font-medium">Take Photo or Choose File</p>
+                    <p className="text-xs text-muted-foreground">
+                      JPEG, PNG, or HEIC up to 10MB
+                    </p>
+                  </label>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="relative rounded-lg overflow-hidden">
+                    <img 
+                      src={previewUrl!} 
+                      alt="Preview" 
+                      className="w-full h-48 object-cover"
+                    />
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="absolute top-2 right-2 bg-black/50 hover:bg-black/70"
+                      onClick={() => {
+                        setSelectedFile(null);
+                        setPreviewUrl(null);
+                      }}
+                      data-testid={`button-clear-preview-${draw.id}`}
+                    >
+                      <X className="h-4 w-4 text-white" />
+                    </Button>
+                  </div>
+                  
+                  {/* Scope of work item selector */}
+                  {scopeOfWorkItems.length > 0 && (
+                    <div>
+                      <Label htmlFor="scopeItem">Link to work item (optional)</Label>
+                      <select
+                        id="scopeItem"
+                        value={selectedScopeItemId}
+                        onChange={(e) => setSelectedScopeItemId(e.target.value)}
+                        className="w-full mt-1 h-9 rounded-md border border-input bg-background px-3 text-sm"
+                        data-testid={`select-scope-item-${draw.id}`}
+                      >
+                        <option value="">Select work item...</option>
+                        {scopeOfWorkItems.map((item) => (
+                          <option key={item.id} value={item.id}>{item.itemName}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  
+                  <div>
+                    <Label htmlFor="caption">Caption (optional)</Label>
+                    <Input
+                      id="caption"
+                      value={caption}
+                      onChange={(e) => setCaption(e.target.value)}
+                      placeholder="Describe the work shown..."
+                      className="mt-1"
+                      data-testid={`input-photo-caption-${draw.id}`}
+                    />
+                  </div>
+                  
+                  {isUploading && (
+                    <div className="space-y-2">
+                      <Progress value={uploadProgress} className="h-2" />
+                      <p className="text-xs text-center text-muted-foreground">
+                        {uploadProgress < 30 ? "Preparing upload..." : 
+                         uploadProgress < 70 ? "Uploading photo..." : 
+                         uploadProgress < 100 ? "Verifying location..." : "Complete!"}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => {
+                setShowUploadDialog(false);
+                setSelectedFile(null);
+                setPreviewUrl(null);
+                setSelectedScopeItemId("");
+                setCaption("");
+              }} data-testid={`button-cancel-upload-${draw.id}`}>Cancel</Button>
+              <Button 
+                onClick={handleUpload}
+                disabled={!selectedFile || isUploading}
+                data-testid={`button-confirm-upload-${draw.id}`}
+              >
+                {isUploading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload Photo
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  );
+}
 
 interface LoanDetailsResponse extends ServicedLoan {
   payments: LoanPayment[];
@@ -750,6 +1154,7 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
+                      <DrawPhotoUpload draw={draw} loanId={loan.id} scopeOfWorkItems={scopeOfWorkItems} />
                       {draw.status === "draft" && (
                         <>
                           <Button 
