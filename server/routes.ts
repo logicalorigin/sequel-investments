@@ -13,6 +13,7 @@ import {
   insertUserPreferencesSchema,
   insertConnectedEntitySchema,
   insertDocumentSignatureSchema,
+  insertSignatureRequestSchema,
   insertCoBorrowerSchema,
   insertApplicationTimelineEventSchema,
   insertFundedDealSchema,
@@ -22,9 +23,12 @@ import {
   insertNotificationQueueItemSchema,
   insertDocumentCommentSchema,
   insertWhiteLabelSettingsSchema,
+  insertAppointmentSchema,
   getStateBySlug,
   type UserRole,
   type StaffRole,
+  type AppointmentStatus,
+  type SignatureRequestStatus,
   STAFF_ROLE_COLORS,
   DEFAULT_WHITE_LABEL_SETTINGS,
 } from "@shared/schema";
@@ -36,6 +40,8 @@ import { ObjectPermission } from "./objectAcl";
 import crypto from "crypto";
 import { getMarketData, refreshAllMarketData, getMarketDataStatus, getPropertyValue, getPropertyLookup } from "./services/marketDataService";
 import { sendEmail, emailTemplates, getPortalUrl, shouldSendEmail } from "./email";
+import { sendSMSIfEnabled, isSMSConfigured } from "./sms";
+import { smsTemplates } from "./sms-templates";
 import stripeRoutes from "./stripe-routes";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -1563,6 +1569,634 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ============================================
+  // SIGNATURE REQUESTS ROUTES (E-Signature Workflow)
+  // ============================================
+
+  // Create signature request (staff only)
+  app.post("/api/signature-requests", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+
+      if (!user || (user.role !== "staff" && user.role !== "admin")) {
+        return res.status(403).json({ error: "Only staff can create signature requests" });
+      }
+
+      const { loanApplicationId, documentId, signerEmail, signerName, signerUserId, expiresInDays = 7 } = req.body;
+
+      if (!loanApplicationId || !documentId || !signerEmail || !signerName) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      const document = await storage.getDocument(documentId);
+      if (!document) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      const application = await storage.getLoanApplication(loanApplicationId);
+      if (!application) {
+        return res.status(404).json({ error: "Loan application not found" });
+      }
+
+      const accessToken = crypto.randomBytes(32).toString("hex");
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + expiresInDays);
+
+      const signatureRequest = await storage.createSignatureRequest({
+        loanApplicationId,
+        documentId,
+        requestedByUserId: userId,
+        signerUserId: signerUserId || null,
+        signerEmail,
+        signerName,
+        accessToken,
+        expiresAt,
+        status: "pending",
+      });
+
+      // Get document type for email
+      const docTypes = await storage.getDocumentTypes();
+      const docType = docTypes.find(dt => dt.id === document.documentTypeId);
+
+      // Send signature request email - use token-based URL for security
+      const signingUrl = `${getPortalUrl()}/sign/${accessToken}`;
+      
+      if (shouldSendEmail()) {
+        try {
+          await sendEmail({
+            to: signerEmail,
+            subject: `Signature Requested: ${docType?.name || document.name || "Document"}`,
+            html: emailTemplates.signatureRequested({
+              signerName,
+              documentName: docType?.name || document.name || "Loan Document",
+              requestedByName: `${user.firstName || ""} ${user.lastName || ""}`.trim() || "Sequel Investments",
+              signingUrl,
+              expiresAt,
+              propertyAddress: application.propertyAddress || undefined,
+            }),
+          });
+
+          // Log the email
+          await storage.createEmailLog({
+            recipientEmail: signerEmail,
+            recipientUserId: signerUserId || null,
+            templateName: "signatureRequested",
+            subject: `Signature Requested: ${docType?.name || document.name || "Document"}`,
+            status: "sent",
+            relatedApplicationId: loanApplicationId,
+          });
+        } catch (emailError) {
+          console.error("Failed to send signature request email:", emailError);
+        }
+      }
+
+      // Create notification for the signer if they have an account
+      if (signerUserId) {
+        await storage.createNotification({
+          userId: signerUserId,
+          type: "general",
+          title: "Signature Required",
+          message: `Please sign "${docType?.name || document.name || "a document"}" for your loan application`,
+          linkUrl: signingUrl,
+          relatedApplicationId: loanApplicationId,
+        });
+      }
+
+      return res.status(201).json(signatureRequest);
+    } catch (error) {
+      console.error("Error creating signature request:", error);
+      return res.status(500).json({ error: "Failed to create signature request" });
+    }
+  });
+
+  // ============================================
+  // TOKEN-BASED PUBLIC ENDPOINTS FOR E-SIGNATURE
+  // These use the token in the URL path for security (no ID exposure)
+  // ============================================
+
+  // Get signature request by token (public endpoint)
+  app.get("/api/signature-requests/token/:token", async (req: any, res) => {
+    try {
+      const token = req.params.token;
+      const request = await storage.getSignatureRequestByToken(token);
+
+      if (!request) {
+        return res.status(404).json({ error: "Signature request not found or link has expired" });
+      }
+
+      // Check if expired
+      if (new Date() > new Date(request.expiresAt)) {
+        if (request.status === "pending" || request.status === "viewed") {
+          await storage.updateSignatureRequest(request.id, { status: "expired" });
+          request.status = "expired";
+        }
+      }
+
+      // Get document and application info
+      const document = await storage.getDocument(request.documentId);
+      const application = await storage.getLoanApplication(request.loanApplicationId);
+      const requestedBy = await storage.getUser(request.requestedByUserId);
+      const docTypes = await storage.getDocumentTypes();
+      const docType = document ? docTypes.find(dt => dt.id === document.documentTypeId) : null;
+
+      // Mark as viewed if pending
+      if (request.status === "pending") {
+        await storage.updateSignatureRequest(request.id, {
+          status: "viewed",
+          viewedAt: new Date(),
+        });
+        request.status = "viewed";
+        request.viewedAt = new Date();
+      }
+
+      // Return response without exposing the access token
+      return res.json({
+        id: request.id,
+        signerName: request.signerName,
+        signerEmail: request.signerEmail,
+        status: request.status,
+        requestedAt: request.requestedAt,
+        expiresAt: request.expiresAt,
+        viewedAt: request.viewedAt,
+        signedAt: request.signedAt,
+        declinedAt: request.declinedAt,
+        document: document ? {
+          id: document.id,
+          name: document.name,
+          typeName: docType?.name,
+          description: docType?.description,
+        } : null,
+        application: application ? {
+          id: application.id,
+          propertyAddress: application.propertyAddress,
+          loanType: application.loanType,
+        } : null,
+        requestedBy: requestedBy ? {
+          firstName: requestedBy.firstName,
+          lastName: requestedBy.lastName,
+        } : null,
+      });
+    } catch (error) {
+      console.error("Error fetching signature request:", error);
+      return res.status(500).json({ error: "Failed to fetch signature request" });
+    }
+  });
+
+  // Submit signature via token (public)
+  app.post("/api/signature-requests/token/:token/sign", async (req: any, res) => {
+    try {
+      const token = req.params.token;
+      const { signatureData, signatureType, agreedToTerms } = req.body;
+      const request = await storage.getSignatureRequestByToken(token);
+
+      if (!request) {
+        return res.status(404).json({ error: "Signature request not found or link has expired" });
+      }
+
+      if (request.status === "signed") {
+        return res.status(400).json({ error: "Document already signed" });
+      }
+
+      if (request.status === "expired" || new Date() > new Date(request.expiresAt)) {
+        return res.status(400).json({ error: "Signature request has expired" });
+      }
+
+      if (request.status === "declined") {
+        return res.status(400).json({ error: "Signature request was declined" });
+      }
+
+      if (!agreedToTerms) {
+        return res.status(400).json({ error: "You must agree to sign electronically" });
+      }
+
+      if (!signatureData) {
+        return res.status(400).json({ error: "Signature data is required" });
+      }
+
+      const updated = await storage.updateSignatureRequest(request.id, {
+        status: "signed",
+        signedAt: new Date(),
+        signatureImageUrl: signatureData,
+        signatureType: signatureType || "draw",
+        ipAddress: req.ip || req.connection?.remoteAddress,
+        userAgent: req.headers["user-agent"],
+      });
+
+      // Get document info for confirmation email
+      const document = await storage.getDocument(request.documentId);
+      const docTypes = await storage.getDocumentTypes();
+      const docType = document ? docTypes.find(dt => dt.id === document.documentTypeId) : null;
+
+      // Send confirmation email
+      if (shouldSendEmail()) {
+        try {
+          await sendEmail({
+            to: request.signerEmail,
+            subject: `Document Signed: ${docType?.name || document?.name || "Document"}`,
+            html: emailTemplates.signatureCompleted({
+              signerName: request.signerName,
+              documentName: docType?.name || document?.name || "Loan Document",
+              signedAt: new Date(),
+            }),
+          });
+
+          await storage.createEmailLog({
+            recipientEmail: request.signerEmail,
+            recipientUserId: request.signerUserId || null,
+            templateName: "signatureCompleted",
+            subject: `Document Signed: ${docType?.name || document?.name || "Document"}`,
+            status: "sent",
+            relatedApplicationId: request.loanApplicationId,
+          });
+        } catch (emailError) {
+          console.error("Failed to send signature confirmation email:", emailError);
+        }
+      }
+
+      // Notify the staff member who requested the signature
+      const requestedBy = await storage.getUser(request.requestedByUserId);
+      if (requestedBy) {
+        await storage.createNotification({
+          userId: request.requestedByUserId,
+          type: "general",
+          title: "Document Signed",
+          message: `${request.signerName} has signed "${docType?.name || document?.name || "the document"}"`,
+          linkUrl: `/admin/applications/${request.loanApplicationId}`,
+          relatedApplicationId: request.loanApplicationId,
+        });
+      }
+
+      return res.json({ success: true, message: "Document signed successfully" });
+    } catch (error) {
+      console.error("Error signing document:", error);
+      return res.status(500).json({ error: "Failed to sign document" });
+    }
+  });
+
+  // Decline to sign via token (public)
+  app.post("/api/signature-requests/token/:token/decline", async (req: any, res) => {
+    try {
+      const token = req.params.token;
+      const { reason } = req.body;
+      const request = await storage.getSignatureRequestByToken(token);
+
+      if (!request) {
+        return res.status(404).json({ error: "Signature request not found or link has expired" });
+      }
+
+      if (request.status === "signed") {
+        return res.status(400).json({ error: "Document already signed" });
+      }
+
+      const updated = await storage.updateSignatureRequest(request.id, {
+        status: "declined",
+        declinedAt: new Date(),
+        declineReason: reason || null,
+        ipAddress: req.ip || req.connection?.remoteAddress,
+        userAgent: req.headers["user-agent"],
+      });
+
+      // Notify the staff member
+      const document = await storage.getDocument(request.documentId);
+      const docTypes = await storage.getDocumentTypes();
+      const docType = document ? docTypes.find(dt => dt.id === document.documentTypeId) : null;
+
+      await storage.createNotification({
+        userId: request.requestedByUserId,
+        type: "general",
+        title: "Signature Declined",
+        message: `${request.signerName} has declined to sign "${docType?.name || document?.name || "the document"}"${reason ? `: ${reason}` : ""}`,
+        linkUrl: `/admin/applications/${request.loanApplicationId}`,
+        relatedApplicationId: request.loanApplicationId,
+      });
+
+      return res.json({ success: true, message: "Signature declined" });
+    } catch (error) {
+      console.error("Error declining signature:", error);
+      return res.status(500).json({ error: "Failed to decline signature" });
+    }
+  });
+
+  // ============================================
+  // ID-BASED ENDPOINTS (STAFF ONLY - PROTECTED)
+  // ============================================
+
+  // Get signature request by ID (staff only - protected)
+  app.get("/api/signature-requests/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+
+      if (!user || (user.role !== "staff" && user.role !== "admin")) {
+        return res.status(403).json({ error: "Access denied - staff only" });
+      }
+
+      const request = await storage.getSignatureRequest(req.params.id);
+
+      if (!request) {
+        return res.status(404).json({ error: "Signature request not found" });
+      }
+
+      // Get document and application info
+      const document = await storage.getDocument(request.documentId);
+      const application = await storage.getLoanApplication(request.loanApplicationId);
+      const requestedBy = await storage.getUser(request.requestedByUserId);
+      const docTypes = await storage.getDocumentTypes();
+      const docType = document ? docTypes.find(dt => dt.id === document.documentTypeId) : null;
+
+      return res.json({
+        ...request,
+        document: document ? {
+          id: document.id,
+          name: document.name,
+          typeName: docType?.name,
+          description: docType?.description,
+        } : null,
+        application: application ? {
+          id: application.id,
+          propertyAddress: application.propertyAddress,
+          loanType: application.loanType,
+        } : null,
+        requestedBy: requestedBy ? {
+          firstName: requestedBy.firstName,
+          lastName: requestedBy.lastName,
+        } : null,
+      });
+    } catch (error) {
+      console.error("Error fetching signature request:", error);
+      return res.status(500).json({ error: "Failed to fetch signature request" });
+    }
+  });
+
+  // Submit signature (legacy - kept for backward compatibility, validates token in body)
+  app.post("/api/signature-requests/:id/sign", async (req: any, res) => {
+    try {
+      const { token, signatureData, signatureType, agreedToTerms } = req.body;
+      const request = await storage.getSignatureRequest(req.params.id);
+
+      if (!request) {
+        return res.status(404).json({ error: "Signature request not found" });
+      }
+
+      if (request.accessToken !== token) {
+        return res.status(403).json({ error: "Invalid access token" });
+      }
+
+      if (request.status === "signed") {
+        return res.status(400).json({ error: "Document already signed" });
+      }
+
+      if (request.status === "expired" || new Date() > new Date(request.expiresAt)) {
+        return res.status(400).json({ error: "Signature request has expired" });
+      }
+
+      if (request.status === "declined") {
+        return res.status(400).json({ error: "Signature request was declined" });
+      }
+
+      if (!agreedToTerms) {
+        return res.status(400).json({ error: "You must agree to sign electronically" });
+      }
+
+      if (!signatureData) {
+        return res.status(400).json({ error: "Signature data is required" });
+      }
+
+      const updated = await storage.updateSignatureRequest(request.id, {
+        status: "signed",
+        signedAt: new Date(),
+        signatureImageUrl: signatureData,
+        signatureType: signatureType || "draw",
+        ipAddress: req.ip || req.connection?.remoteAddress,
+        userAgent: req.headers["user-agent"],
+      });
+
+      // Get document info for confirmation email
+      const document = await storage.getDocument(request.documentId);
+      const docTypes = await storage.getDocumentTypes();
+      const docType = document ? docTypes.find(dt => dt.id === document.documentTypeId) : null;
+
+      // Send confirmation email
+      if (shouldSendEmail()) {
+        try {
+          await sendEmail({
+            to: request.signerEmail,
+            subject: `Document Signed: ${docType?.name || document?.name || "Document"}`,
+            html: emailTemplates.signatureCompleted({
+              signerName: request.signerName,
+              documentName: docType?.name || document?.name || "Loan Document",
+              signedAt: new Date(),
+            }),
+          });
+
+          await storage.createEmailLog({
+            recipientEmail: request.signerEmail,
+            recipientUserId: request.signerUserId || null,
+            templateName: "signatureCompleted",
+            subject: `Document Signed: ${docType?.name || document?.name || "Document"}`,
+            status: "sent",
+            relatedApplicationId: request.loanApplicationId,
+          });
+        } catch (emailError) {
+          console.error("Failed to send signature confirmation email:", emailError);
+        }
+      }
+
+      // Notify the staff member who requested the signature
+      const requestedBy = await storage.getUser(request.requestedByUserId);
+      if (requestedBy) {
+        await storage.createNotification({
+          userId: request.requestedByUserId,
+          type: "general",
+          title: "Document Signed",
+          message: `${request.signerName} has signed "${docType?.name || document?.name || "the document"}"`,
+          linkUrl: `/admin/applications/${request.loanApplicationId}`,
+          relatedApplicationId: request.loanApplicationId,
+        });
+      }
+
+      return res.json({ success: true, message: "Document signed successfully", request: updated });
+    } catch (error) {
+      console.error("Error signing document:", error);
+      return res.status(500).json({ error: "Failed to sign document" });
+    }
+  });
+
+  // Decline to sign (public)
+  app.post("/api/signature-requests/:id/decline", async (req: any, res) => {
+    try {
+      const { token, reason } = req.body;
+      const request = await storage.getSignatureRequest(req.params.id);
+
+      if (!request) {
+        return res.status(404).json({ error: "Signature request not found" });
+      }
+
+      if (request.accessToken !== token) {
+        return res.status(403).json({ error: "Invalid access token" });
+      }
+
+      if (request.status === "signed") {
+        return res.status(400).json({ error: "Document already signed" });
+      }
+
+      const updated = await storage.updateSignatureRequest(request.id, {
+        status: "declined",
+        declinedAt: new Date(),
+        declineReason: reason || null,
+        ipAddress: req.ip || req.connection?.remoteAddress,
+        userAgent: req.headers["user-agent"],
+      });
+
+      // Notify the staff member
+      const document = await storage.getDocument(request.documentId);
+      const docTypes = await storage.getDocumentTypes();
+      const docType = document ? docTypes.find(dt => dt.id === document.documentTypeId) : null;
+
+      await storage.createNotification({
+        userId: request.requestedByUserId,
+        type: "general",
+        title: "Signature Declined",
+        message: `${request.signerName} has declined to sign "${docType?.name || document?.name || "the document"}"${reason ? `: ${reason}` : ""}`,
+        linkUrl: `/admin/applications/${request.loanApplicationId}`,
+        relatedApplicationId: request.loanApplicationId,
+      });
+
+      return res.json({ success: true, message: "Signature declined", request: updated });
+    } catch (error) {
+      console.error("Error declining signature:", error);
+      return res.status(500).json({ error: "Failed to decline signature" });
+    }
+  });
+
+  // List signature requests for an application
+  app.get("/api/applications/:id/signature-requests", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const application = await storage.getLoanApplication(req.params.id);
+
+      if (!application) {
+        return res.status(404).json({ error: "Application not found" });
+      }
+
+      // Check access: owner or staff
+      if (application.userId !== userId && user?.role !== "staff" && user?.role !== "admin") {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const requests = await storage.getSignatureRequestsByApplication(req.params.id);
+
+      // Enrich with document info
+      const enrichedRequests = await Promise.all(requests.map(async (request) => {
+        const document = await storage.getDocument(request.documentId);
+        const docTypes = await storage.getDocumentTypes();
+        const docType = document ? docTypes.find(dt => dt.id === document.documentTypeId) : null;
+        const requestedBy = await storage.getUser(request.requestedByUserId);
+
+        return {
+          ...request,
+          document: document ? {
+            id: document.id,
+            name: document.name,
+            typeName: docType?.name,
+          } : null,
+          requestedBy: requestedBy ? {
+            firstName: requestedBy.firstName,
+            lastName: requestedBy.lastName,
+          } : null,
+        };
+      }));
+
+      return res.json(enrichedRequests);
+    } catch (error) {
+      console.error("Error fetching signature requests:", error);
+      return res.status(500).json({ error: "Failed to fetch signature requests" });
+    }
+  });
+
+  // Resend signature request email
+  app.post("/api/signature-requests/:id/resend", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+
+      if (!user || (user.role !== "staff" && user.role !== "admin")) {
+        return res.status(403).json({ error: "Only staff can resend signature requests" });
+      }
+
+      const request = await storage.getSignatureRequest(req.params.id);
+      if (!request) {
+        return res.status(404).json({ error: "Signature request not found" });
+      }
+
+      if (request.status === "signed") {
+        return res.status(400).json({ error: "Document already signed" });
+      }
+
+      // Generate new token and extend expiration
+      const newAccessToken = crypto.randomBytes(32).toString("hex");
+      const newExpiresAt = new Date();
+      newExpiresAt.setDate(newExpiresAt.getDate() + 7);
+
+      const updated = await storage.updateSignatureRequest(request.id, {
+        accessToken: newAccessToken,
+        expiresAt: newExpiresAt,
+        status: "pending",
+      });
+
+      // Get document and application info
+      const document = await storage.getDocument(request.documentId);
+      const application = await storage.getLoanApplication(request.loanApplicationId);
+      const docTypes = await storage.getDocumentTypes();
+      const docType = document ? docTypes.find(dt => dt.id === document.documentTypeId) : null;
+
+      // Send new email
+      const signingUrl = `${getPortalUrl()}/sign/${request.id}?token=${newAccessToken}`;
+      
+      if (shouldSendEmail()) {
+        await sendEmail({
+          to: request.signerEmail,
+          subject: `Reminder: Signature Requested - ${docType?.name || document?.name || "Document"}`,
+          html: emailTemplates.signatureRequested({
+            signerName: request.signerName,
+            documentName: docType?.name || document?.name || "Loan Document",
+            requestedByName: `${user.firstName || ""} ${user.lastName || ""}`.trim() || "Sequel Investments",
+            signingUrl,
+            expiresAt: newExpiresAt,
+            propertyAddress: application?.propertyAddress || undefined,
+          }),
+        });
+
+        await storage.createEmailLog({
+          recipientEmail: request.signerEmail,
+          recipientUserId: request.signerUserId || null,
+          templateName: "signatureRequested",
+          subject: `Reminder: Signature Requested - ${docType?.name || document?.name || "Document"}`,
+          status: "sent",
+          relatedApplicationId: request.loanApplicationId,
+        });
+      }
+
+      return res.json({ success: true, message: "Signature request resent", request: updated });
+    } catch (error) {
+      console.error("Error resending signature request:", error);
+      return res.status(500).json({ error: "Failed to resend signature request" });
+    }
+  });
+
+  // Get signature requests for a document
+  app.get("/api/documents/:id/signature-requests", isAuthenticated, async (req: any, res) => {
+    try {
+      const requests = await storage.getSignatureRequestsByDocument(req.params.id);
+      return res.json(requests);
+    } catch (error) {
+      console.error("Error fetching signature requests:", error);
+      return res.status(500).json({ error: "Failed to fetch signature requests" });
+    }
+  });
+
+  // ============================================
   // DOCUMENT COMMENTS ROUTES
   // ============================================
   app.get("/api/documents/:id/comments", isAuthenticated, async (req: any, res) => {
@@ -2159,6 +2793,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } catch (emailError) {
           console.error("Failed to send status change email:", emailError);
         }
+        
+        // Send status change SMS notification
+        try {
+          const borrower = await storage.getUser(application.userId);
+          if (borrower) {
+            // Send special message for approval
+            if (req.body.status === "approved") {
+              await sendSMSIfEnabled(borrower.id, {
+                message: smsTemplates.approvalNotification(),
+                smsType: "approval_notification",
+                applicationId: id,
+              });
+            } else {
+              await sendSMSIfEnabled(borrower.id, {
+                message: smsTemplates.statusChange(req.body.status),
+                smsType: "status_change",
+                applicationId: id,
+              });
+            }
+          }
+        } catch (smsError) {
+          console.error("Failed to send status change SMS:", smsError);
+        }
       }
       
       if (req.body.processingStage && req.body.processingStage !== application.processingStage) {
@@ -2400,6 +3057,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating email preferences:", error);
       return res.status(500).json({ error: "Failed to update email preferences" });
+    }
+  });
+
+  // Update user SMS notification preferences
+  app.patch("/api/user/sms-preferences", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { phone, smsNotificationsEnabled } = req.body;
+      
+      const updateData: { phone?: string; smsNotificationsEnabled?: boolean } = {};
+      
+      if (phone !== undefined) {
+        updateData.phone = phone;
+      }
+      if (typeof smsNotificationsEnabled === "boolean") {
+        updateData.smsNotificationsEnabled = smsNotificationsEnabled;
+      }
+      
+      if (Object.keys(updateData).length === 0) {
+        return res.status(400).json({ error: "No valid fields to update" });
+      }
+      
+      const updated = await storage.updateUserSmsPreferences(userId, updateData);
+      if (!updated) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      return res.json({
+        success: true,
+        phone: updated.phone,
+        smsNotificationsEnabled: updated.smsNotificationsEnabled,
+      });
+    } catch (error) {
+      console.error("Error updating SMS preferences:", error);
+      return res.status(500).json({ error: "Failed to update SMS preferences" });
+    }
+  });
+
+  // SMS logs routes (admin only)
+  app.get("/api/admin/sms-logs", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const { recipientPhone, startDate, endDate, limit, offset } = req.query;
+      
+      const logs = await storage.getSmsLogs({
+        recipientPhone: recipientPhone as string | undefined,
+        startDate: startDate ? new Date(startDate as string) : undefined,
+        endDate: endDate ? new Date(endDate as string) : undefined,
+        limit: limit ? parseInt(limit as string) : 100,
+        offset: offset ? parseInt(offset as string) : 0,
+      });
+      
+      const total = await storage.getSmsLogCount({
+        recipientPhone: recipientPhone as string | undefined,
+        startDate: startDate ? new Date(startDate as string) : undefined,
+        endDate: endDate ? new Date(endDate as string) : undefined,
+      });
+      
+      return res.json({ logs, total, smsConfigured: isSMSConfigured() });
+    } catch (error) {
+      console.error("Error fetching SMS logs:", error);
+      return res.status(500).json({ error: "Failed to fetch SMS logs" });
     }
   });
 
@@ -2852,6 +3570,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         } catch (emailError) {
           console.error("Failed to send draw approved email:", emailError);
+        }
+        
+        // Send draw approved SMS notification
+        try {
+          const borrower = await storage.getUser(loan.userId);
+          if (borrower) {
+            await sendSMSIfEnabled(borrower.id, {
+              message: smsTemplates.drawApproved(actualFundedAmount / 100), // Convert cents to dollars
+              smsType: "draw_approved",
+              loanId: loan.id,
+            });
+          }
+        } catch (smsError) {
+          console.error("Failed to send draw approved SMS:", smsError);
         }
       }
       
@@ -4126,6 +4858,355 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error resetting white-label settings:", error);
       return res.status(500).json({ error: "Failed to reset white-label settings" });
+    }
+  });
+
+  // ============================================
+  // APPOINTMENT/CALENDAR BOOKING ROUTES
+  // ============================================
+  
+  // Get appointments for current user (borrower sees their own, staff sees all)
+  app.get("/api/appointments", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      const appointmentsList = await storage.getAppointments(userId, user.role);
+      return res.json(appointmentsList);
+    } catch (error) {
+      console.error("Error fetching appointments:", error);
+      return res.status(500).json({ error: "Failed to fetch appointments" });
+    }
+  });
+
+  // Get a specific appointment
+  app.get("/api/appointments/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const appointment = await storage.getAppointment(req.params.id);
+      
+      if (!appointment) {
+        return res.status(404).json({ error: "Appointment not found" });
+      }
+      
+      // Borrowers can only view their own appointments
+      if (user?.role === "borrower" && appointment.borrowerUserId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      return res.json(appointment);
+    } catch (error) {
+      console.error("Error fetching appointment:", error);
+      return res.status(500).json({ error: "Failed to fetch appointment" });
+    }
+  });
+
+  // Create a new appointment (borrower books with staff)
+  app.post("/api/appointments", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      const { staffUserId, scheduledAt, title, description, durationMinutes, relatedApplicationId, notes } = req.body;
+      
+      if (!staffUserId || !scheduledAt || !title) {
+        return res.status(400).json({ error: "staffUserId, scheduledAt, and title are required" });
+      }
+      
+      // Verify staff exists
+      const staff = await storage.getUser(staffUserId);
+      if (!staff || (staff.role !== "admin" && staff.role !== "staff")) {
+        return res.status(400).json({ error: "Invalid staff member" });
+      }
+      
+      // Validate application ownership if relatedApplicationId is provided
+      if (relatedApplicationId) {
+        const application = await storage.getLoanApplication(relatedApplicationId);
+        if (!application) {
+          return res.status(404).json({ error: "Related application not found" });
+        }
+        // Borrowers can only link their own applications
+        if (user.role === "borrower" && application.userId !== userId) {
+          return res.status(403).json({ error: "You can only link your own applications" });
+        }
+      }
+      
+      const appointmentData = {
+        borrowerUserId: userId,
+        staffUserId,
+        title,
+        description: description || null,
+        scheduledAt: new Date(scheduledAt),
+        durationMinutes: durationMinutes || 30,
+        status: "scheduled" as AppointmentStatus,
+        relatedApplicationId: relatedApplicationId || null,
+        notes: notes || null,
+      };
+      
+      const appointment = await storage.createAppointment(appointmentData);
+      
+      // Create notification for staff
+      await storage.createNotification({
+        userId: staffUserId,
+        type: "general",
+        title: "New Appointment Scheduled",
+        message: `${user.firstName || user.email} has scheduled a consultation with you for ${new Date(scheduledAt).toLocaleString()}.`,
+        linkUrl: "/admin/appointments",
+      });
+      
+      // Send confirmation email to borrower
+      if (user.email && shouldSendEmail(user)) {
+        try {
+          const emailHtml = emailTemplates.appointmentConfirmation({
+            borrowerName: user.firstName || "Valued Client",
+            staffName: staff.firstName || staff.email || "Your Loan Officer",
+            appointmentDate: new Date(scheduledAt).toLocaleDateString(),
+            appointmentTime: new Date(scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            title,
+            portalUrl: getPortalUrl(),
+          });
+          
+          await sendEmail({
+            to: user.email,
+            subject: "Appointment Confirmed - Easy Street Capital",
+            html: emailHtml,
+          }, storage, { userId: user.id, relatedApplicationId: relatedApplicationId || undefined });
+        } catch (emailError) {
+          console.error("Failed to send appointment confirmation email:", emailError);
+        }
+      }
+      
+      // Send SMS to borrower if enabled
+      if (user.phone && user.smsNotificationsEnabled) {
+        try {
+          await sendSMSIfEnabled(
+            user.phone,
+            smsTemplates.appointmentBooked(
+              new Date(scheduledAt).toLocaleDateString(),
+              new Date(scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            ),
+            user.id,
+            storage,
+            { relatedApplicationId: relatedApplicationId || undefined, smsType: "general" }
+          );
+        } catch (smsError) {
+          console.error("Failed to send appointment confirmation SMS:", smsError);
+        }
+      }
+      
+      return res.status(201).json(appointment);
+    } catch (error) {
+      console.error("Error creating appointment:", error);
+      return res.status(500).json({ error: "Failed to create appointment" });
+    }
+  });
+
+  // Update appointment (reschedule, cancel, mark complete, add notes)
+  app.patch("/api/appointments/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const appointment = await storage.getAppointment(req.params.id);
+      
+      if (!appointment) {
+        return res.status(404).json({ error: "Appointment not found" });
+      }
+      
+      // Borrowers can only update their own appointments
+      if (user?.role === "borrower" && appointment.borrowerUserId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      // Borrowers can only cancel, staff can do more
+      if (user?.role === "borrower") {
+        const { status } = req.body;
+        if (status && status !== "cancelled") {
+          return res.status(403).json({ error: "Borrowers can only cancel appointments" });
+        }
+      }
+      
+      const updateData: any = {};
+      if (req.body.scheduledAt) updateData.scheduledAt = new Date(req.body.scheduledAt);
+      if (req.body.status) updateData.status = req.body.status;
+      if (req.body.notes !== undefined) updateData.notes = req.body.notes;
+      if (req.body.meetingUrl !== undefined) updateData.meetingUrl = req.body.meetingUrl;
+      if (req.body.title) updateData.title = req.body.title;
+      if (req.body.description !== undefined) updateData.description = req.body.description;
+      
+      const updated = await storage.updateAppointment(req.params.id, updateData);
+      
+      // Notify if cancelled or rescheduled
+      if (req.body.status === "cancelled") {
+        const otherPartyId = user?.role === "borrower" ? appointment.staffUserId : appointment.borrowerUserId;
+        await storage.createNotification({
+          userId: otherPartyId,
+          type: "general",
+          title: "Appointment Cancelled",
+          message: `An appointment scheduled for ${new Date(appointment.scheduledAt).toLocaleString()} has been cancelled.`,
+        });
+      }
+      
+      return res.json(updated);
+    } catch (error) {
+      console.error("Error updating appointment:", error);
+      return res.status(500).json({ error: "Failed to update appointment" });
+    }
+  });
+
+  // Get available staff for booking
+  app.get("/api/staff/available", isAuthenticated, async (req: any, res) => {
+    try {
+      const staffMembers = await storage.getAvailableStaff();
+      
+      // Initialize availability for staff members who don't have it
+      for (const staff of staffMembers) {
+        await storage.initializeStaffAvailability(staff.id);
+      }
+      
+      // Return staff with basic info (no sensitive data)
+      const staffInfo = staffMembers.map(s => ({
+        id: s.id,
+        firstName: s.firstName,
+        lastName: s.lastName,
+        email: s.email,
+        profileImageUrl: s.profileImageUrl,
+        staffRole: s.staffRole,
+        role: s.role,
+      }));
+      
+      return res.json(staffInfo);
+    } catch (error) {
+      console.error("Error fetching available staff:", error);
+      return res.status(500).json({ error: "Failed to fetch available staff" });
+    }
+  });
+
+  // Get staff availability schedule (requires authentication to prevent enumeration)
+  app.get("/api/staff/:staffId/availability", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      
+      const staffId = req.params.staffId;
+      
+      // Verify the staff member exists and is actually staff/admin
+      const staffMember = await storage.getUser(staffId);
+      if (!staffMember || (staffMember.role !== "staff" && staffMember.role !== "admin")) {
+        return res.status(404).json({ error: "Staff member not found" });
+      }
+      
+      // Initialize if not exists
+      await storage.initializeStaffAvailability(staffId);
+      
+      const availability = await storage.getStaffAvailability(staffId);
+      return res.json(availability);
+    } catch (error) {
+      console.error("Error fetching staff availability:", error);
+      return res.status(500).json({ error: "Failed to fetch staff availability" });
+    }
+  });
+
+  // Get available time slots for a staff member on a specific date
+  app.get("/api/staff/:staffId/slots", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      
+      const staffId = req.params.staffId;
+      const dateStr = req.query.date as string;
+      
+      if (!dateStr) {
+        return res.status(400).json({ error: "date query parameter is required" });
+      }
+      
+      // Validate date format (must be a valid ISO date string or parseable date)
+      const date = new Date(dateStr);
+      if (isNaN(date.getTime())) {
+        return res.status(400).json({ error: "Invalid date format. Use ISO 8601 format (YYYY-MM-DD)" });
+      }
+      
+      // Validate date is not in the past (allow today)
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const requestedDate = new Date(date);
+      requestedDate.setHours(0, 0, 0, 0);
+      if (requestedDate < today) {
+        return res.status(400).json({ error: "Cannot request slots for past dates" });
+      }
+      
+      // Validate date is not too far in the future (limit to 90 days)
+      const maxDate = new Date(today);
+      maxDate.setDate(maxDate.getDate() + 90);
+      if (requestedDate > maxDate) {
+        return res.status(400).json({ error: "Cannot request slots more than 90 days in advance" });
+      }
+      
+      // Verify the staff member exists
+      const staffMember = await storage.getUser(staffId);
+      if (!staffMember || (staffMember.role !== "staff" && staffMember.role !== "admin")) {
+        return res.status(404).json({ error: "Staff member not found" });
+      }
+      
+      // Initialize availability if not exists
+      await storage.initializeStaffAvailability(staffId);
+      
+      const slots = await storage.getAvailableSlotsForStaff(staffId, date);
+      return res.json(slots);
+    } catch (error) {
+      console.error("Error fetching available slots:", error);
+      return res.status(500).json({ error: "Failed to fetch available slots" });
+    }
+  });
+
+  // Update staff availability (staff/admin only)
+  app.put("/api/staff/:staffId/availability/:dayOfWeek", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const staffId = req.params.staffId;
+      const dayOfWeek = parseInt(req.params.dayOfWeek);
+      
+      // Only staff can update their own availability, admins can update any
+      if (user?.role === "borrower") {
+        return res.status(403).json({ error: "Only staff can update availability" });
+      }
+      
+      if (user?.role === "staff" && userId !== staffId) {
+        return res.status(403).json({ error: "Can only update your own availability" });
+      }
+      
+      if (dayOfWeek < 0 || dayOfWeek > 6) {
+        return res.status(400).json({ error: "dayOfWeek must be 0-6" });
+      }
+      
+      const { startTime, endTime, isAvailable } = req.body;
+      
+      const availability = await storage.setStaffAvailability(staffId, dayOfWeek, {
+        startTime,
+        endTime,
+        isAvailable,
+      });
+      
+      return res.json(availability);
+    } catch (error) {
+      console.error("Error updating staff availability:", error);
+      return res.status(500).json({ error: "Failed to update staff availability" });
     }
   });
 

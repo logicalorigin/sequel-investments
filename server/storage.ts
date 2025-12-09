@@ -15,6 +15,7 @@ import {
   userPreferences,
   connectedEntities,
   documentSignatures,
+  signatureRequests,
   coBorrowers,
   applicationTimeline,
   marketDataSnapshots,
@@ -29,6 +30,9 @@ import {
   notificationQueue,
   whiteLabelSettings,
   emailLogs,
+  smsLogs,
+  appointments,
+  staffAvailability,
   type User, 
   type UpsertUser,
   type Lead, 
@@ -61,6 +65,8 @@ import {
   type InsertConnectedEntity,
   type DocumentSignature,
   type InsertDocumentSignature,
+  type SignatureRequest,
+  type InsertSignatureRequest,
   type CoBorrower,
   type InsertCoBorrower,
   type ApplicationTimelineEvent,
@@ -90,10 +96,19 @@ import {
   type StaffRole,
   type EmailLog,
   type InsertEmailLog,
+  type SmsLog,
+  type InsertSmsLog,
+  type Appointment,
+  type InsertAppointment,
+  type StaffAvailability,
+  type InsertStaffAvailability,
+  type AppointmentStatus,
+  type SignatureRequestStatus,
   DEFAULT_DOCUMENT_TYPES,
+  DEFAULT_BUSINESS_HOURS,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, lte, sql } from "drizzle-orm";
+import { eq, and, desc, lte, gte, sql, or, ne } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (required for Replit Auth)
@@ -206,6 +221,15 @@ export interface IStorage {
   createDocumentSignature(signature: InsertDocumentSignature): Promise<DocumentSignature>;
   updateDocumentSignature(id: string, data: Partial<InsertDocumentSignature>): Promise<DocumentSignature | undefined>;
   
+  // Signature request operations
+  getSignatureRequest(id: string): Promise<SignatureRequest | undefined>;
+  getSignatureRequestByToken(token: string): Promise<SignatureRequest | undefined>;
+  getSignatureRequestsByApplication(applicationId: string): Promise<SignatureRequest[]>;
+  getSignatureRequestsByDocument(documentId: string): Promise<SignatureRequest[]>;
+  createSignatureRequest(request: InsertSignatureRequest): Promise<SignatureRequest>;
+  updateSignatureRequest(id: string, data: Partial<InsertSignatureRequest>): Promise<SignatureRequest | undefined>;
+  deleteSignatureRequest(id: string): Promise<boolean>;
+  
   // Co-borrower operations
   getCoBorrowers(applicationId: string): Promise<CoBorrower[]>;
   getCoBorrowerByToken(token: string): Promise<CoBorrower | undefined>;
@@ -300,6 +324,24 @@ export interface IStorage {
   getActiveWhiteLabelSettings(): Promise<WhiteLabelSettings | undefined>;
   upsertWhiteLabelSettings(settings: InsertWhiteLabelSettings): Promise<WhiteLabelSettings>;
   deleteWhiteLabelSettings(): Promise<boolean>;
+  
+  // SMS log operations
+  createSmsLog(log: InsertSmsLog): Promise<SmsLog>;
+  getSmsLogs(options?: {
+    recipientPhone?: string;
+    startDate?: Date;
+    endDate?: Date;
+    limit?: number;
+    offset?: number;
+  }): Promise<SmsLog[]>;
+  getSmsLogCount(options?: {
+    recipientPhone?: string;
+    startDate?: Date;
+    endDate?: Date;
+  }): Promise<number>;
+  
+  // User SMS preferences
+  updateUserSmsPreferences(userId: string, data: { phone?: string; smsNotificationsEnabled?: boolean }): Promise<User | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -923,6 +965,55 @@ export class DatabaseStorage implements IStorage {
       .where(eq(documentSignatures.id, id))
       .returning();
     return updated;
+  }
+
+  // Signature request operations
+  async getSignatureRequest(id: string): Promise<SignatureRequest | undefined> {
+    const [request] = await db.select().from(signatureRequests).where(eq(signatureRequests.id, id));
+    return request;
+  }
+
+  async getSignatureRequestByToken(token: string): Promise<SignatureRequest | undefined> {
+    const [request] = await db.select().from(signatureRequests).where(eq(signatureRequests.accessToken, token));
+    return request;
+  }
+
+  async getSignatureRequestsByApplication(applicationId: string): Promise<SignatureRequest[]> {
+    return await db
+      .select()
+      .from(signatureRequests)
+      .where(eq(signatureRequests.loanApplicationId, applicationId))
+      .orderBy(desc(signatureRequests.requestedAt));
+  }
+
+  async getSignatureRequestsByDocument(documentId: string): Promise<SignatureRequest[]> {
+    return await db
+      .select()
+      .from(signatureRequests)
+      .where(eq(signatureRequests.documentId, documentId))
+      .orderBy(desc(signatureRequests.requestedAt));
+  }
+
+  async createSignatureRequest(request: InsertSignatureRequest): Promise<SignatureRequest> {
+    const [created] = await db
+      .insert(signatureRequests)
+      .values(request)
+      .returning();
+    return created;
+  }
+
+  async updateSignatureRequest(id: string, data: Partial<InsertSignatureRequest>): Promise<SignatureRequest | undefined> {
+    const [updated] = await db
+      .update(signatureRequests)
+      .set(data)
+      .where(eq(signatureRequests.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteSignatureRequest(id: string): Promise<boolean> {
+    await db.delete(signatureRequests).where(eq(signatureRequests.id, id));
+    return true;
   }
 
   // Co-borrower operations
@@ -1622,6 +1713,353 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, userId))
       .returning();
     return updated;
+  }
+
+  // SMS log operations
+  async createSmsLog(log: InsertSmsLog): Promise<SmsLog> {
+    const [created] = await db
+      .insert(smsLogs)
+      .values(log)
+      .returning();
+    return created;
+  }
+
+  async getSmsLogs(options?: {
+    recipientPhone?: string;
+    startDate?: Date;
+    endDate?: Date;
+    limit?: number;
+    offset?: number;
+  }): Promise<SmsLog[]> {
+    let query = db.select().from(smsLogs);
+    
+    const conditions = [];
+    if (options?.recipientPhone) {
+      conditions.push(sql`${smsLogs.recipientPhone} ILIKE ${'%' + options.recipientPhone + '%'}`);
+    }
+    if (options?.startDate) {
+      conditions.push(sql`${smsLogs.sentAt} >= ${options.startDate}`);
+    }
+    if (options?.endDate) {
+      conditions.push(sql`${smsLogs.sentAt} <= ${options.endDate}`);
+    }
+    
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions)) as any;
+    }
+    
+    return await query
+      .orderBy(desc(smsLogs.sentAt))
+      .limit(options?.limit || 100)
+      .offset(options?.offset || 0);
+  }
+
+  async getSmsLogCount(options?: {
+    recipientPhone?: string;
+    startDate?: Date;
+    endDate?: Date;
+  }): Promise<number> {
+    const conditions = [];
+    if (options?.recipientPhone) {
+      conditions.push(sql`${smsLogs.recipientPhone} ILIKE ${'%' + options.recipientPhone + '%'}`);
+    }
+    if (options?.startDate) {
+      conditions.push(sql`${smsLogs.sentAt} >= ${options.startDate}`);
+    }
+    if (options?.endDate) {
+      conditions.push(sql`${smsLogs.sentAt} <= ${options.endDate}`);
+    }
+    
+    let query = db.select({ count: sql<number>`count(*)` }).from(smsLogs);
+    
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions)) as any;
+    }
+    
+    const [result] = await query;
+    return Number(result?.count || 0);
+  }
+
+  async updateUserSmsPreferences(userId: string, data: { phone?: string; smsNotificationsEnabled?: boolean }): Promise<User | undefined> {
+    const updateData: any = { updatedAt: new Date() };
+    if (data.phone !== undefined) {
+      updateData.phone = data.phone;
+    }
+    if (data.smsNotificationsEnabled !== undefined) {
+      updateData.smsNotificationsEnabled = data.smsNotificationsEnabled;
+    }
+    
+    const [updated] = await db
+      .update(users)
+      .set(updateData)
+      .where(eq(users.id, userId))
+      .returning();
+    return updated;
+  }
+
+  // ============================================
+  // APPOINTMENT OPERATIONS
+  // ============================================
+  async getAppointments(userId: string, role: string): Promise<(Appointment & { borrower?: User; staff?: User })[]> {
+    let appointmentList: Appointment[];
+    
+    if (role === "borrower") {
+      appointmentList = await db
+        .select()
+        .from(appointments)
+        .where(eq(appointments.borrowerUserId, userId))
+        .orderBy(desc(appointments.scheduledAt));
+    } else {
+      appointmentList = await db
+        .select()
+        .from(appointments)
+        .orderBy(desc(appointments.scheduledAt));
+    }
+    
+    const appointmentsWithUsers = await Promise.all(
+      appointmentList.map(async (apt) => {
+        const [borrower] = await db.select().from(users).where(eq(users.id, apt.borrowerUserId));
+        const [staff] = await db.select().from(users).where(eq(users.id, apt.staffUserId));
+        return { ...apt, borrower: borrower || undefined, staff: staff || undefined };
+      })
+    );
+    
+    return appointmentsWithUsers;
+  }
+
+  async getAppointment(id: string): Promise<(Appointment & { borrower?: User; staff?: User }) | undefined> {
+    const [appointment] = await db.select().from(appointments).where(eq(appointments.id, id));
+    if (!appointment) return undefined;
+    
+    const [borrower] = await db.select().from(users).where(eq(users.id, appointment.borrowerUserId));
+    const [staff] = await db.select().from(users).where(eq(users.id, appointment.staffUserId));
+    
+    return { ...appointment, borrower: borrower || undefined, staff: staff || undefined };
+  }
+
+  async createAppointment(data: InsertAppointment): Promise<Appointment> {
+    const [created] = await db
+      .insert(appointments)
+      .values(data)
+      .returning();
+    return created;
+  }
+
+  async updateAppointment(id: string, data: Partial<InsertAppointment>): Promise<Appointment | undefined> {
+    const [updated] = await db
+      .update(appointments)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(appointments.id, id))
+      .returning();
+    return updated;
+  }
+
+  async cancelAppointment(id: string): Promise<Appointment | undefined> {
+    return this.updateAppointment(id, { status: "cancelled" as AppointmentStatus });
+  }
+
+  async getStaffAppointments(staffId: string, startDate: Date, endDate: Date): Promise<Appointment[]> {
+    return await db
+      .select()
+      .from(appointments)
+      .where(and(
+        eq(appointments.staffUserId, staffId),
+        gte(appointments.scheduledAt, startDate),
+        lte(appointments.scheduledAt, endDate),
+        ne(appointments.status, "cancelled")
+      ))
+      .orderBy(appointments.scheduledAt);
+  }
+
+  async getUpcomingAppointments(limit: number = 50): Promise<Appointment[]> {
+    const now = new Date();
+    return await db
+      .select()
+      .from(appointments)
+      .where(and(
+        gte(appointments.scheduledAt, now),
+        eq(appointments.status, "scheduled")
+      ))
+      .orderBy(appointments.scheduledAt)
+      .limit(limit);
+  }
+
+  async getAppointmentsNeedingReminder(reminderTime: Date): Promise<(Appointment & { borrower?: User; staff?: User })[]> {
+    const windowStart = new Date(reminderTime.getTime());
+    const windowEnd = new Date(reminderTime.getTime() + 60 * 60 * 1000); // 1 hour window
+    
+    const appointmentList = await db
+      .select()
+      .from(appointments)
+      .where(and(
+        gte(appointments.scheduledAt, windowStart),
+        lte(appointments.scheduledAt, windowEnd),
+        eq(appointments.status, "scheduled")
+      ));
+    
+    const appointmentsWithUsers = await Promise.all(
+      appointmentList.map(async (apt) => {
+        const [borrower] = await db.select().from(users).where(eq(users.id, apt.borrowerUserId));
+        const [staff] = await db.select().from(users).where(eq(users.id, apt.staffUserId));
+        return { ...apt, borrower: borrower || undefined, staff: staff || undefined };
+      })
+    );
+    
+    return appointmentsWithUsers;
+  }
+
+  // ============================================
+  // STAFF AVAILABILITY OPERATIONS
+  // ============================================
+  async getStaffAvailability(staffId: string): Promise<StaffAvailability[]> {
+    return await db
+      .select()
+      .from(staffAvailability)
+      .where(eq(staffAvailability.staffUserId, staffId))
+      .orderBy(staffAvailability.dayOfWeek);
+  }
+
+  async setStaffAvailability(staffId: string, dayOfWeek: number, data: Partial<InsertStaffAvailability>): Promise<StaffAvailability> {
+    const existing = await db
+      .select()
+      .from(staffAvailability)
+      .where(and(
+        eq(staffAvailability.staffUserId, staffId),
+        eq(staffAvailability.dayOfWeek, dayOfWeek)
+      ))
+      .limit(1);
+    
+    if (existing.length > 0) {
+      const [updated] = await db
+        .update(staffAvailability)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(staffAvailability.id, existing[0].id))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db
+        .insert(staffAvailability)
+        .values({ staffUserId: staffId, dayOfWeek, ...data } as InsertStaffAvailability)
+        .returning();
+      return created;
+    }
+  }
+
+  async initializeStaffAvailability(staffId: string): Promise<StaffAvailability[]> {
+    const existing = await this.getStaffAvailability(staffId);
+    if (existing.length > 0) return existing;
+    
+    const created: StaffAvailability[] = [];
+    for (const hours of DEFAULT_BUSINESS_HOURS) {
+      const [availability] = await db
+        .insert(staffAvailability)
+        .values({
+          staffUserId: staffId,
+          dayOfWeek: hours.dayOfWeek,
+          startTime: hours.startTime,
+          endTime: hours.endTime,
+          isAvailable: hours.isAvailable,
+        })
+        .returning();
+      created.push(availability);
+    }
+    return created;
+  }
+
+  async getAvailableStaff(): Promise<User[]> {
+    return await db
+      .select()
+      .from(users)
+      .where(or(
+        eq(users.role, "admin"),
+        eq(users.role, "staff")
+      ))
+      .orderBy(users.firstName);
+  }
+
+  async getAvailableSlotsForStaff(staffId: string, date: Date): Promise<{ startTime: string; endTime: string }[]> {
+    const dayOfWeek = date.getDay();
+    
+    const [availability] = await db
+      .select()
+      .from(staffAvailability)
+      .where(and(
+        eq(staffAvailability.staffUserId, staffId),
+        eq(staffAvailability.dayOfWeek, dayOfWeek),
+        eq(staffAvailability.isAvailable, true)
+      ))
+      .limit(1);
+    
+    if (!availability) return [];
+    
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+    
+    const existingAppointments = await db
+      .select()
+      .from(appointments)
+      .where(and(
+        eq(appointments.staffUserId, staffId),
+        gte(appointments.scheduledAt, startOfDay),
+        lte(appointments.scheduledAt, endOfDay),
+        ne(appointments.status, "cancelled")
+      ));
+    
+    const slots: { startTime: string; endTime: string }[] = [];
+    const slotDuration = 30;
+    
+    const [startHour, startMin] = availability.startTime.split(':').map(Number);
+    const [endHour, endMin] = availability.endTime.split(':').map(Number);
+    
+    let currentHour = startHour;
+    let currentMin = startMin;
+    
+    while (currentHour < endHour || (currentHour === endHour && currentMin < endMin)) {
+      const slotStart = new Date(date);
+      slotStart.setHours(currentHour, currentMin, 0, 0);
+      
+      const slotEnd = new Date(slotStart.getTime() + slotDuration * 60 * 1000);
+      
+      if (slotEnd.getHours() > endHour || (slotEnd.getHours() === endHour && slotEnd.getMinutes() > endMin)) {
+        break;
+      }
+      
+      const now = new Date();
+      if (slotStart <= now) {
+        currentMin += slotDuration;
+        if (currentMin >= 60) {
+          currentHour += Math.floor(currentMin / 60);
+          currentMin = currentMin % 60;
+        }
+        continue;
+      }
+      
+      const isBooked = existingAppointments.some(apt => {
+        const aptStart = new Date(apt.scheduledAt);
+        const aptEnd = new Date(aptStart.getTime() + apt.durationMinutes * 60 * 1000);
+        return (slotStart < aptEnd && slotEnd > aptStart);
+      });
+      
+      if (!isBooked) {
+        const startTimeStr = `${String(currentHour).padStart(2, '0')}:${String(currentMin).padStart(2, '0')}`;
+        const endTimeMinutes = currentMin + slotDuration;
+        const endTimeHour = currentHour + Math.floor(endTimeMinutes / 60);
+        const endTimeMin = endTimeMinutes % 60;
+        const endTimeStr = `${String(endTimeHour).padStart(2, '0')}:${String(endTimeMin).padStart(2, '0')}`;
+        
+        slots.push({ startTime: startTimeStr, endTime: endTimeStr });
+      }
+      
+      currentMin += slotDuration;
+      if (currentMin >= 60) {
+        currentHour += Math.floor(currentMin / 60);
+        currentMin = currentMin % 60;
+      }
+    }
+    
+    return slots;
   }
 }
 

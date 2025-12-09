@@ -403,4 +403,274 @@ export const emailTemplates = {
       text: `Hello ${data.borrowerName}, Your payoff statement for loan ${data.loanNumber} is ready. Payoff amount: ${formattedAmount}, valid until ${data.validUntil}. View details at: ${data.portalUrl}/portal/loans`
     };
   },
+
+  appointmentConfirmation: (data: {
+    borrowerName: string;
+    staffName: string;
+    appointmentDate: string;
+    appointmentTime: string;
+    title: string;
+    portalUrl: string;
+  }) => {
+    const content = `
+      <h2 style="margin: 0 0 20px; font-size: 24px; color: ${TEXT_PRIMARY}; font-weight: 600;">
+        Consultation Confirmed
+      </h2>
+      <p style="margin: 0 0 15px; font-size: 16px; color: ${TEXT_PRIMARY}; line-height: 1.6;">
+        Hello ${data.borrowerName},
+      </p>
+      <p style="margin: 0 0 20px; font-size: 16px; color: ${TEXT_SECONDARY}; line-height: 1.6;">
+        Your consultation has been scheduled successfully. We look forward to speaking with you!
+      </p>
+      
+      <div style="background-color: ${DARK_BG}; border-radius: 8px; padding: 25px; margin: 25px 0;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td style="padding: 8px 0; border-bottom: 1px solid #333;">
+              <span style="font-size: 13px; color: ${TEXT_SECONDARY};">Consultation:</span>
+              <span style="font-size: 14px; color: ${BRAND_COLOR}; float: right; font-weight: 600;">${data.title}</span>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; border-bottom: 1px solid #333;">
+              <span style="font-size: 13px; color: ${TEXT_SECONDARY};">Date:</span>
+              <span style="font-size: 14px; color: ${TEXT_PRIMARY}; float: right;">${data.appointmentDate}</span>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; border-bottom: 1px solid #333;">
+              <span style="font-size: 13px; color: ${TEXT_SECONDARY};">Time:</span>
+              <span style="font-size: 14px; color: ${TEXT_PRIMARY}; float: right;">${data.appointmentTime}</span>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0;">
+              <span style="font-size: 13px; color: ${TEXT_SECONDARY};">With:</span>
+              <span style="font-size: 14px; color: ${TEXT_PRIMARY}; float: right;">${data.staffName}</span>
+            </td>
+          </tr>
+        </table>
+      </div>
+      
+      ${button("View My Appointments", data.portalUrl + "/portal/appointments")}
+      
+      <p style="margin: 25px 0 0; font-size: 14px; color: ${TEXT_SECONDARY};">
+        Need to reschedule? You can manage your appointments in your borrower portal.
+      </p>
+    `;
+    
+    return baseTemplate(content);
+  },
+
+  appointmentReminder: (data: {
+    borrowerName: string;
+    staffName: string;
+    appointmentDate: string;
+    appointmentTime: string;
+    title: string;
+    meetingUrl?: string;
+    portalUrl: string;
+  }) => {
+    const content = `
+      <h2 style="margin: 0 0 20px; font-size: 24px; color: ${TEXT_PRIMARY}; font-weight: 600;">
+        Consultation Tomorrow
+      </h2>
+      <p style="margin: 0 0 15px; font-size: 16px; color: ${TEXT_PRIMARY}; line-height: 1.6;">
+        Hello ${data.borrowerName},
+      </p>
+      <p style="margin: 0 0 20px; font-size: 16px; color: ${TEXT_SECONDARY}; line-height: 1.6;">
+        This is a friendly reminder about your upcoming consultation.
+      </p>
+      
+      <div style="background-color: ${DARK_BG}; border-radius: 8px; padding: 25px; margin: 25px 0; text-align: center;">
+        <p style="margin: 0 0 10px; font-size: 20px; color: ${BRAND_COLOR}; font-weight: 600;">${data.title}</p>
+        <p style="margin: 0 0 5px; font-size: 18px; color: ${TEXT_PRIMARY};">${data.appointmentDate}</p>
+        <p style="margin: 0; font-size: 24px; color: ${TEXT_PRIMARY}; font-weight: 700;">${data.appointmentTime}</p>
+        <p style="margin: 15px 0 0; font-size: 14px; color: ${TEXT_SECONDARY};">with ${data.staffName}</p>
+      </div>
+      
+      ${data.meetingUrl ? button("Join Meeting", data.meetingUrl) : button("View Appointment Details", data.portalUrl + "/portal/appointments")}
+      
+      <p style="margin: 25px 0 0; font-size: 14px; color: ${TEXT_SECONDARY};">
+        If you need to cancel or reschedule, please do so at least 2 hours in advance.
+      </p>
+    `;
+    
+    return baseTemplate(content);
+  },
+
+  signatureRequested: (data: {
+    signerName: string;
+    documentName: string;
+    requestedByName: string;
+    signingUrl: string;
+    expiresAt: Date;
+    propertyAddress?: string;
+  }) => {
+    const expiresFormatted = new Intl.DateTimeFormat('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    }).format(new Date(data.expiresAt));
+
+    const content = `
+      <h2 style="margin: 0 0 20px; font-size: 24px; color: ${TEXT_PRIMARY}; font-weight: 600;">
+        Signature Required
+      </h2>
+      <p style="margin: 0 0 15px; font-size: 16px; color: ${TEXT_PRIMARY}; line-height: 1.6;">
+        Hello ${data.signerName},
+      </p>
+      <p style="margin: 0 0 20px; font-size: 16px; color: ${TEXT_SECONDARY}; line-height: 1.6;">
+        ${data.requestedByName} has requested your signature on a document.
+      </p>
+      
+      <div style="background-color: ${DARK_BG}; border-radius: 8px; padding: 25px; margin: 25px 0; border-left: 4px solid ${BRAND_COLOR};">
+        <p style="margin: 0 0 8px; font-size: 13px; color: ${TEXT_SECONDARY}; text-transform: uppercase; letter-spacing: 1px;">Document Details</p>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td style="padding: 8px 0; border-bottom: 1px solid #333;">
+              <span style="font-size: 13px; color: ${TEXT_SECONDARY};">Document:</span>
+              <span style="font-size: 14px; color: ${BRAND_COLOR}; float: right; font-weight: 600;">${data.documentName}</span>
+            </td>
+          </tr>
+          ${data.propertyAddress ? `
+          <tr>
+            <td style="padding: 8px 0; border-bottom: 1px solid #333;">
+              <span style="font-size: 13px; color: ${TEXT_SECONDARY};">Property:</span>
+              <span style="font-size: 14px; color: ${TEXT_PRIMARY}; float: right;">${data.propertyAddress}</span>
+            </td>
+          </tr>
+          ` : ''}
+          <tr>
+            <td style="padding: 8px 0;">
+              <span style="font-size: 13px; color: ${TEXT_SECONDARY};">Expires:</span>
+              <span style="font-size: 14px; color: ${TEXT_PRIMARY}; float: right;">${expiresFormatted}</span>
+            </td>
+          </tr>
+        </table>
+      </div>
+      
+      <p style="margin: 0 0 20px; font-size: 16px; color: ${TEXT_SECONDARY}; line-height: 1.6;">
+        Click the button below to review and sign the document securely online.
+      </p>
+      
+      ${button("Review & Sign Document", data.signingUrl)}
+      
+      <p style="margin: 25px 0 0; font-size: 14px; color: ${TEXT_SECONDARY};">
+        This signing link will expire on ${expiresFormatted}. If you have any questions, please contact our team directly.
+      </p>
+    `;
+    
+    return baseTemplate(content);
+  },
+
+  signatureCompleted: (data: {
+    signerName: string;
+    documentName: string;
+    signedAt: Date;
+  }) => {
+    const signedFormatted = new Intl.DateTimeFormat('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric',
+      timeZoneName: 'short',
+    }).format(new Date(data.signedAt));
+
+    const content = `
+      <div style="text-align: center; margin-bottom: 25px;">
+        <div style="display: inline-block; width: 60px; height: 60px; background-color: #22c55e; border-radius: 50%; line-height: 60px;">
+          <span style="font-size: 28px; color: #ffffff;">&#10003;</span>
+        </div>
+      </div>
+      
+      <h2 style="margin: 0 0 20px; font-size: 24px; color: ${TEXT_PRIMARY}; font-weight: 600; text-align: center;">
+        Document Signed Successfully
+      </h2>
+      <p style="margin: 0 0 15px; font-size: 16px; color: ${TEXT_PRIMARY}; line-height: 1.6;">
+        Hello ${data.signerName},
+      </p>
+      <p style="margin: 0 0 20px; font-size: 16px; color: ${TEXT_SECONDARY}; line-height: 1.6;">
+        Thank you for signing <strong style="color: ${BRAND_COLOR};">${data.documentName}</strong>. Your signature has been successfully recorded.
+      </p>
+      
+      <div style="background-color: ${DARK_BG}; border-radius: 8px; padding: 25px; margin: 25px 0; text-align: center;">
+        <p style="margin: 0 0 8px; font-size: 13px; color: ${TEXT_SECONDARY}; text-transform: uppercase; letter-spacing: 1px;">Signed On</p>
+        <p style="margin: 0; font-size: 18px; color: ${TEXT_PRIMARY}; font-weight: 600;">${signedFormatted}</p>
+      </div>
+      
+      <p style="margin: 25px 0 0; font-size: 14px; color: ${TEXT_SECONDARY};">
+        A copy of this confirmation has been saved to your file. If you have any questions about your loan application, please contact your loan officer.
+      </p>
+    `;
+    
+    return baseTemplate(content);
+  },
+
+  paymentConfirmation: (data: {
+    borrowerName: string;
+    feeType: string;
+    amount: string;
+    propertyAddress?: string;
+    applicationId: string;
+  }) => {
+    const content = `
+      <div style="text-align: center; margin-bottom: 25px;">
+        <div style="display: inline-block; width: 60px; height: 60px; background-color: #22c55e; border-radius: 50%; line-height: 60px;">
+          <span style="font-size: 28px; color: #ffffff;">&#10003;</span>
+        </div>
+      </div>
+      
+      <h2 style="margin: 0 0 20px; font-size: 24px; color: ${TEXT_PRIMARY}; font-weight: 600; text-align: center;">
+        Payment Confirmed
+      </h2>
+      <p style="margin: 0 0 15px; font-size: 16px; color: ${TEXT_PRIMARY}; line-height: 1.6;">
+        Hello ${data.borrowerName},
+      </p>
+      <p style="margin: 0 0 20px; font-size: 16px; color: ${TEXT_SECONDARY}; line-height: 1.6;">
+        Thank you for your payment. Your <strong style="color: ${BRAND_COLOR};">${data.feeType}</strong> has been successfully processed.
+      </p>
+      
+      <div style="background-color: ${DARK_BG}; border-radius: 8px; padding: 25px; margin: 25px 0; border-left: 4px solid ${BRAND_COLOR};">
+        <p style="margin: 0 0 8px; font-size: 13px; color: ${TEXT_SECONDARY}; text-transform: uppercase; letter-spacing: 1px;">Payment Details</p>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td style="padding: 8px 0; border-bottom: 1px solid #333;">
+              <span style="font-size: 13px; color: ${TEXT_SECONDARY};">Fee Type:</span>
+              <span style="font-size: 14px; color: ${BRAND_COLOR}; float: right; font-weight: 600;">${data.feeType}</span>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; border-bottom: 1px solid #333;">
+              <span style="font-size: 13px; color: ${TEXT_SECONDARY};">Amount:</span>
+              <span style="font-size: 14px; color: #22c55e; float: right; font-weight: 600;">${data.amount}</span>
+            </td>
+          </tr>
+          ${data.propertyAddress ? `
+          <tr>
+            <td style="padding: 8px 0;">
+              <span style="font-size: 13px; color: ${TEXT_SECONDARY};">Property:</span>
+              <span style="font-size: 14px; color: ${TEXT_PRIMARY}; float: right;">${data.propertyAddress}</span>
+            </td>
+          </tr>
+          ` : ''}
+        </table>
+      </div>
+      
+      <p style="margin: 0 0 20px; font-size: 16px; color: ${TEXT_SECONDARY}; line-height: 1.6;">
+        Your loan application will continue to be processed. You can track the status anytime through your borrower portal.
+      </p>
+      
+      ${button("View Application", `${process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : ''}/portal/application/${data.applicationId}`)}
+      
+      <p style="margin: 25px 0 0; font-size: 14px; color: ${TEXT_SECONDARY};">
+        If you have any questions about your payment or application, please contact your loan officer.
+      </p>
+    `;
+    
+    return baseTemplate(content);
+  },
 };

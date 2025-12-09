@@ -77,6 +77,8 @@ export default function ProfilePage() {
     smsAlerts: false,
   });
 
+  const [phoneNumber, setPhoneNumber] = useState("");
+
   useEffect(() => {
     if (user?.emailNotificationsEnabled !== undefined) {
       setNotificationSettings(prev => ({
@@ -86,7 +88,16 @@ export default function ProfilePage() {
         documentRequests: user.emailNotificationsEnabled,
       }));
     }
-  }, [user?.emailNotificationsEnabled]);
+    if (user?.smsNotificationsEnabled !== undefined) {
+      setNotificationSettings(prev => ({
+        ...prev,
+        smsAlerts: user.smsNotificationsEnabled,
+      }));
+    }
+    if (user?.phone) {
+      setPhoneNumber(user.phone);
+    }
+  }, [user?.emailNotificationsEnabled, user?.smsNotificationsEnabled, user?.phone]);
 
   const updateEmailPreferencesMutation = useMutation({
     mutationFn: async (enabled: boolean) => {
@@ -106,6 +117,27 @@ export default function ProfilePage() {
       toast({
         title: "Error",
         description: "Failed to update email preferences. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateSmsPreferencesMutation = useMutation({
+    mutationFn: async (data: { phone?: string; smsNotificationsEnabled?: boolean }) => {
+      const response = await apiRequest("PATCH", "/api/user/sms-preferences", data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      toast({
+        title: "Preferences Updated",
+        description: "Your SMS notification settings have been saved.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update SMS preferences. Please try again.",
         variant: "destructive",
       });
     },
@@ -538,16 +570,54 @@ export default function ProfilePage() {
                   />
                 </div>
                 <Separator />
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label className="font-medium">SMS Alerts</Label>
-                    <p className="text-sm text-muted-foreground">Receive urgent updates via text message</p>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label className="font-medium">SMS Alerts</Label>
+                      <p className="text-sm text-muted-foreground">Receive urgent updates via text message</p>
+                    </div>
+                    <Switch
+                      checked={notificationSettings.smsAlerts}
+                      disabled={updateSmsPreferencesMutation.isPending}
+                      onCheckedChange={(checked) => {
+                        setNotificationSettings(prev => ({ ...prev, smsAlerts: checked }));
+                        updateSmsPreferencesMutation.mutate({ smsNotificationsEnabled: checked });
+                      }}
+                      data-testid="switch-sms-alerts"
+                    />
                   </div>
-                  <Switch
-                    checked={notificationSettings.smsAlerts}
-                    onCheckedChange={(checked) => setNotificationSettings(prev => ({ ...prev, smsAlerts: checked }))}
-                    data-testid="switch-sms-alerts"
-                  />
+                  {notificationSettings.smsAlerts && (
+                    <div className="space-y-2 pl-4 border-l-2 border-muted">
+                      <Label htmlFor="phone-number" className="text-sm">Phone Number</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="phone-number"
+                          type="tel"
+                          placeholder="+1 (555) 123-4567"
+                          value={phoneNumber}
+                          onChange={(e) => setPhoneNumber(e.target.value)}
+                          className="max-w-xs"
+                          data-testid="input-phone-number"
+                        />
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          disabled={updateSmsPreferencesMutation.isPending || !phoneNumber.trim()}
+                          onClick={() => updateSmsPreferencesMutation.mutate({ phone: phoneNumber.trim() })}
+                          data-testid="button-save-phone"
+                        >
+                          {updateSmsPreferencesMutation.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            "Save"
+                          )}
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Enter your phone number to receive SMS notifications for loan status changes, approvals, and draw updates.
+                      </p>
+                    </div>
+                  )}
                 </div>
                 <Separator />
                 <div className="flex items-center justify-between">

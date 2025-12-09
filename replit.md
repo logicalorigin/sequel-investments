@@ -2,12 +2,7 @@
 
 ## Overview
 
-Sequel Investments is a professional marketing and lead generation website for an investor-focused real estate lender specializing in DSCR Loans, Fix & Flip Loans, and New Construction financing. The platform provides educational content, interactive calculators, a multi-step quote application, and lead capture forms to connect borrowers with loan specialists. The platform is designed for white-label use by mortgage brokers, featuring a dark theme with gold/amber accents, modern aesthetics, trust indicators, and conversion-focused layouts.
-
-**Primary Contact:**
-- Phone: 302.388.8860
-- Email: josh@fundwithsequel.com
-- Address: 800 5th Avenue, Suite 4100, Miami Beach, FL 33139
+Sequel Investments is a professional marketing and lead generation website for an investor-focused real estate lender. It specializes in DSCR, Fix & Flip, and New Construction loans, providing educational content, interactive calculators, a multi-step quote application, and lead capture forms. The platform is designed for white-label use by mortgage brokers, featuring a dark theme with gold/amber accents, modern aesthetics, trust indicators, and conversion-focused layouts to connect borrowers with loan specialists.
 
 ## User Preferences
 
@@ -16,146 +11,38 @@ I prefer simple language. I want iterative development. Ask before making major 
 ## System Architecture
 
 ### Frontend
-
-**Framework**: React 18 with TypeScript, Vite.
-**Routing**: Client-side routing with Wouter, supporting various public and authenticated portal routes.
-**UI Components**: shadcn/ui ("New York" style) built on Radix UI.
-**Styling**: Tailwind CSS with custom design tokens, light/dark modes, Inter font.
-**State Management**: TanStack Query for server state, React Hook Form with Zod for form validation.
+- **Framework**: React 18 with TypeScript, Vite.
+- **Routing**: Client-side routing with Wouter.
+- **UI Components**: shadcn/ui ("New York" style) built on Radix UI.
+- **Styling**: Tailwind CSS with custom design tokens, light/dark modes, Inter font.
+- **State Management**: TanStack Query for server state, React Hook Form with Zod for form validation.
 
 ### Backend
+- **Server Framework**: Express.js on Node.js with TypeScript.
+- **API Endpoints**: `POST /api/leads` and `GET /api/leads`.
+- **Storage**: In-memory storage with interface for future database integration.
 
-**Server Framework**: Express.js on Node.js with TypeScript.
-**API Endpoints**: `POST /api/leads` for lead submission, `GET /api/leads` for administration.
-**Storage**: In-memory storage (`MemStorage`) with an interface for future database integration.
-
-### Key Features and Components
-
-- **Navigation & Footer**: Standard website navigation and footer with company info and quick links.
-- **LeadForm**: Reusable form for lead capture with validation.
-- **DSCRCalculator**: Interactive calculator for dynamic rate calculation based on credit score, LTV, DSCR, and property type.
-- **STRCalculatorPage**: Short-term rental income estimator with market data and DSCR analysis.
-- **GetQuotePage**: Multi-step application flow for loan quotes.
-- **USMap**: Interactive SVG map showing loan volume by state, with clickable states for detailed pages.
-- **RecentlyFundedCarousel**: Displays recent deals, filterable by loan type.
-- **Teaser Calculators**: Full-featured calculators on public product pages (DSCR, Fix & Flip, Construction).
-- **RatesTermsSection**: Kiavi-inspired visual cards displaying key loan metrics (rates, LTV, terms) with icons and benefit checkmarks.
-- **ResourcesSection**: Blog-style resource showcase with categorized cards (Guide, Webinar, Article, Calculator) linking to educational content.
-
-### Product Pages Structure (Kiavi-Inspired)
-
-All three product pages (DSCR, Fix & Flip, New Construction) follow a consistent layout:
-1. **Hero Section**: Badge, title, description, CTA button, and feature badges
-2. **Rates & Terms Section**: Visual metric cards with icons showing key loan parameters and benefit checkmarks
-3. **Recently Funded Carousel**: Recent deals for that loan type (moved higher for visibility)
-4. **Main Content**: Program highlights, loan terms table, eligible properties, calculator, FAQs, and lead capture form
-5. **Resources Section**: Blog-style cards linking to guides, articles, and calculators
-6. **CTA Section**: Final call-to-action with primary background
-
-### Loan Product Requirements
-
-- **FICO Requirement**: 660+ minimum across all loan products (DSCR, Fix & Flip, New Construction)
-- **Fix & Flip Terms**: Up to 90% of purchase price + 100% of rehab cost (not combined LTC)
-- **DSCR Terms**: No minimum DSCR requirement, rates from 5.75%, 30-year fixed terms
-- **Construction Terms**: Up to 90% LTC, 9-24 month terms, rates from 9.90%
-
-### Loan Subtypes
-
-- **DSCR**: Purchase, Cash Out Refi, Rate and Term Refi
-- **Bridge (Fix & Flip)**: Fix & Flip, New Construction, Bridge to Sale
-- **New Construction**: Ground Up, ADU/Conversion, Spec Build
-
-### Analyzer Results Panel
-
-All three deal analyzers (DSCR, Fix & Flip, Construction) feature a sticky results panel that scrolls with the user:
-- On desktop: Results appear in right column and stay sticky while scrolling inputs
-- On mobile: Results appear first at top of page and remain sticky as user scrolls through inputs below
-
-### Borrower Portal (ESC-Inspired)
-
-- **Portal Navigation**: Portfolio, Investment Analysis (DSCR, Fix & Flip, Construction Analyzers).
-- **Portal Landing Page**: Links to deal analyzers.
-- **Application Detail Page**: Progress stepper, loan info, contact info, fees breakdown, funds to close, document status, "View Analysis" button for analyzer-created applications, and "Submit Application" button for draft applications.
-- **Analyzer-to-Application Data Persistence**: Scenario data from analyzers (DSCR, Fix & Flip, Construction) is saved with Draft applications, allowing for round-trip editing and data restoration.
-- **Investment Analysis Page**: Comprehensive deal calculator with property, cost, and loan inputs, providing ROI, profit margin, and LTV/LTC. Includes specific DSCR calculator features for rental deals and Construction Calculator features (e.g., "Land is Owned" checkbox, state-based rates).
-- **Analyzer Rate Structure**: 
-  - Fix & Flip: 8.9% base rate reserved for 3+ deals AND 720+ FICO. Rate adjustments:
-    - Credit score: +0% for 720+, +0.5% for 700-719, +1.0% for 680-699, +1.5% below 680
-    - Experience: +1.0% for 0 deals, +0.5% for 1-2 deals, +0% for 3+ deals
-  - Construction: State-based base rate (8.9% for California, 9.9% for non-California), same credit score adjustments
-  - Origination Points: Linear scale from 2.0% at base rate to 0.0% at 12.9% rate (both analyzers)
-- **Profile Page**: User profile management, password, investment preferences, notification settings, connected entities, and account overview.
-- **Shared Portal Header**: Consistent branding and user menu.
-- **Document Upload Organization**: Automated file organization creates deal-specific folders using the property address (e.g., "123 Main Street, Los Angeles, CA") for human-readable document storage. Files are stored as `/{dealName}/{uniqueId}_{fileName}`.
-
-### Company Backend (Staff Portal)
-
-- **Role-Based Access Control**: Three user roles - borrower (default), staff, admin. Staff and admin can access the Company Backend.
-- **Admin Dashboard** (`/admin`): Pipeline view of all loan applications with filters for status and loan type. Shows stats cards for Total Apps, Submitted, In Review, Approved, Funded.
-- **Application Management**: Staff can view any application, update status (draft/submitted/in_review/approved/funded/denied/withdrawn), and advance processing stage (Account Review → Underwriting → Term Sheet → Processing → Docs Out → Closed).
-- **User Management** (Admin only): View all users, change user roles between borrower/staff/admin.
-- **Staff Invitations** (Admin only): Create invitation links with 7-day expiry, send to email addresses with specified role (staff or admin). Invites are token-based and single-use.
-- **Join Flow** (`/join/:token`): Invited users access the join page, sign in with the invited email address, and accept the invitation to gain staff/admin access.
-- **Timeline Events**: Status and stage changes create timeline events with staff attribution.
-
-### Broker Portal (Fully Removed)
-
-The broker portal infrastructure has been completely removed from the application:
-- All broker-related tables, types, and schemas removed from `shared/schema.ts` (except legacy `brokerId` field in `loanApplications`)
-- All broker storage methods removed from `server/storage.ts`
-- All broker routes removed from `server/routes.ts` (portal routes, admin management routes, registration routes)
-- All broker UI components and admin sections removed from the frontend
-
-The platform is now designed for white-label use where mortgage brokers use the entire platform rather than having their own portal.
-
-### Trust Indicators
-
-Homepage displays: $500M+ Loans Funded, 1,500+ Investors Served, 48hrs Fastest Closing, 48 States + DC Licensed.
-
-### State Pages Enhancement
-
-Dedicated state pages (`/states/{state-slug}`) feature a Recent Fundings Dashboard, Market Data Widgets, a Mini DSCR Calculator, and state-specific investor testimonials.
-
-**Interactive State Market Maps**: 
-- Google Maps integration with @vis.gl/react-google-maps showing the state geography
-- **State boundary masking**: Areas outside the state are faded/masked to focus attention on the state
-- **Adaptive mask colors**: Light mask for roadmap/terrain views, darker mask for satellite/hybrid views  
-- **Teal state border**: Visible boundary line around the state perimeter
-- **Metro market markers**: Numbered circle markers for top investment markets
-- **Market detail drawer**: Tabbed interface with Real Estate stats, Demographics, Universities, and STR Friendliness
-- **Synchronized selection**: Hovering/clicking markers syncs with market cards list
-- **Mobile bottom sheet**: Responsive drawer that appears as bottom sheet on mobile devices
-- **Supported states**: California, Texas, Florida, New York, Arizona, Colorado, Georgia, Nevada, North Carolina, Tennessee, Washington, Oregon, Virginia, Massachusetts
-
-### Property Search Feature
-
-- **Property Search Page** (`/property-search`): Dedicated page for searching investment properties with Google Maps integration.
-- **GoogleMapsProvider**: App-level provider wrapping the entire application with Google Maps API context (via @vis.gl/react-google-maps).
-- **PropertySearchBar**: Search component using Google Places Autocomplete for address lookup with debounced search and dropdown suggestions.
-- **PropertyCard**: Zillow/Redfin-inspired property cards with satellite map view, featuring:
-  - Map type toggle (satellite/hybrid/roadmap) 
-  - Property details (beds, baths, sqft, year built)
-  - Estimated value display
-  - "Analyze Deal" button linking to deal analyzers
-- **Circle-Based Geometric Patterns**: Modern decorative patterns with CSS animations across all pages using mint/teal accent colors with subtle opacity (0.08-0.15 range).
-- **PropertyMapPreview Component**: Zillow/Redfin-inspired satellite map preview integrated into all three deal analyzers (DSCR, Fix & Flip, Construction). Features include:
-  - Property marker anchored to actual lat/lng coordinates (green pin)
-  - Nearby amenities layers using Google Places API with color-coded markers:
-    - Grocery stores (orange)
-    - Transit stations (blue)
-    - Schools (purple)
-    - Restaurants (red)
-    - Medical facilities (pink)
-  - Layer toggle panel with loading state management to prevent spam clicks
-  - Satellite/Hybrid/Roadmap map type toggle
-  - Zoom controls and fullscreen mode
-  - Estimated property value display with source attribution (RentCast or Estimated)
-  - Responsive design with loading states
-- **Unified Address Autocomplete**: All analyzer pages use Google Places Autocomplete (via AddressAutocomplete component) with automatic property data fetching through RentCast API integration.
+### Key Features
+- **Loan Application Flow**: Multi-step quote application with interactive calculators (DSCR, Fix & Flip, New Construction) that dynamically calculate rates and terms.
+- **Lead Capture**: Reusable forms for lead generation.
+- **Content & Resources**: Educational sections, blog-style resources, and Kiavi-inspired product pages with detailed loan terms and program highlights.
+- **Interactive Maps**: US map showing loan volume by state, and state-specific interactive Google Maps with market data, property search, and amenity layers.
+- **Borrower Portal**: Features portfolio management, investment analysis tools, application detail pages, document upload with automated organization, and user profile management. Analyzers save scenario data to draft applications.
+- **Company Backend (Staff Portal)**: Role-Based Access Control (borrower, staff, admin), pipeline view of applications, application status management, user management, and staff invitations.
+- **SaaS Features**:
+    - **Admin Analytics Dashboard**: Pipeline metrics and visualization.
+    - **White-Label Demo Mode**: Customizable company branding, colors, and contact information.
+    - **Email Notifications**: Integration with Resend for templated email delivery with demo mode.
+    - **Stripe Payment Processing**: For application, commitment, and appraisal fees, including webhook handling.
+    - **SMS Notifications**: Integration with Twilio for key loan milestones with user controls and demo mode.
+    - **Calendar Booking System**: For consultations with staff, including admin management and availability.
+    - **Document E-Signatures**: Secure, token-based signature capture with administrative management.
 
 ## External Dependencies
 
-- **Google Maps API**: Powers property search autocomplete and satellite map views via @vis.gl/react-google-maps library. Requires `VITE_GOOGLE_MAPS_API_KEY` environment variable with Places and Maps JavaScript API enabled.
-- **Google Places Autocomplete**: Used for address autocomplete in PropertySearchBar and analyzer pages.
-- **Bridge Interactive (formerly Zillow API services)**: Recommended for property valuations, public records, and historical data. Requires manual approval and attribution.
-- **Attom Data Solutions, Estated API, CoreLogic, HouseCanary**: Alternatives for comprehensive property data and AVMs for production environments.
+- **Google Maps API**: For property search autocomplete, interactive state maps, and property map previews.
+- **Stripe**: For processing payments related to loan applications.
+- **Resend**: For sending email notifications.
+- **Twilio**: For sending SMS notifications.
+- **RentCast API**: Integrated for automatic property data fetching in deal analyzers.
+- **Bridge Interactive (formerly Zillow API services), Attom Data Solutions, Estated API, CoreLogic, HouseCanary**: Recommended for property valuations and data in production (Bridge Interactive currently recommended).

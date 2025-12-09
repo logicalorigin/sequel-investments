@@ -1,7 +1,8 @@
 import { getStripeSync, getUncachableStripeClient } from './stripeClient';
 import { db } from './db';
-import { loanApplications, timelineEvents } from '@shared/schema';
+import { loanApplications, applicationTimeline, notifications } from '@shared/schema';
 import { eq } from 'drizzle-orm';
+import { sendEmail, emailTemplates, shouldSendEmail } from './email';
 
 export class WebhookHandlers {
   static async processWebhook(payload: Buffer, signature: string, uuid: string): Promise<void> {
@@ -62,9 +63,16 @@ export class WebhookHandlers {
     }
 
     try {
+      // Update the loan application
       await db.update(loanApplications)
         .set(updateData)
         .where(eq(loanApplications.id, applicationId));
+
+      // Get application details for notifications
+      const [application] = await db.select()
+        .from(loanApplications)
+        .where(eq(loanApplications.id, applicationId))
+        .limit(1);
 
       const feeLabels: Record<string, string> = {
         application_fee: 'Application Fee',
@@ -72,15 +80,52 @@ export class WebhookHandlers {
         appraisal_fee: 'Appraisal Fee',
       };
 
-      await db.insert(timelineEvents).values({
-        applicationId,
+      const feeLabel = feeLabels[feeType] || 'Fee';
+      const amountFormatted = `$${(updateData.paidAmount / 100).toFixed(2)}`;
+
+      // Add timeline event
+      await db.insert(applicationTimeline).values({
+        loanApplicationId: applicationId,
         eventType: 'payment_received',
-        title: `${feeLabels[feeType] || 'Fee'} Payment Received`,
-        description: `Payment of ${(updateData.paidAmount / 100).toFixed(2)} completed successfully.`,
+        title: `${feeLabel} Payment Received`,
+        description: `Payment of ${amountFormatted} completed successfully.`,
         metadata: { feeType, paymentIntent: session.payment_intent },
       });
 
-      console.log(`Successfully updated application ${applicationId} with payment status`);
+      // Create notification for the borrower
+      if (application?.userId) {
+        await db.insert(notifications).values({
+          userId: application.userId,
+          type: 'payment',
+          title: 'Payment Confirmed',
+          message: `Your ${feeLabel} payment of ${amountFormatted} has been successfully processed.`,
+          linkUrl: `/portal/application/${applicationId}`,
+          relatedApplicationId: applicationId,
+          isRead: false,
+        });
+      }
+
+      // Send confirmation email to borrower
+      if (shouldSendEmail() && session.customer_email) {
+        try {
+          await sendEmail({
+            to: session.customer_email,
+            subject: `Payment Confirmation - ${feeLabel}`,
+            html: emailTemplates.paymentConfirmation({
+              borrowerName: session.customer_details?.name || 'Valued Borrower',
+              feeType: feeLabel,
+              amount: amountFormatted,
+              propertyAddress: application?.propertyAddress || undefined,
+              applicationId,
+            }),
+          });
+          console.log(`Sent payment confirmation email to ${session.customer_email}`);
+        } catch (emailError) {
+          console.error('Failed to send payment confirmation email:', emailError);
+        }
+      }
+
+      console.log(`Successfully updated application ${applicationId} with payment status and notifications`);
     } catch (error) {
       console.error('Failed to update application payment status:', error);
     }
