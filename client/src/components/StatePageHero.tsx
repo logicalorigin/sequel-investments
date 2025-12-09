@@ -9,23 +9,29 @@ interface StatePageHeroProps {
   formatLoanVolume: (volume: number) => string;
 }
 
-// Get the bounding box for a state path to properly center it
-function getPathBounds(pathD: string): { minX: number; minY: number; maxX: number; maxY: number } {
+// Get the bounding box for a state path to calculate its center
+function getPathBounds(pathD: string): { minX: number; minY: number; maxX: number; maxY: number; centerX: number; centerY: number } {
   const coords: number[][] = [];
   const regex = /[ML]\s*([\d.]+)[,\s]+([\d.]+)/gi;
   let match;
   while ((match = regex.exec(pathD)) !== null) {
     coords.push([parseFloat(match[1]), parseFloat(match[2])]);
   }
-  if (coords.length === 0) return { minX: 0, minY: 0, maxX: 100, maxY: 100 };
+  if (coords.length === 0) return { minX: 0, minY: 0, maxX: 100, maxY: 100, centerX: 50, centerY: 50 };
   
   const xs = coords.map(c => c[0]);
   const ys = coords.map(c => c[1]);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
   return {
-    minX: Math.min(...xs),
-    minY: Math.min(...ys),
-    maxX: Math.max(...xs),
-    maxY: Math.max(...ys)
+    minX,
+    minY,
+    maxX,
+    maxY,
+    centerX: (minX + maxX) / 2,
+    centerY: (minY + maxY) / 2
   };
 }
 
@@ -33,51 +39,75 @@ export function StatePageHero({ state, formatLoanVolume }: StatePageHeroProps) {
   const statePathD = statePaths[state.abbreviation];
   const bounds = statePathD ? getPathBounds(statePathD) : null;
   
-  // Add padding around the state
-  const padding = 20;
-  const viewBox = bounds 
-    ? `${bounds.minX - padding} ${bounds.minY - padding} ${bounds.maxX - bounds.minX + padding * 2} ${bounds.maxY - bounds.minY + padding * 2}`
-    : "0 0 100 100";
+  // Calculate viewBox to center the focus state in the right portion of the hero
+  // We shift the viewBox so the state appears in the right-center area
+  const mapWidth = 1000;
+  const mapHeight = 600;
+  
+  // Target: position the state's center around x=700 (right-center of the hero)
+  // This means we need to shift the viewBox left
+  const targetX = 700;
+  const shiftX = bounds ? bounds.centerX - targetX : 0;
+  
+  // Create a viewBox that's shifted to put the state in the right area
+  const viewBoxX = shiftX;
+  const viewBoxY = 0;
 
   return (
     <section className="relative pt-12 pb-20 overflow-hidden min-h-[500px]">
-      {/* US Map Background with highlighted focus state */}
-      <div className="absolute inset-0 pointer-events-none">
+      {/* US Map Background - positioned to center the focus state on the right */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <svg
-          viewBox="0 0 1000 600"
-          className="w-full h-full opacity-20"
+          viewBox={`${viewBoxX} ${viewBoxY} ${mapWidth} ${mapHeight}`}
+          className="w-full h-full"
           preserveAspectRatio="xMidYMid slice"
+          style={{ transform: 'scale(1.2)', transformOrigin: 'center' }}
         >
-          {Object.entries(statePaths).map(([abbr, pathD]) => (
+          {/* All other states - very subtle */}
+          {Object.entries(statePaths).map(([abbr, pathD]) => {
+            if (abbr === state.abbreviation) return null;
+            return (
+              <path
+                key={abbr}
+                d={pathD}
+                fill="hsl(var(--muted-foreground) / 0.08)"
+                stroke="hsl(var(--muted-foreground) / 0.15)"
+                strokeWidth={0.5}
+              />
+            );
+          })}
+          
+          {/* Focus state - prominent and highlighted */}
+          {statePathD && (
             <path
-              key={abbr}
-              d={pathD}
-              fill={abbr === state.abbreviation ? "hsl(var(--primary))" : "hsl(var(--muted-foreground) / 0.15)"}
-              stroke={abbr === state.abbreviation ? "hsl(var(--primary))" : "hsl(var(--muted-foreground) / 0.3)"}
-              strokeWidth={abbr === state.abbreviation ? 2 : 0.5}
-              className={abbr === state.abbreviation ? "opacity-100" : "opacity-60"}
+              d={statePathD}
+              fill="hsl(var(--primary))"
+              stroke="hsl(var(--primary))"
+              strokeWidth={2}
+              style={{
+                filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.3))'
+              }}
             />
-          ))}
+          )}
         </svg>
       </div>
 
-      {/* Dark gradient overlay for text contrast */}
-      <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/70 to-black/40 dark:from-black/90 dark:via-black/75 dark:to-black/50 pointer-events-none" />
+      {/* Dark gradient overlay - stronger on left for text, lighter on right to show state */}
+      <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/70 to-black/30 dark:from-black/95 dark:via-black/75 dark:to-black/40 pointer-events-none" />
 
-      {/* Content Grid */}
+      {/* Content */}
       <div className="relative z-10 max-w-7xl mx-auto px-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center min-h-[400px]">
-          {/* Left: Text Content */}
-          <div>
-            {/* Breadcrumb */}
-            <div className="flex items-center gap-2 text-white/70 mb-4">
-              <Link href="/where-we-lend" className="hover:text-primary transition-colors">
-                Where We Lend
-              </Link>
-              <ArrowRight className="h-4 w-4" />
-              <span className="text-white">{state.name}</span>
-            </div>
+        <div className="min-h-[400px] flex flex-col justify-center">
+          {/* Breadcrumb */}
+          <div className="flex items-center gap-2 text-white/70 mb-4">
+            <Link href="/where-we-lend" className="hover:text-primary transition-colors">
+              Where We Lend
+            </Link>
+            <ArrowRight className="h-4 w-4" />
+            <span className="text-white">{state.name}</span>
+          </div>
 
+          <div className="max-w-xl">
             <h1 className="text-4xl md:text-5xl font-bold mb-6 text-white" data-testid="text-state-title">
               {state.name} Investment Property Loans
             </h1>
@@ -104,28 +134,6 @@ export function StatePageHero({ state, formatLoanVolume }: StatePageHeroProps) {
                 Get Your Rate
               </Button>
             </Link>
-          </div>
-
-          {/* Right: Large Prominent State */}
-          <div className="hidden lg:flex items-center justify-center">
-            {statePathD && (
-              <svg
-                viewBox={viewBox}
-                className="w-full max-w-md h-auto drop-shadow-2xl"
-                style={{ maxHeight: '350px' }}
-              >
-                <path
-                  d={statePathD}
-                  fill="hsl(var(--primary))"
-                  stroke="hsl(var(--primary))"
-                  strokeWidth={2}
-                  className="opacity-90"
-                  style={{
-                    filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.4))'
-                  }}
-                />
-              </svg>
-            )}
           </div>
         </div>
       </div>
