@@ -534,16 +534,16 @@ export default function HomePage() {
                 <span className="text-foreground">Where Are You&nbsp;</span>
                 <span 
                   className="inline-block overflow-hidden"
-                  style={{ height: '1em', lineHeight: '1' }}
+                  style={{ height: '1.25em', lineHeight: '1.25' }}
                 >
                   <span 
                     className="flex flex-col"
                     style={{ animation: 'wordTickerDown 12s ease-in-out infinite' }}
                   >
-                    <span className="text-primary" style={{ lineHeight: '1' }}>Investing?</span>
-                    <span className="text-primary" style={{ lineHeight: '1' }}>Flipping?</span>
-                    <span className="text-primary" style={{ lineHeight: '1' }}>Building?</span>
-                    <span className="text-primary" style={{ lineHeight: '1' }}>Investing?</span>
+                    <span className="text-primary" style={{ lineHeight: '1.25' }}>Investing?</span>
+                    <span className="text-primary" style={{ lineHeight: '1.25' }}>Flipping?</span>
+                    <span className="text-primary" style={{ lineHeight: '1.25' }}>Building?</span>
+                    <span className="text-primary" style={{ lineHeight: '1.25' }}>Investing?</span>
                   </span>
                 </span>
               </h2>
@@ -594,16 +594,16 @@ export default function HomePage() {
                 <span className="text-foreground">Where Are You&nbsp;</span>
                 <span 
                   className="inline-block overflow-hidden"
-                  style={{ height: '1em', lineHeight: '1' }}
+                  style={{ height: '1.25em', lineHeight: '1.25' }}
                 >
                   <span 
                     className="flex flex-col"
                     style={{ animation: 'wordTickerDown 12s ease-in-out infinite' }}
                   >
-                    <span className="text-primary" style={{ lineHeight: '1' }}>Investing?</span>
-                    <span className="text-primary" style={{ lineHeight: '1' }}>Flipping?</span>
-                    <span className="text-primary" style={{ lineHeight: '1' }}>Building?</span>
-                    <span className="text-primary" style={{ lineHeight: '1' }}>Investing?</span>
+                    <span className="text-primary" style={{ lineHeight: '1.25' }}>Investing?</span>
+                    <span className="text-primary" style={{ lineHeight: '1.25' }}>Flipping?</span>
+                    <span className="text-primary" style={{ lineHeight: '1.25' }}>Building?</span>
+                    <span className="text-primary" style={{ lineHeight: '1.25' }}>Investing?</span>
                   </span>
                 </span>
               </h2>
