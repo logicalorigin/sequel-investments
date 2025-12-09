@@ -49,6 +49,32 @@ import stripeRoutes from "./stripe-routes";
 export async function registerRoutes(app: Express): Promise<Server> {
   // Serve state map SVGs statically
   app.use('/state_maps', express.static(path.join(process.cwd(), 'attached_assets/state_maps')));
+  
+  // Local file storage fallback for development (when cloud storage not configured)
+  app.use('/local-uploads', express.static(path.join(process.cwd(), 'uploads')));
+  
+  // Handle local file uploads (PUT requests for development fallback)
+  app.put('/local-uploads/*', isAuthenticated, express.raw({ type: '*/*', limit: '50mb' }), async (req: any, res) => {
+    try {
+      const filePath = req.path.replace('/local-uploads/', '');
+      const fullPath = path.join(process.cwd(), 'uploads', filePath);
+      
+      // Ensure directory exists
+      const dir = path.dirname(fullPath);
+      const fs = await import('fs');
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      
+      // Write file
+      fs.writeFileSync(fullPath, req.body);
+      res.status(200).json({ success: true, path: `/local-uploads/${filePath}` });
+    } catch (error) {
+      console.error("Error saving local upload:", error);
+      res.status(500).json({ error: "Failed to save file" });
+    }
+  });
+  
   // Set up authentication
   await setupAuth(app);
   

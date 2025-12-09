@@ -1,6 +1,8 @@
 import { Storage, File } from "@google-cloud/storage";
 import { Response } from "express";
 import { randomUUID } from "crypto";
+import * as fs from "fs";
+import * as path from "path";
 import {
   ObjectAclPolicy,
   ObjectPermission,
@@ -10,6 +12,9 @@ import {
 } from "./objectAcl";
 
 const REPLIT_SIDECAR_ENDPOINT = "http://127.0.0.1:1106";
+
+// Local file storage directory for development fallback
+const LOCAL_UPLOADS_DIR = path.join(process.cwd(), "uploads");
 
 export const objectStorageClient = new Storage({
   credentials: {
@@ -39,6 +44,27 @@ export class ObjectNotFoundError extends Error {
 
 export class ObjectStorageService {
   constructor() {}
+
+  // Check if cloud object storage is configured
+  isCloudStorageConfigured(): boolean {
+    return !!(process.env.PRIVATE_OBJECT_DIR);
+  }
+
+  // Get local upload URL for development fallback
+  getLocalUploadPath(subPath: string): string {
+    const sanitizedPath = subPath.replace(/[^a-zA-Z0-9._\-\/]/g, '_');
+    const uniqueId = randomUUID().slice(0, 8);
+    const fullPath = path.join(LOCAL_UPLOADS_DIR, `${uniqueId}_${sanitizedPath}`);
+    
+    // Ensure directory exists
+    const dir = path.dirname(fullPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    
+    // Return a local file path that will be handled by our local upload endpoint
+    return `/local-uploads/${uniqueId}_${sanitizedPath}`;
+  }
 
   getPublicObjectSearchPaths(): Array<string> {
     const pathsStr = process.env.PUBLIC_OBJECT_SEARCH_PATHS || "";
@@ -135,17 +161,20 @@ export class ObjectStorageService {
   // Get upload URL for application-specific document storage
   // Organizes files into: /{dealName}/{filename}
   // dealName format: "123 Main Street, Los Angeles, CA"
+  // Falls back to local file storage in development if cloud storage not configured
   async getApplicationDocumentUploadURL(
     dealName: string,
     fileName: string
   ): Promise<string> {
-    const privateObjectDir = this.getPrivateObjectDir();
-    if (!privateObjectDir) {
-      throw new Error(
-        "PRIVATE_OBJECT_DIR not set. Create a bucket in 'Object Storage' " +
-          "tool and set PRIVATE_OBJECT_DIR env var."
-      );
+    // Check if cloud storage is configured
+    if (!this.isCloudStorageConfigured()) {
+      // Use local file storage fallback for development
+      const sanitizedDealName = dealName.replace(/[^a-zA-Z0-9\s,.-]/g, '').trim().replace(/\s+/g, '_');
+      const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+      return this.getLocalUploadPath(`${sanitizedDealName}/${sanitizedFileName}`);
     }
+
+    const privateObjectDir = this.getPrivateObjectDir();
 
     // Sanitize deal name for folder - keep spaces, letters, numbers, commas
     const sanitizedDealName = dealName
