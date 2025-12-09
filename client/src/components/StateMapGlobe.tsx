@@ -1,6 +1,14 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { STATE_BOUNDARIES } from "@/data/stateBoundaries";
 import type { MarketDetail } from "@/data/marketDetails";
+
+export interface MarkerPosition {
+  market: MarketDetail;
+  x: number;
+  y: number;
+  screenX?: number;
+  screenY?: number;
+}
 
 interface StateMapGlobeProps {
   stateSlug: string;
@@ -10,6 +18,7 @@ interface StateMapGlobeProps {
   hoveredMarket?: MarketDetail | null;
   onMarkerClick?: (market: MarketDetail) => void;
   onMarkerHover?: (market: MarketDetail | null) => void;
+  onMarkerPositionsUpdate?: (positions: MarkerPosition[]) => void;
   className?: string;
 }
 
@@ -32,6 +41,10 @@ export function StateMapGlobe({
 }: StateMapGlobeProps) {
   const [isAnimated, setIsAnimated] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
+  const [animatedViewBox, setAnimatedViewBox] = useState<string | null>(null);
+  const [isZoomed, setIsZoomed] = useState(false);
+  const animationRef = useRef<number | null>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setIsAnimated(true), 100);
@@ -44,9 +57,9 @@ export function StateMapGlobe({
 
   const boundary = STATE_BOUNDARIES[stateSlug];
 
-  const { pathData, viewBox, markerPositions, stateCenter, usBackgroundPaths } = useMemo(() => {
+  const { pathData, viewBox, markerPositions, stateCenter, usBackgroundPaths, bounds } = useMemo(() => {
     if (!boundary || !boundary.coordinates || boundary.coordinates.length === 0) {
-      return { pathData: "", viewBox: "0 0 100 100", markerPositions: [], stateCenter: { x: 50, y: 50 }, usBackgroundPaths: [] };
+      return { pathData: "", viewBox: "0 0 100 100", markerPositions: [], stateCenter: { x: 50, y: 50 }, usBackgroundPaths: [], bounds: null };
     }
 
     const coords = boundary.coordinates;
@@ -127,8 +140,41 @@ export function StateMapGlobe({
       markerPositions: markerPos,
       stateCenter: { x: toSvgX(centerLng), y: toSvgY(centerLat) },
       usBackgroundPaths: bgPaths,
+      bounds: { width, height },
     };
   }, [boundary, markets, stateSlug]);
+
+  useEffect(() => {
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current);
+    }
+
+    if (selectedMarket && bounds) {
+      const targetMarker = markerPositions.find(m => m.market.name === selectedMarket.name);
+      if (targetMarker) {
+        const zoomLevel = 2.5;
+        const zoomedWidth = bounds.width / zoomLevel;
+        const zoomedHeight = bounds.height / zoomLevel;
+        const targetX = targetMarker.x - zoomedWidth / 2;
+        const targetY = targetMarker.y - zoomedHeight / 2;
+        
+        const clampedX = Math.max(0, Math.min(targetX, bounds.width - zoomedWidth));
+        const clampedY = Math.max(0, Math.min(targetY, bounds.height - zoomedHeight));
+        
+        setAnimatedViewBox(`${clampedX} ${clampedY} ${zoomedWidth} ${zoomedHeight}`);
+        setIsZoomed(true);
+      }
+    } else {
+      setAnimatedViewBox(null);
+      setIsZoomed(false);
+    }
+    
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [selectedMarket, bounds, markerPositions]);
 
   if (!boundary || !pathData) {
     return (
@@ -158,10 +204,12 @@ export function StateMapGlobe({
           }}
         >
           <svg
-            viewBox={viewBox}
+            ref={svgRef}
+            viewBox={animatedViewBox || viewBox}
             className="w-full h-auto"
             style={{
               filter: "drop-shadow(0 25px 40px rgba(0, 0, 0, 0.5))",
+              transition: "all 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
             }}
           >
             <defs>
@@ -183,9 +231,9 @@ export function StateMapGlobe({
             
             <path
               d={pathData}
-              fill={`url(#focus-state-gradient-${stateSlug})`}
+              fill="none"
               stroke="#a07020"
-              strokeWidth="1.5"
+              strokeWidth="3.5"
               strokeLinejoin="round"
               filter={`url(#focus-state-shadow-${stateSlug})`}
               className="transition-all duration-300"

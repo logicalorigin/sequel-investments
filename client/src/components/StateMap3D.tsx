@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { STATE_BOUNDARIES } from "@/data/stateBoundaries";
 import type { MarketDetail } from "@/data/marketDetails";
 
@@ -26,6 +26,9 @@ export function StateMap3D({
   showMarkers = true,
 }: StateMap3DProps) {
   const boundary = STATE_BOUNDARIES[stateSlug];
+  const [animatedViewBox, setAnimatedViewBox] = useState<string | null>(null);
+  const [isZoomed, setIsZoomed] = useState(false);
+  const animationRef = useRef<number | null>(null);
 
   const { focusPathData, backgroundPaths, viewBox, markerPositions, bounds } = useMemo(() => {
     if (!boundary || !boundary.coordinates || boundary.coordinates.length === 0) {
@@ -110,6 +113,38 @@ export function StateMap3D({
     };
   }, [boundary, markets, stateSlug]);
 
+  useEffect(() => {
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current);
+    }
+
+    if (selectedMarket && bounds) {
+      const targetMarker = markerPositions.find(m => m.market.name === selectedMarket.name);
+      if (targetMarker) {
+        const zoomLevel = 2.5;
+        const zoomedWidth = bounds.width / zoomLevel;
+        const zoomedHeight = bounds.height / zoomLevel;
+        const targetX = targetMarker.x - zoomedWidth / 2;
+        const targetY = targetMarker.y - zoomedHeight / 2;
+        
+        const clampedX = Math.max(0, Math.min(targetX, bounds.width - zoomedWidth));
+        const clampedY = Math.max(0, Math.min(targetY, bounds.height - zoomedHeight));
+        
+        setAnimatedViewBox(`${clampedX} ${clampedY} ${zoomedWidth} ${zoomedHeight}`);
+        setIsZoomed(true);
+      }
+    } else {
+      setAnimatedViewBox(null);
+      setIsZoomed(false);
+    }
+    
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [selectedMarket, bounds, markerPositions]);
+
   if (!boundary || !focusPathData) {
     return (
       <div className={`flex items-center justify-center bg-muted/20 rounded-lg ${className}`}>
@@ -134,10 +169,11 @@ export function StateMap3D({
           }}
         >
           <svg
-            viewBox={viewBox}
+            viewBox={animatedViewBox || viewBox}
             className="w-full h-auto"
             style={{
               filter: "drop-shadow(0 20px 30px rgba(0, 0, 0, 0.4)) drop-shadow(0 10px 15px rgba(0, 0, 0, 0.3))",
+              transition: "all 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
             }}
           >
             <defs>
@@ -155,9 +191,9 @@ export function StateMap3D({
             
             <path
               d={focusPathData}
-              fill={`url(#focus-state-gradient-${stateSlug})`}
+              fill="none"
               stroke="#a07020"
-              strokeWidth="1.5"
+              strokeWidth="3.5"
               strokeLinejoin="round"
               filter={`url(#focus-state-shadow-${stateSlug})`}
             />
