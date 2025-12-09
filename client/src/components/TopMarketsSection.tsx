@@ -16,7 +16,7 @@ import {
   Users,
   GraduationCap,
 } from "lucide-react";
-import { StateMarketMap } from "@/components/StateMarketMap";
+import { StateMapGlobe } from "@/components/StateMapGlobe";
 import { MarketDetailDrawer } from "@/components/MarketDetailDrawer";
 import { 
   getMarketDetails, 
@@ -255,9 +255,9 @@ export function TopMarketsSection({ stateSlug, stateName }: TopMarketsSectionPro
         <div className={`grid gap-8 items-start transition-all duration-300 ${
           selectedMarket ? 'lg:grid-cols-2' : 'lg:grid-cols-2'
         }`}>
-          <Card className="overflow-hidden border-primary/10">
+          <Card className="overflow-hidden border-primary/10 bg-background/50">
             <CardContent className="p-4 md:p-6">
-              <StateMarketMap
+              <StateMapGlobe
                 stateSlug={stateSlug}
                 stateName={stateName}
                 markets={marketsWithDetails}
