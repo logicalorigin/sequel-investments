@@ -283,11 +283,35 @@ export default function HomePage() {
                 </div>
               </div>
               
-              {/* Mobile: Compact inline funded badge - bottom left */}
-              <div className="sm:hidden absolute bottom-10 left-3 bg-card/95 backdrop-blur-sm rounded-md shadow-md px-2.5 py-1.5 border flex items-center gap-1.5 z-10" data-testid="card-funded-mobile">
-                <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0" />
-                <span className="text-xs font-semibold">{activeSlide.loanAmount}</span>
-                <span className="text-xs text-muted-foreground">in {activeSlide.closedIn}</span>
+              {/* Mobile: Full card style matching desktop */}
+              <div className="sm:hidden absolute -bottom-4 left-2 right-2 bg-card rounded-lg shadow-lg p-3 border z-10" data-testid="card-funded-mobile">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-7 h-7 rounded-full bg-green-500/10 flex items-center justify-center">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-xs">Funded</p>
+                    <p className="text-[10px] text-muted-foreground">{activeSlide.loanType}</p>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <div className="flex justify-between gap-2 text-xs">
+                    <span className="text-muted-foreground">Location</span>
+                    <span className="font-semibold">{activeSlide.location}</span>
+                  </div>
+                  <div className="flex justify-between gap-2 text-xs">
+                    <span className="text-muted-foreground">Loan Amount</span>
+                    <span className="font-semibold">{activeSlide.loanAmount}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Interest Rate</span>
+                    <span className="font-semibold text-primary">{activeSlide.rate}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Closed In</span>
+                    <span className="font-semibold text-green-600">{activeSlide.closedIn}</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
