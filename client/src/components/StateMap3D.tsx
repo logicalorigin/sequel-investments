@@ -141,28 +141,25 @@ export function StateMap3D({
             }}
           >
             <defs>
-              <linearGradient id={`bg-state-gradient-${stateSlug}`} x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#c4b8a8" stopOpacity="1" />
-                <stop offset="100%" stopColor="#a89888" stopOpacity="1" />
-              </linearGradient>
-              
               <linearGradient id={`focus-state-gradient-${stateSlug}`} x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#f5f0d8" stopOpacity="1" />
-                <stop offset="100%" stopColor="#e8e0c0" stopOpacity="1" />
+                <stop offset="0%" stopColor="#d4a030" stopOpacity="1" />
+                <stop offset="100%" stopColor="#c49020" stopOpacity="1" />
               </linearGradient>
               
               <filter id={`focus-state-shadow-${stateSlug}`} x="-50%" y="-50%" width="200%" height="200%">
-                <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="rgba(0,0,0,0.3)" />
+                <feDropShadow dx="0" dy="2" stdDeviation="2" floodColor="rgba(0,0,0,0.2)" />
               </filter>
             </defs>
+            
+            <rect x="0" y="0" width="100%" height="100%" fill="#e8e8e8" />
             
             {backgroundPaths.map(({ slug, path }) => (
               <path
                 key={slug}
                 d={path}
-                fill={`url(#bg-state-gradient-${stateSlug})`}
-                stroke="#8a7a6a"
-                strokeWidth="0.8"
+                fill="none"
+                stroke="#c8c8c8"
+                strokeWidth="1"
                 strokeLinejoin="round"
               />
             ))}
@@ -170,8 +167,8 @@ export function StateMap3D({
             <path
               d={focusPathData}
               fill={`url(#focus-state-gradient-${stateSlug})`}
-              stroke="#5a4a3a"
-              strokeWidth="2"
+              stroke="#a07020"
+              strokeWidth="1.5"
               strokeLinejoin="round"
               filter={`url(#focus-state-shadow-${stateSlug})`}
             />
