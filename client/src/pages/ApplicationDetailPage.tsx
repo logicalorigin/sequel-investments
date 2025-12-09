@@ -40,6 +40,8 @@ import {
   MessageSquare,
   Trash2,
   Send,
+  CreditCard,
+  ExternalLink,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import {
@@ -244,6 +246,43 @@ export default function ApplicationDetailPage() {
         description: "Could not delete the application. Please try again.",
         variant: "destructive",
       });
+    },
+  });
+
+  const [payingFeeType, setPayingFeeType] = useState<string | null>(null);
+
+  const checkoutMutation = useMutation({
+    mutationFn: async (feeType: string) => {
+      const response = await apiRequest("POST", "/api/stripe/checkout", {
+        applicationId,
+        feeType,
+      });
+      return response.json();
+    },
+    onMutate: (feeType) => {
+      setPayingFeeType(feeType);
+    },
+    onSuccess: (data) => {
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        toast({
+          title: "Checkout Error",
+          description: "Could not create checkout session. Please try again.",
+          variant: "destructive",
+        });
+      }
+    },
+    onError: () => {
+      setPayingFeeType(null);
+      toast({
+        title: "Payment Error",
+        description: "Could not initiate payment. Please try again.",
+        variant: "destructive",
+      });
+    },
+    onSettled: () => {
+      setPayingFeeType(null);
     },
   });
 
@@ -1148,6 +1187,109 @@ export default function ApplicationDetailPage() {
                   <div className="flex justify-between font-semibold">
                     <span>Total</span>
                     <span className="text-primary">{formatCurrency(totalFees)}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CreditCard className="h-5 w-5 text-primary" />
+                  Pay Application Fees
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">Application Fee</p>
+                      <p className="text-xs text-muted-foreground">$295.00 - Processing fee</p>
+                    </div>
+                    {application.applicationFeePaid ? (
+                      <Badge className="bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300">
+                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                        Paid
+                      </Badge>
+                    ) : (
+                      <Button
+                        size="sm"
+                        onClick={() => checkoutMutation.mutate("application_fee")}
+                        disabled={checkoutMutation.isPending && payingFeeType === "application_fee"}
+                        data-testid="button-pay-application-fee"
+                      >
+                        {checkoutMutation.isPending && payingFeeType === "application_fee" ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            Pay
+                            <ExternalLink className="h-3 w-3 ml-1" />
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </div>
+
+                  <Separator />
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">Commitment Fee</p>
+                      <p className="text-xs text-muted-foreground">$495.00 - Loan commitment</p>
+                    </div>
+                    {application.commitmentFeePaid ? (
+                      <Badge className="bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300">
+                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                        Paid
+                      </Badge>
+                    ) : (
+                      <Button
+                        size="sm"
+                        onClick={() => checkoutMutation.mutate("commitment_fee")}
+                        disabled={checkoutMutation.isPending && payingFeeType === "commitment_fee"}
+                        data-testid="button-pay-commitment-fee"
+                      >
+                        {checkoutMutation.isPending && payingFeeType === "commitment_fee" ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            Pay
+                            <ExternalLink className="h-3 w-3 ml-1" />
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </div>
+
+                  <Separator />
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">Appraisal Fee</p>
+                      <p className="text-xs text-muted-foreground">$650.00 - Property appraisal</p>
+                    </div>
+                    {application.appraisalFeePaid ? (
+                      <Badge className="bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300">
+                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                        Paid
+                      </Badge>
+                    ) : (
+                      <Button
+                        size="sm"
+                        onClick={() => checkoutMutation.mutate("appraisal_fee")}
+                        disabled={checkoutMutation.isPending && payingFeeType === "appraisal_fee"}
+                        data-testid="button-pay-appraisal-fee"
+                      >
+                        {checkoutMutation.isPending && payingFeeType === "appraisal_fee" ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            Pay
+                            <ExternalLink className="h-3 w-3 ml-1" />
+                          </>
+                        )}
+                      </Button>
+                    )}
                   </div>
                 </div>
               </CardContent>

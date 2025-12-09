@@ -120,6 +120,15 @@ export const loanApplications = pgTable("loan_applications", {
   // Legacy broker ID field (kept for historical data, broker portal removed)
   brokerId: varchar("broker_id"),
   
+  // Stripe Payment Status
+  applicationFeePaid: boolean("application_fee_paid").default(false).notNull(),
+  commitmentFeePaid: boolean("commitment_fee_paid").default(false).notNull(),
+  appraisalFeePaid: boolean("appraisal_fee_paid").default(false).notNull(),
+  stripeCustomerId: text("stripe_customer_id"),
+  applicationFeePaymentId: text("application_fee_payment_id"),
+  commitmentFeePaymentId: text("commitment_fee_payment_id"),
+  appraisalFeePaymentId: text("appraisal_fee_payment_id"),
+  
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
