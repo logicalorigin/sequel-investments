@@ -27,9 +27,9 @@ export function StateMap3D({
 }: StateMap3DProps) {
   const boundary = STATE_BOUNDARIES[stateSlug];
 
-  const { pathData, viewBox, markerPositions, bounds } = useMemo(() => {
+  const { focusPathData, backgroundPaths, viewBox, markerPositions, bounds } = useMemo(() => {
     if (!boundary || !boundary.coordinates || boundary.coordinates.length === 0) {
-      return { pathData: "", viewBox: "0 0 100 100", markerPositions: [], bounds: null };
+      return { focusPathData: "", backgroundPaths: [], viewBox: "0 0 100 100", markerPositions: [], bounds: null };
     }
 
     const coords = boundary.coordinates;
@@ -45,24 +45,55 @@ export function StateMap3D({
     const latRange = maxLat - minLat;
     const lngRange = maxLng - minLng;
     
-    const padding = 0.05;
+    const padding = 0.5;
     const paddedLatRange = latRange * (1 + padding * 2);
     const paddedLngRange = lngRange * (1 + padding * 2);
     const paddedMinLat = minLat - latRange * padding;
     const paddedMinLng = minLng - lngRange * padding;
     
-    const width = 400;
-    const height = 400 * (paddedLatRange / paddedLngRange);
+    const width = 500;
+    const height = 500 * (paddedLatRange / paddedLngRange);
     
     const toSvgX = (lng: number) => ((lng - paddedMinLng) / paddedLngRange) * width;
     const toSvgY = (lat: number) => height - ((lat - paddedMinLat) / paddedLatRange) * height;
     
-    const pathPoints = coords.map((c, i) => {
+    const focusPathPoints = coords.map((c, i) => {
       const x = toSvgX(c.lng);
       const y = toSvgY(c.lat);
       return i === 0 ? `M ${x} ${y}` : `L ${x} ${y}`;
     });
-    pathPoints.push("Z");
+    focusPathPoints.push("Z");
+    
+    const bgPaths: { slug: string; path: string }[] = [];
+    Object.entries(STATE_BOUNDARIES).forEach(([slug, state]) => {
+      if (slug === stateSlug || !state.coordinates || state.coordinates.length === 0) return;
+      
+      const stateCoords = state.coordinates;
+      const stateLats = stateCoords.map(c => c.lat);
+      const stateLngs = stateCoords.map(c => c.lng);
+      
+      const stateMinLat = Math.min(...stateLats);
+      const stateMaxLat = Math.max(...stateLats);
+      const stateMinLng = Math.min(...stateLngs);
+      const stateMaxLng = Math.max(...stateLngs);
+      
+      const overlapLat = stateMaxLat >= paddedMinLat && stateMinLat <= (paddedMinLat + paddedLatRange);
+      const overlapLng = stateMaxLng >= paddedMinLng && stateMinLng <= (paddedMinLng + paddedLngRange);
+      
+      if (!overlapLat || !overlapLng) return;
+      
+      const points = stateCoords.map((c, i) => {
+        const x = toSvgX(c.lng);
+        const y = toSvgY(c.lat);
+        return i === 0 ? `M ${x} ${y}` : `L ${x} ${y}`;
+      });
+      points.push("Z");
+      
+      bgPaths.push({
+        slug,
+        path: points.join(" "),
+      });
+    });
     
     const markerPos = markets.map(market => ({
       market,
@@ -71,14 +102,15 @@ export function StateMap3D({
     }));
 
     return {
-      pathData: pathPoints.join(" "),
+      focusPathData: focusPathPoints.join(" "),
+      backgroundPaths: bgPaths,
       viewBox: `0 0 ${width} ${height}`,
       markerPositions: markerPos,
       bounds: { width, height, minLat: paddedMinLat, maxLat: paddedMinLat + paddedLatRange, minLng: paddedMinLng, maxLng: paddedMinLng + paddedLngRange },
     };
-  }, [boundary, markets]);
+  }, [boundary, markets, stateSlug]);
 
-  if (!boundary || !pathData) {
+  if (!boundary || !focusPathData) {
     return (
       <div className={`flex items-center justify-center bg-muted/20 rounded-lg ${className}`}>
         <p className="text-muted-foreground">Map not available for {stateName}</p>
@@ -109,22 +141,39 @@ export function StateMap3D({
             }}
           >
             <defs>
-              <linearGradient id={`state-gradient-${stateSlug}`} x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="hsl(var(--muted))" stopOpacity="1" />
-                <stop offset="100%" stopColor="hsl(var(--muted-foreground) / 0.3)" stopOpacity="1" />
+              <linearGradient id={`bg-state-gradient-${stateSlug}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#c4b8a8" stopOpacity="1" />
+                <stop offset="100%" stopColor="#a89888" stopOpacity="1" />
               </linearGradient>
-              <filter id={`state-shadow-${stateSlug}`} x="-50%" y="-50%" width="200%" height="200%">
-                <feDropShadow dx="0" dy="4" stdDeviation="3" floodColor="rgba(0,0,0,0.3)" />
+              
+              <linearGradient id={`focus-state-gradient-${stateSlug}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#f5f0d8" stopOpacity="1" />
+                <stop offset="100%" stopColor="#e8e0c0" stopOpacity="1" />
+              </linearGradient>
+              
+              <filter id={`focus-state-shadow-${stateSlug}`} x="-50%" y="-50%" width="200%" height="200%">
+                <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="rgba(0,0,0,0.3)" />
               </filter>
             </defs>
             
+            {backgroundPaths.map(({ slug, path }) => (
+              <path
+                key={slug}
+                d={path}
+                fill={`url(#bg-state-gradient-${stateSlug})`}
+                stroke="#8a7a6a"
+                strokeWidth="0.8"
+                strokeLinejoin="round"
+              />
+            ))}
+            
             <path
-              d={pathData}
-              fill={`url(#state-gradient-${stateSlug})`}
-              stroke="hsl(var(--border))"
-              strokeWidth="1.5"
+              d={focusPathData}
+              fill={`url(#focus-state-gradient-${stateSlug})`}
+              stroke="#5a4a3a"
+              strokeWidth="2"
               strokeLinejoin="round"
-              filter={`url(#state-shadow-${stateSlug})`}
+              filter={`url(#focus-state-shadow-${stateSlug})`}
             />
             
             {showMarkers && markerPositions.map(({ market, x, y }) => {
