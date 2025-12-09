@@ -530,20 +530,20 @@ export default function HomePage() {
           <div className="lg:hidden flex flex-col gap-4">
             {/* Header and description */}
             <div className="text-center">
-              <h2 className="text-xl sm:text-3xl font-bold mb-2 sm:mb-4">
-                <span className="text-foreground">Where Are You </span>
+              <h2 className="text-xl sm:text-3xl font-bold mb-2 sm:mb-4 flex items-baseline flex-wrap justify-center">
+                <span className="text-foreground">Where Are You&nbsp;</span>
                 <span 
-                  className="inline-block overflow-hidden align-baseline"
-                  style={{ height: '1.2em', verticalAlign: 'baseline' }}
+                  className="inline-block overflow-hidden"
+                  style={{ height: '1em', lineHeight: '1' }}
                 >
                   <span 
                     className="flex flex-col"
                     style={{ animation: 'wordTickerDown 12s ease-in-out infinite' }}
                   >
-                    <span className="text-primary leading-[1.2]">Investing?</span>
-                    <span className="text-primary leading-[1.2]">Flipping?</span>
-                    <span className="text-primary leading-[1.2]">Building?</span>
-                    <span className="text-primary leading-[1.2]">Investing?</span>
+                    <span className="text-primary" style={{ lineHeight: '1' }}>Investing?</span>
+                    <span className="text-primary" style={{ lineHeight: '1' }}>Flipping?</span>
+                    <span className="text-primary" style={{ lineHeight: '1' }}>Building?</span>
+                    <span className="text-primary" style={{ lineHeight: '1' }}>Investing?</span>
                   </span>
                 </span>
               </h2>
@@ -590,20 +590,20 @@ export default function HomePage() {
 
             {/* Text on right */}
             <div className="text-left">
-              <h2 className="text-3xl md:text-4xl font-bold mb-6">
-                <span className="text-foreground">Where Are You </span>
+              <h2 className="text-3xl md:text-4xl font-bold mb-6 flex items-baseline flex-wrap">
+                <span className="text-foreground">Where Are You&nbsp;</span>
                 <span 
-                  className="inline-block overflow-hidden align-baseline"
-                  style={{ height: '1.2em', verticalAlign: 'baseline' }}
+                  className="inline-block overflow-hidden"
+                  style={{ height: '1em', lineHeight: '1' }}
                 >
                   <span 
                     className="flex flex-col"
                     style={{ animation: 'wordTickerDown 12s ease-in-out infinite' }}
                   >
-                    <span className="text-primary leading-[1.2]">Investing?</span>
-                    <span className="text-primary leading-[1.2]">Flipping?</span>
-                    <span className="text-primary leading-[1.2]">Building?</span>
-                    <span className="text-primary leading-[1.2]">Investing?</span>
+                    <span className="text-primary" style={{ lineHeight: '1' }}>Investing?</span>
+                    <span className="text-primary" style={{ lineHeight: '1' }}>Flipping?</span>
+                    <span className="text-primary" style={{ lineHeight: '1' }}>Building?</span>
+                    <span className="text-primary" style={{ lineHeight: '1' }}>Investing?</span>
                   </span>
                 </span>
               </h2>
