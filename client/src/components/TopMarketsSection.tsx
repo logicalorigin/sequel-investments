@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Link } from "wouter";
 import {
   MapPin,
@@ -11,10 +12,12 @@ import {
   ArrowRight,
   Building2,
   ChevronRight,
-  X,
   Sparkles,
   Users,
   GraduationCap,
+  Percent,
+  Star,
+  CheckCircle,
 } from "lucide-react";
 import { StateMapGlobe, type StateMapGlobeHandle } from "@/components/StateMapGlobe";
 import { MarketDetailDrawer } from "@/components/MarketDetailDrawer";
@@ -163,6 +166,81 @@ function MarketCard({
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function MobileMarketAccordionContent({ market }: { market: MarketDetail }) {
+  return (
+    <div className="space-y-4 pt-2">
+      <div className="grid grid-cols-2 gap-2">
+        <div className="bg-muted/30 rounded-lg p-3">
+          <div className="flex items-center gap-2 text-muted-foreground mb-1">
+            <Home className="h-4 w-4" />
+            <span className="text-xs font-medium">Median Price</span>
+          </div>
+          <span className="text-lg font-bold">{formatCurrency(market.realEstate.medianPrice)}</span>
+          <p className="text-xs text-muted-foreground mt-0.5">{formatCurrency(market.realEstate.medianPricePerSqft)}/sqft</p>
+        </div>
+        <div className="bg-muted/30 rounded-lg p-3">
+          <div className="flex items-center gap-2 text-muted-foreground mb-1">
+            <TrendingUp className="h-4 w-4" />
+            <span className="text-xs font-medium">Price Growth</span>
+          </div>
+          <span className="text-lg font-bold">+{market.realEstate.priceGrowth.toFixed(1)}%</span>
+          <p className="text-xs text-muted-foreground mt-0.5">Year over Year</p>
+        </div>
+        <div className="bg-muted/30 rounded-lg p-3">
+          <div className="flex items-center gap-2 text-muted-foreground mb-1">
+            <DollarSign className="h-4 w-4" />
+            <span className="text-xs font-medium">Avg. Rent</span>
+          </div>
+          <span className="text-lg font-bold">{formatCurrency(market.realEstate.avgRent)}/mo</span>
+          <p className="text-xs text-muted-foreground mt-0.5">+{market.realEstate.rentGrowth.toFixed(1)}% YoY</p>
+        </div>
+        <div className="bg-muted/30 rounded-lg p-3">
+          <div className="flex items-center gap-2 text-muted-foreground mb-1">
+            <Percent className="h-4 w-4" />
+            <span className="text-xs font-medium">Cap Rate</span>
+          </div>
+          <span className="text-lg font-bold">{market.realEstate.capRate.toFixed(1)}%</span>
+          <p className="text-xs text-muted-foreground mt-0.5">Average</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 text-sm">
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Users className="h-4 w-4" />
+          <span>Pop: {(market.demographics.population / 1000).toFixed(0)}K</span>
+        </div>
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Building2 className="h-4 w-4" />
+          <span>{market.realEstate.daysOnMarket} days on market</span>
+        </div>
+        {market.universities.length > 0 && (
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <GraduationCap className="h-4 w-4" />
+            <span>{market.universities.length} Universities</span>
+          </div>
+        )}
+      </div>
+
+      {market.highlights.length > 0 && (
+        <div className="bg-muted/20 rounded-lg p-3 border border-muted">
+          <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+            <Star className="h-4 w-4 text-primary" />
+            Market Highlights
+          </h4>
+          <ul className="space-y-1.5">
+            {market.highlights.slice(0, 3).map((highlight, i) => (
+              <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
+                <CheckCircle className="h-3.5 w-3.5 text-green-500 mt-0.5 shrink-0" />
+                {highlight}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -352,25 +430,28 @@ export function TopMarketsSection({ stateSlug, stateName }: TopMarketsSectionPro
               
               <div className="mt-4 flex flex-wrap gap-2 justify-center">
                 {marketsWithDetails.map((market) => (
-                  <Badge
+                  <span
                     key={market.id}
-                    ref={(el) => {
+                    ref={(el: HTMLSpanElement | null) => {
                       if (el) badgeRefs.current.set(market.name, el);
                     }}
-                    variant={selectedMarket?.id === market.id ? "default" : hoveredMarket?.id === market.id ? "secondary" : "outline"}
-                    className="cursor-pointer transition-all"
-                    onMouseEnter={() => setHoveredMarket(market)}
-                    onMouseLeave={() => setHoveredMarket(null)}
-                    onClick={() => handleCardClick(market)}
-                    data-testid={`badge-market-${market.name.toLowerCase().replace(/\s+/g, '-')}`}
                   >
-                    <span className={`w-2 h-2 rounded-full mr-1.5 ${
-                      market.rank === 1 ? 'bg-primary' : 
-                      market.rank === 2 ? 'bg-primary/80' : 
-                      'bg-primary/60'
-                    }`} />
-                    {market.name}
-                  </Badge>
+                    <Badge
+                      variant={selectedMarket?.id === market.id ? "default" : hoveredMarket?.id === market.id ? "secondary" : "outline"}
+                      className="cursor-pointer transition-all"
+                      onMouseEnter={() => setHoveredMarket(market)}
+                      onMouseLeave={() => setHoveredMarket(null)}
+                      onClick={() => handleCardClick(market)}
+                      data-testid={`badge-market-${market.name.toLowerCase().replace(/\s+/g, '-')}`}
+                    >
+                      <span className={`w-2 h-2 rounded-full mr-1.5 ${
+                        market.rank === 1 ? 'bg-primary' : 
+                        market.rank === 2 ? 'bg-primary/80' : 
+                        'bg-primary/60'
+                      }`} />
+                      {market.name}
+                    </Badge>
+                  </span>
                 ))}
               </div>
             </CardContent>
@@ -386,7 +467,7 @@ export function TopMarketsSection({ stateSlug, stateName }: TopMarketsSectionPro
                   isOpen={!!selectedMarket}
                 />
               </div>
-            ) : (
+            ) : isDesktop ? (
               <div className="space-y-3">
                 {marketsWithDetails.map((market, index) => (
                   <MarketCard
@@ -409,6 +490,65 @@ export function TopMarketsSection({ stateSlug, stateName }: TopMarketsSectionPro
                   </Link>
                 </div>
               </div>
+            ) : (
+              <Accordion 
+                type="single" 
+                collapsible 
+                value={selectedMarket?.id || ""} 
+                onValueChange={(value) => {
+                  const market = marketsWithDetails.find(m => m.id === value);
+                  setSelectedMarket(market || null);
+                }}
+                className="space-y-3"
+              >
+                {marketsWithDetails.map((market, index) => (
+                  <AccordionItem 
+                    key={market.id} 
+                    value={market.id}
+                    className="border rounded-lg overflow-hidden bg-card"
+                    data-testid={`accordion-market-${market.name.toLowerCase().replace(/\s+/g, '-')}`}
+                  >
+                    <AccordionTrigger className="px-4 py-3 hover:no-underline [&[data-state=open]]:border-b">
+                      <div className="flex items-center gap-3 w-full">
+                        <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                          index === 0 ? 'bg-primary text-primary-foreground' : 
+                          index === 1 ? 'bg-primary/20 text-primary' : 
+                          'bg-muted text-muted-foreground'
+                        }`}>
+                          {index + 1}
+                        </div>
+                        <div className="flex-1 text-left min-w-0">
+                          <h3 className="font-semibold">{market.name}</h3>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <span>{formatCurrency(market.realEstate.medianPrice)}</span>
+                            <span>•</span>
+                            <span className="text-green-600">+{market.realEstate.priceGrowth.toFixed(1)}%</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5 mr-2">
+                          {market.strFriendliness.tier === "Excellent" && (
+                            <Badge variant="outline" className="text-xs bg-green-500/10 text-green-700 border-green-500/30 shrink-0">
+                              <Sparkles className="w-3 h-3" />
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 pb-4">
+                      <MobileMarketAccordionContent market={market} />
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+                
+                <div className="pt-4">
+                  <Link href="/get-quote">
+                    <Button className="w-full" size="lg" data-testid="button-get-quote-markets">
+                      Get a Quote for {stateName} Properties
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Button>
+                  </Link>
+                </div>
+              </Accordion>
             )}
           </div>
         </div>
@@ -440,31 +580,6 @@ export function TopMarketsSection({ stateSlug, stateName }: TopMarketsSectionPro
           </div>
         )}
 
-        {selectedMarket && !isDesktop && (
-          <>
-            <div 
-              className="fixed inset-0 bg-black/50 z-40 animate-in fade-in duration-200"
-              onClick={handleCloseDrawer}
-            />
-            <div 
-              className="fixed inset-x-0 bottom-0 z-50 bg-background rounded-t-xl shadow-2xl animate-in slide-in-from-bottom duration-300 max-h-[85vh] flex flex-col"
-              data-testid="mobile-market-drawer"
-            >
-              <div className="flex justify-center pt-2 pb-1">
-                <div className="w-12 h-1.5 rounded-full bg-muted-foreground/20" />
-              </div>
-              <div className="flex-1 overflow-hidden">
-                <MarketDetailDrawer
-                  market={selectedMarket}
-                  stateName={stateName}
-                  onClose={handleCloseDrawer}
-                  isOpen={!!selectedMarket}
-                  isMobile={true}
-                />
-              </div>
-            </div>
-          </>
-        )}
       </div>
     </section>
   );

@@ -106,17 +106,279 @@ export const StateMapGlobe = forwardRef<StateMapGlobeHandle, StateMapGlobeProps>
     });
     pathPoints.push("Z");
     
-    const markerPos = markets.map(market => ({
+    // Calculate initial marker positions
+    const initialMarkerPos = markets.map(market => ({
       market,
       x: toSvgX(market.lng),
       y: toSvgY(market.lat),
     }));
 
+    // Collision resolution - simple iterative push-apart algorithm
+    const minDistance = 32; // Minimum center-to-center distance
+    const markerPadding = 18; // Padding from edges
+    const resolvedPositions = [...initialMarkerPos];
+    
+    // Helper to clamp positions within bounds
+    const clamp = (val: number, min: number, max: number) => Math.max(min, Math.min(max, val));
+    
+    // Sort by position to process consistently
+    const indices = resolvedPositions.map((_, i) => i);
+    
+    // Iterative separation - push overlapping markers apart
+    for (let iterations = 0; iterations < 50; iterations++) {
+      let moved = false;
+      
+      for (let i = 0; i < resolvedPositions.length; i++) {
+        for (let j = i + 1; j < resolvedPositions.length; j++) {
+          const dx = resolvedPositions[j].x - resolvedPositions[i].x;
+          const dy = resolvedPositions[j].y - resolvedPositions[i].y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          
+          if (distance < minDistance && distance > 0.01) {
+            moved = true;
+            const overlap = minDistance - distance;
+            const moveAmount = overlap * 0.6; // Move more than half to converge faster
+            
+            // Unit vector from i to j
+            const ux = dx / distance;
+            const uy = dy / distance;
+            
+            // Try to move j away from i (positive direction)
+            const newJx = clamp(resolvedPositions[j].x + ux * moveAmount, markerPadding, width - markerPadding);
+            const newJy = clamp(resolvedPositions[j].y + uy * moveAmount, markerPadding, height - markerPadding);
+            
+            // Calculate how much j actually moved
+            const jMovedX = newJx - resolvedPositions[j].x;
+            const jMovedY = newJy - resolvedPositions[j].y;
+            const jMoved = Math.sqrt(jMovedX * jMovedX + jMovedY * jMovedY);
+            
+            resolvedPositions[j].x = newJx;
+            resolvedPositions[j].y = newJy;
+            
+            // If j didn't move enough (hit boundary), move i the other way
+            if (jMoved < moveAmount * 0.5) {
+              const remainingMove = moveAmount - jMoved;
+              resolvedPositions[i].x = clamp(resolvedPositions[i].x - ux * remainingMove, markerPadding, width - markerPadding);
+              resolvedPositions[i].y = clamp(resolvedPositions[i].y - uy * remainingMove, markerPadding, height - markerPadding);
+            }
+          } else if (distance <= 0.01) {
+            // Markers at same position - push apart in arbitrary direction
+            moved = true;
+            resolvedPositions[j].x = clamp(resolvedPositions[j].x + minDistance * 0.7, markerPadding, width - markerPadding);
+            if (resolvedPositions[j].x === resolvedPositions[i].x) {
+              resolvedPositions[j].y = clamp(resolvedPositions[j].y + minDistance * 0.7, markerPadding, height - markerPadding);
+            }
+          }
+        }
+      }
+      
+      if (!moved) break;
+    }
+    
+    // Final enforcement: exhaustive search for valid positions
+    const directions = [
+      { x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 },
+      { x: 1, y: 1 }, { x: -1, y: 1 }, { x: 1, y: -1 }, { x: -1, y: -1 }
+    ];
+    
+    for (let pass = 0; pass < 5; pass++) {
+      let resolved = true;
+      
+      for (let i = 0; i < resolvedPositions.length; i++) {
+        for (let j = i + 1; j < resolvedPositions.length; j++) {
+          const dx = resolvedPositions[j].x - resolvedPositions[i].x;
+          const dy = resolvedPositions[j].y - resolvedPositions[i].y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          
+          if (distance < minDistance) {
+            resolved = false;
+            
+            // Try moving both markers in opposite directions
+            let bestSeparation = distance;
+            let bestIx = resolvedPositions[i].x;
+            let bestIy = resolvedPositions[i].y;
+            let bestJx = resolvedPositions[j].x;
+            let bestJy = resolvedPositions[j].y;
+            
+            // Try all combinations of directions for both markers
+            for (const dirI of directions) {
+              for (const dirJ of directions) {
+                const halfMove = minDistance / 2;
+                const testIx = clamp(resolvedPositions[i].x + dirI.x * halfMove, markerPadding, width - markerPadding);
+                const testIy = clamp(resolvedPositions[i].y + dirI.y * halfMove, markerPadding, height - markerPadding);
+                const testJx = clamp(resolvedPositions[j].x + dirJ.x * halfMove, markerPadding, width - markerPadding);
+                const testJy = clamp(resolvedPositions[j].y + dirJ.y * halfMove, markerPadding, height - markerPadding);
+                
+                const newDx = testJx - testIx;
+                const newDy = testJy - testIy;
+                const newDist = Math.sqrt(newDx * newDx + newDy * newDy);
+                
+                if (newDist > bestSeparation) {
+                  bestSeparation = newDist;
+                  bestIx = testIx;
+                  bestIy = testIy;
+                  bestJx = testJx;
+                  bestJy = testJy;
+                }
+              }
+            }
+            
+            // Apply best found positions
+            resolvedPositions[i].x = bestIx;
+            resolvedPositions[i].y = bestIy;
+            resolvedPositions[j].x = bestJx;
+            resolvedPositions[j].y = bestJy;
+          }
+        }
+      }
+      
+      if (resolved) break;
+    }
+    
+    // Phase 3: Slack-based separation with inward-normal release
+    // Helper: calculate available slack (how far marker can move in direction before hitting boundary)
+    const availableSlack = (x: number, y: number, dirX: number, dirY: number, pad: number): number => {
+      let maxT = Infinity;
+      if (Math.abs(dirX) > 0.001) {
+        if (dirX > 0) maxT = Math.min(maxT, (width - pad - x) / dirX);
+        else maxT = Math.min(maxT, (pad - x) / dirX);
+      }
+      if (Math.abs(dirY) > 0.001) {
+        if (dirY > 0) maxT = Math.min(maxT, (height - pad - y) / dirY);
+        else maxT = Math.min(maxT, (pad - y) / dirY);
+      }
+      return Math.max(0, maxT);
+    };
+    
+    // Helper: get inward normal for a position (direction toward center from boundary)
+    const getInwardNormal = (x: number, y: number, pad: number): { nx: number; ny: number } => {
+      let nx = 0, ny = 0;
+      const epsilon = 1;
+      if (x <= pad + epsilon) nx = 1;
+      else if (x >= width - pad - epsilon) nx = -1;
+      if (y <= pad + epsilon) ny = 1;
+      else if (y >= height - pad - epsilon) ny = -1;
+      const len = Math.sqrt(nx * nx + ny * ny);
+      if (len > 0) { nx /= len; ny /= len; }
+      return { nx, ny };
+    };
+    
+    // Main separation loop with slack distribution
+    for (let iteration = 0; iteration < 30; iteration++) {
+      let anyOverlap = false;
+      
+      for (let i = 0; i < resolvedPositions.length; i++) {
+        for (let j = i + 1; j < resolvedPositions.length; j++) {
+          const dx = resolvedPositions[j].x - resolvedPositions[i].x;
+          const dy = resolvedPositions[j].y - resolvedPositions[i].y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          
+          if (distance < minDistance) {
+            anyOverlap = true;
+            const needed = minDistance - distance + 1; // Safety margin to ensure >= minDistance
+            
+            // Get separation direction
+            let dirX: number, dirY: number;
+            if (distance > 0.01) {
+              dirX = dx / distance;
+              dirY = dy / distance;
+            } else {
+              // Coincident markers - use diagonal
+              dirX = 0.707;
+              dirY = 0.707;
+            }
+            
+            // Calculate slack: i moves in -dir, j moves in +dir
+            const slackI = availableSlack(resolvedPositions[i].x, resolvedPositions[i].y, -dirX, -dirY, markerPadding);
+            const slackJ = availableSlack(resolvedPositions[j].x, resolvedPositions[j].y, dirX, dirY, markerPadding);
+            const totalSlack = slackI + slackJ;
+            
+            if (totalSlack >= needed) {
+              // Sufficient slack - distribute proportionally
+              const ratioI = totalSlack > 0 ? slackI / totalSlack : 0.5;
+              const moveI = Math.min(slackI, needed * ratioI);
+              const moveJ = Math.min(slackJ, needed * (1 - ratioI));
+              
+              resolvedPositions[i].x = clamp(resolvedPositions[i].x - dirX * moveI, markerPadding, width - markerPadding);
+              resolvedPositions[i].y = clamp(resolvedPositions[i].y - dirY * moveI, markerPadding, height - markerPadding);
+              resolvedPositions[j].x = clamp(resolvedPositions[j].x + dirX * moveJ, markerPadding, width - markerPadding);
+              resolvedPositions[j].y = clamp(resolvedPositions[j].y + dirY * moveJ, markerPadding, height - markerPadding);
+            } else {
+              // Insufficient slack - release pinned markers by moving inward
+              const release = (needed - totalSlack) / 2 + 2;
+              
+              const normI = getInwardNormal(resolvedPositions[i].x, resolvedPositions[i].y, markerPadding);
+              const normJ = getInwardNormal(resolvedPositions[j].x, resolvedPositions[j].y, markerPadding);
+              
+              // Move markers inward along their boundary normals
+              if (normI.nx !== 0 || normI.ny !== 0) {
+                resolvedPositions[i].x = clamp(resolvedPositions[i].x + normI.nx * release, markerPadding, width - markerPadding);
+                resolvedPositions[i].y = clamp(resolvedPositions[i].y + normI.ny * release, markerPadding, height - markerPadding);
+              }
+              if (normJ.nx !== 0 || normJ.ny !== 0) {
+                resolvedPositions[j].x = clamp(resolvedPositions[j].x + normJ.nx * release, markerPadding, width - markerPadding);
+                resolvedPositions[j].y = clamp(resolvedPositions[j].y + normJ.ny * release, markerPadding, height - markerPadding);
+              }
+              
+              // If both markers have no inward normal (not at boundary), use direct separation
+              if ((normI.nx === 0 && normI.ny === 0) && (normJ.nx === 0 && normJ.ny === 0)) {
+                resolvedPositions[i].x = clamp(resolvedPositions[i].x - dirX * needed / 2, markerPadding, width - markerPadding);
+                resolvedPositions[i].y = clamp(resolvedPositions[i].y - dirY * needed / 2, markerPadding, height - markerPadding);
+                resolvedPositions[j].x = clamp(resolvedPositions[j].x + dirX * needed / 2, markerPadding, width - markerPadding);
+                resolvedPositions[j].y = clamp(resolvedPositions[j].y + dirY * needed / 2, markerPadding, height - markerPadding);
+              }
+            }
+          }
+        }
+      }
+      
+      if (!anyOverlap) break;
+    }
+
+    // Phase 4: Fallback with relaxed padding if still overlapping
+    for (let relaxedPad = markerPadding - 4; relaxedPad >= 4; relaxedPad -= 4) {
+      let resolved = true;
+      for (let i = 0; i < resolvedPositions.length; i++) {
+        for (let j = i + 1; j < resolvedPositions.length; j++) {
+          const dx = resolvedPositions[j].x - resolvedPositions[i].x;
+          const dy = resolvedPositions[j].y - resolvedPositions[i].y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          if (distance < minDistance) {
+            resolved = false;
+            const needed = minDistance - distance + 1;
+            let dirX = distance > 0.01 ? dx / distance : 0.707;
+            let dirY = distance > 0.01 ? dy / distance : 0.707;
+            resolvedPositions[i].x = clamp(resolvedPositions[i].x - dirX * needed / 2, relaxedPad, width - relaxedPad);
+            resolvedPositions[i].y = clamp(resolvedPositions[i].y - dirY * needed / 2, relaxedPad, height - relaxedPad);
+            resolvedPositions[j].x = clamp(resolvedPositions[j].x + dirX * needed / 2, relaxedPad, width - relaxedPad);
+            resolvedPositions[j].y = clamp(resolvedPositions[j].y + dirY * needed / 2, relaxedPad, height - relaxedPad);
+          }
+        }
+      }
+      if (resolved) break;
+    }
+
+    // Phase 5: Final check - any remaining overlaps get visual fallback
+    const overlappingMarkers = new Set<string>();
+    for (let i = 0; i < resolvedPositions.length; i++) {
+      for (let j = i + 1; j < resolvedPositions.length; j++) {
+        const dx = resolvedPositions[j].x - resolvedPositions[i].x;
+        const dy = resolvedPositions[j].y - resolvedPositions[i].y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance < minDistance) {
+          overlappingMarkers.add(resolvedPositions[i].market.name);
+          overlappingMarkers.add(resolvedPositions[j].market.name);
+        }
+      }
+    }
+
     return {
       pathData: pathPoints.join(" "),
       viewBox: `0 0 ${width} ${height}`,
-      markerPositions: markerPos,
+      markerPositions: resolvedPositions,
       bounds: { width, height },
+      overlappingMarkers,
     };
   }, [boundary, markets, stateSlug]);
 
@@ -206,13 +468,13 @@ export const StateMapGlobe = forwardRef<StateMapGlobeHandle, StateMapGlobeProps>
                   ...zoomTransform,
                 }}
               >
-                <rect x="0" y="0" width="100%" height="100%" fill="#e8e8e8" />
+                <rect x="0" y="0" width="100%" height="100%" fill="#f5f5f5" />
                 
                 <path
                   d={pathData}
-                  fill="none"
-                  stroke="#a07020"
-                  strokeWidth="3.5"
+                  fill="hsl(var(--primary) / 0.15)"
+                  stroke="#9ca3af"
+                  strokeWidth="2"
                   strokeLinejoin="round"
                   filter={`url(#focus-state-shadow-${stateSlug})`}
                   className="transition-all duration-300"
@@ -221,6 +483,7 @@ export const StateMapGlobe = forwardRef<StateMapGlobeHandle, StateMapGlobeProps>
                 {hasLoaded && markerPositions.map(({ market, x, y }, index) => {
                   const isSelected = selectedMarket?.name === market.name;
                   const isHovered = hoveredMarket?.name === market.name;
+                  const isOverlapping = overlappingMarkers.has(market.name);
                   
                   const population = market.demographics?.population || 500000;
                   const minRadius = 6;
@@ -229,7 +492,9 @@ export const StateMapGlobe = forwardRef<StateMapGlobeHandle, StateMapGlobeProps>
                   else if (population >= 1000000) sizeMultiplier = 1.5;
                   else if (population >= 500000) sizeMultiplier = 1.2;
                   
-                  const baseRadius = minRadius * sizeMultiplier;
+                  // Reduce size for overlapping markers to prevent visual overlap
+                  const overlapReduction = isOverlapping ? 0.7 : 1;
+                  const baseRadius = minRadius * sizeMultiplier * overlapReduction;
                   const radius = isSelected ? baseRadius * 1.4 : isHovered ? baseRadius * 1.2 : baseRadius;
                   const ringWidth = radius * 0.4;
                   const outerRadius = radius + ringWidth;
