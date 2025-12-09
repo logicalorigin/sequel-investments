@@ -27,6 +27,8 @@ import {
   documentReviews,
   commentAttachments,
   notificationQueue,
+  whiteLabelSettings,
+  emailLogs,
   type User, 
   type UpsertUser,
   type Lead, 
@@ -83,7 +85,11 @@ import {
   type InsertCommentAttachment,
   type NotificationQueueItem,
   type InsertNotificationQueueItem,
+  type WhiteLabelSettings,
+  type InsertWhiteLabelSettings,
   type StaffRole,
+  type EmailLog,
+  type InsertEmailLog,
   DEFAULT_DOCUMENT_TYPES,
 } from "@shared/schema";
 import { db } from "./db";
@@ -288,6 +294,12 @@ export interface IStorage {
   // Test data operations (for seeding/clearing)
   clearTestData(): Promise<void>;
   deleteUserByEmail(email: string): Promise<boolean>;
+  
+  // White-label settings operations
+  getWhiteLabelSettings(): Promise<WhiteLabelSettings | undefined>;
+  getActiveWhiteLabelSettings(): Promise<WhiteLabelSettings | undefined>;
+  upsertWhiteLabelSettings(settings: InsertWhiteLabelSettings): Promise<WhiteLabelSettings>;
+  deleteWhiteLabelSettings(): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1491,6 +1503,125 @@ export class DatabaseStorage implements IStorage {
   async deleteUserByEmail(email: string): Promise<boolean> {
     const result = await db.delete(users).where(eq(users.email, email));
     return (result.rowCount ?? 0) > 0;
+  }
+
+  // White-label settings operations
+  async getWhiteLabelSettings(): Promise<WhiteLabelSettings | undefined> {
+    const [settings] = await db.select().from(whiteLabelSettings).limit(1);
+    return settings;
+  }
+
+  async getActiveWhiteLabelSettings(): Promise<WhiteLabelSettings | undefined> {
+    const [settings] = await db
+      .select()
+      .from(whiteLabelSettings)
+      .where(eq(whiteLabelSettings.isActive, true))
+      .limit(1);
+    return settings;
+  }
+
+  async upsertWhiteLabelSettings(settings: InsertWhiteLabelSettings): Promise<WhiteLabelSettings> {
+    // First, check if any settings exist
+    const existing = await this.getWhiteLabelSettings();
+    
+    if (existing) {
+      // Update existing settings
+      const [updated] = await db
+        .update(whiteLabelSettings)
+        .set({ ...settings, updatedAt: new Date() })
+        .where(eq(whiteLabelSettings.id, existing.id))
+        .returning();
+      return updated;
+    } else {
+      // Create new settings
+      const [created] = await db
+        .insert(whiteLabelSettings)
+        .values(settings)
+        .returning();
+      return created;
+    }
+  }
+
+  async deleteWhiteLabelSettings(): Promise<boolean> {
+    const result = await db.delete(whiteLabelSettings);
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  // Email log operations
+  async createEmailLog(log: InsertEmailLog): Promise<EmailLog> {
+    const [created] = await db
+      .insert(emailLogs)
+      .values(log)
+      .returning();
+    return created;
+  }
+
+  async getEmailLogs(options?: {
+    recipientEmail?: string;
+    startDate?: Date;
+    endDate?: Date;
+    limit?: number;
+    offset?: number;
+  }): Promise<EmailLog[]> {
+    let query = db.select().from(emailLogs);
+    
+    const conditions = [];
+    if (options?.recipientEmail) {
+      conditions.push(eq(emailLogs.recipientEmail, options.recipientEmail));
+    }
+    if (options?.startDate) {
+      conditions.push(sql`${emailLogs.sentAt} >= ${options.startDate}`);
+    }
+    if (options?.endDate) {
+      conditions.push(sql`${emailLogs.sentAt} <= ${options.endDate}`);
+    }
+    
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions)) as any;
+    }
+    
+    return await query
+      .orderBy(desc(emailLogs.sentAt))
+      .limit(options?.limit || 100)
+      .offset(options?.offset || 0);
+  }
+
+  async getEmailLogCount(options?: {
+    recipientEmail?: string;
+    startDate?: Date;
+    endDate?: Date;
+  }): Promise<number> {
+    const conditions = [];
+    if (options?.recipientEmail) {
+      conditions.push(eq(emailLogs.recipientEmail, options.recipientEmail));
+    }
+    if (options?.startDate) {
+      conditions.push(sql`${emailLogs.sentAt} >= ${options.startDate}`);
+    }
+    if (options?.endDate) {
+      conditions.push(sql`${emailLogs.sentAt} <= ${options.endDate}`);
+    }
+    
+    let query = db.select({ count: sql<number>`count(*)` }).from(emailLogs);
+    
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions)) as any;
+    }
+    
+    const [result] = await query;
+    return Number(result?.count || 0);
+  }
+
+  async updateUserEmailPreferences(userId: string, enabled: boolean): Promise<User | undefined> {
+    const [updated] = await db
+      .update(users)
+      .set({
+        emailNotificationsEnabled: enabled,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return updated;
   }
 }
 

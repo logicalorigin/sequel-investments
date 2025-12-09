@@ -31,6 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { 
   ArrowLeft,
   DollarSign,
@@ -52,6 +53,9 @@ import {
   Mail,
   Percent,
   Calculator,
+  Check,
+  X,
+  AlertCircle,
 } from "lucide-react";
 import { useState } from "react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -140,6 +144,20 @@ export default function AdminLoanDetailPage() {
     workCompleted: "",
   });
 
+  const [drawActionDialog, setDrawActionDialog] = useState<{
+    open: boolean;
+    action: "approve" | "deny" | null;
+    draw: LoanDraw | null;
+    approvedAmount: number;
+    notes: string;
+  }>({
+    open: false,
+    action: null,
+    draw: null,
+    approvedAmount: 0,
+    notes: "",
+  });
+
   const { data: loan, isLoading, error } = useQuery<EnrichedServicedLoan>({
     queryKey: ["/api/admin/serviced-loans", id],
   });
@@ -200,21 +218,40 @@ export default function AdminLoanDetailPage() {
   });
 
   const updateDrawMutation = useMutation({
-    mutationFn: async ({ drawId, status, approvedAmount }: { drawId: string; status: string; approvedAmount?: number }) => {
-      return await apiRequest("PATCH", `/api/admin/serviced-loans/${id}/draws/${drawId}`, { 
+    mutationFn: async ({ drawId, status, approvedAmount, notes, deniedReason }: { 
+      drawId: string; 
+      status: string; 
+      approvedAmount?: number;
+      notes?: string;
+      deniedReason?: string;
+    }) => {
+      return await apiRequest("PATCH", `/api/servicing/${loan?.id}/draws/${drawId}`, { 
         status, 
-        approvedAmount, 
+        approvedAmount,
+        notes,
+        deniedReason,
         fundedDate: status === "funded" ? new Date() : undefined 
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/serviced-loans", id] });
       toast({ title: "Draw updated successfully" });
+      setDrawActionDialog({ open: false, action: null, draw: null, approvedAmount: 0, notes: "" });
     },
     onError: () => {
       toast({ title: "Failed to update draw", variant: "destructive" });
     },
   });
+
+  const openDrawActionDialog = (action: "approve" | "deny", draw: LoanDraw) => {
+    setDrawActionDialog({
+      open: true,
+      action,
+      draw,
+      approvedAmount: draw.requestedAmount,
+      notes: "",
+    });
+  };
 
   if (isLoading) {
     return (
@@ -610,19 +647,28 @@ export default function AdminLoanDetailPage() {
                                   </TableCell>
                                   <TableCell>
                                     {(draw.status === "draft" || draw.status === "submitted") && (
-                                      <div className="flex gap-2">
+                                      <div className="flex gap-1">
                                         <Button
                                           size="sm"
                                           variant="outline"
-                                          onClick={() => updateDrawMutation.mutate({
-                                            drawId: draw.id,
-                                            status: "approved",
-                                            approvedAmount: draw.requestedAmount,
-                                          })}
+                                          className="text-green-600 hover:text-green-700"
+                                          onClick={() => openDrawActionDialog("approve", draw)}
                                           disabled={updateDrawMutation.isPending}
                                           data-testid={`button-approve-draw-${draw.id}`}
                                         >
+                                          <Check className="h-3 w-3 mr-1" />
                                           Approve
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          className="text-red-600 hover:text-red-700"
+                                          onClick={() => openDrawActionDialog("deny", draw)}
+                                          disabled={updateDrawMutation.isPending}
+                                          data-testid={`button-deny-draw-${draw.id}`}
+                                        >
+                                          <X className="h-3 w-3 mr-1" />
+                                          Deny
                                         </Button>
                                       </div>
                                     )}
@@ -641,7 +687,12 @@ export default function AdminLoanDetailPage() {
                                     )}
                                     {draw.status === "funded" && (
                                       <span className="text-sm text-muted-foreground">
-                                        {formatDate(draw.fundedDate)}
+                                        Funded {formatDate(draw.fundedDate)}
+                                      </span>
+                                    )}
+                                    {draw.status === "denied" && (
+                                      <span className="text-sm text-red-500">
+                                        Denied
                                       </span>
                                     )}
                                   </TableCell>
@@ -860,6 +911,94 @@ export default function AdminLoanDetailPage() {
             )}
           </div>
         </div>
+
+        <Dialog open={drawActionDialog.open} onOpenChange={(open) => {
+          if (!open) setDrawActionDialog({ open: false, action: null, draw: null, approvedAmount: 0, notes: "" });
+        }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                {drawActionDialog.action === "approve" ? (
+                  <>
+                    <CheckCircle2 className="h-5 w-5 text-green-600" />
+                    Approve Draw Request
+                  </>
+                ) : (
+                  <>
+                    <AlertCircle className="h-5 w-5 text-red-600" />
+                    Deny Draw Request
+                  </>
+                )}
+              </DialogTitle>
+              <DialogDescription>
+                {drawActionDialog.action === "approve" 
+                  ? `Approve draw #${drawActionDialog.draw?.drawNumber} for ${formatCurrency(drawActionDialog.draw?.requestedAmount || 0)}`
+                  : `Deny draw #${drawActionDialog.draw?.drawNumber} with a reason`
+                }
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              {drawActionDialog.action === "approve" && (
+                <div>
+                  <Label>Approved Amount</Label>
+                  <Input
+                    type="number"
+                    value={drawActionDialog.approvedAmount}
+                    onChange={(e) => setDrawActionDialog({
+                      ...drawActionDialog,
+                      approvedAmount: Number(e.target.value)
+                    })}
+                    data-testid="input-approved-amount"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Requested: {formatCurrency(drawActionDialog.draw?.requestedAmount || 0)}
+                  </p>
+                </div>
+              )}
+              <div>
+                <Label>{drawActionDialog.action === "approve" ? "Notes (Optional)" : "Reason for Denial"}</Label>
+                <Textarea
+                  value={drawActionDialog.notes}
+                  onChange={(e) => setDrawActionDialog({
+                    ...drawActionDialog,
+                    notes: e.target.value
+                  })}
+                  placeholder={drawActionDialog.action === "approve" 
+                    ? "Add any notes for this approval..." 
+                    : "Explain why this draw is being denied..."}
+                  data-testid="input-draw-action-notes"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button 
+                variant="outline" 
+                onClick={() => setDrawActionDialog({ open: false, action: null, draw: null, approvedAmount: 0, notes: "" })}
+              >
+                Cancel
+              </Button>
+              <Button 
+                variant={drawActionDialog.action === "approve" ? "default" : "destructive"}
+                onClick={() => {
+                  if (drawActionDialog.draw && drawActionDialog.action) {
+                    updateDrawMutation.mutate({
+                      drawId: drawActionDialog.draw.id,
+                      status: drawActionDialog.action === "approve" ? "approved" : "denied",
+                      approvedAmount: drawActionDialog.action === "approve" ? drawActionDialog.approvedAmount : undefined,
+                      notes: drawActionDialog.notes || undefined,
+                      deniedReason: drawActionDialog.action === "deny" ? drawActionDialog.notes : undefined,
+                    });
+                  }
+                }}
+                disabled={updateDrawMutation.isPending || (drawActionDialog.action === "deny" && !drawActionDialog.notes)}
+                data-testid="button-confirm-draw-action"
+              >
+                {updateDrawMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                {drawActionDialog.action === "approve" ? "Approve Draw" : "Deny Draw"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );

@@ -5,6 +5,8 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { GoogleMapsProvider } from "@/components/GoogleMapsProvider";
+import { WhiteLabelProvider } from "@/context/WhiteLabelContext";
+import { DemoModeBanner } from "@/components/DemoModeBanner";
 
 function ScrollToTop() {
   const [location] = useLocation();
@@ -42,6 +44,7 @@ import PropertyDetailPage from "@/pages/PropertyDetailPage";
 import FundedDealDetailPage from "@/pages/FundedDealDetailPage";
 import LoginPage from "@/pages/LoginPage";
 import AdminDashboard from "@/pages/AdminDashboard";
+import AdminAnalyticsPage from "@/pages/AdminAnalyticsPage";
 import AdminApplicationDetail from "@/pages/AdminApplicationDetail";
 import AdminServicingPage from "@/pages/AdminServicingPage";
 import AdminLoanDetailPage from "@/pages/AdminLoanDetailPage";
@@ -50,6 +53,8 @@ import JoinPage from "@/pages/JoinPage";
 import StaffLoginPage from "@/pages/StaffLoginPage";
 import ResourcesPage from "@/pages/ResourcesPage";
 import ArticlePage from "@/pages/ArticlePage";
+import AdminWhiteLabelPage from "@/pages/AdminWhiteLabelPage";
+import AdminEmailLogPage from "@/pages/AdminEmailLogPage";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -84,10 +89,13 @@ function Router() {
       <Route path="/login" component={LoginPage} />
       <Route path="/admin/login" component={StaffLoginPage} />
       <Route path="/admin" component={AdminDashboard} />
+      <Route path="/admin/analytics" component={AdminAnalyticsPage} />
       <Route path="/admin/application/:id" component={AdminApplicationDetail} />
       <Route path="/admin/servicing" component={AdminServicingPage} />
       <Route path="/admin/servicing/:id" component={AdminLoanDetailPage} />
       <Route path="/admin/borrower/:id" component={BorrowerProfilePage} />
+      <Route path="/admin/white-label" component={AdminWhiteLabelPage} />
+      <Route path="/admin/email-log" component={AdminEmailLogPage} />
       <Route path="/join/:token" component={JoinPage} />
       <Route path="/resources" component={ResourcesPage} />
       <Route path="/resources/:slug" component={ArticlePage} />
@@ -100,11 +108,14 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <GoogleMapsProvider>
-          <ScrollToTop />
-          <Toaster />
-          <Router />
-        </GoogleMapsProvider>
+        <WhiteLabelProvider>
+          <GoogleMapsProvider>
+            <DemoModeBanner />
+            <ScrollToTop />
+            <Toaster />
+            <Router />
+          </GoogleMapsProvider>
+        </WhiteLabelProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

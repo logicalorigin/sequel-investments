@@ -21,10 +21,12 @@ import {
   insertCommentAttachmentSchema,
   insertNotificationQueueItemSchema,
   insertDocumentCommentSchema,
+  insertWhiteLabelSettingsSchema,
   getStateBySlug,
   type UserRole,
   type StaffRole,
   STAFF_ROLE_COLORS,
+  DEFAULT_WHITE_LABEL_SETTINGS,
 } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { setupAuth, isAuthenticated } from "./replitAuth";
@@ -33,6 +35,7 @@ import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { ObjectPermission } from "./objectAcl";
 import crypto from "crypto";
 import { getMarketData, refreshAllMarketData, getMarketDataStatus, getPropertyValue, getPropertyLookup } from "./services/marketDataService";
+import { sendEmail, emailTemplates, getPortalUrl, shouldSendEmail } from "./email";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Serve state map SVGs statically
@@ -905,6 +908,323 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating milestone:", error);
       return res.status(500).json({ error: "Failed to update milestone" });
+    }
+  });
+
+  // ============================================
+  // SERVICING API ROUTES (Alternative endpoints)
+  // These provide /api/servicing/:loanId/* pattern
+  // ============================================
+  
+  // GET /api/servicing/:loanId/payments - list payments with pagination
+  app.get("/api/servicing/:loanId/payments", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const loan = await storage.getServicedLoan(req.params.loanId);
+      
+      if (!loan) {
+        return res.status(404).json({ error: "Loan not found" });
+      }
+      
+      if (loan.userId !== userId && user?.role === "borrower") {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const payments = await storage.getLoanPayments(loan.id);
+      
+      // Calculate summary stats
+      const completedPayments = payments.filter(p => p.status === "completed" || p.status === "partial");
+      const totalPaid = completedPayments.reduce((sum, p) => sum + (p.paidAmount || 0), 0);
+      const totalPrincipalPaid = completedPayments.reduce((sum, p) => sum + (p.principalAmount || 0), 0);
+      const totalInterestPaid = completedPayments.reduce((sum, p) => sum + (p.interestAmount || 0), 0);
+      
+      return res.json({
+        payments,
+        summary: {
+          totalPayments: payments.length,
+          completedPayments: completedPayments.length,
+          totalPaid,
+          totalPrincipalPaid,
+          totalInterestPaid,
+          currentBalance: loan.currentBalance,
+          nextPaymentDate: loan.nextPaymentDate,
+          nextPaymentAmount: loan.nextPaymentAmount,
+        },
+      });
+    } catch (error) {
+      console.error("Error fetching payments:", error);
+      return res.status(500).json({ error: "Failed to fetch payments" });
+    }
+  });
+  
+  // POST /api/servicing/:loanId/payments - record payment (admin only)
+  app.post("/api/servicing/:loanId/payments", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (user?.role === "borrower") {
+        return res.status(403).json({ error: "Only staff can record payments" });
+      }
+      
+      const loan = await storage.getServicedLoan(req.params.loanId);
+      if (!loan) {
+        return res.status(404).json({ error: "Loan not found" });
+      }
+      
+      // Get existing payments to determine next payment number
+      const existingPayments = await storage.getLoanPayments(loan.id);
+      const nextPaymentNumber = existingPayments.length + 1;
+      
+      const payment = await storage.createLoanPayment({
+        ...req.body,
+        servicedLoanId: loan.id,
+        paymentNumber: nextPaymentNumber,
+        status: req.body.status || "completed",
+      });
+      
+      // Update loan balance if payment is completed
+      if (payment.status === "completed" && payment.principalAmount) {
+        const newBalance = (loan.currentBalance || 0) - payment.principalAmount;
+        await storage.updateServicedLoan(loan.id, {
+          currentBalance: Math.max(0, newBalance),
+          lastPaymentDate: payment.paidDate || new Date(),
+          lastPaymentAmount: payment.paidAmount,
+          totalPrincipalPaid: (loan.totalPrincipalPaid || 0) + payment.principalAmount,
+          totalInterestPaid: (loan.totalInterestPaid || 0) + (payment.interestAmount || 0),
+        });
+      }
+      
+      return res.status(201).json(payment);
+    } catch (error) {
+      console.error("Error creating payment:", error);
+      return res.status(500).json({ error: "Failed to create payment" });
+    }
+  });
+  
+  // GET /api/servicing/:loanId/draws - list draws
+  app.get("/api/servicing/:loanId/draws", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const loan = await storage.getServicedLoan(req.params.loanId);
+      
+      if (!loan) {
+        return res.status(404).json({ error: "Loan not found" });
+      }
+      
+      if (loan.userId !== userId && user?.role === "borrower") {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const draws = await storage.getLoanDraws(loan.id);
+      
+      // Calculate summary stats
+      const fundedDraws = draws.filter(d => d.status === "funded");
+      const pendingDraws = draws.filter(d => ["submitted", "inspection_scheduled", "inspection_complete", "approved"].includes(d.status));
+      const totalFunded = fundedDraws.reduce((sum, d) => sum + (d.fundedAmount || 0), 0);
+      const totalPending = pendingDraws.reduce((sum, d) => sum + d.requestedAmount, 0);
+      
+      return res.json({
+        draws,
+        summary: {
+          totalDraws: draws.length,
+          fundedDraws: fundedDraws.length,
+          pendingDraws: pendingDraws.length,
+          totalFunded,
+          totalPending,
+          totalRehabBudget: loan.totalRehabBudget,
+          remainingBudget: (loan.totalRehabBudget || 0) - totalFunded,
+          completionPercent: loan.totalRehabBudget ? Math.round((totalFunded / loan.totalRehabBudget) * 100) : 0,
+        },
+      });
+    } catch (error) {
+      console.error("Error fetching draws:", error);
+      return res.status(500).json({ error: "Failed to fetch draws" });
+    }
+  });
+  
+  // POST /api/servicing/:loanId/draws - submit draw request
+  app.post("/api/servicing/:loanId/draws", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const loan = await storage.getServicedLoan(req.params.loanId);
+      
+      if (!loan) {
+        return res.status(404).json({ error: "Loan not found" });
+      }
+      
+      // Borrowers can only create draws for their own loans
+      if (loan.userId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      // Get existing draws to determine next draw number
+      const existingDraws = await storage.getLoanDraws(loan.id);
+      const nextDrawNumber = existingDraws.length + 1;
+      
+      const draw = await storage.createLoanDraw({
+        ...req.body,
+        servicedLoanId: loan.id,
+        drawNumber: nextDrawNumber,
+        status: req.body.status || "draft",
+        requestedDate: new Date(),
+      });
+      
+      return res.status(201).json(draw);
+    } catch (error) {
+      console.error("Error creating draw:", error);
+      return res.status(500).json({ error: "Failed to create draw" });
+    }
+  });
+  
+  // PATCH /api/servicing/:loanId/draws/:drawId - update draw status (admin)
+  app.patch("/api/servicing/:loanId/draws/:drawId", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const draw = await storage.getLoanDraw(req.params.drawId);
+      
+      if (!draw) {
+        return res.status(404).json({ error: "Draw not found" });
+      }
+      
+      const loan = await storage.getServicedLoan(req.params.loanId);
+      if (!loan || draw.servicedLoanId !== loan.id) {
+        return res.status(404).json({ error: "Loan not found or draw mismatch" });
+      }
+      
+      // Staff can update any field, borrowers can only update draft draws
+      if (user?.role === "borrower") {
+        if (loan.userId !== userId) {
+          return res.status(403).json({ error: "Access denied" });
+        }
+        if (draw.status !== "draft") {
+          return res.status(403).json({ error: "Can only modify draft draws" });
+        }
+      }
+      
+      const updateData: any = { ...req.body };
+      
+      // Handle status transitions for admin
+      if (user?.role !== "borrower") {
+        if (req.body.status === "approved") {
+          updateData.approvedDate = new Date();
+          updateData.approvedAmount = req.body.approvedAmount || draw.requestedAmount;
+        }
+        if (req.body.status === "funded") {
+          updateData.fundedDate = new Date();
+          updateData.fundedAmount = req.body.fundedAmount || updateData.approvedAmount || draw.requestedAmount;
+          
+          // Update loan totals
+          const fundedAmount = updateData.fundedAmount;
+          await storage.updateServicedLoan(loan.id, {
+            totalDrawsFunded: (loan.totalDrawsFunded || 0) + fundedAmount,
+            currentBalance: (loan.currentBalance || 0) + fundedAmount,
+          });
+        }
+        if (req.body.status === "denied") {
+          updateData.deniedDate = new Date();
+          updateData.deniedReason = req.body.deniedReason || req.body.notes;
+        }
+      }
+      
+      const updated = await storage.updateLoanDraw(req.params.drawId, updateData);
+      return res.json(updated);
+    } catch (error) {
+      console.error("Error updating draw:", error);
+      return res.status(500).json({ error: "Failed to update draw" });
+    }
+  });
+  
+  // GET /api/servicing/:loanId/payoff - calculate payoff amount
+  app.get("/api/servicing/:loanId/payoff", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const loan = await storage.getServicedLoan(req.params.loanId);
+      
+      if (!loan) {
+        return res.status(404).json({ error: "Loan not found" });
+      }
+      
+      if (loan.userId !== userId && user?.role === "borrower") {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      // Parse payoff date from query or default to today
+      const payoffDateStr = req.query.payoffDate as string;
+      const payoffDate = payoffDateStr ? new Date(payoffDateStr) : new Date();
+      
+      // Calculate days until payoff
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      payoffDate.setHours(0, 0, 0, 0);
+      const daysUntilPayoff = Math.ceil((payoffDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      
+      // Calculate per diem interest
+      const annualRate = parseFloat(loan.interestRate) / 100;
+      const perDiemInterest = Math.round((loan.currentBalance * annualRate) / 365);
+      
+      // Calculate accrued interest
+      const accruedInterest = perDiemInterest * Math.max(0, daysUntilPayoff);
+      
+      // Outstanding fees (from past due payments)
+      const payments = await storage.getLoanPayments(loan.id);
+      const latePayments = payments.filter(p => p.status === "late");
+      const outstandingFees = latePayments.reduce((sum, p) => sum + (p.lateFee || 0) + (p.otherFees || 0), 0);
+      
+      // Total payoff amount
+      const totalPayoff = loan.currentBalance + accruedInterest + outstandingFees;
+      
+      return res.json({
+        payoffDate: payoffDate.toISOString(),
+        daysUntilPayoff: Math.max(0, daysUntilPayoff),
+        outstandingPrincipal: loan.currentBalance,
+        perDiemInterest,
+        accruedInterest,
+        outstandingFees,
+        totalPayoff,
+        validUntil: new Date(payoffDate.getTime() + 10 * 24 * 60 * 60 * 1000).toISOString(), // Valid for 10 days
+        interestRate: loan.interestRate,
+        loanNumber: loan.loanNumber,
+      });
+    } catch (error) {
+      console.error("Error calculating payoff:", error);
+      return res.status(500).json({ error: "Failed to calculate payoff" });
+    }
+  });
+  
+  // POST /api/servicing/:loanId/payoff-request - request payoff statement (creates timeline event)
+  app.post("/api/servicing/:loanId/payoff-request", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const loan = await storage.getServicedLoan(req.params.loanId);
+      
+      if (!loan) {
+        return res.status(404).json({ error: "Loan not found" });
+      }
+      
+      if (loan.userId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      // Create a notification for staff
+      await storage.createNotification({
+        userId,
+        type: "document_request",
+        title: "Payoff Statement Requested",
+        message: `Payoff statement requested for loan ${loan.loanNumber}. Requested payoff date: ${req.body.payoffDate || 'As soon as possible'}`,
+      });
+      
+      return res.json({ 
+        success: true,
+        message: "Payoff statement request submitted. You will be notified when it's ready.",
+      });
+    } catch (error) {
+      console.error("Error requesting payoff:", error);
+      return res.status(500).json({ error: "Failed to request payoff statement" });
     }
   });
 
@@ -1809,6 +2129,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
           description: `Updated by ${req.staffUser.firstName || req.staffUser.email}`,
           createdByUserId: req.staffUser.id,
         });
+        
+        // Send status change email notification
+        try {
+          const borrower = await storage.getUser(application.userId);
+          if (borrower?.email && await shouldSendEmail(borrower.id)) {
+            const borrowerName = `${borrower.firstName || ""} ${borrower.lastName || ""}`.trim() || "Valued Customer";
+            const emailData = emailTemplates.statusChange({
+              borrowerName,
+              loanType: application.loanType,
+              propertyAddress: application.propertyAddress || undefined,
+              applicationId: id,
+              previousStatus: previousStatus || "draft",
+              newStatus: req.body.status,
+              portalUrl: getPortalUrl(),
+            });
+            
+            await sendEmail({
+              to: borrower.email,
+              subject: emailData.subject,
+              html: emailData.html,
+              text: emailData.text,
+              userId: borrower.id,
+              emailType: "status_change",
+              relatedApplicationId: id,
+            });
+          }
+        } catch (emailError) {
+          console.error("Failed to send status change email:", emailError);
+        }
       }
       
       if (req.body.processingStage && req.body.processingStage !== application.processingStage) {
@@ -1930,6 +2279,126 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating application:", error);
       return res.status(500).json({ error: "Failed to update application" });
+    }
+  });
+
+  // Request documents from borrower (sends email)
+  app.post("/api/admin/applications/:id/request-documents", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { documentNames, message } = req.body;
+      
+      if (!documentNames || !Array.isArray(documentNames) || documentNames.length === 0) {
+        return res.status(400).json({ error: "documentNames array is required" });
+      }
+      
+      const application = await storage.getLoanApplication(id);
+      if (!application) {
+        return res.status(404).json({ error: "Application not found" });
+      }
+      
+      const borrower = await storage.getUser(application.userId);
+      if (!borrower?.email) {
+        return res.status(400).json({ error: "Borrower email not found" });
+      }
+      
+      // Create timeline event
+      await storage.createTimelineEvent({
+        loanApplicationId: id,
+        eventType: "note_added",
+        title: `Documents requested: ${documentNames.join(", ")}`,
+        description: message || `Requested by ${req.staffUser.firstName || req.staffUser.email}`,
+        createdByUserId: req.staffUser.id,
+      });
+      
+      // Send email notification
+      const canSendEmail = await shouldSendEmail(borrower.id);
+      if (!canSendEmail) {
+        return res.json({ 
+          success: true, 
+          emailSent: false, 
+          reason: "User has disabled email notifications" 
+        });
+      }
+      
+      const borrowerName = `${borrower.firstName || ""} ${borrower.lastName || ""}`.trim() || "Valued Customer";
+      const emailData = emailTemplates.documentRequest({
+        borrowerName,
+        loanType: application.loanType,
+        applicationId: id,
+        documentNames,
+        message: message || undefined,
+        portalUrl: getPortalUrl(),
+      });
+      
+      const result = await sendEmail({
+        to: borrower.email,
+        subject: emailData.subject,
+        html: emailData.html,
+        text: emailData.text,
+        userId: borrower.id,
+        emailType: "document_request",
+        relatedApplicationId: id,
+        metadata: { documentNames, message },
+      });
+      
+      return res.json({ 
+        success: true, 
+        emailSent: result.success, 
+        demoMode: result.demoMode,
+        error: result.error 
+      });
+    } catch (error) {
+      console.error("Error requesting documents:", error);
+      return res.status(500).json({ error: "Failed to request documents" });
+    }
+  });
+
+  // Email logs routes (admin only)
+  app.get("/api/admin/email-logs", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const { recipientEmail, startDate, endDate, limit, offset } = req.query;
+      
+      const logs = await storage.getEmailLogs({
+        recipientEmail: recipientEmail as string | undefined,
+        startDate: startDate ? new Date(startDate as string) : undefined,
+        endDate: endDate ? new Date(endDate as string) : undefined,
+        limit: limit ? parseInt(limit as string) : 100,
+        offset: offset ? parseInt(offset as string) : 0,
+      });
+      
+      const total = await storage.getEmailLogCount({
+        recipientEmail: recipientEmail as string | undefined,
+        startDate: startDate ? new Date(startDate as string) : undefined,
+        endDate: endDate ? new Date(endDate as string) : undefined,
+      });
+      
+      return res.json({ logs, total });
+    } catch (error) {
+      console.error("Error fetching email logs:", error);
+      return res.status(500).json({ error: "Failed to fetch email logs" });
+    }
+  });
+
+  // Update user email notification preferences
+  app.patch("/api/user/email-preferences", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { emailNotificationsEnabled } = req.body;
+      
+      if (typeof emailNotificationsEnabled !== "boolean") {
+        return res.status(400).json({ error: "emailNotificationsEnabled must be a boolean" });
+      }
+      
+      const updated = await storage.updateUserEmailPreferences(userId, emailNotificationsEnabled);
+      if (!updated) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      return res.json({ success: true, emailNotificationsEnabled: updated.emailNotificationsEnabled });
+    } catch (error) {
+      console.error("Error updating email preferences:", error);
+      return res.status(500).json({ error: "Failed to update email preferences" });
     }
   });
 
@@ -2352,6 +2821,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
           currentBalance: loan.currentBalance + actualFundedAmount,
           remainingHoldback: totalBudget > 0 ? Math.max(0, totalBudget - currentFunded - actualFundedAmount) : null,
         });
+        
+        // Send draw approved email notification
+        try {
+          const borrower = await storage.getUser(loan.userId);
+          if (borrower?.email && await shouldSendEmail(borrower.id)) {
+            const borrowerName = `${borrower.firstName || ""} ${borrower.lastName || ""}`.trim() || "Valued Customer";
+            const allDraws = await storage.getLoanDraws(loan.id);
+            const drawNumber = allDraws.filter(d => d.status === "funded" || d.id === draw.id).length;
+            
+            const emailData = emailTemplates.drawApproved({
+              borrowerName,
+              loanNumber: loan.loanNumber,
+              propertyAddress: loan.propertyAddress,
+              drawNumber,
+              approvedAmount: actualFundedAmount,
+              portalUrl: getPortalUrl(),
+            });
+            
+            await sendEmail({
+              to: borrower.email,
+              subject: emailData.subject,
+              html: emailData.html,
+              text: emailData.text,
+              userId: borrower.id,
+              emailType: "draw_approved",
+              relatedLoanId: loan.id,
+            });
+          }
+        } catch (emailError) {
+          console.error("Failed to send draw approved email:", emailError);
+        }
       }
       
       return res.json(updatedDraw);
@@ -2527,6 +3027,162 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting funded deal:", error);
       return res.status(500).json({ error: "Failed to delete funded deal" });
+    }
+  });
+
+  // =====================
+  // Admin Analytics Route
+  // =====================
+  app.get("/api/admin/analytics", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const applications = await storage.getAllLoanApplications();
+      const fundedDeals = await storage.getFundedDeals(false);
+      const leads = await storage.getLeads();
+      
+      const now = new Date();
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+      
+      // Applications by status
+      const statusCounts: Record<string, number> = {
+        draft: 0,
+        submitted: 0,
+        in_review: 0,
+        approved: 0,
+        funded: 0,
+        denied: 0,
+        withdrawn: 0,
+      };
+      applications.forEach(app => {
+        if (app.status && statusCounts[app.status] !== undefined) {
+          statusCounts[app.status]++;
+        }
+      });
+      
+      // Applications by loan type
+      const loanTypeCounts: Record<string, number> = {};
+      applications.forEach(app => {
+        const type = app.loanType || "Unknown";
+        loanTypeCounts[type] = (loanTypeCounts[type] || 0) + 1;
+      });
+      
+      // Applications over time (last 30 days, grouped by week)
+      const weeklyVolume: { week: string; count: number; volume: number }[] = [];
+      const recentApps = applications.filter(app => new Date(app.createdAt) >= thirtyDaysAgo);
+      
+      for (let i = 0; i < 4; i++) {
+        const weekStart = new Date(now.getTime() - (i + 1) * 7 * 24 * 60 * 60 * 1000);
+        const weekEnd = new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000);
+        const weekApps = recentApps.filter(app => {
+          const created = new Date(app.createdAt);
+          return created >= weekStart && created < weekEnd;
+        });
+        weeklyVolume.unshift({
+          week: `Week ${4 - i}`,
+          count: weekApps.length,
+          volume: weekApps.reduce((sum, app) => sum + (app.loanAmount || 0), 0),
+        });
+      }
+      
+      // Volume by state
+      const stateVolume: Record<string, { count: number; volume: number }> = {};
+      applications.forEach(app => {
+        const state = app.propertyState || "Unknown";
+        if (!stateVolume[state]) {
+          stateVolume[state] = { count: 0, volume: 0 };
+        }
+        stateVolume[state].count++;
+        stateVolume[state].volume += app.loanAmount || 0;
+      });
+      
+      // Add funded deals to state volume
+      fundedDeals.forEach(deal => {
+        const state = deal.state || "Unknown";
+        if (!stateVolume[state]) {
+          stateVolume[state] = { count: 0, volume: 0 };
+        }
+        stateVolume[state].count++;
+        stateVolume[state].volume += deal.loanAmount || 0;
+      });
+      
+      // Sort and get top 10 states
+      const topStates = Object.entries(stateVolume)
+        .sort((a, b) => b[1].volume - a[1].volume)
+        .slice(0, 10)
+        .map(([state, data]) => ({ state, ...data }));
+      
+      // Conversion funnel
+      const totalLeads = leads.length;
+      const totalApplications = applications.length;
+      const submittedApps = applications.filter(app => 
+        app.status !== "draft"
+      ).length;
+      const approvedApps = applications.filter(app => 
+        app.status === "approved" || app.status === "funded"
+      ).length;
+      const fundedApps = applications.filter(app => 
+        app.status === "funded"
+      ).length;
+      
+      const funnel = [
+        { stage: "Leads", count: totalLeads },
+        { stage: "Applications", count: totalApplications },
+        { stage: "Submitted", count: submittedApps },
+        { stage: "Approved", count: approvedApps },
+        { stage: "Funded", count: fundedApps },
+      ];
+      
+      // Key stats
+      const totalPipelineValue = applications
+        .filter(app => app.status !== "funded" && app.status !== "denied" && app.status !== "withdrawn")
+        .reduce((sum, app) => sum + (app.loanAmount || 0), 0);
+      
+      const avgLoanSize = applications.length > 0
+        ? applications.reduce((sum, app) => sum + (app.loanAmount || 0), 0) / applications.length
+        : 0;
+      
+      // Average days to close (from funded applications with closing date)
+      const fundedWithDates = applications.filter(app => 
+        app.status === "funded" && app.closingDate && app.createdAt
+      );
+      const avgDaysToClose = fundedWithDates.length > 0
+        ? fundedWithDates.reduce((sum, app) => {
+            const days = Math.floor((new Date(app.closingDate!).getTime() - new Date(app.createdAt).getTime()) / (1000 * 60 * 60 * 24));
+            return sum + days;
+          }, 0) / fundedWithDates.length
+        : 0;
+      
+      // This month vs last month comparison
+      const thisMonthApps = applications.filter(app => new Date(app.createdAt) >= startOfMonth);
+      const lastMonthApps = applications.filter(app => {
+        const created = new Date(app.createdAt);
+        return created >= startOfLastMonth && created <= endOfLastMonth;
+      });
+      
+      const thisMonthVolume = thisMonthApps.reduce((sum, app) => sum + (app.loanAmount || 0), 0);
+      const lastMonthVolume = lastMonthApps.reduce((sum, app) => sum + (app.loanAmount || 0), 0);
+      
+      return res.json({
+        statusCounts,
+        loanTypeCounts,
+        weeklyVolume,
+        topStates,
+        funnel,
+        stats: {
+          totalPipelineValue,
+          avgLoanSize: Math.round(avgLoanSize),
+          avgDaysToClose: Math.round(avgDaysToClose),
+          thisMonthCount: thisMonthApps.length,
+          lastMonthCount: lastMonthApps.length,
+          thisMonthVolume,
+          lastMonthVolume,
+        },
+      });
+    } catch (error) {
+      console.error("Error fetching analytics:", error);
+      return res.status(500).json({ error: "Failed to fetch analytics data" });
     }
   });
 
@@ -3398,6 +4054,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error seeding test data:", error);
       return res.status(500).json({ error: "Failed to seed test data", details: String(error) });
+    }
+  });
+
+  // ============================================
+  // WHITE-LABEL SETTINGS API (Demo Mode Branding)
+  // ============================================
+  
+  // GET /api/white-label - Get current white-label settings (public, no auth)
+  app.get("/api/white-label", async (req, res) => {
+    try {
+      const settings = await storage.getActiveWhiteLabelSettings();
+      
+      if (settings) {
+        return res.json({
+          ...settings,
+          isDemoMode: true, // Custom branding is active
+        });
+      }
+      
+      // Return default Sequel Investments branding
+      return res.json({
+        ...DEFAULT_WHITE_LABEL_SETTINGS,
+        id: null,
+        isDemoMode: false,
+      });
+    } catch (error) {
+      console.error("Error fetching white-label settings:", error);
+      return res.status(500).json({ error: "Failed to fetch white-label settings" });
+    }
+  });
+  
+  // PUT /api/admin/white-label - Update white-label settings (admin only)
+  app.put("/api/admin/white-label", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const validationResult = insertWhiteLabelSettingsSchema.safeParse(req.body);
+      
+      if (!validationResult.success) {
+        const validationError = fromZodError(validationResult.error);
+        return res.status(400).json({
+          error: "Validation failed",
+          message: validationError.message,
+        });
+      }
+      
+      const settings = await storage.upsertWhiteLabelSettings({
+        ...validationResult.data,
+        isActive: true,
+      });
+      
+      return res.json({
+        message: "White-label settings updated successfully",
+        settings,
+      });
+    } catch (error) {
+      console.error("Error updating white-label settings:", error);
+      return res.status(500).json({ error: "Failed to update white-label settings" });
+    }
+  });
+  
+  // DELETE /api/admin/white-label - Reset to defaults (admin only)
+  app.delete("/api/admin/white-label", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      await storage.deleteWhiteLabelSettings();
+      
+      return res.json({
+        message: "White-label settings reset to defaults",
+        settings: DEFAULT_WHITE_LABEL_SETTINGS,
+      });
+    } catch (error) {
+      console.error("Error resetting white-label settings:", error);
+      return res.status(500).json({ error: "Failed to reset white-label settings" });
     }
   });
 

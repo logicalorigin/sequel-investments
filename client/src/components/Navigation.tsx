@@ -8,11 +8,19 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useWhiteLabel } from "@/context/WhiteLabelContext";
 
 export function Navigation() {
   const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileLoanProductsOpen, setIsMobileLoanProductsOpen] = useState(false);
+  const { settings, isDemoMode } = useWhiteLabel();
+  
+  const companyName = settings?.companyName || "SEQUEL INVESTMENTS";
+  const logoUrl = settings?.logoUrl;
+  const nameParts = companyName.split(" ");
+  const firstName = nameParts[0];
+  const restOfName = nameParts.slice(1).join(" ");
 
   const loanProducts = [
     { href: "/dscr-loans", label: "DSCR Loans" },
@@ -36,8 +44,19 @@ export function Navigation() {
         <div className="flex items-center justify-between h-14 lg:h-20">
           <Link href="/" data-testid="link-home">
             <div className="flex items-center cursor-pointer hover-elevate active-elevate-2 px-2 py-1 rounded-md -ml-2">
-              <span className="text-xl font-bold text-primary">SEQUEL</span>
-              <span className="text-xl font-light text-foreground ml-1">INVESTMENTS</span>
+              {logoUrl ? (
+                <img 
+                  src={logoUrl} 
+                  alt={companyName}
+                  className="h-8 max-w-[150px] object-contain"
+                  data-testid="img-nav-logo"
+                />
+              ) : (
+                <>
+                  <span className="text-xl font-bold text-primary" data-testid="text-nav-company-first">{firstName}</span>
+                  {restOfName && <span className="text-xl font-light text-foreground ml-1" data-testid="text-nav-company-rest">{restOfName}</span>}
+                </>
+              )}
             </div>
           </Link>
 

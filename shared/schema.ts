@@ -29,6 +29,7 @@ export const users = pgTable("users", {
   profileImageUrl: varchar("profile_image_url"),
   role: userRoleEnum("role").default("borrower").notNull(),
   staffRole: text("staff_role"), // For color-coding: account_executive, processor, underwriter, management
+  emailNotificationsEnabled: boolean("email_notifications_enabled").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -1558,3 +1559,101 @@ export const insertNotificationQueueItemSchema = createInsertSchema(notification
 // ============================================
 // Note: Adding staffRole to track which role made the comment for color-coding
 // The existing documentComments table will be extended via migration
+
+// ============================================
+// WHITE-LABEL SETTINGS (Demo Mode Branding)
+// ============================================
+export const whiteLabelSettings = pgTable("white_label_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  companyName: text("company_name").notNull(),
+  logoUrl: text("logo_url"),
+  primaryColor: text("primary_color").notNull(), // Hex color e.g. "#D4A01D"
+  secondaryColor: text("secondary_color"), // Hex color
+  contactPhone: text("contact_phone"),
+  contactEmail: text("contact_email"),
+  contactAddress: text("contact_address"),
+  footerText: text("footer_text"),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export type WhiteLabelSettings = typeof whiteLabelSettings.$inferSelect;
+export type InsertWhiteLabelSettings = typeof whiteLabelSettings.$inferInsert;
+
+export const insertWhiteLabelSettingsSchema = createInsertSchema(whiteLabelSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Default Sequel Investments branding
+export const DEFAULT_WHITE_LABEL_SETTINGS: Omit<InsertWhiteLabelSettings, 'id'> = {
+  companyName: "SEQUEL INVESTMENTS",
+  logoUrl: null,
+  primaryColor: "#D4A01D",
+  secondaryColor: "#1a1a1a",
+  contactPhone: "302.388.8860",
+  contactEmail: "josh@fundwithsequel.com",
+  contactAddress: "800 5th Avenue, Suite 4100, Miami Beach, FL 33139",
+  footerText: null,
+  isActive: false,
+};
+
+// ============================================
+// EMAIL LOGS (For tracking sent emails)
+// ============================================
+export const emailStatusEnum = pgEnum("email_status", [
+  "sent",
+  "failed",
+  "demo"
+]);
+
+export const emailTypeEnum = pgEnum("email_type", [
+  "application_submitted",
+  "status_change",
+  "document_request",
+  "draw_approved",
+  "payment_reminder",
+  "payoff_statement"
+]);
+
+export const emailLogs = pgTable("email_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  recipientEmail: text("recipient_email").notNull(),
+  recipientUserId: varchar("recipient_user_id").references(() => users.id),
+  subject: text("subject").notNull(),
+  emailType: emailTypeEnum("email_type").notNull(),
+  status: emailStatusEnum("status").notNull(),
+  errorMessage: text("error_message"),
+  relatedApplicationId: varchar("related_application_id").references(() => loanApplications.id),
+  relatedLoanId: varchar("related_loan_id").references(() => servicedLoans.id),
+  metadata: jsonb("metadata"),
+  sentAt: timestamp("sent_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_email_logs_recipient").on(table.recipientEmail),
+  index("idx_email_logs_sent_at").on(table.sentAt),
+]);
+
+export const emailLogsRelations = relations(emailLogs, ({ one }) => ({
+  recipient: one(users, {
+    fields: [emailLogs.recipientUserId],
+    references: [users.id],
+  }),
+  application: one(loanApplications, {
+    fields: [emailLogs.relatedApplicationId],
+    references: [loanApplications.id],
+  }),
+  loan: one(servicedLoans, {
+    fields: [emailLogs.relatedLoanId],
+    references: [servicedLoans.id],
+  }),
+}));
+
+export type EmailLog = typeof emailLogs.$inferSelect;
+export type InsertEmailLog = typeof emailLogs.$inferInsert;
+
+export const insertEmailLogSchema = createInsertSchema(emailLogs).omit({
+  id: true,
+  sentAt: true,
+});
