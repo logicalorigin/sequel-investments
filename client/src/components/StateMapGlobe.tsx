@@ -65,7 +65,7 @@ export function StateMapGlobe({
     const latRange = maxLat - minLat;
     const lngRange = maxLng - minLng;
     
-    const padding = 0.4;
+    const padding = 0.5;
     const paddedLatRange = latRange * (1 + padding * 2);
     const paddedLngRange = lngRange * (1 + padding * 2);
     const paddedMinLat = minLat - latRange * padding;
@@ -90,24 +90,23 @@ export function StateMapGlobe({
       y: toSvgY(market.lat),
     }));
 
-    const bgPaths: { slug: string; path: string; opacity: number }[] = [];
+    const bgPaths: { slug: string; path: string }[] = [];
     Object.entries(STATE_BOUNDARIES).forEach(([slug, state]) => {
       if (slug === stateSlug || !state.coordinates || state.coordinates.length === 0) return;
       
       const stateCoords = state.coordinates;
       const stateLats = stateCoords.map(c => c.lat);
       const stateLngs = stateCoords.map(c => c.lng);
-      const stateCenterLat = (Math.min(...stateLats) + Math.max(...stateLats)) / 2;
-      const stateCenterLng = (Math.min(...stateLngs) + Math.max(...stateLngs)) / 2;
       
-      const distance = Math.sqrt(
-        Math.pow(stateCenterLat - centerLat, 2) + 
-        Math.pow(stateCenterLng - centerLng, 2)
-      );
+      const stateMinLat = Math.min(...stateLats);
+      const stateMaxLat = Math.max(...stateLats);
+      const stateMinLng = Math.min(...stateLngs);
+      const stateMaxLng = Math.max(...stateLngs);
       
-      if (distance > 25) return;
+      const overlapLat = stateMaxLat >= paddedMinLat && stateMinLat <= (paddedMinLat + paddedLatRange);
+      const overlapLng = stateMaxLng >= paddedMinLng && stateMinLng <= (paddedMinLng + paddedLngRange);
       
-      const opacity = Math.max(0.1, 0.4 - distance * 0.015);
+      if (!overlapLat || !overlapLng) return;
       
       const points = stateCoords.map((c, i) => {
         const x = toSvgX(c.lng);
@@ -119,7 +118,6 @@ export function StateMapGlobe({
       bgPaths.push({
         slug,
         path: points.join(" "),
-        opacity,
       });
     });
 
@@ -167,57 +165,44 @@ export function StateMapGlobe({
             }}
           >
             <defs>
-              <linearGradient id={`globe-gradient-${stateSlug}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="hsl(var(--muted))" stopOpacity="0.3" />
-                <stop offset="50%" stopColor="hsl(var(--muted))" stopOpacity="0.15" />
-                <stop offset="100%" stopColor="hsl(var(--muted))" stopOpacity="0.05" />
+              <linearGradient id={`bg-state-gradient-${stateSlug}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#c4b8a8" stopOpacity="1" />
+                <stop offset="100%" stopColor="#a89888" stopOpacity="1" />
               </linearGradient>
               
-              <linearGradient id={`state-main-gradient-${stateSlug}`} x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="hsl(var(--primary) / 0.3)" />
-                <stop offset="50%" stopColor="hsl(var(--muted))" />
-                <stop offset="100%" stopColor="hsl(var(--muted-foreground) / 0.4)" />
+              <linearGradient id={`focus-state-gradient-${stateSlug}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#f5f0d8" stopOpacity="1" />
+                <stop offset="100%" stopColor="#e8e0c0" stopOpacity="1" />
               </linearGradient>
               
-              <filter id={`blur-bg-${stateSlug}`} x="-50%" y="-50%" width="200%" height="200%">
-                <feGaussianBlur in="SourceGraphic" stdDeviation="3" />
-              </filter>
-              
-              <filter id={`glow-${stateSlug}`} x="-50%" y="-50%" width="200%" height="200%">
-                <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="hsl(var(--primary))" floodOpacity="0.5" />
+              <filter id={`focus-state-shadow-${stateSlug}`} x="-50%" y="-50%" width="200%" height="200%">
+                <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="rgba(0,0,0,0.3)" />
               </filter>
               
               <filter id={`marker-glow-${stateSlug}`} x="-100%" y="-100%" width="300%" height="300%">
                 <feDropShadow dx="0" dy="0" stdDeviation="2" floodColor="hsl(var(--primary))" floodOpacity="0.8" />
               </filter>
-
-              <radialGradient id={`vignette-${stateSlug}`} cx="50%" cy="50%" r="60%" fx="50%" fy="50%">
-                <stop offset="0%" stopColor="transparent" />
-                <stop offset="70%" stopColor="transparent" />
-                <stop offset="100%" stopColor="hsl(var(--background))" stopOpacity="0.8" />
-              </radialGradient>
             </defs>
 
-            {usBackgroundPaths.map(({ slug, path, opacity }) => (
+            {usBackgroundPaths.map(({ slug, path }) => (
               <path
                 key={slug}
                 d={path}
-                fill={`url(#globe-gradient-${stateSlug})`}
-                stroke="hsl(var(--border) / 0.3)"
-                strokeWidth="0.5"
-                opacity={opacity}
-                filter={`url(#blur-bg-${stateSlug})`}
+                fill={`url(#bg-state-gradient-${stateSlug})`}
+                stroke="#8a7a6a"
+                strokeWidth="0.8"
+                strokeLinejoin="round"
                 className="transition-opacity duration-500"
               />
             ))}
             
             <path
               d={pathData}
-              fill={`url(#state-main-gradient-${stateSlug})`}
-              stroke="hsl(var(--primary))"
+              fill={`url(#focus-state-gradient-${stateSlug})`}
+              stroke="#5a4a3a"
               strokeWidth="2"
               strokeLinejoin="round"
-              filter={`url(#glow-${stateSlug})`}
+              filter={`url(#focus-state-shadow-${stateSlug})`}
               className="transition-all duration-300"
             />
             
