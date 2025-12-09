@@ -24,6 +24,8 @@ import {
   insertDocumentCommentSchema,
   insertWhiteLabelSettingsSchema,
   insertAppointmentSchema,
+  insertScopeOfWorkItemSchema,
+  insertDrawLineItemSchema,
   getStateBySlug,
   type UserRole,
   type StaffRole,
@@ -802,6 +804,286 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting draw:", error);
       return res.status(500).json({ error: "Failed to delete draw" });
+    }
+  });
+
+  // ============================================
+  // SCOPE OF WORK ROUTES (For Construction/Rehab)
+  // ============================================
+  app.get("/api/serviced-loans/:loanId/scope-of-work", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const loan = await storage.getServicedLoan(req.params.loanId);
+      
+      if (!loan) {
+        return res.status(404).json({ error: "Loan not found" });
+      }
+      
+      if (loan.userId !== userId && user?.role === "borrower") {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const items = await storage.getScopeOfWorkItems(loan.id);
+      return res.json(items);
+    } catch (error) {
+      console.error("Error fetching scope of work:", error);
+      return res.status(500).json({ error: "Failed to fetch scope of work" });
+    }
+  });
+
+  app.post("/api/serviced-loans/:loanId/scope-of-work", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (user?.role === "borrower") {
+        return res.status(403).json({ error: "Only staff can perform this action" });
+      }
+      
+      const loan = await storage.getServicedLoan(req.params.loanId);
+      
+      if (!loan) {
+        return res.status(404).json({ error: "Loan not found" });
+      }
+      
+      const validationResult = insertScopeOfWorkItemSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        const validationError = fromZodError(validationResult.error);
+        return res.status(400).json({ error: "Validation failed", message: validationError.message });
+      }
+      
+      const item = await storage.createScopeOfWorkItem({
+        ...validationResult.data,
+        servicedLoanId: loan.id,
+      });
+      return res.status(201).json(item);
+    } catch (error) {
+      console.error("Error creating scope of work item:", error);
+      return res.status(500).json({ error: "Failed to create scope of work item" });
+    }
+  });
+
+  app.post("/api/serviced-loans/:loanId/scope-of-work/initialize", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (user?.role === "borrower") {
+        return res.status(403).json({ error: "Only staff can perform this action" });
+      }
+      
+      const loan = await storage.getServicedLoan(req.params.loanId);
+      
+      if (!loan) {
+        return res.status(404).json({ error: "Loan not found" });
+      }
+      
+      const items = await storage.initializeScopeOfWork(loan.id);
+      return res.json(items);
+    } catch (error) {
+      console.error("Error initializing scope of work:", error);
+      return res.status(500).json({ error: "Failed to initialize scope of work" });
+    }
+  });
+
+  app.patch("/api/scope-of-work-items/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (user?.role === "borrower") {
+        return res.status(403).json({ error: "Only staff can perform this action" });
+      }
+      
+      const item = await storage.getScopeOfWorkItem(req.params.id);
+      
+      if (!item) {
+        return res.status(404).json({ error: "Scope of work item not found" });
+      }
+      
+      const validationResult = insertScopeOfWorkItemSchema.partial().safeParse(req.body);
+      if (!validationResult.success) {
+        const validationError = fromZodError(validationResult.error);
+        return res.status(400).json({ error: "Validation failed", message: validationError.message });
+      }
+      
+      const updated = await storage.updateScopeOfWorkItem(req.params.id, validationResult.data);
+      return res.json(updated);
+    } catch (error) {
+      console.error("Error updating scope of work item:", error);
+      return res.status(500).json({ error: "Failed to update scope of work item" });
+    }
+  });
+
+  app.delete("/api/scope-of-work-items/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (user?.role === "borrower") {
+        return res.status(403).json({ error: "Only staff can perform this action" });
+      }
+      
+      const item = await storage.getScopeOfWorkItem(req.params.id);
+      
+      if (!item) {
+        return res.status(404).json({ error: "Scope of work item not found" });
+      }
+      
+      await storage.deleteScopeOfWorkItem(req.params.id);
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting scope of work item:", error);
+      return res.status(500).json({ error: "Failed to delete scope of work item" });
+    }
+  });
+
+  // Batch endpoint to get all draw line items for a loan (solves N+1 query problem)
+  app.get("/api/serviced-loans/:loanId/all-draw-line-items", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const loan = await storage.getServicedLoan(req.params.loanId);
+      
+      if (!loan) {
+        return res.status(404).json({ error: "Loan not found" });
+      }
+      
+      if (loan.userId !== userId && user?.role === "borrower") {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const lineItems = await storage.getAllDrawLineItemsByLoan(loan.id);
+      return res.json(lineItems);
+    } catch (error) {
+      console.error("Error fetching all draw line items:", error);
+      return res.status(500).json({ error: "Failed to fetch draw line items" });
+    }
+  });
+
+  // ============================================
+  // DRAW LINE ITEMS ROUTES
+  // ============================================
+  app.get("/api/loan-draws/:drawId/line-items", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const draw = await storage.getLoanDraw(req.params.drawId);
+      
+      if (!draw) {
+        return res.status(404).json({ error: "Draw not found" });
+      }
+      
+      const loan = await storage.getServicedLoan(draw.servicedLoanId);
+      
+      if (loan?.userId !== userId && user?.role === "borrower") {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const lineItems = await storage.getDrawLineItems(draw.id);
+      return res.json(lineItems);
+    } catch (error) {
+      console.error("Error fetching draw line items:", error);
+      return res.status(500).json({ error: "Failed to fetch draw line items" });
+    }
+  });
+
+  app.post("/api/loan-draws/:drawId/line-items", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const draw = await storage.getLoanDraw(req.params.drawId);
+      
+      if (!draw) {
+        return res.status(404).json({ error: "Draw not found" });
+      }
+      
+      const loan = await storage.getServicedLoan(draw.servicedLoanId);
+      
+      if (loan?.userId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      if (draw.status !== "draft") {
+        return res.status(400).json({ error: "Can only add line items to draft draws" });
+      }
+      
+      const validationResult = insertDrawLineItemSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        const validationError = fromZodError(validationResult.error);
+        return res.status(400).json({ error: "Validation failed", message: validationError.message });
+      }
+      
+      const lineItem = await storage.createDrawLineItem({
+        ...validationResult.data,
+        loanDrawId: draw.id,
+      });
+      return res.status(201).json(lineItem);
+    } catch (error) {
+      console.error("Error creating draw line item:", error);
+      return res.status(500).json({ error: "Failed to create draw line item" });
+    }
+  });
+
+  app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const lineItem = await storage.getDrawLineItem(req.params.id);
+      
+      if (!lineItem) {
+        return res.status(404).json({ error: "Draw line item not found" });
+      }
+      
+      const draw = await storage.getLoanDraw(lineItem.loanDrawId);
+      const loan = draw ? await storage.getServicedLoan(draw.servicedLoanId) : null;
+      
+      if (loan?.userId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      if (draw?.status !== "draft") {
+        return res.status(400).json({ error: "Can only update line items on draft draws" });
+      }
+      
+      const validationResult = insertDrawLineItemSchema.partial().safeParse(req.body);
+      if (!validationResult.success) {
+        const validationError = fromZodError(validationResult.error);
+        return res.status(400).json({ error: "Validation failed", message: validationError.message });
+      }
+      
+      const updated = await storage.updateDrawLineItem(req.params.id, validationResult.data);
+      return res.json(updated);
+    } catch (error) {
+      console.error("Error updating draw line item:", error);
+      return res.status(500).json({ error: "Failed to update draw line item" });
+    }
+  });
+
+  app.delete("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const lineItem = await storage.getDrawLineItem(req.params.id);
+      
+      if (!lineItem) {
+        return res.status(404).json({ error: "Draw line item not found" });
+      }
+      
+      const draw = await storage.getLoanDraw(lineItem.loanDrawId);
+      const loan = draw ? await storage.getServicedLoan(draw.servicedLoanId) : null;
+      
+      if (loan?.userId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      if (draw?.status !== "draft") {
+        return res.status(400).json({ error: "Can only delete line items from draft draws" });
+      }
+      
+      await storage.deleteDrawLineItem(req.params.id);
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting draw line item:", error);
+      return res.status(500).json({ error: "Failed to delete draw line item" });
     }
   });
 

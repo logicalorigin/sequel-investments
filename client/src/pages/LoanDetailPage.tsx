@@ -75,9 +75,12 @@ import type {
   LoanEscrowItem, 
   LoanDocument, 
   LoanMilestone,
-  AmortizationRow 
+  AmortizationRow,
+  ScopeOfWorkItem,
+  DrawLineItem,
+  ScopeOfWorkCategory
 } from "@shared/schema";
-import { calculateAmortizationSchedule, calculateInterestOnlyPayment } from "@shared/schema";
+import { calculateAmortizationSchedule, calculateInterestOnlyPayment, SCOPE_OF_WORK_CATEGORY_NAMES } from "@shared/schema";
 
 const formatCurrency = (amount: number | null | undefined): string => {
   if (amount === null || amount === undefined) return "$0";
@@ -297,28 +300,91 @@ function AmortizationCalculator({ loan }: { loan: ServicedLoan }) {
   );
 }
 
+interface ScopeOfWorkWithFunding extends ScopeOfWorkItem {
+  totalFunded: number;
+}
+
+interface CategorySummary {
+  category: ScopeOfWorkCategory;
+  totalBudget: number;
+  totalFunded: number;
+  items: ScopeOfWorkWithFunding[];
+}
+
 function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[] }) {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState<"scope" | "draws">("scope");
   const [newDrawOpen, setNewDrawOpen] = useState(false);
-  const [newDrawAmount, setNewDrawAmount] = useState("");
   const [newDrawDescription, setNewDrawDescription] = useState("");
-  
-  const createDrawMutation = useMutation({
-    mutationFn: async (data: { requestedAmount: number; description: string }) => {
-      return apiRequest("POST", `/api/serviced-loans/${loan.id}/draws`, data);
+  const [drawLineAmounts, setDrawLineAmounts] = useState<Record<string, number>>({});
+  const [editingBudget, setEditingBudget] = useState<string | null>(null);
+  const [editBudgetValue, setEditBudgetValue] = useState("");
+
+  const { data: scopeOfWorkItems = [], isLoading: scopeLoading } = useQuery<ScopeOfWorkItem[]>({
+    queryKey: ["/api/serviced-loans", loan.id, "scope-of-work"],
+  });
+
+  const { data: allDrawLineItems = [] } = useQuery<DrawLineItem[]>({
+    queryKey: ["/api/serviced-loans", loan.id, "all-draw-line-items"],
+    enabled: draws.length > 0,
+  });
+
+  const initializeScopeMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", `/api/serviced-loans/${loan.id}/scope-of-work/initialize`);
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/serviced-loans", loan.id, "scope-of-work"] });
+      toast({ title: "Scope of work initialized with default line items" });
+    },
+    onError: () => {
+      toast({ title: "Failed to initialize scope of work", variant: "destructive" });
+    },
+  });
+
+  const updateBudgetMutation = useMutation({
+    mutationFn: async ({ id, budgetAmount }: { id: string; budgetAmount: number }) => {
+      return apiRequest("PATCH", `/api/scope-of-work-items/${id}`, { budgetAmount });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/serviced-loans", loan.id, "scope-of-work"] });
+      setEditingBudget(null);
+      setEditBudgetValue("");
+      toast({ title: "Budget updated" });
+    },
+    onError: () => {
+      toast({ title: "Failed to update budget", variant: "destructive" });
+    },
+  });
+
+  const createDrawMutation = useMutation({
+    mutationFn: async (data: { requestedAmount: number; description: string }) => {
+      return await apiRequest("POST", `/api/serviced-loans/${loan.id}/draws`, data);
+    },
+    onSuccess: async (draw: any) => {
+      const lineItemPromises = Object.entries(drawLineAmounts)
+        .filter(([_, amount]) => amount > 0)
+        .map(([scopeOfWorkItemId, requestedAmount]) =>
+          apiRequest("POST", `/api/loan-draws/${draw.id}/line-items`, {
+            scopeOfWorkItemId,
+            requestedAmount,
+          })
+        );
+      await Promise.all(lineItemPromises);
       queryClient.invalidateQueries({ queryKey: ["/api/serviced-loans", loan.id, "details"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/serviced-loans", loan.id, "scope-of-work"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/serviced-loans", loan.id, "all-draw-line-items"] });
       setNewDrawOpen(false);
-      setNewDrawAmount("");
       setNewDrawDescription("");
+      setDrawLineAmounts({});
       toast({ title: "Draw request created" });
     },
     onError: () => {
       toast({ title: "Failed to create draw request", variant: "destructive" });
     },
   });
-  
+
   const submitDrawMutation = useMutation({
     mutationFn: async (drawId: string) => {
       return apiRequest("POST", `/api/loan-draws/${drawId}/submit`);
@@ -328,7 +394,7 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
       toast({ title: "Draw submitted for review" });
     },
   });
-  
+
   const deleteDrawMutation = useMutation({
     mutationFn: async (drawId: string) => {
       return apiRequest("DELETE", `/api/loan-draws/${drawId}`);
@@ -338,168 +404,403 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
       toast({ title: "Draw deleted" });
     },
   });
-  
+
+  const fundedDrawIds = draws.filter(d => d.status === "funded").map(d => d.id);
+  const fundedLineItems = allDrawLineItems.filter(li => fundedDrawIds.includes(li.loanDrawId));
+
+  const scopeWithFunding: ScopeOfWorkWithFunding[] = scopeOfWorkItems.map(item => {
+    const totalFunded = fundedLineItems
+      .filter(li => li.scopeOfWorkItemId === item.id)
+      .reduce((sum, li) => sum + (li.fundedAmount || 0), 0);
+    return { ...item, totalFunded };
+  });
+
+  const categoryOrder: ScopeOfWorkCategory[] = ["soft_costs", "demo_foundation", "hvac_plumbing_electrical", "interior", "exterior"];
+  const categorySummaries: CategorySummary[] = categoryOrder.map(category => {
+    const items = scopeWithFunding.filter(i => i.category === category).sort((a, b) => a.sortOrder - b.sortOrder);
+    return {
+      category,
+      totalBudget: items.reduce((sum, i) => sum + i.budgetAmount, 0),
+      totalFunded: items.reduce((sum, i) => sum + i.totalFunded, 0),
+      items,
+    };
+  }).filter(cs => cs.items.length > 0);
+
+  const grandTotalBudget = categorySummaries.reduce((sum, cs) => sum + cs.totalBudget, 0);
+  const grandTotalFunded = categorySummaries.reduce((sum, cs) => sum + cs.totalFunded, 0);
+
   const fundedDraws = draws.filter(d => d.status === "funded");
   const pendingDraws = draws.filter(d => ["submitted", "inspection_scheduled", "inspection_complete", "approved"].includes(d.status));
-  const draftDraws = draws.filter(d => d.status === "draft");
-  
+
   const totalFunded = fundedDraws.reduce((sum, d) => sum + (d.fundedAmount || 0), 0);
   const remaining = (loan.totalRehabBudget || 0) - totalFunded;
   const progressPercent = loan.totalRehabBudget ? (totalFunded / loan.totalRehabBudget) * 100 : 0;
-  
+
+  const canEditBudget = user?.role === "admin" || user?.role === "staff";
+
+  const newDrawTotal = Object.values(drawLineAmounts).reduce((sum, amt) => sum + amt, 0);
+
+  const handleSaveBudget = (itemId: string) => {
+    const value = parseInt(editBudgetValue) || 0;
+    updateBudgetMutation.mutate({ id: itemId, budgetAmount: value });
+  };
+
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="flex flex-row items-center justify-between gap-4">
         <div>
           <CardTitle className="flex items-center gap-2">
             <Wallet className="h-5 w-5" />
             Draw Management
           </CardTitle>
-          <CardDescription>Request and track construction/rehab draws</CardDescription>
+          <CardDescription>Scope of work budget and draw requests</CardDescription>
         </div>
-        <Dialog open={newDrawOpen} onOpenChange={setNewDrawOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" data-testid="button-new-draw">
-              <Plus className="h-4 w-4 mr-2" />
-              New Draw
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Request New Draw</DialogTitle>
-              <DialogDescription>
-                Submit a draw request for completed work. Maximum available: {formatCurrency(remaining)}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="drawAmount">Amount Requested</Label>
-                <Input
-                  id="drawAmount"
-                  type="number"
-                  value={newDrawAmount}
-                  onChange={(e) => setNewDrawAmount(e.target.value)}
-                  placeholder="0"
-                  data-testid="input-draw-amount"
-                />
-              </div>
-              <div>
-                <Label htmlFor="drawDescription">Work Completed</Label>
-                <Textarea
-                  id="drawDescription"
-                  value={newDrawDescription}
-                  onChange={(e) => setNewDrawDescription(e.target.value)}
-                  placeholder="Describe the work completed for this draw..."
-                  data-testid="input-draw-description"
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setNewDrawOpen(false)}>Cancel</Button>
-              <Button 
-                onClick={() => createDrawMutation.mutate({
-                  requestedAmount: parseInt(newDrawAmount) || 0,
-                  description: newDrawDescription,
-                })}
-                disabled={!newDrawAmount || createDrawMutation.isPending}
-                data-testid="button-create-draw"
-              >
-                Create Draw Request
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <div className="flex items-center gap-2">
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "scope" | "draws")}>
+            <TabsList>
+              <TabsTrigger value="scope" data-testid="tab-scope-of-work">Scope of Work</TabsTrigger>
+              <TabsTrigger value="draws" data-testid="tab-draw-requests">Draw Requests</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-3 gap-4 mb-6">
           <div className="text-center p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-            <p className="text-2xl font-bold text-emerald-400">{formatCurrency(totalFunded)}</p>
+            <p className="text-2xl font-bold text-emerald-400" data-testid="text-total-funded">{formatCurrency(totalFunded)}</p>
             <p className="text-xs text-muted-foreground">Total Funded</p>
           </div>
           <div className="text-center p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
-            <p className="text-2xl font-bold text-amber-400">{formatCurrency(pendingDraws.reduce((s, d) => s + d.requestedAmount, 0))}</p>
+            <p className="text-2xl font-bold text-amber-400" data-testid="text-pending-amount">{formatCurrency(pendingDraws.reduce((s, d) => s + d.requestedAmount, 0))}</p>
             <p className="text-xs text-muted-foreground">Pending</p>
           </div>
           <div className="text-center p-3 rounded-lg bg-muted/50">
-            <p className="text-2xl font-bold">{formatCurrency(remaining)}</p>
+            <p className="text-2xl font-bold" data-testid="text-remaining">{formatCurrency(remaining)}</p>
             <p className="text-xs text-muted-foreground">Remaining</p>
           </div>
         </div>
-        
+
         <div className="mb-4">
           <div className="flex justify-between text-sm mb-1">
             <span>Budget Progress</span>
             <span>{progressPercent.toFixed(0)}% drawn</span>
           </div>
-          <Progress value={progressPercent} className="h-2" />
+          <Progress value={progressPercent} className="h-2" data-testid="progress-budget" />
           <p className="text-xs text-muted-foreground mt-1">
             {formatCurrency(totalFunded)} of {formatCurrency(loan.totalRehabBudget)} budget
           </p>
         </div>
-        
+
         <Separator className="my-4" />
-        
-        {draws.length === 0 ? (
-          <div className="text-center py-8">
-            <Wallet className="h-10 w-10 mx-auto text-muted-foreground/50 mb-2" />
-            <p className="text-muted-foreground">No draws yet</p>
-            <p className="text-xs text-muted-foreground">Request your first draw when work is completed</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {draws.map((draw) => (
-              <div 
-                key={draw.id} 
-                className="flex items-center justify-between p-3 rounded-lg border bg-card"
-                data-testid={`card-draw-${draw.id}`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-primary/10">
-                    <span className="text-sm font-bold text-primary">#{draw.drawNumber}</span>
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium">{formatCurrency(draw.requestedAmount)}</p>
-                      {getDrawStatusBadge(draw.status)}
-                    </div>
-                    <p className="text-xs text-muted-foreground line-clamp-1">
-                      {draw.description || "No description"}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {draw.status === "draft" && (
-                    <>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => submitDrawMutation.mutate(draw.id)}
-                        disabled={submitDrawMutation.isPending}
-                        data-testid={`button-submit-draw-${draw.id}`}
-                      >
-                        <Send className="h-4 w-4 mr-1" />
-                        Submit
-                      </Button>
-                      <Button 
-                        size="icon" 
-                        variant="ghost"
-                        onClick={() => deleteDrawMutation.mutate(draw.id)}
-                        disabled={deleteDrawMutation.isPending}
-                        data-testid={`button-delete-draw-${draw.id}`}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </>
-                  )}
-                  {draw.status === "funded" && draw.fundedDate && (
-                    <span className="text-xs text-muted-foreground">
-                      {format(new Date(draw.fundedDate), "MMM d, yyyy")}
-                    </span>
-                  )}
-                </div>
+
+        {activeTab === "scope" && (
+          <div className="space-y-4">
+            {scopeLoading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
               </div>
-            ))}
+            ) : scopeOfWorkItems.length === 0 ? (
+              <div className="text-center py-8">
+                <HardHat className="h-10 w-10 mx-auto text-muted-foreground/50 mb-2" />
+                <p className="text-muted-foreground mb-2">No scope of work items defined</p>
+                <p className="text-xs text-muted-foreground mb-4">Initialize the scope of work to create default line items</p>
+                <Button
+                  onClick={() => initializeScopeMutation.mutate()}
+                  disabled={initializeScopeMutation.isPending}
+                  data-testid="button-initialize-scope"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Initialize Scope of Work
+                </Button>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="grid grid-cols-4 gap-4 flex-1">
+                    <div className="text-center p-2 rounded-lg bg-muted/50">
+                      <p className="text-lg font-bold" data-testid="text-grand-total-budget">{formatCurrency(grandTotalBudget)}</p>
+                      <p className="text-xs text-muted-foreground">Total Budget</p>
+                    </div>
+                    <div className="text-center p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                      <p className="text-lg font-bold text-emerald-400" data-testid="text-grand-total-funded">{formatCurrency(grandTotalFunded)}</p>
+                      <p className="text-xs text-muted-foreground">Total Funded</p>
+                    </div>
+                    <div className="text-center p-2 rounded-lg bg-muted/50">
+                      <p className="text-lg font-bold" data-testid="text-grand-remaining">{formatCurrency(grandTotalBudget - grandTotalFunded)}</p>
+                      <p className="text-xs text-muted-foreground">Remaining</p>
+                    </div>
+                    <div className="text-center p-2 rounded-lg bg-muted/50">
+                      <p className="text-lg font-bold">{grandTotalBudget > 0 ? ((grandTotalFunded / grandTotalBudget) * 100).toFixed(0) : 0}%</p>
+                      <p className="text-xs text-muted-foreground">% Complete</p>
+                    </div>
+                  </div>
+                </div>
+
+                <Accordion type="multiple" defaultValue={categoryOrder} className="space-y-2">
+                  {categorySummaries.map((cs) => {
+                    const categoryPercent = cs.totalBudget > 0 ? (cs.totalFunded / cs.totalBudget) * 100 : 0;
+                    return (
+                      <AccordionItem key={cs.category} value={cs.category} className="border rounded-lg">
+                        <AccordionTrigger className="px-4 hover:no-underline" data-testid={`accordion-category-${cs.category}`}>
+                          <div className="flex items-center justify-between w-full pr-4">
+                            <span className="font-medium">{SCOPE_OF_WORK_CATEGORY_NAMES[cs.category]}</span>
+                            <div className="flex items-center gap-4">
+                              <div className="w-32">
+                                <Progress value={categoryPercent} className="h-2" />
+                              </div>
+                              <span className="text-sm text-muted-foreground min-w-[100px] text-right">
+                                {formatCurrency(cs.totalFunded)} / {formatCurrency(cs.totalBudget)}
+                              </span>
+                            </div>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="px-0 pb-0">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="pl-4">Item</TableHead>
+                                <TableHead className="text-right">Budget</TableHead>
+                                <TableHead className="text-right">Funded</TableHead>
+                                <TableHead className="text-right pr-4">Remaining</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {cs.items.map((item) => (
+                                <TableRow key={item.id} data-testid={`row-scope-item-${item.id}`}>
+                                  <TableCell className="pl-4 font-medium">{item.itemName}</TableCell>
+                                  <TableCell className="text-right">
+                                    {editingBudget === item.id ? (
+                                      <div className="flex items-center justify-end gap-1">
+                                        <Input
+                                          type="number"
+                                          value={editBudgetValue}
+                                          onChange={(e) => setEditBudgetValue(e.target.value)}
+                                          className="w-24 h-8 text-right"
+                                          autoFocus
+                                          onKeyDown={(e) => {
+                                            if (e.key === "Enter") handleSaveBudget(item.id);
+                                            if (e.key === "Escape") {
+                                              setEditingBudget(null);
+                                              setEditBudgetValue("");
+                                            }
+                                          }}
+                                          data-testid={`input-budget-${item.id}`}
+                                        />
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={() => handleSaveBudget(item.id)}
+                                          disabled={updateBudgetMutation.isPending}
+                                        >
+                                          <CheckCircle2 className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                    ) : (
+                                      <span
+                                        className={canEditBudget ? "cursor-pointer hover:underline" : ""}
+                                        onClick={() => {
+                                          if (canEditBudget) {
+                                            setEditingBudget(item.id);
+                                            setEditBudgetValue(item.budgetAmount.toString());
+                                          }
+                                        }}
+                                        data-testid={`text-budget-${item.id}`}
+                                      >
+                                        {formatCurrency(item.budgetAmount)}
+                                      </span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-right text-emerald-500" data-testid={`text-funded-${item.id}`}>
+                                    {formatCurrency(item.totalFunded)}
+                                  </TableCell>
+                                  <TableCell className="text-right pr-4" data-testid={`text-remaining-${item.id}`}>
+                                    {formatCurrency(item.budgetAmount - item.totalFunded)}
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                              <TableRow className="bg-muted/30 font-medium">
+                                <TableCell className="pl-4">Category Total</TableCell>
+                                <TableCell className="text-right">{formatCurrency(cs.totalBudget)}</TableCell>
+                                <TableCell className="text-right text-emerald-500">{formatCurrency(cs.totalFunded)}</TableCell>
+                                <TableCell className="text-right pr-4">{formatCurrency(cs.totalBudget - cs.totalFunded)}</TableCell>
+                              </TableRow>
+                            </TableBody>
+                          </Table>
+                        </AccordionContent>
+                      </AccordionItem>
+                    );
+                  })}
+                </Accordion>
+
+                <div className="flex justify-end mt-4">
+                  <Dialog open={newDrawOpen} onOpenChange={setNewDrawOpen}>
+                    <DialogTrigger asChild>
+                      <Button data-testid="button-new-draw">
+                        <Plus className="h-4 w-4 mr-2" />
+                        New Draw Request
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle>Request New Draw</DialogTitle>
+                        <DialogDescription>
+                          Enter amounts for each scope item to include in this draw. Maximum available: {formatCurrency(remaining)}
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="drawDescription">Description (optional)</Label>
+                          <Textarea
+                            id="drawDescription"
+                            value={newDrawDescription}
+                            onChange={(e) => setNewDrawDescription(e.target.value)}
+                            placeholder="Describe the work completed for this draw..."
+                            data-testid="input-draw-description"
+                          />
+                        </div>
+
+                        <Separator />
+
+                        <div className="space-y-4">
+                          {categorySummaries.map((cs) => (
+                            <div key={cs.category}>
+                              <h4 className="font-medium text-sm mb-2">{SCOPE_OF_WORK_CATEGORY_NAMES[cs.category]}</h4>
+                              <div className="space-y-2">
+                                {cs.items.map((item) => {
+                                  const remaining = item.budgetAmount - item.totalFunded;
+                                  return (
+                                    <div key={item.id} className="flex items-center justify-between gap-4">
+                                      <div className="flex-1">
+                                        <span className="text-sm">{item.itemName}</span>
+                                        <span className="text-xs text-muted-foreground ml-2">
+                                          (Remaining: {formatCurrency(remaining)})
+                                        </span>
+                                      </div>
+                                      <Input
+                                        type="number"
+                                        min={0}
+                                        max={remaining}
+                                        value={drawLineAmounts[item.id] || ""}
+                                        onChange={(e) => {
+                                          const val = parseInt(e.target.value) || 0;
+                                          setDrawLineAmounts(prev => ({
+                                            ...prev,
+                                            [item.id]: Math.min(val, remaining)
+                                          }));
+                                        }}
+                                        placeholder="0"
+                                        className="w-28 text-right"
+                                        data-testid={`input-draw-line-${item.id}`}
+                                      />
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        <Separator />
+
+                        <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                          <span className="font-medium">Draw Total:</span>
+                          <span className="text-xl font-bold text-primary" data-testid="text-draw-total">
+                            {formatCurrency(newDrawTotal)}
+                          </span>
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => {
+                          setNewDrawOpen(false);
+                          setDrawLineAmounts({});
+                          setNewDrawDescription("");
+                        }}>Cancel</Button>
+                        <Button 
+                          onClick={() => createDrawMutation.mutate({
+                            requestedAmount: newDrawTotal,
+                            description: newDrawDescription,
+                          })}
+                          disabled={newDrawTotal === 0 || createDrawMutation.isPending}
+                          data-testid="button-create-draw"
+                        >
+                          Create Draw Request
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </>
+            )}
           </div>
+        )}
+
+        {activeTab === "draws" && (
+          <>
+            {draws.length === 0 ? (
+              <div className="text-center py-8">
+                <Wallet className="h-10 w-10 mx-auto text-muted-foreground/50 mb-2" />
+                <p className="text-muted-foreground">No draws yet</p>
+                <p className="text-xs text-muted-foreground">Request your first draw when work is completed</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {draws.map((draw) => (
+                  <div 
+                    key={draw.id} 
+                    className="flex items-center justify-between p-3 rounded-lg border bg-card"
+                    data-testid={`card-draw-${draw.id}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-primary/10">
+                        <span className="text-sm font-bold text-primary">#{draw.drawNumber}</span>
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium">{formatCurrency(draw.requestedAmount)}</p>
+                          {getDrawStatusBadge(draw.status)}
+                        </div>
+                        <p className="text-xs text-muted-foreground line-clamp-1">
+                          {draw.description || "No description"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {draw.status === "draft" && (
+                        <>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => submitDrawMutation.mutate(draw.id)}
+                            disabled={submitDrawMutation.isPending}
+                            data-testid={`button-submit-draw-${draw.id}`}
+                          >
+                            <Send className="h-4 w-4 mr-1" />
+                            Submit
+                          </Button>
+                          <Button 
+                            size="icon" 
+                            variant="ghost"
+                            onClick={() => deleteDrawMutation.mutate(draw.id)}
+                            disabled={deleteDrawMutation.isPending}
+                            data-testid={`button-delete-draw-${draw.id}`}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </>
+                      )}
+                      {draw.status === "funded" && draw.fundedDate && (
+                        <span className="text-xs text-muted-foreground">
+                          {format(new Date(draw.fundedDate), "MMM d, yyyy")}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </CardContent>
     </Card>
