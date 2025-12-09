@@ -244,24 +244,15 @@ function MobileMarketAccordionContent({ market }: { market: MarketDetail }) {
   );
 }
 
-interface LinePosition {
-  startX: number;
-  startY: number;
-  endX: number;
-  endY: number;
-}
-
 export function TopMarketsSection({ stateSlug, stateName }: TopMarketsSectionProps) {
   const [metros, setMetros] = useState<Metro[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hoveredMarket, setHoveredMarket] = useState<MarketDetail | null>(null);
   const [selectedMarket, setSelectedMarket] = useState<MarketDetail | null>(null);
-  const [linePosition, setLinePosition] = useState<LinePosition | null>(null);
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   
   const mapRef = useRef<StateMapGlobeHandle>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const badgeRefs = useRef<Map<string, HTMLElement>>(new Map());
 
   const marketsWithDetails = useMemo(() => {
     const enrichedMarkets = getMarketDetails(stateSlug);
@@ -321,39 +312,6 @@ export function TopMarketsSection({ stateSlug, stateName }: TopMarketsSectionPro
     setHoveredMarket(null);
   };
 
-  const updateLinePosition = useCallback(() => {
-    if (!hoveredMarket || !isDesktop || !containerRef.current || !mapRef.current) {
-      setLinePosition(null);
-      return;
-    }
-
-    const badgeElement = badgeRefs.current.get(hoveredMarket.name);
-    if (!badgeElement) {
-      setLinePosition(null);
-      return;
-    }
-
-    const markerPos = mapRef.current.getMarkerScreenPosition(hoveredMarket.name);
-    if (!markerPos) {
-      setLinePosition(null);
-      return;
-    }
-
-    const containerRect = containerRef.current.getBoundingClientRect();
-    const badgeRect = badgeElement.getBoundingClientRect();
-
-    const startX = badgeRect.left + badgeRect.width / 2 - containerRect.left;
-    const startY = badgeRect.top + badgeRect.height / 2 - containerRect.top;
-    const endX = markerPos.x - containerRect.left;
-    const endY = markerPos.y - containerRect.top;
-
-    setLinePosition({ startX, startY, endX, endY });
-  }, [hoveredMarket, isDesktop]);
-
-  useEffect(() => {
-    updateLinePosition();
-  }, [updateLinePosition]);
-
   if (!isLoading && marketsWithDetails.length === 0) {
     return null;
   }
@@ -375,43 +333,6 @@ export function TopMarketsSection({ stateSlug, stateName }: TopMarketsSectionPro
       </div>
 
       <div className="relative" ref={containerRef}>
-        {linePosition && isDesktop && (
-          <svg
-            className="absolute inset-0 pointer-events-none z-20"
-            style={{ overflow: 'visible', width: '100%', height: '100%' }}
-          >
-            <defs>
-              <linearGradient id="line-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.8" />
-                <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0.4" />
-              </linearGradient>
-            </defs>
-            <path
-              d={`M ${linePosition.startX} ${linePosition.startY} Q ${(linePosition.startX + linePosition.endX) / 2} ${Math.min(linePosition.startY, linePosition.endY) - 30} ${linePosition.endX} ${linePosition.endY}`}
-              fill="none"
-              stroke="url(#line-gradient)"
-              strokeWidth="2"
-              strokeDasharray="6 3"
-              className="animate-pulse"
-            />
-            <circle
-              cx={linePosition.startX}
-              cy={linePosition.startY}
-              r="4"
-              fill="hsl(var(--primary))"
-              className="animate-ping"
-              style={{ animationDuration: '1s' }}
-            />
-            <circle
-              cx={linePosition.endX}
-              cy={linePosition.endY}
-              r="6"
-              fill="hsl(var(--primary))"
-              opacity="0.6"
-            />
-          </svg>
-        )}
-        
         <div className={`grid gap-8 items-start transition-all duration-300 ${
           selectedMarket ? 'lg:grid-cols-2' : 'lg:grid-cols-2'
         }`}>
@@ -430,28 +351,22 @@ export function TopMarketsSection({ stateSlug, stateName }: TopMarketsSectionPro
               
               <div className="mt-4 flex flex-wrap gap-2 justify-center">
                 {marketsWithDetails.map((market) => (
-                  <span
+                  <Badge
                     key={market.id}
-                    ref={(el: HTMLSpanElement | null) => {
-                      if (el) badgeRefs.current.set(market.name, el);
-                    }}
+                    variant={selectedMarket?.id === market.id ? "default" : hoveredMarket?.id === market.id ? "secondary" : "outline"}
+                    className="cursor-pointer transition-all"
+                    onMouseEnter={() => setHoveredMarket(market)}
+                    onMouseLeave={() => setHoveredMarket(null)}
+                    onClick={() => handleCardClick(market)}
+                    data-testid={`badge-market-${market.name.toLowerCase().replace(/\s+/g, '-')}`}
                   >
-                    <Badge
-                      variant={selectedMarket?.id === market.id ? "default" : hoveredMarket?.id === market.id ? "secondary" : "outline"}
-                      className="cursor-pointer transition-all"
-                      onMouseEnter={() => setHoveredMarket(market)}
-                      onMouseLeave={() => setHoveredMarket(null)}
-                      onClick={() => handleCardClick(market)}
-                      data-testid={`badge-market-${market.name.toLowerCase().replace(/\s+/g, '-')}`}
-                    >
-                      <span className={`w-2 h-2 rounded-full mr-1.5 ${
-                        market.rank === 1 ? 'bg-primary' : 
-                        market.rank === 2 ? 'bg-primary/80' : 
-                        'bg-primary/60'
-                      }`} />
-                      {market.name}
-                    </Badge>
-                  </span>
+                    <span className={`w-2 h-2 rounded-full mr-1.5 ${
+                      market.rank === 1 ? 'bg-primary' : 
+                      market.rank === 2 ? 'bg-primary/80' : 
+                      'bg-primary/60'
+                    }`} />
+                    {market.name}
+                  </Badge>
                 ))}
               </div>
             </CardContent>

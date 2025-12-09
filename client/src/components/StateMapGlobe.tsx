@@ -69,9 +69,9 @@ export const StateMapGlobe = forwardRef<StateMapGlobeHandle, StateMapGlobeProps>
 
   const boundary = STATE_BOUNDARIES[stateSlug];
 
-  const { pathData, viewBox, markerPositions, bounds } = useMemo(() => {
+  const { pathData, viewBox, markerPositions, bounds, overlappingMarkers } = useMemo(() => {
     if (!boundary || !boundary.coordinates || boundary.coordinates.length === 0) {
-      return { pathData: "", viewBox: "0 0 100 100", markerPositions: [], bounds: null };
+      return { pathData: "", viewBox: "0 0 100 100", markerPositions: [], bounds: null, overlappingMarkers: new Set<string>() };
     }
 
     const coords = boundary.coordinates;
