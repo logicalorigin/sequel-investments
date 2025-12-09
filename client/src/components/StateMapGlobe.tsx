@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback, forwardRef, useImperativeHandle } from "react";
 import { STATE_BOUNDARIES } from "@/data/stateBoundaries";
 import type { MarketDetail } from "@/data/marketDetails";
 
@@ -8,6 +8,10 @@ export interface MarkerPosition {
   y: number;
   screenX?: number;
   screenY?: number;
+}
+
+export interface StateMapGlobeHandle {
+  getMarkerScreenPosition: (marketName: string) => { x: number; y: number } | null;
 }
 
 interface StateMapGlobeProps {
@@ -22,14 +26,7 @@ interface StateMapGlobeProps {
   className?: string;
 }
 
-const US_BOUNDS = {
-  minLat: 24.396308,
-  maxLat: 49.384358,
-  minLng: -125.0,
-  maxLng: -66.93457,
-};
-
-export function StateMapGlobe({
+export const StateMapGlobe = forwardRef<StateMapGlobeHandle, StateMapGlobeProps>(function StateMapGlobe({
   stateSlug,
   stateName,
   markets = [],
@@ -38,13 +35,28 @@ export function StateMapGlobe({
   onMarkerClick,
   onMarkerHover,
   className = "",
-}: StateMapGlobeProps) {
+}, ref) {
   const [isAnimated, setIsAnimated] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
-  const [animatedViewBox, setAnimatedViewBox] = useState<string | null>(null);
-  const [isZoomed, setIsZoomed] = useState(false);
-  const animationRef = useRef<number | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+  const markerRefs = useRef<Map<string, SVGGElement>>(new Map());
+
+  const getMarkerScreenPosition = useCallback((marketName: string) => {
+    const markerElement = markerRefs.current.get(marketName);
+    if (!markerElement || !svgRef.current) return null;
+
+    const svgRect = svgRef.current.getBoundingClientRect();
+    const markerRect = markerElement.getBoundingClientRect();
+    
+    return {
+      x: markerRect.left + markerRect.width / 2,
+      y: markerRect.top + markerRect.height / 2,
+    };
+  }, []);
+
+  useImperativeHandle(ref, () => ({
+    getMarkerScreenPosition,
+  }), [getMarkerScreenPosition]);
 
   useEffect(() => {
     const timer = setTimeout(() => setIsAnimated(true), 100);
@@ -57,9 +69,9 @@ export function StateMapGlobe({
 
   const boundary = STATE_BOUNDARIES[stateSlug];
 
-  const { pathData, viewBox, markerPositions, stateCenter, usBackgroundPaths, bounds } = useMemo(() => {
+  const { pathData, viewBox, markerPositions, bounds } = useMemo(() => {
     if (!boundary || !boundary.coordinates || boundary.coordinates.length === 0) {
-      return { pathData: "", viewBox: "0 0 100 100", markerPositions: [], stateCenter: { x: 50, y: 50 }, usBackgroundPaths: [], bounds: null };
+      return { pathData: "", viewBox: "0 0 100 100", markerPositions: [], bounds: null };
     }
 
     const coords = boundary.coordinates;
@@ -71,9 +83,6 @@ export function StateMapGlobe({
     const maxLat = Math.max(...lats);
     const minLng = Math.min(...lngs);
     const maxLng = Math.max(...lngs);
-    
-    const centerLat = (minLat + maxLat) / 2;
-    const centerLng = (minLng + maxLng) / 2;
     
     const latRange = maxLat - minLat;
     const lngRange = maxLng - minLng;
@@ -103,76 +112,34 @@ export function StateMapGlobe({
       y: toSvgY(market.lat),
     }));
 
-    const bgPaths: { slug: string; path: string }[] = [];
-    Object.entries(STATE_BOUNDARIES).forEach(([slug, state]) => {
-      if (slug === stateSlug || !state.coordinates || state.coordinates.length === 0) return;
-      
-      const stateCoords = state.coordinates;
-      const stateLats = stateCoords.map(c => c.lat);
-      const stateLngs = stateCoords.map(c => c.lng);
-      
-      const stateMinLat = Math.min(...stateLats);
-      const stateMaxLat = Math.max(...stateLats);
-      const stateMinLng = Math.min(...stateLngs);
-      const stateMaxLng = Math.max(...stateLngs);
-      
-      const overlapLat = stateMaxLat >= paddedMinLat && stateMinLat <= (paddedMinLat + paddedLatRange);
-      const overlapLng = stateMaxLng >= paddedMinLng && stateMinLng <= (paddedMinLng + paddedLngRange);
-      
-      if (!overlapLat || !overlapLng) return;
-      
-      const points = stateCoords.map((c, i) => {
-        const x = toSvgX(c.lng);
-        const y = toSvgY(c.lat);
-        return i === 0 ? `M ${x} ${y}` : `L ${x} ${y}`;
-      });
-      points.push("Z");
-      
-      bgPaths.push({
-        slug,
-        path: points.join(" "),
-      });
-    });
-
     return {
       pathData: pathPoints.join(" "),
       viewBox: `0 0 ${width} ${height}`,
       markerPositions: markerPos,
-      stateCenter: { x: toSvgX(centerLng), y: toSvgY(centerLat) },
-      usBackgroundPaths: bgPaths,
       bounds: { width, height },
     };
   }, [boundary, markets, stateSlug]);
 
-  useEffect(() => {
-    if (animationRef.current) {
-      cancelAnimationFrame(animationRef.current);
+  const zoomTransform = useMemo(() => {
+    if (!selectedMarket || !bounds) {
+      return { transform: "translate(0, 0) scale(1)", transformOrigin: "center center" };
     }
 
-    if (selectedMarket && bounds) {
-      const targetMarker = markerPositions.find(m => m.market.name === selectedMarket.name);
-      if (targetMarker) {
-        const zoomLevel = 2.5;
-        const zoomedWidth = bounds.width / zoomLevel;
-        const zoomedHeight = bounds.height / zoomLevel;
-        const targetX = targetMarker.x - zoomedWidth / 2;
-        const targetY = targetMarker.y - zoomedHeight / 2;
-        
-        const clampedX = Math.max(0, Math.min(targetX, bounds.width - zoomedWidth));
-        const clampedY = Math.max(0, Math.min(targetY, bounds.height - zoomedHeight));
-        
-        setAnimatedViewBox(`${clampedX} ${clampedY} ${zoomedWidth} ${zoomedHeight}`);
-        setIsZoomed(true);
-      }
-    } else {
-      setAnimatedViewBox(null);
-      setIsZoomed(false);
+    const targetMarker = markerPositions.find(m => m.market.name === selectedMarket.name);
+    if (!targetMarker) {
+      return { transform: "translate(0, 0) scale(1)", transformOrigin: "center center" };
     }
+
+    const zoomLevel = 2.0;
+    const centerX = bounds.width / 2;
+    const centerY = bounds.height / 2;
     
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
+    const translateX = (centerX - targetMarker.x) * zoomLevel;
+    const translateY = (centerY - targetMarker.y) * zoomLevel;
+
+    return {
+      transform: `translate(${translateX}px, ${translateY}px) scale(${zoomLevel})`,
+      transformOrigin: `${centerX}px ${centerY}px`,
     };
   }, [selectedMarket, bounds, markerPositions]);
 
@@ -205,11 +172,11 @@ export function StateMapGlobe({
         >
           <svg
             ref={svgRef}
-            viewBox={animatedViewBox || viewBox}
+            viewBox={viewBox}
             className="w-full h-auto"
             style={{
               filter: "drop-shadow(0 25px 40px rgba(0, 0, 0, 0.5))",
-              transition: "all 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
+              overflow: "hidden",
             }}
           >
             <defs>
@@ -225,148 +192,165 @@ export function StateMapGlobe({
               <filter id={`marker-glow-${stateSlug}`} x="-100%" y="-100%" width="300%" height="300%">
                 <feDropShadow dx="0" dy="0" stdDeviation="2" floodColor="hsl(var(--primary))" floodOpacity="0.8" />
               </filter>
+
+              <clipPath id={`map-clip-${stateSlug}`}>
+                <rect x="0" y="0" width={bounds?.width || 500} height={bounds?.height || 500} />
+              </clipPath>
             </defs>
 
-            <rect x="0" y="0" width="100%" height="100%" fill="#e8e8e8" />
-            
-            <path
-              d={pathData}
-              fill="none"
-              stroke="#a07020"
-              strokeWidth="3.5"
-              strokeLinejoin="round"
-              filter={`url(#focus-state-shadow-${stateSlug})`}
-              className="transition-all duration-300"
-            />
-            
-            {hasLoaded && markerPositions.map(({ market, x, y }, index) => {
-              const isSelected = selectedMarket?.name === market.name;
-              const isHovered = hoveredMarket?.name === market.name;
-              
-              const population = market.demographics?.population || 500000;
-              const minRadius = 6;
-              let sizeMultiplier = 1;
-              if (population >= 2000000) sizeMultiplier = 1.8;
-              else if (population >= 1000000) sizeMultiplier = 1.5;
-              else if (population >= 500000) sizeMultiplier = 1.2;
-              
-              const baseRadius = minRadius * sizeMultiplier;
-              const radius = isSelected ? baseRadius * 1.4 : isHovered ? baseRadius * 1.2 : baseRadius;
-              const ringWidth = radius * 0.4;
-              const outerRadius = radius + ringWidth;
-              const delay = index * 0.1;
-              
-              return (
-                <g 
-                  key={market.name}
-                  className="cursor-pointer"
-                  onClick={() => onMarkerClick?.(market)}
-                  onMouseEnter={() => onMarkerHover?.(market)}
-                  onMouseLeave={() => onMarkerHover?.(null)}
-                  data-testid={`marker-${market.id || market.name.toLowerCase().replace(/\s+/g, '-')}`}
-                >
-                  {(isSelected || isHovered) && (
-                    <>
-                      <circle
-                        cx={x}
-                        cy={y}
-                        r={outerRadius * 2.2}
-                        fill="none"
-                        stroke="hsl(var(--primary))"
-                        strokeWidth="1"
-                        opacity="0.3"
-                        className="animate-ping"
-                        style={{ animationDuration: "1.5s" }}
-                      />
-                      <circle
-                        cx={x}
-                        cy={y}
-                        r={outerRadius * 1.6}
-                        fill="none"
-                        stroke="hsl(var(--primary))"
-                        strokeWidth="1.5"
-                        opacity="0.5"
-                        className="animate-ping"
-                        style={{ animationDuration: "2s", animationDelay: "0.3s" }}
-                      />
-                    </>
-                  )}
+            <g clipPath={`url(#map-clip-${stateSlug})`}>
+              <g
+                id="zoom-content"
+                style={{
+                  transition: "transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
+                  ...zoomTransform,
+                }}
+              >
+                <rect x="0" y="0" width="100%" height="100%" fill="#e8e8e8" />
+                
+                <path
+                  d={pathData}
+                  fill="none"
+                  stroke="#a07020"
+                  strokeWidth="3.5"
+                  strokeLinejoin="round"
+                  filter={`url(#focus-state-shadow-${stateSlug})`}
+                  className="transition-all duration-300"
+                />
+                
+                {hasLoaded && markerPositions.map(({ market, x, y }, index) => {
+                  const isSelected = selectedMarket?.name === market.name;
+                  const isHovered = hoveredMarket?.name === market.name;
                   
-                  <circle
-                    cx={x}
-                    cy={y}
-                    r={outerRadius + 4}
-                    fill="hsl(var(--primary) / 0.15)"
-                    className="transition-all duration-300"
-                    style={{
-                      filter: isSelected || isHovered ? "blur(4px)" : "blur(3px)",
-                      opacity: isSelected ? 0.8 : isHovered ? 0.6 : 0.4,
-                      animation: `fadeIn 0.5s ease-out ${delay}s both`,
-                    }}
-                  />
+                  const population = market.demographics?.population || 500000;
+                  const minRadius = 6;
+                  let sizeMultiplier = 1;
+                  if (population >= 2000000) sizeMultiplier = 1.8;
+                  else if (population >= 1000000) sizeMultiplier = 1.5;
+                  else if (population >= 500000) sizeMultiplier = 1.2;
                   
-                  <circle
-                    cx={x}
-                    cy={y}
-                    r={outerRadius}
-                    fill="white"
-                    className="transition-all duration-300"
-                    style={{
-                      filter: isSelected || isHovered 
-                        ? "drop-shadow(0 3px 8px rgba(0,0,0,0.35))" 
-                        : "drop-shadow(0 2px 4px rgba(0,0,0,0.25))",
-                      animation: `fadeIn 0.5s ease-out ${delay}s both`,
-                    }}
-                  />
+                  const baseRadius = minRadius * sizeMultiplier;
+                  const radius = isSelected ? baseRadius * 1.4 : isHovered ? baseRadius * 1.2 : baseRadius;
+                  const ringWidth = radius * 0.4;
+                  const outerRadius = radius + ringWidth;
+                  const delay = index * 0.1;
                   
-                  <circle
-                    cx={x}
-                    cy={y}
-                    r={radius}
-                    fill="hsl(var(--primary))"
-                    className="transition-all duration-300"
-                    style={{
-                      filter: isSelected || isHovered 
-                        ? "drop-shadow(0 0 6px hsl(var(--primary) / 0.6))" 
-                        : undefined,
-                      animation: `fadeIn 0.5s ease-out ${delay}s both`,
-                    }}
-                  />
-                  
-                  {market.rank && market.rank <= 5 && (
-                    <text
-                      x={x}
-                      y={y}
-                      textAnchor="middle"
-                      dominantBaseline="central"
-                      className="fill-primary-foreground font-bold text-[8px] pointer-events-none select-none"
-                      style={{
-                        animation: `fadeIn 0.5s ease-out ${delay + 0.2}s both`,
+                  return (
+                    <g 
+                      key={market.name}
+                      ref={(el) => {
+                        if (el) markerRefs.current.set(market.name, el);
                       }}
+                      className="cursor-pointer"
+                      onClick={() => onMarkerClick?.(market)}
+                      onMouseEnter={() => onMarkerHover?.(market)}
+                      onMouseLeave={() => onMarkerHover?.(null)}
+                      data-testid={`marker-${market.id || market.name.toLowerCase().replace(/\s+/g, '-')}`}
                     >
-                      {market.rank}
-                    </text>
-                  )}
-                  
-                  <text
-                    x={x}
-                    y={y - outerRadius - 8}
-                    textAnchor="middle"
-                    className={`font-semibold text-[11px] pointer-events-none select-none transition-all duration-300 ${
-                      isSelected || isHovered 
-                        ? 'fill-primary opacity-100' 
-                        : 'fill-foreground opacity-80'
-                    }`}
-                    style={{
-                      filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.8))",
-                      animation: `fadeIn 0.5s ease-out ${delay + 0.3}s both`,
-                    }}
-                  >
-                    {market.name}
-                  </text>
-                </g>
-              );
-            })}
+                      {(isSelected || isHovered) && (
+                        <>
+                          <circle
+                            cx={x}
+                            cy={y}
+                            r={outerRadius * 2.2}
+                            fill="none"
+                            stroke="hsl(var(--primary))"
+                            strokeWidth="1"
+                            opacity="0.3"
+                            className="animate-ping"
+                            style={{ animationDuration: "1.5s" }}
+                          />
+                          <circle
+                            cx={x}
+                            cy={y}
+                            r={outerRadius * 1.6}
+                            fill="none"
+                            stroke="hsl(var(--primary))"
+                            strokeWidth="1.5"
+                            opacity="0.5"
+                            className="animate-ping"
+                            style={{ animationDuration: "2s", animationDelay: "0.3s" }}
+                          />
+                        </>
+                      )}
+                      
+                      <circle
+                        cx={x}
+                        cy={y}
+                        r={outerRadius + 4}
+                        fill="hsl(var(--primary) / 0.15)"
+                        className="transition-all duration-300"
+                        style={{
+                          filter: isSelected || isHovered ? "blur(4px)" : "blur(3px)",
+                          opacity: isSelected ? 0.8 : isHovered ? 0.6 : 0.4,
+                          animation: `fadeIn 0.5s ease-out ${delay}s both`,
+                        }}
+                      />
+                      
+                      <circle
+                        cx={x}
+                        cy={y}
+                        r={outerRadius}
+                        fill="white"
+                        className="transition-all duration-300"
+                        style={{
+                          filter: isSelected || isHovered 
+                            ? "drop-shadow(0 3px 8px rgba(0,0,0,0.35))" 
+                            : "drop-shadow(0 2px 4px rgba(0,0,0,0.25))",
+                          animation: `fadeIn 0.5s ease-out ${delay}s both`,
+                        }}
+                      />
+                      
+                      <circle
+                        cx={x}
+                        cy={y}
+                        r={radius}
+                        fill="hsl(var(--primary))"
+                        className="transition-all duration-300"
+                        style={{
+                          filter: isSelected || isHovered 
+                            ? "drop-shadow(0 0 6px hsl(var(--primary) / 0.6))" 
+                            : undefined,
+                          animation: `fadeIn 0.5s ease-out ${delay}s both`,
+                        }}
+                      />
+                      
+                      {market.rank && market.rank <= 5 && (
+                        <text
+                          x={x}
+                          y={y}
+                          textAnchor="middle"
+                          dominantBaseline="central"
+                          className="fill-primary-foreground font-bold text-[8px] pointer-events-none select-none"
+                          style={{
+                            animation: `fadeIn 0.5s ease-out ${delay + 0.2}s both`,
+                          }}
+                        >
+                          {market.rank}
+                        </text>
+                      )}
+                      
+                      <text
+                        x={x}
+                        y={y - outerRadius - 8}
+                        textAnchor="middle"
+                        className={`font-semibold text-[11px] pointer-events-none select-none transition-all duration-300 ${
+                          isSelected || isHovered 
+                            ? 'fill-primary opacity-100' 
+                            : 'fill-foreground opacity-80'
+                        }`}
+                        style={{
+                          filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.8))",
+                          animation: `fadeIn 0.5s ease-out ${delay + 0.3}s both`,
+                        }}
+                      >
+                        {market.name}
+                      </text>
+                    </g>
+                  );
+                })}
+              </g>
+            </g>
           </svg>
         </div>
       </div>
@@ -393,4 +377,4 @@ export function StateMapGlobe({
       `}</style>
     </div>
   );
-}
+});

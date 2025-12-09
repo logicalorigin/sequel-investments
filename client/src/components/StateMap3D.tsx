@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useRef } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { STATE_BOUNDARIES } from "@/data/stateBoundaries";
 import type { MarketDetail } from "@/data/marketDetails";
 
@@ -26,9 +26,6 @@ export function StateMap3D({
   showMarkers = true,
 }: StateMap3DProps) {
   const boundary = STATE_BOUNDARIES[stateSlug];
-  const [animatedViewBox, setAnimatedViewBox] = useState<string | null>(null);
-  const [isZoomed, setIsZoomed] = useState(false);
-  const animationRef = useRef<number | null>(null);
 
   const { focusPathData, backgroundPaths, viewBox, markerPositions, bounds } = useMemo(() => {
     if (!boundary || !boundary.coordinates || boundary.coordinates.length === 0) {
@@ -113,35 +110,26 @@ export function StateMap3D({
     };
   }, [boundary, markets, stateSlug]);
 
-  useEffect(() => {
-    if (animationRef.current) {
-      cancelAnimationFrame(animationRef.current);
+  const zoomTransform = useMemo(() => {
+    if (!selectedMarket || !bounds) {
+      return { transform: "translate(0, 0) scale(1)", transformOrigin: "center center" };
     }
 
-    if (selectedMarket && bounds) {
-      const targetMarker = markerPositions.find(m => m.market.name === selectedMarket.name);
-      if (targetMarker) {
-        const zoomLevel = 2.5;
-        const zoomedWidth = bounds.width / zoomLevel;
-        const zoomedHeight = bounds.height / zoomLevel;
-        const targetX = targetMarker.x - zoomedWidth / 2;
-        const targetY = targetMarker.y - zoomedHeight / 2;
-        
-        const clampedX = Math.max(0, Math.min(targetX, bounds.width - zoomedWidth));
-        const clampedY = Math.max(0, Math.min(targetY, bounds.height - zoomedHeight));
-        
-        setAnimatedViewBox(`${clampedX} ${clampedY} ${zoomedWidth} ${zoomedHeight}`);
-        setIsZoomed(true);
-      }
-    } else {
-      setAnimatedViewBox(null);
-      setIsZoomed(false);
+    const targetMarker = markerPositions.find(m => m.market.name === selectedMarket.name);
+    if (!targetMarker) {
+      return { transform: "translate(0, 0) scale(1)", transformOrigin: "center center" };
     }
+
+    const zoomLevel = 2.0;
+    const centerX = bounds.width / 2;
+    const centerY = bounds.height / 2;
     
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
+    const translateX = (centerX - targetMarker.x) * zoomLevel;
+    const translateY = (centerY - targetMarker.y) * zoomLevel;
+
+    return {
+      transform: `translate(${translateX}px, ${translateY}px) scale(${zoomLevel})`,
+      transformOrigin: `${centerX}px ${centerY}px`,
     };
   }, [selectedMarket, bounds, markerPositions]);
 
@@ -169,11 +157,11 @@ export function StateMap3D({
           }}
         >
           <svg
-            viewBox={animatedViewBox || viewBox}
+            viewBox={viewBox}
             className="w-full h-auto"
             style={{
               filter: "drop-shadow(0 20px 30px rgba(0, 0, 0, 0.4)) drop-shadow(0 10px 15px rgba(0, 0, 0, 0.3))",
-              transition: "all 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
+              overflow: "hidden",
             }}
           >
             <defs>
@@ -185,104 +173,117 @@ export function StateMap3D({
               <filter id={`focus-state-shadow-${stateSlug}`} x="-50%" y="-50%" width="200%" height="200%">
                 <feDropShadow dx="0" dy="2" stdDeviation="2" floodColor="rgba(0,0,0,0.2)" />
               </filter>
+
+              <clipPath id={`map-clip-3d-${stateSlug}`}>
+                <rect x="0" y="0" width={bounds?.width || 500} height={bounds?.height || 500} />
+              </clipPath>
             </defs>
             
-            <rect x="0" y="0" width="100%" height="100%" fill="#e8e8e8" />
-            
-            <path
-              d={focusPathData}
-              fill="none"
-              stroke="#a07020"
-              strokeWidth="3.5"
-              strokeLinejoin="round"
-              filter={`url(#focus-state-shadow-${stateSlug})`}
-            />
-            
-            {showMarkers && markerPositions.map(({ market, x, y }) => {
-              const isSelected = selectedMarket?.name === market.name;
-              const isHovered = hoveredMarket?.name === market.name;
-              
-              const population = market.demographics?.population || 500000;
-              const minRadius = bounds ? Math.min(bounds.width, bounds.height) * 0.012 : 4;
-              let sizeMultiplier = 1;
-              if (population >= 2000000) sizeMultiplier = 1.8;
-              else if (population >= 1000000) sizeMultiplier = 1.5;
-              else if (population >= 500000) sizeMultiplier = 1.2;
-              
-              const baseRadius = minRadius * sizeMultiplier;
-              const radius = isSelected ? baseRadius * 1.4 : isHovered ? baseRadius * 1.2 : baseRadius;
-              const ringWidth = radius * 0.35;
-              const outerRadius = radius + ringWidth;
-              
-              return (
-                <g 
-                  key={market.name}
-                  className="cursor-pointer"
-                  onClick={() => onMarkerClick?.(market)}
-                  onMouseEnter={() => onMarkerHover?.(market)}
-                  onMouseLeave={() => onMarkerHover?.(null)}
-                  data-testid={`marker-${market.id}`}
-                >
-                  <circle
-                    cx={x}
-                    cy={y}
-                    r={outerRadius + 3}
-                    fill="hsl(var(--primary) / 0.15)"
-                    className="transition-all duration-200"
-                    style={{
-                      filter: isSelected || isHovered 
-                        ? "blur(3px)" 
-                        : "blur(2px)",
-                      opacity: isSelected ? 0.8 : isHovered ? 0.6 : 0.4,
-                    }}
-                  />
+            <g clipPath={`url(#map-clip-3d-${stateSlug})`}>
+              <g
+                id="zoom-content-3d"
+                style={{
+                  transition: "transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
+                  ...zoomTransform,
+                }}
+              >
+                <rect x="0" y="0" width="100%" height="100%" fill="#e8e8e8" />
+                
+                <path
+                  d={focusPathData}
+                  fill="none"
+                  stroke="#a07020"
+                  strokeWidth="3.5"
+                  strokeLinejoin="round"
+                  filter={`url(#focus-state-shadow-${stateSlug})`}
+                />
+                
+                {showMarkers && markerPositions.map(({ market, x, y }) => {
+                  const isSelected = selectedMarket?.name === market.name;
+                  const isHovered = hoveredMarket?.name === market.name;
                   
-                  <circle
-                    cx={x}
-                    cy={y}
-                    r={outerRadius}
-                    fill="white"
-                    className="transition-all duration-200"
-                    style={{
-                      filter: isSelected || isHovered 
-                        ? "drop-shadow(0 2px 6px rgba(0,0,0,0.3))" 
-                        : "drop-shadow(0 1px 3px rgba(0,0,0,0.2))",
-                    }}
-                  />
+                  const population = market.demographics?.population || 500000;
+                  const minRadius = bounds ? Math.min(bounds.width, bounds.height) * 0.012 : 4;
+                  let sizeMultiplier = 1;
+                  if (population >= 2000000) sizeMultiplier = 1.8;
+                  else if (population >= 1000000) sizeMultiplier = 1.5;
+                  else if (population >= 500000) sizeMultiplier = 1.2;
                   
-                  <circle
-                    cx={x}
-                    cy={y}
-                    r={radius}
-                    fill="hsl(var(--primary))"
-                    className="transition-all duration-200"
-                    style={{
-                      filter: isSelected || isHovered 
-                        ? "drop-shadow(0 0 4px hsl(var(--primary) / 0.6))" 
-                        : undefined,
-                    }}
-                  />
+                  const baseRadius = minRadius * sizeMultiplier;
+                  const radius = isSelected ? baseRadius * 1.4 : isHovered ? baseRadius * 1.2 : baseRadius;
+                  const ringWidth = radius * 0.35;
+                  const outerRadius = radius + ringWidth;
                   
-                  {(isSelected || isHovered) && (
-                    <text
-                      x={x}
-                      y={y - outerRadius - 6}
-                      textAnchor="middle"
-                      className="fill-foreground text-[10px] font-medium pointer-events-none"
-                      style={{ 
-                        filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.8))",
-                      }}
+                  return (
+                    <g 
+                      key={market.name}
+                      className="cursor-pointer"
+                      onClick={() => onMarkerClick?.(market)}
+                      onMouseEnter={() => onMarkerHover?.(market)}
+                      onMouseLeave={() => onMarkerHover?.(null)}
+                      data-testid={`marker-${market.id}`}
                     >
-                      {market.name}
-                    </text>
-                  )}
-                </g>
-              );
-            })}
+                      <circle
+                        cx={x}
+                        cy={y}
+                        r={outerRadius + 3}
+                        fill="hsl(var(--primary) / 0.15)"
+                        className="transition-all duration-200"
+                        style={{
+                          filter: isSelected || isHovered 
+                            ? "blur(3px)" 
+                            : "blur(2px)",
+                          opacity: isSelected ? 0.8 : isHovered ? 0.6 : 0.4,
+                        }}
+                      />
+                      
+                      <circle
+                        cx={x}
+                        cy={y}
+                        r={outerRadius}
+                        fill="white"
+                        className="transition-all duration-200"
+                        style={{
+                          filter: isSelected || isHovered 
+                            ? "drop-shadow(0 2px 6px rgba(0,0,0,0.3))" 
+                            : "drop-shadow(0 1px 3px rgba(0,0,0,0.2))",
+                        }}
+                      />
+                      
+                      <circle
+                        cx={x}
+                        cy={y}
+                        r={radius}
+                        fill="hsl(var(--primary))"
+                        className="transition-all duration-200"
+                        style={{
+                          filter: isSelected || isHovered 
+                            ? "drop-shadow(0 0 4px hsl(var(--primary) / 0.6))" 
+                            : undefined,
+                        }}
+                      />
+                      
+                      {(isSelected || isHovered) && (
+                        <text
+                          x={x}
+                          y={y - outerRadius - 6}
+                          textAnchor="middle"
+                          className="fill-foreground text-[10px] font-medium pointer-events-none"
+                          style={{ 
+                            filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.8))",
+                          }}
+                        >
+                          {market.name}
+                        </text>
+                      )}
+                    </g>
+                  );
+                })}
+              </g>
+            </g>
           </svg>
         </div>
       </div>
-      
     </div>
   );
 }
