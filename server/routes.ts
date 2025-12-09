@@ -1369,6 +1369,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get all photos for a loan (aggregated from all draws) - for admin photo review
+  app.get("/api/serviced-loans/:loanId/all-photos", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      // Only staff/admin can view all photos for a loan
+      if (user?.role === "borrower") {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const loan = await storage.getServicedLoan(req.params.loanId);
+      if (!loan) {
+        return res.status(404).json({ error: "Loan not found" });
+      }
+      
+      // Get all draws for this loan
+      const draws = await storage.getLoanDraws(loan.id);
+      
+      // Get photos for each draw
+      const allPhotos: any[] = [];
+      for (const draw of draws) {
+        const photos = await storage.getDrawPhotos(draw.id);
+        allPhotos.push(...photos.map(photo => ({
+          ...photo,
+          drawNumber: draw.drawNumber,
+          drawStatus: draw.status,
+        })));
+      }
+      
+      return res.json(allPhotos);
+    } catch (error) {
+      console.error("Error fetching all loan photos:", error);
+      return res.status(500).json({ error: "Failed to fetch photos" });
+    }
+  });
+  
   // Get property location for a loan
   app.get("/api/serviced-loans/:loanId/property-location", isAuthenticated, async (req: any, res) => {
     try {
