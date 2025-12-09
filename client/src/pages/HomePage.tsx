@@ -284,10 +284,10 @@ export default function HomePage() {
               </div>
               
               {/* Mobile: Compact inline funded badge - bottom left */}
-              <div className="sm:hidden absolute bottom-6 left-2 bg-card/95 backdrop-blur-sm rounded-md shadow-md px-2 py-1 border flex items-center gap-1.5" data-testid="card-funded-mobile">
-                <CheckCircle2 className="h-3 w-3 text-green-500 shrink-0" />
-                <span className="text-[10px] font-semibold">{activeSlide.loanAmount}</span>
-                <span className="text-[10px] text-muted-foreground">in {activeSlide.closedIn}</span>
+              <div className="sm:hidden absolute bottom-10 left-3 bg-card/95 backdrop-blur-sm rounded-md shadow-md px-2.5 py-1.5 border flex items-center gap-1.5 z-10" data-testid="card-funded-mobile">
+                <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                <span className="text-xs font-semibold">{activeSlide.loanAmount}</span>
+                <span className="text-xs text-muted-foreground">in {activeSlide.closedIn}</span>
               </div>
             </div>
           </div>
