@@ -549,8 +549,8 @@ export default function DSCRAnalyzerPage() {
 
       <main className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-          {/* Left Column - Inputs (order-last on mobile so results appears first) */}
-          <div className="md:col-span-2 space-y-4 order-last md:order-first">
+          {/* Left Column - Inputs */}
+          <div className="md:col-span-2 space-y-4">
             {/* Property & Transaction Type - Condensed */}
             <Card>
               <CardContent className="pt-3 sm:pt-4 space-y-3 sm:space-y-4">
@@ -906,10 +906,10 @@ export default function DSCRAnalyzerPage() {
             </div>
           </div>
 
-          {/* Results Panel - Right Column */}
+          {/* Results Panel - Right Column (sticky only on desktop) */}
           <div>
             <Card 
-              className="sticky top-4 border transition-colors bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20"
+              className="md:sticky md:top-4 border transition-colors bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20"
               data-testid="card-results"
             >
               <CardHeader className="pb-2 pt-3">

@@ -469,8 +469,8 @@ export default function ConstructionAnalyzerPage() {
 
       <main className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-          {/* Inputs column - order-last on mobile so results appears first */}
-          <div className="md:col-span-2 space-y-4 order-last md:order-first">
+          {/* Inputs column */}
+          <div className="md:col-span-2 space-y-4">
             {/* Property Type - Condensed Single Row */}
             <Card>
               <CardContent className="pt-3 sm:pt-4">
@@ -745,10 +745,10 @@ export default function ConstructionAnalyzerPage() {
 
           </div>
 
-          {/* Results Panel */}
+          {/* Results Panel (sticky only on desktop) */}
           <div>
             <Card 
-              className={`sticky top-4 border transition-colors ${
+              className={`md:sticky md:top-4 border transition-colors ${
                 results.roi >= 15 
                   ? "bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20"
                   : results.roi >= 10
