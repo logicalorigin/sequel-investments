@@ -259,8 +259,8 @@ export function CurrencySliderInput({
   
   return (
     <div className="bg-gray-900/90 rounded-xl p-4 border border-gray-700 space-y-2">
-      <div className="flex items-center justify-between">
-        <label className="text-amber-500 text-xs font-medium uppercase tracking-wide">{label}</label>
+      <div className="flex items-center justify-between gap-2">
+        <label className="text-amber-500 text-xs font-medium uppercase tracking-wide whitespace-nowrap">{label}</label>
         <div className="flex items-center">
           <DollarSign className="w-4 h-4 text-amber-400 mr-1" />
           <input
@@ -354,9 +354,8 @@ export function PercentageSlider({
         data-testid={testId}
       />
       
-      <div className="flex items-center justify-between">
-        <span className="text-amber-400/50 text-xs">{min}%</span>
-        {calculatedAmount !== undefined && (
+      {calculatedAmount !== undefined && (
+        <div className="flex items-center justify-center">
           <motion.span 
             className="text-amber-500 text-sm font-medium"
             key={calculatedAmount}
@@ -365,9 +364,8 @@ export function PercentageSlider({
           >
             = ${formatCurrencyDisplay(calculatedAmount)} down
           </motion.span>
-        )}
-        <span className="text-amber-400/50 text-xs">{max}%</span>
-      </div>
+        </div>
+      )}
       
       {helperText && (
         <p className="text-amber-400/60 text-xs text-center">{helperText}</p>
