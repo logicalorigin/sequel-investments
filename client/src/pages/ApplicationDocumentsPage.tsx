@@ -405,16 +405,17 @@ export default function ApplicationDocumentsPage() {
                   <CardTitle className="text-lg">{category}</CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <Table>
+                  <div className="overflow-x-auto">
+                  <Table className="min-w-[600px]">
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-12">#</TableHead>
+                        <TableHead className="w-10">#</TableHead>
                         <TableHead>Documentation</TableHead>
-                        <TableHead className="w-32">Status</TableHead>
-                        <TableHead className="w-16">Docs</TableHead>
-                        <TableHead className="w-20">E-Sign</TableHead>
-                        <TableHead>Comments</TableHead>
-                        <TableHead className="w-24 text-right">Action</TableHead>
+                        <TableHead className="w-24">Status</TableHead>
+                        <TableHead className="w-12">Docs</TableHead>
+                        <TableHead className="w-16">E-Sign</TableHead>
+                        <TableHead className="hidden sm:table-cell">Comments</TableHead>
+                        <TableHead className="w-20 text-right">Action</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -499,7 +500,7 @@ export default function ApplicationDocumentsPage() {
                                 return <span className="text-xs text-muted-foreground">N/A</span>;
                               })()}
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="hidden sm:table-cell">
                               <div className="flex items-center gap-2">
                                 <Input
                                   value={doc.comment || ""}
@@ -537,6 +538,7 @@ export default function ApplicationDocumentsPage() {
                       })}
                     </TableBody>
                   </Table>
+                  </div>
                 </CardContent>
               </Card>
             ))}

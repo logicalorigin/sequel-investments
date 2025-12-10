@@ -429,23 +429,23 @@ export default function ApplicationDetailPage() {
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 overflow-x-auto max-w-full -mr-3 pr-3 sm:mr-0 sm:pr-0">
             {application.analyzerType && application.analyzerData && (
               <Link href={`/portal/${
                 application.analyzerType === "dscr" ? "dscr-analyzer" : 
                 application.analyzerType === "fixflip" ? "fixflip-analyzer" : 
                 "construction-analyzer"
               }?applicationId=${application.id}`}>
-                <Button variant="outline" data-testid="button-view-analyzer">
-                  <Calculator className="h-4 w-4 mr-2" />
-                  View Analysis
+                <Button variant="outline" size="sm" className="shrink-0 text-xs sm:text-sm" data-testid="button-view-analyzer">
+                  <Calculator className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">View Analysis</span>
                 </Button>
               </Link>
             )}
             <Link href={`/portal/application/${applicationId}/documents`}>
-              <Button data-testid="button-view-documents">
-                <FileText className="h-4 w-4 mr-2" />
-                View Documents
+              <Button size="sm" className="shrink-0 text-xs sm:text-sm" data-testid="button-view-documents">
+                <FileText className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">View Documents</span>
               </Button>
             </Link>
             {application.status === "draft" && (
@@ -533,41 +533,43 @@ export default function ApplicationDetailPage() {
           </div>
         </div>
 
-        <Card className="mb-8 bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
-          <CardContent className="py-8">
-            <div className="flex items-center justify-between relative">
-              {processingStages.map((stage, index) => {
-                const isCompleted = index < currentStageIndex;
-                const isCurrent = index === currentStageIndex;
-                
-                return (
-                  <div key={stage.key} className="flex flex-col items-center relative z-10 flex-1">
-                    <div className={`
-                      w-10 h-10 rounded-full flex items-center justify-center border-2
-                      ${isCompleted ? "bg-green-500 border-green-500 text-white" : 
-                        isCurrent ? "bg-primary border-primary text-white" : 
-                        "bg-background border-muted-foreground/30 text-muted-foreground"}
-                    `}>
-                      {isCompleted ? (
-                        <Check className="h-5 w-5" />
-                      ) : (
-                        <span className="text-sm font-medium">{index + 1}</span>
+        <Card className="mb-4 sm:mb-8 bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20 overflow-hidden">
+          <CardContent className="py-4 sm:py-8 px-2 sm:px-6">
+            <div className="overflow-x-auto -mx-2 px-2 sm:mx-0 sm:px-0">
+              <div className="flex items-center justify-between relative min-w-[320px]">
+                {processingStages.map((stage, index) => {
+                  const isCompleted = index < currentStageIndex;
+                  const isCurrent = index === currentStageIndex;
+                  
+                  return (
+                    <div key={stage.key} className="flex flex-col items-center relative z-10 flex-1">
+                      <div className={`
+                        w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center border-2
+                        ${isCompleted ? "bg-green-500 border-green-500 text-white" : 
+                          isCurrent ? "bg-primary border-primary text-white" : 
+                          "bg-background border-muted-foreground/30 text-muted-foreground"}
+                      `}>
+                        {isCompleted ? (
+                          <Check className="h-4 w-4 sm:h-5 sm:w-5" />
+                        ) : (
+                          <span className="text-xs sm:text-sm font-medium">{index + 1}</span>
+                        )}
+                      </div>
+                      <p className={`text-[10px] sm:text-xs mt-1 sm:mt-2 text-center whitespace-pre-line max-w-[50px] sm:max-w-[80px] ${
+                        isCurrent ? "font-semibold text-primary" : 
+                        isCompleted ? "text-green-600" : "text-muted-foreground"
+                      }`}>
+                        {stage.shortLabel}
+                      </p>
+                      {index < processingStages.length - 1 && (
+                        <div className={`absolute top-4 sm:top-5 left-[calc(50%+16px)] sm:left-[calc(50%+20px)] w-[calc(100%-32px)] sm:w-[calc(100%-40px)] h-0.5 ${
+                          isCompleted ? "bg-green-500" : "bg-muted-foreground/20"
+                        }`} />
                       )}
                     </div>
-                    <p className={`text-xs mt-2 text-center whitespace-pre-line max-w-[80px] ${
-                      isCurrent ? "font-semibold text-primary" : 
-                      isCompleted ? "text-green-600" : "text-muted-foreground"
-                    }`}>
-                      {stage.shortLabel}
-                    </p>
-                    {index < processingStages.length - 1 && (
-                      <div className={`absolute top-5 left-[calc(50%+20px)] w-[calc(100%-40px)] h-0.5 ${
-                        isCompleted ? "bg-green-500" : "bg-muted-foreground/20"
-                      }`} />
-                    )}
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           </CardContent>
         </Card>
