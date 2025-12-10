@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { User } from "@shared/schema";
 
 // TESTING MODE: Set to true to bypass authentication
-const BYPASS_AUTH_FOR_TESTING = true;
+const BYPASS_AUTH_FOR_TESTING = false;
 
 const mockTestUser: User = {
   id: "test-user-123",
