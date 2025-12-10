@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { 
   Camera, 
   Upload, 
@@ -24,7 +24,9 @@ import {
   RefreshCw,
   Loader2,
   X,
-  Image as ImageIcon
+  Image as ImageIcon,
+  ChevronUp,
+  ChevronDown
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -65,6 +67,7 @@ interface LoanApplication {
 const PHOTO_CATEGORIES = {
   exterior: {
     label: "Property Exterior",
+    shortLabel: "Exterior",
     icon: Home,
     description: "Take photos of the outside of the property from all angles",
     photos: [
@@ -78,6 +81,7 @@ const PHOTO_CATEGORIES = {
   },
   interior: {
     label: "Property Interior",
+    shortLabel: "Interior",
     icon: Building2,
     description: "Take photos of each major room in the property",
     photos: [
@@ -93,6 +97,7 @@ const PHOTO_CATEGORIES = {
   },
   renovation: {
     label: "Renovation Areas",
+    shortLabel: "Renovation",
     icon: Hammer,
     description: "Document areas that require or are undergoing renovation",
     photos: [
@@ -123,6 +128,8 @@ export default function PhotoVerificationPage() {
   const [capturedFile, setCapturedFile] = useState<File | null>(null);
   const [notes, setNotes] = useState("");
   const [browserLocation, setBrowserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [showPhotoList, setShowPhotoList] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -137,6 +144,14 @@ export default function PhotoVerificationPage() {
     queryKey: ["/api/applications", applicationId, "verification-photos"],
     enabled: !!applicationId,
   });
+
+  useEffect(() => {
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, []);
   
   const uploadMutation = useMutation({
     mutationFn: async (data: { file: File; photoType: string; notes: string }) => {
@@ -197,6 +212,7 @@ export default function PhotoVerificationPage() {
   
   const requestLocation = useCallback(() => {
     if (navigator.geolocation) {
+      setLocationError(null);
       navigator.geolocation.getCurrentPosition(
         (position) => {
           setBrowserLocation({
@@ -206,7 +222,9 @@ export default function PhotoVerificationPage() {
         },
         (error) => {
           console.error("Geolocation error:", error);
-        }
+          setLocationError("Location access denied. Photos will be uploaded without GPS verification.");
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
       );
     }
   }, []);
@@ -215,7 +233,11 @@ export default function PhotoVerificationPage() {
     try {
       requestLocation();
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } },
+        video: { 
+          facingMode: "environment", 
+          width: { ideal: 1280, max: 1920 }, 
+          height: { ideal: 720, max: 1080 } 
+        },
       });
       streamRef.current = stream;
       if (videoRef.current) {
@@ -224,7 +246,11 @@ export default function PhotoVerificationPage() {
       setIsCapturing(true);
     } catch (error) {
       console.error("Camera error:", error);
-      toast({ title: "Camera access denied", description: "Please allow camera access or use file upload", variant: "destructive" });
+      toast({ 
+        title: "Camera access denied", 
+        description: "Please allow camera access or use the upload button instead", 
+        variant: "destructive" 
+      });
     }
   }, [requestLocation, toast]);
   
@@ -240,10 +266,26 @@ export default function PhotoVerificationPage() {
     if (videoRef.current && canvasRef.current) {
       const video = videoRef.current;
       const canvas = canvasRef.current;
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+      const dpr = window.devicePixelRatio || 1;
+      const maxWidth = 1920;
+      const maxHeight = 1080;
+      
+      let width = video.videoWidth / dpr;
+      let height = video.videoHeight / dpr;
+      
+      if (width > maxWidth) {
+        height = (height * maxWidth) / width;
+        width = maxWidth;
+      }
+      if (height > maxHeight) {
+        width = (width * maxHeight) / height;
+        height = maxHeight;
+      }
+      
+      canvas.width = width;
+      canvas.height = height;
       const ctx = canvas.getContext("2d");
-      ctx?.drawImage(video, 0, 0);
+      ctx?.drawImage(video, 0, 0, width, height);
       
       canvas.toBlob((blob) => {
         if (blob) {
@@ -251,7 +293,7 @@ export default function PhotoVerificationPage() {
           setCapturedFile(file);
           setCapturedImage(canvas.toDataURL("image/jpeg"));
         }
-      }, "image/jpeg", 0.9);
+      }, "image/jpeg", 0.85);
       
       stopCamera();
     }
@@ -268,6 +310,9 @@ export default function PhotoVerificationPage() {
       };
       reader.readAsDataURL(file);
     }
+    if (event.target) {
+      event.target.value = '';
+    }
   }, [requestLocation]);
   
   const handleUpload = useCallback(() => {
@@ -281,52 +326,82 @@ export default function PhotoVerificationPage() {
     }
   }, [capturedFile, activeCategory, activePhotoIndex, notes, uploadMutation]);
   
-  const getPhotoForType = (photoType: string): VerificationPhoto | undefined => {
+  const getPhotoForType = useCallback((photoType: string): VerificationPhoto | undefined => {
     return photos.find(p => p.photoType === photoType);
-  };
+  }, [photos]);
   
-  const getCategoryProgress = (category: CategoryKey): number => {
+  const getCategoryProgress = useCallback((category: CategoryKey): number => {
     const categoryPhotos = PHOTO_CATEGORIES[category].photos;
     const uploadedCount = categoryPhotos.filter(p => getPhotoForType(p.type)).length;
     return Math.round((uploadedCount / categoryPhotos.length) * 100);
-  };
+  }, [getPhotoForType]);
   
-  const getTotalProgress = (): number => {
+  const totalProgress = useMemo(() => {
     const allPhotos = Object.values(PHOTO_CATEGORIES).flatMap(c => c.photos);
     const requiredPhotos = allPhotos.slice(0, 12);
     const uploadedCount = requiredPhotos.filter(p => getPhotoForType(p.type)).length;
     return Math.round((uploadedCount / requiredPhotos.length) * 100);
-  };
+  }, [getPhotoForType]);
   
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "verified":
       case "manual_approved":
-        return <CheckCircle2 className="h-4 w-4 text-green-500" />;
+        return <CheckCircle2 className="h-5 w-5 text-green-500" aria-label="Verified" />;
       case "pending":
-        return <Clock className="h-4 w-4 text-yellow-500" />;
+        return <Clock className="h-5 w-5 text-yellow-500" aria-label="Pending review" />;
       case "failed":
       case "manual_rejected":
-        return <AlertCircle className="h-4 w-4 text-red-500" />;
+        return <AlertCircle className="h-5 w-5 text-red-500" aria-label="Failed verification" />;
       default:
-        return <Clock className="h-4 w-4 text-muted-foreground" />;
+        return <Clock className="h-5 w-5 text-muted-foreground" aria-label="Awaiting upload" />;
     }
   };
+
+  const handleCategoryChange = useCallback((key: CategoryKey) => {
+    setActiveCategory(key);
+    setActivePhotoIndex(0);
+    setCapturedImage(null);
+    setCapturedFile(null);
+    stopCamera();
+    setShowPhotoList(false);
+  }, [stopCamera]);
+
+  const handlePhotoSelect = useCallback((index: number) => {
+    setActivePhotoIndex(index);
+    setCapturedImage(null);
+    setCapturedFile(null);
+    stopCamera();
+    setShowPhotoList(false);
+  }, [stopCamera]);
+
+  const navigatePhoto = useCallback((direction: 'prev' | 'next') => {
+    const currentCategory = PHOTO_CATEGORIES[activeCategory];
+    if (direction === 'prev' && activePhotoIndex > 0) {
+      handlePhotoSelect(activePhotoIndex - 1);
+    } else if (direction === 'next' && activePhotoIndex < currentCategory.photos.length - 1) {
+      handlePhotoSelect(activePhotoIndex + 1);
+    }
+  }, [activeCategory, activePhotoIndex, handlePhotoSelect]);
   
   if (loadingApp || loadingPhotos) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="flex items-center justify-center min-h-screen" role="status" aria-label="Loading">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
       </div>
     );
   }
   
   if (!application) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-        <AlertCircle className="h-12 w-12 text-destructive" />
-        <p className="text-lg">Application not found</p>
-        <Button onClick={() => navigate("/portal/applications")} data-testid="button-back-to-applications">
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4 p-4">
+        <AlertCircle className="h-16 w-16 text-destructive" />
+        <p className="text-lg text-center">Application not found</p>
+        <Button 
+          onClick={() => navigate("/portal/applications")} 
+          data-testid="button-back-to-applications"
+          className="min-h-12 px-6"
+        >
           Back to Applications
         </Button>
       </div>
@@ -342,362 +417,348 @@ export default function PhotoVerificationPage() {
     .join(", ");
   
   return (
-    <div className="min-h-screen bg-background">
-      <div className="sticky top-0 z-50 bg-background border-b">
-        <div className="container max-w-6xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <Button 
-                variant="ghost" 
-                size="icon"
-                onClick={() => navigate(`/portal/applications/${applicationId}`)}
-                data-testid="button-back"
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </Button>
-              <div>
-                <h1 className="text-lg font-semibold">Photo Verification</h1>
-                <p className="text-sm text-muted-foreground flex items-center gap-1">
-                  <MapPin className="h-3 w-3" />
-                  {propertyAddress || "No address"}
+    <div className="min-h-screen bg-background flex flex-col">
+      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b safe-area-inset-top">
+        <div className="flex items-center gap-2 px-3 py-2">
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={() => navigate(`/portal/applications/${applicationId}`)}
+            data-testid="button-back"
+            className="min-h-11 min-w-11 shrink-0"
+            aria-label="Go back to application"
+          >
+            <ChevronLeft className="h-6 w-6" />
+          </Button>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-base font-semibold truncate">Photo Verification</h1>
+            <p className="text-xs text-muted-foreground flex items-center gap-1 truncate">
+              <MapPin className="h-3 w-3 shrink-0" />
+              <span className="truncate">{propertyAddress || "No address"}</span>
+            </p>
+          </div>
+          <div className="text-right shrink-0">
+            <Badge 
+              variant={totalProgress === 100 ? "default" : "secondary"} 
+              className="text-xs"
+              aria-label={`${totalProgress}% complete`}
+            >
+              {totalProgress}%
+            </Badge>
+          </div>
+        </div>
+        
+        <div className="border-t">
+          <ScrollArea className="w-full">
+            <div className="flex p-2 gap-2" role="tablist" aria-label="Photo categories">
+              {(Object.entries(PHOTO_CATEGORIES) as [CategoryKey, typeof PHOTO_CATEGORIES[CategoryKey]][]).map(([key, category]) => {
+                const Icon = category.icon;
+                const progress = getCategoryProgress(key);
+                const isActive = activeCategory === key;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => handleCategoryChange(key)}
+                    role="tab"
+                    aria-selected={isActive}
+                    aria-controls={`panel-${key}`}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-full whitespace-nowrap transition-colors min-h-11 ${
+                      isActive 
+                        ? "bg-primary text-primary-foreground" 
+                        : "bg-muted hover-elevate"
+                    }`}
+                    data-testid={`button-category-${key}`}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span className="text-sm font-medium">{category.shortLabel}</span>
+                    <Badge 
+                      variant={progress === 100 ? "default" : "outline"} 
+                      className={`text-xs ml-1 ${isActive ? "bg-primary-foreground/20 text-primary-foreground border-primary-foreground/30" : ""}`}
+                    >
+                      {progress}%
+                    </Badge>
+                  </button>
+                );
+              })}
+            </div>
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
+        </div>
+      </header>
+      
+      <main className="flex-1 flex flex-col overflow-hidden" id={`panel-${activeCategory}`} role="tabpanel">
+        <div className="p-3 border-b bg-muted/30">
+          <button 
+            onClick={() => setShowPhotoList(!showPhotoList)}
+            className="w-full flex items-center justify-between gap-2 min-h-11"
+            aria-expanded={showPhotoList}
+            aria-controls="photo-list"
+            data-testid="button-toggle-photo-list"
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              {existingPhoto ? (
+                getStatusIcon(existingPhoto.verificationStatus)
+              ) : (
+                <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/30 shrink-0" aria-hidden="true" />
+              )}
+              <div className="text-left min-w-0">
+                <p className="font-medium text-sm truncate">{currentPhoto.label}</p>
+                <p className="text-xs text-muted-foreground">
+                  {activePhotoIndex + 1} of {currentCategory.photos.length}
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="text-right">
-                <p className="text-sm font-medium">{getTotalProgress()}% Complete</p>
-                <Progress value={getTotalProgress()} className="w-32 h-2" />
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={(e) => { e.stopPropagation(); navigatePhoto('prev'); }}
+                disabled={activePhotoIndex === 0}
+                className="min-h-11 min-w-11"
+                aria-label="Previous photo"
+                data-testid="button-prev-photo"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={(e) => { e.stopPropagation(); navigatePhoto('next'); }}
+                disabled={activePhotoIndex === currentCategory.photos.length - 1}
+                className="min-h-11 min-w-11"
+                aria-label="Next photo"
+                data-testid="button-next-photo"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </Button>
+              {showPhotoList ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+            </div>
+          </button>
+          
+          {showPhotoList && (
+            <div id="photo-list" className="mt-3 space-y-1 max-h-48 overflow-y-auto" role="listbox">
+              {currentCategory.photos.map((photo, index) => {
+                const existing = getPhotoForType(photo.type);
+                const isActive = index === activePhotoIndex;
+                return (
+                  <button
+                    key={photo.type}
+                    onClick={() => handlePhotoSelect(index)}
+                    role="option"
+                    aria-selected={isActive}
+                    className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left min-h-12 ${
+                      isActive ? "bg-primary/10" : "hover-elevate"
+                    }`}
+                    data-testid={`button-photo-${photo.type}`}
+                  >
+                    {existing ? (
+                      getStatusIcon(existing.verificationStatus)
+                    ) : (
+                      <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/30 shrink-0" />
+                    )}
+                    <span className={`text-sm ${existing ? "text-foreground" : "text-muted-foreground"}`}>
+                      {photo.label}
+                    </span>
+                    {existing && (
+                      <Check className="h-4 w-4 text-green-500 ml-auto shrink-0" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+        
+        <div className="flex-1 overflow-y-auto p-3">
+          <p className="text-sm text-muted-foreground mb-3">{currentPhoto.description}</p>
+          
+          {locationError && (
+            <div className="mb-3 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg flex items-start gap-2" role="alert">
+              <AlertCircle className="h-5 w-5 text-yellow-500 shrink-0 mt-0.5" />
+              <p className="text-sm text-yellow-700 dark:text-yellow-400">{locationError}</p>
+            </div>
+          )}
+          
+          {existingPhoto && !capturedImage && !isCapturing ? (
+            <div className="space-y-3">
+              <div className="relative aspect-[4/3] bg-muted rounded-lg overflow-hidden">
+                <img
+                  src={existingPhoto.fileKey.startsWith("/") ? existingPhoto.fileKey : `/objects/${existingPhoto.fileKey}`}
+                  alt={currentPhoto.label}
+                  className="w-full h-full object-contain"
+                  loading="lazy"
+                />
+                <div className="absolute top-3 right-3 bg-background/80 backdrop-blur rounded-full p-1.5">
+                  {getStatusIcon(existingPhoto.verificationStatus)}
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <ImageIcon className="h-4 w-4 shrink-0" />
+                  <span className="truncate">{existingPhoto.fileName}</span>
+                </div>
+                {existingPhoto.exifTimestamp && (
+                  <span className="text-xs shrink-0">{new Date(existingPhoto.exifTimestamp).toLocaleDateString()}</span>
+                )}
+              </div>
+              
+              {existingPhoto.notes && (
+                <div className="p-3 bg-muted rounded-lg">
+                  <p className="text-sm text-muted-foreground">{existingPhoto.notes}</p>
+                </div>
+              )}
+              
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1 min-h-12"
+                  onClick={() => deleteMutation.mutate(existingPhoto.id)}
+                  disabled={deleteMutation.isPending}
+                  data-testid="button-delete-photo"
+                >
+                  <Trash2 className="h-5 w-5 mr-2" />
+                  Delete
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1 min-h-12"
+                  onClick={() => startCamera()}
+                  data-testid="button-retake-photo"
+                >
+                  <RefreshCw className="h-5 w-5 mr-2" />
+                  Retake
+                </Button>
               </div>
             </div>
-          </div>
+          ) : isCapturing ? (
+            <div className="space-y-3">
+              <div className="relative bg-black rounded-lg overflow-hidden" style={{ maxHeight: '60vh' }}>
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full h-auto"
+                  style={{ maxHeight: '60vh', objectFit: 'contain' }}
+                />
+                <canvas ref={canvasRef} className="hidden" />
+              </div>
+              
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  className="min-h-14 min-w-14"
+                  size="icon"
+                  onClick={stopCamera}
+                  data-testid="button-cancel-camera"
+                  aria-label="Cancel"
+                >
+                  <X className="h-6 w-6" />
+                </Button>
+                <Button
+                  className="flex-1 min-h-14 text-lg"
+                  onClick={capturePhoto}
+                  data-testid="button-capture-photo"
+                >
+                  <Camera className="h-6 w-6 mr-2" />
+                  Take Photo
+                </Button>
+              </div>
+            </div>
+          ) : capturedImage ? (
+            <div className="space-y-3">
+              <div className="relative aspect-[4/3] bg-muted rounded-lg overflow-hidden">
+                <img
+                  src={capturedImage}
+                  alt="Captured preview"
+                  className="w-full h-full object-contain"
+                />
+              </div>
+              
+              <Textarea
+                placeholder="Add notes about this photo (optional)"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                className="min-h-20 text-base"
+                data-testid="input-photo-notes"
+              />
+              
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  className="min-h-14 min-w-14"
+                  size="icon"
+                  onClick={() => {
+                    setCapturedImage(null);
+                    setCapturedFile(null);
+                    setNotes("");
+                  }}
+                  data-testid="button-discard-photo"
+                  aria-label="Discard photo"
+                >
+                  <X className="h-6 w-6" />
+                </Button>
+                <Button
+                  className="flex-1 min-h-14 text-lg"
+                  onClick={handleUpload}
+                  disabled={uploadMutation.isPending}
+                  data-testid="button-save-photo"
+                >
+                  {uploadMutation.isPending ? (
+                    <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                  ) : (
+                    <Check className="h-6 w-6 mr-2" />
+                  )}
+                  {uploadMutation.isPending ? "Uploading..." : "Save Photo"}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-8 gap-4">
+              <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center">
+                <Camera className="h-10 w-10 text-muted-foreground" />
+              </div>
+              <p className="text-center text-muted-foreground">
+                Take a photo or upload an image
+              </p>
+            </div>
+          )}
         </div>
-      </div>
+      </main>
       
-      <div className="container max-w-6xl mx-auto px-4 py-6">
-        <div className="grid lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-3">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Categories</CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="space-y-1 p-3 pt-0">
-                  {(Object.entries(PHOTO_CATEGORIES) as [CategoryKey, typeof PHOTO_CATEGORIES[CategoryKey]][]).map(([key, category]) => {
-                    const Icon = category.icon;
-                    const progress = getCategoryProgress(key);
-                    const isActive = activeCategory === key;
-                    return (
-                      <button
-                        key={key}
-                        onClick={() => {
-                          setActiveCategory(key);
-                          setActivePhotoIndex(0);
-                          setCapturedImage(null);
-                          setCapturedFile(null);
-                          stopCamera();
-                        }}
-                        className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left ${
-                          isActive ? "bg-primary/10 text-primary" : "hover-elevate"
-                        }`}
-                        data-testid={`button-category-${key}`}
-                      >
-                        <Icon className="h-5 w-5 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{category.label}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <Progress value={progress} className="h-1.5 flex-1" />
-                            <span className="text-xs text-muted-foreground">{progress}%</span>
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card className="mt-4">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Photos in {currentCategory.label}</CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                <ScrollArea className="h-64">
-                  <div className="space-y-1 p-3 pt-0">
-                    {currentCategory.photos.map((photo, index) => {
-                      const existing = getPhotoForType(photo.type);
-                      const isActive = index === activePhotoIndex;
-                      return (
-                        <button
-                          key={photo.type}
-                          onClick={() => {
-                            setActivePhotoIndex(index);
-                            setCapturedImage(null);
-                            setCapturedFile(null);
-                            stopCamera();
-                          }}
-                          className={`w-full flex items-center gap-2 p-2 rounded-md transition-colors text-left text-sm ${
-                            isActive ? "bg-primary/10" : "hover-elevate"
-                          }`}
-                          data-testid={`button-photo-${photo.type}`}
-                        >
-                          {existing ? (
-                            getStatusIcon(existing.verificationStatus)
-                          ) : (
-                            <div className="h-4 w-4 rounded-full border-2 border-muted-foreground/30" />
-                          )}
-                          <span className={existing ? "text-foreground" : "text-muted-foreground"}>
-                            {photo.label}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </ScrollArea>
-              </CardContent>
-            </Card>
+      {!isCapturing && !capturedImage && !existingPhoto && (
+        <footer className="sticky bottom-0 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 p-3 safe-area-inset-bottom">
+          <div className="flex gap-3">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handleFileSelect}
+              className="hidden"
+              data-testid="input-file-upload"
+            />
+            <Button
+              variant="outline"
+              className="flex-1 min-h-14 text-base"
+              onClick={() => fileInputRef.current?.click()}
+              data-testid="button-upload-file"
+            >
+              <Upload className="h-5 w-5 mr-2" />
+              Upload
+            </Button>
+            <Button
+              className="flex-1 min-h-14 text-base"
+              onClick={startCamera}
+              data-testid="button-start-camera"
+            >
+              <Camera className="h-5 w-5 mr-2" />
+              Camera
+            </Button>
           </div>
-          
-          <div className="lg:col-span-9">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Badge variant={existingPhoto ? "default" : "secondary"} className="mb-2">
-                      {activePhotoIndex + 1} of {currentCategory.photos.length}
-                    </Badge>
-                    <CardTitle>{currentPhoto.label}</CardTitle>
-                    <CardDescription>{currentPhoto.description}</CardDescription>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      disabled={activePhotoIndex === 0}
-                      onClick={() => {
-                        setActivePhotoIndex(prev => prev - 1);
-                        setCapturedImage(null);
-                        setCapturedFile(null);
-                        stopCamera();
-                      }}
-                      data-testid="button-prev-photo"
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      disabled={activePhotoIndex === currentCategory.photos.length - 1}
-                      onClick={() => {
-                        setActivePhotoIndex(prev => prev + 1);
-                        setCapturedImage(null);
-                        setCapturedFile(null);
-                        stopCamera();
-                      }}
-                      data-testid="button-next-photo"
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {existingPhoto && !capturedImage && !isCapturing ? (
-                  <div className="space-y-4">
-                    <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
-                      <img
-                        src={existingPhoto.fileKey.startsWith("/") ? existingPhoto.fileKey : `/objects/${existingPhoto.fileKey}`}
-                        alt={currentPhoto.label}
-                        className="w-full h-full object-contain"
-                      />
-                      <div className="absolute top-3 right-3">
-                        {getStatusIcon(existingPhoto.verificationStatus)}
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <ImageIcon className="h-4 w-4" />
-                        <span>{existingPhoto.fileName}</span>
-                        {existingPhoto.exifTimestamp && (
-                          <span>• {new Date(existingPhoto.exifTimestamp).toLocaleString()}</span>
-                        )}
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            deleteMutation.mutate(existingPhoto.id);
-                          }}
-                          disabled={deleteMutation.isPending}
-                          data-testid="button-delete-photo"
-                        >
-                          <Trash2 className="h-4 w-4 mr-1" />
-                          Delete
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => startCamera()}
-                          data-testid="button-retake-photo"
-                        >
-                          <RefreshCw className="h-4 w-4 mr-1" />
-                          Retake
-                        </Button>
-                      </div>
-                    </div>
-                    
-                    {existingPhoto.notes && (
-                      <div className="p-3 bg-muted rounded-lg">
-                        <p className="text-sm text-muted-foreground">{existingPhoto.notes}</p>
-                      </div>
-                    )}
-                  </div>
-                ) : isCapturing ? (
-                  <div className="space-y-4">
-                    <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
-                      <video
-                        ref={videoRef}
-                        autoPlay
-                        playsInline
-                        muted
-                        className="w-full h-full object-cover"
-                      />
-                      <canvas ref={canvasRef} className="hidden" />
-                    </div>
-                    
-                    <div className="flex justify-center gap-3">
-                      <Button
-                        variant="outline"
-                        onClick={stopCamera}
-                        data-testid="button-cancel-capture"
-                      >
-                        <X className="h-4 w-4 mr-2" />
-                        Cancel
-                      </Button>
-                      <Button
-                        size="lg"
-                        onClick={capturePhoto}
-                        className="px-8"
-                        data-testid="button-capture"
-                      >
-                        <Camera className="h-5 w-5 mr-2" />
-                        Capture
-                      </Button>
-                    </div>
-                  </div>
-                ) : capturedImage ? (
-                  <div className="space-y-4">
-                    <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
-                      <img
-                        src={capturedImage}
-                        alt="Captured"
-                        className="w-full h-full object-contain"
-                      />
-                    </div>
-                    
-                    <Textarea
-                      placeholder="Add notes about this photo (optional)"
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      className="resize-none"
-                      data-testid="input-photo-notes"
-                    />
-                    
-                    <div className="flex justify-end gap-3">
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          setCapturedImage(null);
-                          setCapturedFile(null);
-                          setNotes("");
-                        }}
-                        data-testid="button-discard"
-                      >
-                        Discard
-                      </Button>
-                      <Button
-                        onClick={handleUpload}
-                        disabled={uploadMutation.isPending}
-                        data-testid="button-upload"
-                      >
-                        {uploadMutation.isPending ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Uploading...
-                          </>
-                        ) : (
-                          <>
-                            <Upload className="h-4 w-4 mr-2" />
-                            Upload Photo
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    <div className="aspect-video bg-muted rounded-lg flex flex-col items-center justify-center gap-4 border-2 border-dashed border-muted-foreground/25">
-                      <Camera className="h-16 w-16 text-muted-foreground/50" />
-                      <p className="text-muted-foreground text-center max-w-sm">
-                        Take a photo using your camera or upload an existing image
-                      </p>
-                    </div>
-                    
-                    <div className="flex justify-center gap-4">
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleFileSelect}
-                      />
-                      <Button
-                        variant="outline"
-                        onClick={() => fileInputRef.current?.click()}
-                        data-testid="button-upload-file"
-                      >
-                        <Upload className="h-4 w-4 mr-2" />
-                        Upload Photo
-                      </Button>
-                      <Button
-                        onClick={startCamera}
-                        data-testid="button-start-camera"
-                      >
-                        <Camera className="h-4 w-4 mr-2" />
-                        Use Camera
-                      </Button>
-                    </div>
-                    
-                    {browserLocation && (
-                      <p className="text-center text-xs text-muted-foreground">
-                        <MapPin className="h-3 w-3 inline mr-1" />
-                        Location: {browserLocation.lat.toFixed(4)}, {browserLocation.lng.toFixed(4)}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-            
-            {getTotalProgress() >= 100 && (
-              <Card className="mt-4 border-green-500/50 bg-green-500/5">
-                <CardContent className="flex items-center gap-4 py-4">
-                  <CheckCircle2 className="h-8 w-8 text-green-500" />
-                  <div>
-                    <p className="font-medium text-green-700 dark:text-green-400">
-                      All required photos uploaded!
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Your photos are being reviewed. You will be notified when verification is complete.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </div>
-      </div>
+        </footer>
+      )}
     </div>
   );
 }
