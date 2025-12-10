@@ -348,6 +348,62 @@ export default function AdminDashboard() {
     },
   });
 
+  // Lifecycle engine status query
+  type LifecycleStatus = {
+    isRunning: boolean;
+    loansAdvanced: number;
+    loansDenied: number;
+    startedAt?: string;
+  };
+  
+  const { data: lifecycleStatus, refetch: refetchLifecycle } = useQuery<LifecycleStatus>({
+    queryKey: ["/api/admin/lifecycle/status"],
+    enabled: currentUser?.role === "admin" && showSimulationSection,
+    refetchInterval: (query) => query.state.data?.isRunning ? 10000 : false, // Poll every 10s while running
+  });
+
+  const startLifecycleMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/admin/lifecycle/start");
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      refetchLifecycle();
+      toast({
+        title: "Lifecycle Engine Started",
+        description: data.message || "Loans will now progress through stages automatically",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to start lifecycle engine",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const stopLifecycleMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/admin/lifecycle/stop");
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      refetchLifecycle();
+      toast({
+        title: "Lifecycle Engine Stopped",
+        description: data.message || "Automatic progression has been stopped",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to stop lifecycle engine",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    },
+  });
+
   const logoutMutation = useMutation({
     mutationFn: async () => {
       await apiRequest("POST", "/api/admin/logout");
@@ -1921,7 +1977,7 @@ export default function AdminDashboard() {
                       </div>
                     </div>
 
-                    {/* Action Buttons */}
+                    {/* Simulation Action Buttons */}
                     <div className="flex gap-3 justify-center">
                       {simulationStatus?.isRunning ? (
                         <Button 
@@ -1962,6 +2018,108 @@ export default function AdminDashboard() {
                       >
                         Refresh
                       </Button>
+                    </div>
+
+                    <Separator />
+
+                    {/* Lifecycle Engine Section */}
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="font-medium text-sm">Lifecycle Progression Engine</h4>
+                        <p className="text-xs text-muted-foreground">Automatically advances loans through stages over time</p>
+                      </div>
+                      
+                      {/* Lifecycle Status */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div className="p-3 rounded-lg bg-muted/50">
+                          <p className="text-xs text-muted-foreground">Engine Status</p>
+                          <p className="text-sm font-semibold flex items-center gap-2" data-testid="text-lifecycle-status">
+                            {lifecycleStatus?.isRunning ? (
+                              <>
+                                <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                                Running
+                              </>
+                            ) : (
+                              <>
+                                <span className="h-2 w-2 rounded-full bg-gray-400" />
+                                Stopped
+                              </>
+                            )}
+                          </p>
+                        </div>
+                        <div className="p-3 rounded-lg bg-muted/50">
+                          <p className="text-xs text-muted-foreground">Loans Advanced</p>
+                          <p className="text-sm font-semibold text-green-600" data-testid="text-loans-advanced">
+                            {lifecycleStatus?.loansAdvanced ?? 0}
+                          </p>
+                        </div>
+                        <div className="p-3 rounded-lg bg-muted/50">
+                          <p className="text-xs text-muted-foreground">Loans Denied</p>
+                          <p className="text-sm font-semibold text-red-600" data-testid="text-loans-denied">
+                            {lifecycleStatus?.loansDenied ?? 0}
+                          </p>
+                        </div>
+                        <div className="p-3 rounded-lg bg-muted/50">
+                          <p className="text-xs text-muted-foreground">Started</p>
+                          <p className="text-sm font-semibold">
+                            {lifecycleStatus?.startedAt 
+                              ? new Date(lifecycleStatus.startedAt).toLocaleTimeString() 
+                              : "—"}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Lifecycle Action Buttons */}
+                      <div className="flex gap-3 justify-center">
+                        {lifecycleStatus?.isRunning ? (
+                          <Button 
+                            variant="destructive" 
+                            size="sm"
+                            onClick={() => stopLifecycleMutation.mutate()}
+                            disabled={stopLifecycleMutation.isPending}
+                            data-testid="button-stop-lifecycle"
+                          >
+                            {stopLifecycleMutation.isPending ? (
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                              <AlertCircle className="h-4 w-4 mr-2" />
+                            )}
+                            Stop Engine
+                          </Button>
+                        ) : (
+                          <Button 
+                            size="sm"
+                            onClick={() => startLifecycleMutation.mutate()}
+                            disabled={startLifecycleMutation.isPending}
+                            className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
+                            data-testid="button-start-lifecycle"
+                          >
+                            {startLifecycleMutation.isPending ? (
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                              <Clock className="h-4 w-4 mr-2" />
+                            )}
+                            Start Engine
+                          </Button>
+                        )}
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => refetchLifecycle()}
+                          data-testid="button-refresh-lifecycle"
+                        >
+                          Refresh
+                        </Button>
+                      </div>
+
+                      {/* Lifecycle Info */}
+                      <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/30">
+                        <p className="text-xs text-green-700">
+                          The lifecycle engine checks loans every 2 minutes. Loans that have been in their 
+                          current stage long enough have a 30% chance to advance each cycle. There's also a 
+                          2% chance of denial at each stage to simulate realistic outcomes.
+                        </p>
+                      </div>
                     </div>
 
                     {/* Warning */}

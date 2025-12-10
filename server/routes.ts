@@ -4570,6 +4570,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============================================
+  // LIFECYCLE ENGINE ENDPOINTS (Admin only)
+  // ============================================
+  
+  // Start lifecycle progression engine
+  app.post("/api/admin/lifecycle/start", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { startLifecycleEngine } = await import("./simulation/loanSimulator");
+      const result = await startLifecycleEngine();
+      return res.json(result);
+    } catch (error) {
+      console.error("Error starting lifecycle engine:", error);
+      return res.status(500).json({ error: "Failed to start lifecycle engine" });
+    }
+  });
+  
+  // Get lifecycle engine status
+  app.get("/api/admin/lifecycle/status", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { getLifecycleStatus } = await import("./simulation/loanSimulator");
+      const status = getLifecycleStatus();
+      return res.json(status);
+    } catch (error) {
+      console.error("Error getting lifecycle status:", error);
+      return res.status(500).json({ error: "Failed to get lifecycle status" });
+    }
+  });
+  
+  // Stop lifecycle engine
+  app.post("/api/admin/lifecycle/stop", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { stopLifecycleEngine } = await import("./simulation/loanSimulator");
+      const result = await stopLifecycleEngine();
+      return res.json(result);
+    } catch (error) {
+      console.error("Error stopping lifecycle engine:", error);
+      return res.status(500).json({ error: "Failed to stop lifecycle engine" });
+    }
+  });
+
   // Validate invite token (public route for invite page)
   app.get("/api/invites/:token", async (req, res) => {
     try {
