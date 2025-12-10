@@ -375,23 +375,25 @@ export function ApplicationScopeBuilder({
                             <TableCell className="text-right pr-4">
                               {editingItemId === item.id ? (
                                 <div className="flex items-center justify-end gap-2">
-                                  <Input
-                                    type="text"
-                                    value={editBudgetValue}
-                                    onChange={(e) => setEditBudgetValue(e.target.value)}
-                                    className="w-28 text-right h-8"
-                                    placeholder="0"
-                                    autoFocus
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter") handleSaveBudget(item.id);
-                                      if (e.key === "Escape") handleCancelEdit();
-                                    }}
-                                    data-testid={`input-budget-${item.id}`}
-                                  />
+                                  <div className="relative">
+                                    <DollarSign className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                      type="text"
+                                      value={editBudgetValue}
+                                      onChange={(e) => setEditBudgetValue(e.target.value)}
+                                      className="w-32 text-right h-9 pl-7 pr-2 font-medium"
+                                      placeholder="0"
+                                      autoFocus
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter") handleSaveBudget(item.id);
+                                        if (e.key === "Escape") handleCancelEdit();
+                                      }}
+                                      data-testid={`input-budget-${item.id}`}
+                                    />
+                                  </div>
                                   <Button
                                     size="icon"
                                     variant="ghost"
-                                    className="h-8 w-8"
                                     onClick={() => handleSaveBudget(item.id)}
                                     disabled={updateBudgetMutation.isPending}
                                     data-testid={`button-save-budget-${item.id}`}
@@ -405,7 +407,6 @@ export function ApplicationScopeBuilder({
                                   <Button
                                     size="icon"
                                     variant="ghost"
-                                    className="h-8 w-8"
                                     onClick={handleCancelEdit}
                                     data-testid={`button-cancel-edit-${item.id}`}
                                   >
@@ -413,9 +414,11 @@ export function ApplicationScopeBuilder({
                                   </Button>
                                 </div>
                               ) : (
-                                <span
-                                  className={`cursor-pointer hover:text-primary ${
-                                    readOnly ? "cursor-default hover:text-current" : ""
+                                <div
+                                  className={`inline-flex items-center justify-end gap-1 px-3 py-1.5 rounded-md border transition-colors ${
+                                    readOnly 
+                                      ? "bg-muted/30 border-transparent cursor-default" 
+                                      : "bg-background border-input hover:border-primary hover:bg-muted/50 cursor-pointer"
                                   }`}
                                   onClick={() => {
                                     if (!readOnly) {
@@ -425,8 +428,11 @@ export function ApplicationScopeBuilder({
                                   }}
                                   data-testid={`text-budget-${item.id}`}
                                 >
-                                  {formatCurrency(item.budgetAmount)}
-                                </span>
+                                  <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
+                                  <span className="font-medium tabular-nums">
+                                    {item.budgetAmount.toLocaleString()}
+                                  </span>
+                                </div>
                               )}
                             </TableCell>
                           </TableRow>
