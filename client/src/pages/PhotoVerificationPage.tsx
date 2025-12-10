@@ -99,7 +99,7 @@ const PROPERTY_PHOTO_CATEGORIES = {
 type CategoryKey = keyof typeof PROPERTY_PHOTO_CATEGORIES;
 
 export default function PhotoVerificationPage() {
-  const { applicationId } = useParams<{ applicationId: string }>();
+  const { id: applicationId } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -387,7 +387,7 @@ export default function PhotoVerificationPage() {
         <AlertCircle className="h-16 w-16 text-destructive" />
         <p className="text-lg text-center">Application not found</p>
         <Button 
-          onClick={() => navigate("/portal/applications")} 
+          onClick={() => navigate("/portal")} 
           data-testid="button-back-to-applications"
           className="min-h-12 px-6"
         >
@@ -412,7 +412,7 @@ export default function PhotoVerificationPage() {
           <Button 
             variant="ghost" 
             size="icon"
-            onClick={() => navigate(`/portal/applications/${applicationId}`)}
+            onClick={() => navigate(`/portal/application/${applicationId}`)}
             data-testid="button-back"
             className="min-h-11 min-w-11 shrink-0"
             aria-label="Go back to application"
