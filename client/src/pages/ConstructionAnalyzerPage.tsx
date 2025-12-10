@@ -498,7 +498,7 @@ export default function ConstructionAnalyzerPage() {
                         onClick={() => setPropertyType(type.id)}
                         className={`py-2 px-2 rounded-md border transition-all flex flex-col items-center gap-1 ${
                           propertyType === type.id
-                            ? "border-primary bg-primary/10 text-primary"
+                            ? "border-primary bg-primary text-primary-foreground"
                             : "border-border hover:border-primary/50"
                         }`}
                         data-testid={`button-property-type-${type.id}`}
@@ -683,7 +683,7 @@ export default function ConstructionAnalyzerPage() {
                           onClick={() => setExperience(level.id)}
                           className={`flex-1 min-w-[55px] py-1.5 sm:py-2 px-1 rounded-md border text-[9px] sm:text-[10px] font-medium transition-all ${
                             experience === level.id
-                              ? "border-primary bg-primary/10 text-primary"
+                              ? "border-primary bg-primary text-primary-foreground"
                               : "border-border hover:border-primary/50"
                           }`}
                           data-testid={`button-experience-${level.id}`}

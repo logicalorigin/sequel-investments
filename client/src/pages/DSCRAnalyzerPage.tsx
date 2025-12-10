@@ -581,7 +581,7 @@ export default function DSCRAnalyzerPage() {
                         onClick={() => setPropertyType(type.id)}
                         className={`py-2 px-2 rounded-md border transition-all flex flex-col items-center gap-1 ${
                           propertyType === type.id
-                            ? "border-primary bg-primary/10 text-primary"
+                            ? "border-primary bg-primary text-primary-foreground"
                             : "border-border hover:border-primary/50"
                         }`}
                         data-testid={`button-property-type-${type.id}`}
@@ -603,7 +603,7 @@ export default function DSCRAnalyzerPage() {
                         onClick={() => setTransactionType(type.id)}
                         className={`py-2 px-2 rounded-md border text-[10px] sm:text-xs font-medium transition-all text-center ${
                           transactionType === type.id
-                            ? "border-primary bg-primary/10 text-primary"
+                            ? "border-primary bg-primary text-primary-foreground"
                             : "border-border hover:border-primary/50"
                         }`}
                         data-testid={`button-transaction-type-${type.id}`}
@@ -626,7 +626,7 @@ export default function DSCRAnalyzerPage() {
                           onClick={() => setRentalType(type.id)}
                           className={`py-2 px-2 rounded-md border text-[10px] sm:text-xs font-medium transition-all flex items-center justify-center gap-1.5 ${
                             rentalType === type.id
-                              ? "border-primary bg-primary/10 text-primary"
+                              ? "border-primary bg-primary text-primary-foreground"
                               : "border-border hover:border-primary/50"
                           }`}
                           data-testid={`button-rental-type-${type.id}`}
@@ -672,7 +672,7 @@ export default function DSCRAnalyzerPage() {
                         onClick={() => setPrepaymentPenalty(option.id)}
                         className={`py-1 sm:py-1.5 px-2 sm:px-2.5 rounded-md border text-[10px] sm:text-xs font-medium transition-all ${
                           prepaymentPenalty === option.id
-                            ? "border-primary bg-primary/10 text-primary"
+                            ? "border-primary bg-primary text-primary-foreground"
                             : "border-border hover:border-primary/50"
                         }`}
                         data-testid={`button-prepay-${option.id}`}

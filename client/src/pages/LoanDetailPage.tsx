@@ -1881,15 +1881,13 @@ export default function LoanDetailPage() {
         
         {isHardMoney ? (
           <Tabs defaultValue="draws" className="space-y-6">
-            <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
-              <TabsList className="inline-flex w-auto min-w-full sm:grid sm:w-full sm:grid-cols-5">
-                <TabsTrigger value="draws" className="flex-shrink-0" data-testid="tab-draws">Draws</TabsTrigger>
-                <TabsTrigger value="payments" className="flex-shrink-0" data-testid="tab-payments">Payments</TabsTrigger>
-                <TabsTrigger value="payoff" className="flex-shrink-0" data-testid="tab-payoff">Payoff</TabsTrigger>
-                <TabsTrigger value="milestones" className="flex-shrink-0" data-testid="tab-milestones">Milestones</TabsTrigger>
-                <TabsTrigger value="documents" className="flex-shrink-0" data-testid="tab-documents">Documents</TabsTrigger>
-              </TabsList>
-            </div>
+            <TabsList className="grid w-full grid-cols-5">
+              <TabsTrigger value="draws" className="text-[10px] sm:text-sm px-1 sm:px-3" data-testid="tab-draws">Draws</TabsTrigger>
+              <TabsTrigger value="payments" className="text-[10px] sm:text-sm px-1 sm:px-3" data-testid="tab-payments">Pays</TabsTrigger>
+              <TabsTrigger value="payoff" className="text-[10px] sm:text-sm px-1 sm:px-3" data-testid="tab-payoff">Payoff</TabsTrigger>
+              <TabsTrigger value="milestones" className="text-[10px] sm:text-sm px-1 sm:px-3" data-testid="tab-milestones">Miles</TabsTrigger>
+              <TabsTrigger value="documents" className="text-[10px] sm:text-sm px-1 sm:px-3" data-testid="tab-documents">Docs</TabsTrigger>
+            </TabsList>
             
             <TabsContent value="draws">
               <DrawManagement loan={loan} draws={loanDetails.draws} />
@@ -1987,15 +1985,13 @@ export default function LoanDetailPage() {
           </Tabs>
         ) : (
           <Tabs defaultValue="amortization" className="space-y-6">
-            <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
-              <TabsList className="inline-flex w-auto min-w-full sm:grid sm:w-full sm:grid-cols-5">
-                <TabsTrigger value="amortization" className="flex-shrink-0 text-xs sm:text-sm" data-testid="tab-amortization">Amortization</TabsTrigger>
-                <TabsTrigger value="payments" className="flex-shrink-0 text-xs sm:text-sm" data-testid="tab-payments">Payments</TabsTrigger>
-                <TabsTrigger value="payoff" className="flex-shrink-0" data-testid="tab-payoff">Payoff</TabsTrigger>
-                <TabsTrigger value="escrow" className="flex-shrink-0" data-testid="tab-escrow">Escrow</TabsTrigger>
-                <TabsTrigger value="documents" className="flex-shrink-0" data-testid="tab-documents">Documents</TabsTrigger>
-              </TabsList>
-            </div>
+            <TabsList className="grid w-full grid-cols-5">
+              <TabsTrigger value="amortization" className="text-[10px] sm:text-sm px-1 sm:px-3" data-testid="tab-amortization">Amort</TabsTrigger>
+              <TabsTrigger value="payments" className="text-[10px] sm:text-sm px-1 sm:px-3" data-testid="tab-payments">Pays</TabsTrigger>
+              <TabsTrigger value="payoff" className="text-[10px] sm:text-sm px-1 sm:px-3" data-testid="tab-payoff">Payoff</TabsTrigger>
+              <TabsTrigger value="escrow" className="text-[10px] sm:text-sm px-1 sm:px-3" data-testid="tab-escrow">Escrow</TabsTrigger>
+              <TabsTrigger value="documents" className="text-[10px] sm:text-sm px-1 sm:px-3" data-testid="tab-documents">Docs</TabsTrigger>
+            </TabsList>
             
             <TabsContent value="amortization">
               <AmortizationCalculator loan={loan} />

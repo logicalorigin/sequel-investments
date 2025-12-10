@@ -275,8 +275,34 @@ export default function GetQuotePage() {
       </header>
 
       <div className="max-w-6xl mx-auto px-3 sm:px-6 py-4 sm:py-8">
-        <div className="flex justify-center mb-6 sm:mb-12 overflow-x-auto pb-2 sm:pb-4">
-          <div className="flex items-center gap-0 min-w-max">
+        {/* Mobile: Compact dots indicator */}
+        <div className="sm:hidden mb-6">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            {steps.map((s, index) => (
+              <div key={s.number} className="flex items-center">
+                <div
+                  className={`w-2.5 h-2.5 rounded-full transition-all ${
+                    step > s.number
+                      ? "bg-[#D4A01D]"
+                      : step === s.number
+                      ? "bg-[#D4A01D] ring-2 ring-[#D4A01D]/30"
+                      : "bg-white/20"
+                  }`}
+                />
+                {index < steps.length - 1 && (
+                  <div className={`w-6 h-0.5 mx-1 ${step > s.number ? "bg-[#D4A01D]" : "bg-white/10"}`} />
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="text-center text-white/70 text-xs">
+            Step {step} of {steps.length}: <span className="text-white font-medium">{steps[step - 1]?.label}</span>
+          </div>
+        </div>
+
+        {/* Desktop: Full step indicator */}
+        <div className="hidden sm:flex justify-center mb-12 pb-4">
+          <div className="flex items-center gap-0">
             {steps.map((s, index) => {
               const Icon = s.icon;
               const isActive = step === s.number;
@@ -285,24 +311,24 @@ export default function GetQuotePage() {
               return (
                 <div key={s.number} className="flex items-center">
                   <div className="flex flex-col items-center">
-                    <div className="text-[10px] sm:text-xs text-white/50 mb-1 sm:mb-2">Step {s.number}</div>
+                    <div className="text-xs text-white/50 mb-2">Step {s.number}</div>
                     <div
-                      className={`w-8 h-8 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-all ${
+                      className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
                         isCompleted
                           ? "bg-[#D4A01D] text-white"
                           : isActive
-                          ? "bg-[#D4A01D] text-white ring-2 sm:ring-4 ring-[#D4A01D]/30"
+                          ? "bg-[#D4A01D] text-white ring-4 ring-[#D4A01D]/30"
                           : "bg-white/10 text-white/40"
                       }`}
                     >
-                      {isCompleted ? <Check className="h-3.5 w-3.5 sm:h-5 sm:w-5" /> : <Icon className="h-3.5 w-3.5 sm:h-5 sm:w-5" />}
+                      {isCompleted ? <Check className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
                     </div>
-                    <div className={`text-[10px] sm:text-xs mt-1 sm:mt-2 font-medium ${isActive || isCompleted ? "text-white" : "text-white/40"}`}>
+                    <div className={`text-xs mt-2 font-medium ${isActive || isCompleted ? "text-white" : "text-white/40"}`}>
                       {s.label}
                     </div>
                   </div>
                   {index < steps.length - 1 && (
-                    <div className={`w-6 sm:w-16 h-0.5 mx-1 sm:mx-2 mt-[-12px] ${step > s.number ? "bg-[#D4A01D]" : "bg-white/10"}`} />
+                    <div className={`w-16 h-0.5 mx-2 mt-[-12px] ${step > s.number ? "bg-[#D4A01D]" : "bg-white/10"}`} />
                   )}
                 </div>
               );

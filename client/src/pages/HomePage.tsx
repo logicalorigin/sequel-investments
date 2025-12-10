@@ -6,6 +6,11 @@ import { LeadForm } from "@/components/LeadForm";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import USMap from "@/components/USMap";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+} from "@/components/ui/carousel";
 import { type StateData, getEligibleStates, type FundedDeal } from "@shared/schema";
 import { useQuery } from "@tanstack/react-query";
 import { 
@@ -805,7 +810,92 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
+          {/* Mobile: Carousel */}
+          <div className="sm:hidden">
+            <Carousel opts={{ align: "start", loop: true }} className="w-full">
+              <CarouselContent className="-ml-2">
+                <CarouselItem className="pl-2 basis-[85%]">
+                  <Card data-testid="card-testimonial-1-mobile">
+                    <CardContent className="pt-6">
+                      <div className="flex gap-1 mb-4">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star key={star} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                        ))}
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        "Closed my hard money loan in 6 days. The team was incredibly responsive and made the process seamless. Already on my third property with them!"
+                      </p>
+                      <div className="flex items-center gap-3">
+                        <img 
+                          src={testimonial1} 
+                          alt="Michael Chen" 
+                          className="w-10 h-10 rounded-full object-cover"
+                        />
+                        <div>
+                          <h4 className="font-semibold text-sm">Michael Chen</h4>
+                          <p className="text-xs text-muted-foreground">Fix & Flip Investor</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </CarouselItem>
+                <CarouselItem className="pl-2 basis-[85%]">
+                  <Card data-testid="card-testimonial-2-mobile">
+                    <CardContent className="pt-6">
+                      <div className="flex gap-1 mb-4">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star key={star} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                        ))}
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        "No tax returns, no W2s needed. Got approved for a DSCR loan based purely on my property's rental income. Game changer for my portfolio!"
+                      </p>
+                      <div className="flex items-center gap-3">
+                        <img 
+                          src={testimonial2} 
+                          alt="Sarah Johnson" 
+                          className="w-10 h-10 rounded-full object-cover"
+                        />
+                        <div>
+                          <h4 className="font-semibold text-sm">Sarah Johnson</h4>
+                          <p className="text-xs text-muted-foreground">Rental Property Owner</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </CarouselItem>
+                <CarouselItem className="pl-2 basis-[85%]">
+                  <Card data-testid="card-testimonial-3-mobile">
+                    <CardContent className="pt-6">
+                      <div className="flex gap-1 mb-4">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star key={star} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                        ))}
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        "Financed 3 apartment buildings in 6 months. Their rates are competitive and the loan officers really understand the investment business."
+                      </p>
+                      <div className="flex items-center gap-3">
+                        <img 
+                          src={testimonial3} 
+                          alt="David Rodriguez" 
+                          className="w-10 h-10 rounded-full object-cover"
+                        />
+                        <div>
+                          <h4 className="font-semibold text-sm">David Rodriguez</h4>
+                          <p className="text-xs text-muted-foreground">Multi-Family Investor</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </CarouselItem>
+              </CarouselContent>
+            </Carousel>
+            <p className="text-center text-xs text-muted-foreground mt-3">Swipe for more</p>
+          </div>
+
+          {/* Desktop: Grid */}
+          <div className="hidden sm:grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
             <Card data-testid="card-testimonial-1">
               <CardContent className="pt-6">
                 <div className="flex gap-1 mb-4">
