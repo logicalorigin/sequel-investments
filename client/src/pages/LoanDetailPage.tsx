@@ -982,7 +982,7 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
                                           }));
                                         }}
                                         placeholder="0"
-                                        className="w-28 text-right"
+                                        className="w-[6.5rem] text-right"
                                         data-testid={`input-draw-line-${item.id}`}
                                       />
                                     </div>

@@ -415,7 +415,7 @@ export function ApplicationScopeBuilder({
                                 </div>
                               ) : (
                                 <div
-                                  className={`inline-flex items-center justify-end gap-1 px-3 py-1.5 rounded-md border transition-colors ${
+                                  className={`inline-flex items-center justify-end gap-1 px-3 py-1.5 rounded-md border transition-colors min-w-[6.5rem] ${
                                     readOnly 
                                       ? "bg-muted/30 border-transparent cursor-default" 
                                       : "bg-background border-input hover:border-primary hover:bg-muted/50 cursor-pointer"
