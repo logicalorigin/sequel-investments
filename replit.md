@@ -30,6 +30,11 @@ I prefer simple language. I want iterative development. Ask before making major 
 - **Borrower Portal**: Features portfolio management, investment analysis tools, application detail pages, document upload with automated organization, and user profile management. Analyzers save scenario data to draft applications.
 - **Photo Verification Walkthrough**: Interactive camera-based photo capture for property and renovation verification. Borrowers upload required photos (exterior, interior, renovation areas) with EXIF metadata extraction and browser location tracking. Progress tracking guides users through required photo categories. Available for Fix & Flip and Construction loan applications via `/portal/application/:id/verification`. **100% mobile-optimized** with single-column layout, horizontal scrolling category tabs, bottom action bar, touch-friendly 44px+ tap targets, and portrait-oriented camera preview.
 - **Company Backend (Staff Portal)**: Role-Based Access Control (borrower, staff, admin), pipeline view of applications, application status management, user management, and staff invitations.
+- **Loan Pipeline Infrastructure** (Phase 1 Complete):
+    - **Application Stage History**: Timeline audit trail tracking all status/stage changes with timestamps, user attribution, duration tracking, and notes. Supports automated vs manual transition logging.
+    - **Loan Assignments**: Staff ownership with role-based assignments (account_executive, processor, underwriter, closer, servicer). Tracks primary assignees, assignment history, and active/inactive status.
+    - **DSCR Product Variants**: Purchase, Cash-Out Refinance, and Rate & Term Refinance loan types for DSCR loans via `productVariant` enum.
+    - **API Endpoints**: Full CRUD operations for stage history and assignments at `/api/admin/applications/:id/stage-history`, `/api/admin/applications/:id/assignments`, `/api/admin/assignments/:id`, and `/api/my-assignments` for staff dashboard.
 - **SaaS Features**:
     - **Admin Analytics Dashboard**: Pipeline metrics and visualization.
     - **White-Label Demo Mode**: Customizable company branding, colors, and contact information.
