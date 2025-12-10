@@ -13,8 +13,8 @@ const SIMULATION_CONFIG = {
     fixFlip: 35,
     construction: 25
   },
-  batchSize: 5, // Create 5 loans per batch
-  batchIntervalMs: 3 * 60 * 1000, // 3 minutes between batches (~1 hour total for 20 batches)
+  batchSize: 10, // Create 10 loans per batch
+  batchIntervalMs: 6 * 60 * 1000, // 6 minutes between batches (~1 hour total for 10 batches)
 };
 
 // ============================================================
@@ -43,16 +43,56 @@ const STREET_NAMES = [
 ];
 
 const CITIES_BY_STATE: Record<string, string[]> = {
-  "TX": ["Houston", "Dallas", "Austin", "San Antonio", "Fort Worth", "Plano", "Arlington", "Frisco"],
-  "FL": ["Miami", "Orlando", "Tampa", "Jacksonville", "Fort Lauderdale", "Naples", "Sarasota", "West Palm Beach"],
-  "CA": ["Los Angeles", "San Diego", "San Francisco", "Sacramento", "San Jose", "Fresno", "Oakland", "Irvine"],
+  "AL": ["Birmingham", "Huntsville", "Montgomery", "Mobile", "Tuscaloosa"],
+  "AK": ["Anchorage", "Fairbanks", "Juneau", "Sitka", "Wasilla"],
   "AZ": ["Phoenix", "Scottsdale", "Tucson", "Mesa", "Chandler", "Tempe", "Gilbert", "Glendale"],
-  "NC": ["Charlotte", "Raleigh", "Durham", "Greensboro", "Winston-Salem", "Cary", "Wilmington", "Asheville"],
-  "GA": ["Atlanta", "Savannah", "Augusta", "Athens", "Marietta", "Sandy Springs", "Alpharetta", "Roswell"],
-  "TN": ["Nashville", "Memphis", "Knoxville", "Chattanooga", "Clarksville", "Murfreesboro", "Franklin", "Brentwood"],
+  "AR": ["Little Rock", "Fort Smith", "Fayetteville", "Springdale", "Jonesboro"],
+  "CA": ["Los Angeles", "San Diego", "San Francisco", "Sacramento", "San Jose", "Fresno", "Oakland", "Irvine", "Long Beach", "Anaheim"],
   "CO": ["Denver", "Colorado Springs", "Aurora", "Fort Collins", "Boulder", "Lakewood", "Thornton", "Arvada"],
+  "CT": ["Hartford", "New Haven", "Stamford", "Bridgeport", "Norwalk", "Greenwich"],
+  "DE": ["Wilmington", "Dover", "Newark", "Middletown", "Smyrna"],
+  "FL": ["Miami", "Orlando", "Tampa", "Jacksonville", "Fort Lauderdale", "Naples", "Sarasota", "West Palm Beach", "St. Petersburg", "Boca Raton"],
+  "GA": ["Atlanta", "Savannah", "Augusta", "Athens", "Marietta", "Sandy Springs", "Alpharetta", "Roswell"],
+  "HI": ["Honolulu", "Pearl City", "Hilo", "Kailua", "Waipahu"],
+  "ID": ["Boise", "Meridian", "Nampa", "Idaho Falls", "Pocatello", "Caldwell"],
+  "IL": ["Chicago", "Aurora", "Naperville", "Joliet", "Rockford", "Springfield", "Evanston"],
+  "IN": ["Indianapolis", "Fort Wayne", "Evansville", "South Bend", "Carmel", "Fishers"],
+  "IA": ["Des Moines", "Cedar Rapids", "Davenport", "Sioux City", "Iowa City"],
+  "KS": ["Wichita", "Overland Park", "Kansas City", "Olathe", "Topeka", "Lawrence"],
+  "KY": ["Louisville", "Lexington", "Bowling Green", "Owensboro", "Covington"],
+  "LA": ["New Orleans", "Baton Rouge", "Shreveport", "Lafayette", "Lake Charles"],
+  "ME": ["Portland", "Lewiston", "Bangor", "South Portland", "Auburn"],
+  "MD": ["Baltimore", "Frederick", "Rockville", "Gaithersburg", "Annapolis", "Bethesda"],
+  "MA": ["Boston", "Worcester", "Springfield", "Cambridge", "Lowell", "Newton"],
+  "MI": ["Detroit", "Grand Rapids", "Warren", "Sterling Heights", "Ann Arbor", "Lansing"],
+  "MN": ["Minneapolis", "St. Paul", "Rochester", "Duluth", "Bloomington", "Brooklyn Park"],
+  "MS": ["Jackson", "Gulfport", "Southaven", "Hattiesburg", "Biloxi"],
+  "MO": ["Kansas City", "St. Louis", "Springfield", "Columbia", "Independence"],
+  "MT": ["Billings", "Missoula", "Great Falls", "Bozeman", "Helena"],
+  "NE": ["Omaha", "Lincoln", "Bellevue", "Grand Island", "Kearney"],
   "NV": ["Las Vegas", "Henderson", "Reno", "North Las Vegas", "Sparks", "Carson City"],
-  "SC": ["Charleston", "Columbia", "Greenville", "Mount Pleasant", "Myrtle Beach", "Summerville"]
+  "NH": ["Manchester", "Nashua", "Concord", "Derry", "Rochester"],
+  "NJ": ["Newark", "Jersey City", "Paterson", "Elizabeth", "Trenton", "Hoboken", "Princeton"],
+  "NM": ["Albuquerque", "Las Cruces", "Rio Rancho", "Santa Fe", "Roswell"],
+  "NY": ["New York", "Buffalo", "Rochester", "Yonkers", "Syracuse", "Albany", "White Plains"],
+  "NC": ["Charlotte", "Raleigh", "Durham", "Greensboro", "Winston-Salem", "Cary", "Wilmington", "Asheville"],
+  "ND": ["Fargo", "Bismarck", "Grand Forks", "Minot", "West Fargo"],
+  "OH": ["Columbus", "Cleveland", "Cincinnati", "Toledo", "Akron", "Dayton"],
+  "OK": ["Oklahoma City", "Tulsa", "Norman", "Broken Arrow", "Edmond"],
+  "OR": ["Portland", "Salem", "Eugene", "Gresham", "Hillsboro", "Bend"],
+  "PA": ["Philadelphia", "Pittsburgh", "Allentown", "Reading", "Erie", "Harrisburg"],
+  "RI": ["Providence", "Warwick", "Cranston", "Pawtucket", "Newport"],
+  "SC": ["Charleston", "Columbia", "Greenville", "Mount Pleasant", "Myrtle Beach", "Summerville"],
+  "SD": ["Sioux Falls", "Rapid City", "Aberdeen", "Brookings", "Watertown"],
+  "TN": ["Nashville", "Memphis", "Knoxville", "Chattanooga", "Clarksville", "Murfreesboro", "Franklin", "Brentwood"],
+  "TX": ["Houston", "Dallas", "Austin", "San Antonio", "Fort Worth", "Plano", "Arlington", "Frisco", "El Paso", "Corpus Christi"],
+  "UT": ["Salt Lake City", "West Valley City", "Provo", "West Jordan", "Orem", "Sandy", "Ogden"],
+  "VT": ["Burlington", "South Burlington", "Rutland", "Essex", "Bennington"],
+  "VA": ["Virginia Beach", "Norfolk", "Chesapeake", "Richmond", "Newport News", "Alexandria", "Arlington"],
+  "WA": ["Seattle", "Spokane", "Tacoma", "Vancouver", "Bellevue", "Kent", "Everett"],
+  "WV": ["Charleston", "Huntington", "Morgantown", "Parkersburg", "Wheeling"],
+  "WI": ["Milwaukee", "Madison", "Green Bay", "Kenosha", "Racine", "Appleton"],
+  "WY": ["Cheyenne", "Casper", "Laramie", "Gillette", "Rock Springs"]
 };
 
 const STATES = Object.keys(CITIES_BY_STATE);
