@@ -955,6 +955,13 @@ export default function ApplicationDetailPage() {
               <ApplicationScopeBuilder 
                 applicationId={applicationId!} 
                 readOnly={application.status !== "draft" && application.status !== "submitted"}
+                desiredRehabBudget={application.rehabBudget}
+                onUpdateRehabBudget={async (newBudget: number) => {
+                  await apiRequest("PATCH", `/api/applications/${applicationId}`, { 
+                    rehabBudget: newBudget 
+                  });
+                  queryClient.invalidateQueries({ queryKey: ["/api/applications", applicationId] });
+                }}
               />
             )}
 
