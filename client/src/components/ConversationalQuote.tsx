@@ -35,6 +35,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { Link } from "wouter";
 import logoIcon from "@assets/logo_saf_only_removed_bg (1)_1764095523171.png";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
+import { CurrencySliderInput, PercentageSlider } from "@/components/AnimatedSlider";
 
 type LoanType = "dscr" | "fix-flip" | "construction" | "";
 type TransactionType = "purchase" | "refinance" | "";
@@ -876,6 +877,11 @@ export default function ConversationalQuote() {
         );
 
       case "dscr-purchase-financials":
+        const purchasePriceNum = parseFloat(formData.purchasePrice.replace(/,/g, "")) || 0;
+        const downPaymentNum = parseFloat(formData.downPaymentPercent) || 20;
+        const downPaymentAmount = purchasePriceNum * downPaymentNum / 100;
+        const loanAmount = purchasePriceNum - downPaymentAmount;
+        
         return (
           <div className="space-y-6 max-w-xl mx-auto">
             <div className="text-center">
@@ -885,58 +891,59 @@ export default function ConversationalQuote() {
               <p className="text-white/60 text-sm">80% LTV maximum</p>
             </div>
             <div className="space-y-4">
-              <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                <label className="text-white/50 text-xs uppercase tracking-wide block mb-2">Purchase Price</label>
-                <div className="flex items-center">
-                  <DollarSign className="w-5 h-5 text-white/40 mr-2" />
-                  <input
-                    type="text"
-                    value={formData.purchasePrice}
-                    onChange={(e) => updateField("purchasePrice", formatCurrency(e.target.value))}
-                    placeholder="0"
-                    className="w-full bg-transparent text-xl font-bold text-white focus:outline-none"
-                    data-testid="input-dscr-purchase-price"
-                  />
-                </div>
-              </div>
-              <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                <label className="text-white/50 text-xs uppercase tracking-wide block mb-2">Down Payment %</label>
-                <div className="flex items-center justify-between">
-                  <input
-                    type="text"
-                    value={formData.downPaymentPercent}
-                    onChange={(e) => {
-                      const val = e.target.value.replace(/[^\d]/g, "");
-                      const num = Math.min(100, Math.max(20, parseInt(val) || 20));
-                      updateField("downPaymentPercent", num.toString());
-                    }}
-                    placeholder="20"
-                    className="w-20 bg-transparent text-xl font-bold text-white focus:outline-none text-center"
-                    data-testid="input-down-payment"
-                  />
-                  <span className="text-white/40">% (min 20%)</span>
-                </div>
-                {formData.purchasePrice && (
-                  <p className="text-white/40 text-xs mt-2">
-                    = ${formatCurrency((parseFloat(formData.purchasePrice.replace(/,/g, "")) * parseFloat(formData.downPaymentPercent) / 100).toString())} down
-                  </p>
-                )}
-              </div>
-              <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                <label className="text-white/50 text-xs uppercase tracking-wide block mb-2">Expected Monthly Rent</label>
-                <div className="flex items-center">
-                  <DollarSign className="w-5 h-5 text-white/40 mr-2" />
-                  <input
-                    type="text"
-                    value={formData.monthlyRent}
-                    onChange={(e) => updateField("monthlyRent", formatCurrency(e.target.value))}
-                    placeholder="0"
-                    className="w-full bg-transparent text-xl font-bold text-white focus:outline-none"
-                    data-testid="input-dscr-monthly-rent"
-                  />
-                  <span className="text-white/40 ml-2">/mo</span>
-                </div>
-              </div>
+              <CurrencySliderInput
+                value={formData.purchasePrice}
+                onChange={(val) => updateField("purchasePrice", val)}
+                min={50000}
+                max={3000000}
+                step={10000}
+                label="Purchase Price"
+                data-testid="input-dscr-purchase-price"
+              />
+              
+              <PercentageSlider
+                value={formData.downPaymentPercent}
+                onChange={(val) => updateField("downPaymentPercent", val)}
+                min={20}
+                max={50}
+                step={1}
+                label="Down Payment"
+                calculatedAmount={downPaymentAmount}
+                helperText="Minimum 20% required"
+                data-testid="input-down-payment"
+              />
+              
+              {purchasePriceNum > 0 && (
+                <motion.div 
+                  className="bg-primary/10 rounded-xl p-4 border border-primary/30"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  <div className="flex justify-between items-center">
+                    <span className="text-white/60 text-sm">Estimated Loan Amount</span>
+                    <motion.span 
+                      className="text-xl font-bold text-primary"
+                      key={loanAmount}
+                      initial={{ scale: 0.9 }}
+                      animate={{ scale: 1 }}
+                    >
+                      ${loanAmount.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                    </motion.span>
+                  </div>
+                </motion.div>
+              )}
+              
+              <CurrencySliderInput
+                value={formData.monthlyRent}
+                onChange={(val) => updateField("monthlyRent", val)}
+                min={500}
+                max={15000}
+                step={100}
+                label="Expected Monthly Rent"
+                helperText="Monthly rental income"
+                data-testid="input-dscr-monthly-rent"
+              />
+              
               <div className="grid grid-cols-3 gap-3">
                 <div className="bg-white/5 rounded-xl p-4 border border-white/10">
                   <label className="text-white/50 text-xs uppercase tracking-wide block mb-2">Annual Taxes</label>
@@ -1108,6 +1115,12 @@ export default function ConversationalQuote() {
         );
 
       case "fixflip-financials":
+        const ffPurchase = parseFloat(formData.purchasePrice.replace(/,/g, "")) || 0;
+        const ffRehab = parseFloat(formData.rehabBudget.replace(/,/g, "")) || 0;
+        const ffArv = parseFloat(formData.afterRepairValue.replace(/,/g, "")) || 0;
+        const ffTotalInvestment = ffPurchase + ffRehab;
+        const ffPotentialProfit = ffArv - ffTotalInvestment;
+        
         return (
           <div className="space-y-6 max-w-xl mx-auto">
             <div className="text-center">
@@ -1117,71 +1130,93 @@ export default function ConversationalQuote() {
               <p className="text-white/60 text-sm">Tell us about your fix & flip project</p>
             </div>
             <div className="space-y-4">
-              <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                <label className="text-white/50 text-xs uppercase tracking-wide block mb-2">Purchase Price</label>
-                <div className="flex items-center">
-                  <DollarSign className="w-5 h-5 text-white/40 mr-2" />
-                  <input
-                    type="text"
-                    value={formData.purchasePrice}
-                    onChange={(e) => updateField("purchasePrice", formatCurrency(e.target.value))}
-                    placeholder="0"
-                    className="w-full bg-transparent text-xl font-bold text-white focus:outline-none"
-                    data-testid="input-fixflip-purchase-price"
-                  />
-                </div>
-              </div>
-              <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                <label className="text-white/50 text-xs uppercase tracking-wide block mb-2">Renovation Budget</label>
-                <div className="flex items-center">
-                  <DollarSign className="w-5 h-5 text-white/40 mr-2" />
-                  <input
-                    type="text"
-                    value={formData.rehabBudget}
-                    onChange={(e) => updateField("rehabBudget", formatCurrency(e.target.value))}
-                    placeholder="0"
-                    className="w-full bg-transparent text-xl font-bold text-white focus:outline-none"
-                    data-testid="input-fixflip-rehab-budget"
-                  />
-                </div>
-                <p className="text-white/40 text-xs mt-2">Estimated cost for renovations</p>
-              </div>
-              <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                <label className="text-white/50 text-xs uppercase tracking-wide block mb-2">After Repair Value (ARV)</label>
-                <div className="flex items-center">
-                  <DollarSign className="w-5 h-5 text-white/40 mr-2" />
-                  <input
-                    type="text"
-                    value={formData.afterRepairValue}
-                    onChange={(e) => updateField("afterRepairValue", formatCurrency(e.target.value))}
-                    placeholder="0"
-                    className="w-full bg-transparent text-xl font-bold text-white focus:outline-none"
-                    data-testid="input-fixflip-arv"
-                  />
-                </div>
-                <p className="text-white/40 text-xs mt-2">Expected property value after renovations</p>
-              </div>
-              {formData.purchasePrice && formData.rehabBudget && formData.afterRepairValue && (
-                <div className="bg-primary/10 rounded-xl p-4 border border-primary/30">
+              <CurrencySliderInput
+                value={formData.purchasePrice}
+                onChange={(val) => updateField("purchasePrice", val)}
+                min={25000}
+                max={2000000}
+                step={5000}
+                label="Purchase Price"
+                helperText="What you're paying for the property"
+                data-testid="input-fixflip-purchase-price"
+              />
+              
+              <CurrencySliderInput
+                value={formData.rehabBudget}
+                onChange={(val) => updateField("rehabBudget", val)}
+                min={5000}
+                max={500000}
+                step={2500}
+                label="Renovation Budget"
+                helperText="Estimated cost for renovations"
+                data-testid="input-fixflip-rehab-budget"
+              />
+              
+              <CurrencySliderInput
+                value={formData.afterRepairValue}
+                onChange={(val) => updateField("afterRepairValue", val)}
+                min={50000}
+                max={3000000}
+                step={10000}
+                label="After Repair Value (ARV)"
+                helperText="Expected value after renovations"
+                data-testid="input-fixflip-arv"
+              />
+              
+              {(ffPurchase > 0 || ffRehab > 0 || ffArv > 0) && (
+                <motion.div 
+                  className="bg-primary/10 rounded-xl p-4 border border-primary/30"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
                   <div className="flex justify-between text-sm">
                     <span className="text-white/60">Total Investment</span>
-                    <span className="text-white font-medium">
-                      ${formatCurrency((parseFloat(formData.purchasePrice.replace(/,/g, "")) + parseFloat(formData.rehabBudget.replace(/,/g, ""))).toString())}
-                    </span>
+                    <motion.span 
+                      className="text-white font-medium"
+                      key={ffTotalInvestment}
+                      initial={{ scale: 0.9 }}
+                      animate={{ scale: 1 }}
+                    >
+                      ${ffTotalInvestment.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                    </motion.span>
                   </div>
                   <div className="flex justify-between text-sm mt-2">
                     <span className="text-white/60">Potential Profit</span>
-                    <span className="text-primary font-bold">
-                      ${formatCurrency((parseFloat(formData.afterRepairValue.replace(/,/g, "")) - parseFloat(formData.purchasePrice.replace(/,/g, "")) - parseFloat(formData.rehabBudget.replace(/,/g, ""))).toString())}
-                    </span>
+                    <motion.span 
+                      className={`font-bold ${ffPotentialProfit >= 0 ? "text-primary" : "text-red-400"}`}
+                      key={ffPotentialProfit}
+                      initial={{ scale: 0.9 }}
+                      animate={{ scale: 1 }}
+                    >
+                      {ffPotentialProfit >= 0 ? "+" : ""}${ffPotentialProfit.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                    </motion.span>
                   </div>
-                </div>
+                  {ffArv > 0 && ffTotalInvestment > 0 && (
+                    <div className="flex justify-between text-xs mt-2 pt-2 border-t border-white/10">
+                      <span className="text-white/40">Return on Investment</span>
+                      <motion.span 
+                        className={`font-medium ${ffPotentialProfit >= 0 ? "text-green-400" : "text-red-400"}`}
+                        key={ffPotentialProfit / ffTotalInvestment}
+                        initial={{ scale: 0.9 }}
+                        animate={{ scale: 1 }}
+                      >
+                        {((ffPotentialProfit / ffTotalInvestment) * 100).toFixed(1)}%
+                      </motion.span>
+                    </div>
+                  )}
+                </motion.div>
               )}
             </div>
           </div>
         );
 
       case "construction-financials":
+        const cLand = parseFloat(formData.purchasePrice.replace(/,/g, "")) || 0;
+        const cBuild = parseFloat(formData.rehabBudget.replace(/,/g, "")) || 0;
+        const cCompleted = parseFloat(formData.afterRepairValue.replace(/,/g, "")) || 0;
+        const cTotalCost = cLand + cBuild;
+        const cPotentialProfit = cCompleted - cTotalCost;
+        
         return (
           <div className="space-y-6 max-w-xl mx-auto">
             <div className="text-center">
@@ -1191,66 +1226,81 @@ export default function ConversationalQuote() {
               <p className="text-white/60 text-sm">Tell us about your new construction project</p>
             </div>
             <div className="space-y-4">
-              <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                <label className="text-white/50 text-xs uppercase tracking-wide block mb-2">Land/Lot Cost</label>
-                <div className="flex items-center">
-                  <DollarSign className="w-5 h-5 text-white/40 mr-2" />
-                  <input
-                    type="text"
-                    value={formData.purchasePrice}
-                    onChange={(e) => updateField("purchasePrice", formatCurrency(e.target.value))}
-                    placeholder="0"
-                    className="w-full bg-transparent text-xl font-bold text-white focus:outline-none"
-                    data-testid="input-construction-land-cost"
-                  />
-                </div>
-                <p className="text-white/40 text-xs mt-2">Purchase price of the land</p>
-              </div>
-              <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                <label className="text-white/50 text-xs uppercase tracking-wide block mb-2">Construction Budget</label>
-                <div className="flex items-center">
-                  <DollarSign className="w-5 h-5 text-white/40 mr-2" />
-                  <input
-                    type="text"
-                    value={formData.rehabBudget}
-                    onChange={(e) => updateField("rehabBudget", formatCurrency(e.target.value))}
-                    placeholder="0"
-                    className="w-full bg-transparent text-xl font-bold text-white focus:outline-none"
-                    data-testid="input-construction-budget"
-                  />
-                </div>
-                <p className="text-white/40 text-xs mt-2">Total construction costs</p>
-              </div>
-              <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                <label className="text-white/50 text-xs uppercase tracking-wide block mb-2">Estimated Completed Value</label>
-                <div className="flex items-center">
-                  <DollarSign className="w-5 h-5 text-white/40 mr-2" />
-                  <input
-                    type="text"
-                    value={formData.afterRepairValue}
-                    onChange={(e) => updateField("afterRepairValue", formatCurrency(e.target.value))}
-                    placeholder="0"
-                    className="w-full bg-transparent text-xl font-bold text-white focus:outline-none"
-                    data-testid="input-construction-completed-value"
-                  />
-                </div>
-                <p className="text-white/40 text-xs mt-2">Expected value when complete</p>
-              </div>
-              {formData.purchasePrice && formData.rehabBudget && formData.afterRepairValue && (
-                <div className="bg-primary/10 rounded-xl p-4 border border-primary/30">
+              <CurrencySliderInput
+                value={formData.purchasePrice}
+                onChange={(val) => updateField("purchasePrice", val)}
+                min={10000}
+                max={1000000}
+                step={5000}
+                label="Land/Lot Cost"
+                helperText="Purchase price of the land"
+                data-testid="input-construction-land-cost"
+              />
+              
+              <CurrencySliderInput
+                value={formData.rehabBudget}
+                onChange={(val) => updateField("rehabBudget", val)}
+                min={50000}
+                max={2000000}
+                step={10000}
+                label="Construction Budget"
+                helperText="Total construction costs"
+                data-testid="input-construction-budget"
+              />
+              
+              <CurrencySliderInput
+                value={formData.afterRepairValue}
+                onChange={(val) => updateField("afterRepairValue", val)}
+                min={100000}
+                max={5000000}
+                step={25000}
+                label="Estimated Completed Value"
+                helperText="Expected value when complete"
+                data-testid="input-construction-completed-value"
+              />
+              
+              {(cLand > 0 || cBuild > 0 || cCompleted > 0) && (
+                <motion.div 
+                  className="bg-primary/10 rounded-xl p-4 border border-primary/30"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
                   <div className="flex justify-between text-sm">
                     <span className="text-white/60">Total Project Cost</span>
-                    <span className="text-white font-medium">
-                      ${formatCurrency((parseFloat(formData.purchasePrice.replace(/,/g, "")) + parseFloat(formData.rehabBudget.replace(/,/g, ""))).toString())}
-                    </span>
+                    <motion.span 
+                      className="text-white font-medium"
+                      key={cTotalCost}
+                      initial={{ scale: 0.9 }}
+                      animate={{ scale: 1 }}
+                    >
+                      ${cTotalCost.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                    </motion.span>
                   </div>
                   <div className="flex justify-between text-sm mt-2">
                     <span className="text-white/60">Potential Profit</span>
-                    <span className="text-primary font-bold">
-                      ${formatCurrency((parseFloat(formData.afterRepairValue.replace(/,/g, "")) - parseFloat(formData.purchasePrice.replace(/,/g, "")) - parseFloat(formData.rehabBudget.replace(/,/g, ""))).toString())}
-                    </span>
+                    <motion.span 
+                      className={`font-bold ${cPotentialProfit >= 0 ? "text-primary" : "text-red-400"}`}
+                      key={cPotentialProfit}
+                      initial={{ scale: 0.9 }}
+                      animate={{ scale: 1 }}
+                    >
+                      {cPotentialProfit >= 0 ? "+" : ""}${cPotentialProfit.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                    </motion.span>
                   </div>
-                </div>
+                  {cCompleted > 0 && cTotalCost > 0 && (
+                    <div className="flex justify-between text-xs mt-2 pt-2 border-t border-white/10">
+                      <span className="text-white/40">Return on Investment</span>
+                      <motion.span 
+                        className={`font-medium ${cPotentialProfit >= 0 ? "text-green-400" : "text-red-400"}`}
+                        key={cPotentialProfit / cTotalCost}
+                        initial={{ scale: 0.9 }}
+                        animate={{ scale: 1 }}
+                      >
+                        {((cPotentialProfit / cTotalCost) * 100).toFixed(1)}%
+                      </motion.span>
+                    </div>
+                  )}
+                </motion.div>
               )}
             </div>
           </div>
