@@ -150,7 +150,13 @@ export async function setupStaffAuth(app: Express) {
         if (err) {
           console.error("Session destroy error:", err);
         }
-        res.clearCookie("connect.sid");
+        // Clear cookie with same options used to set it
+        res.clearCookie("connect.sid", {
+          path: "/",
+          httpOnly: true,
+          secure: true,
+          sameSite: "lax",
+        });
         res.json({ success: true, message: "Logged out successfully" });
       });
     });
@@ -226,7 +232,13 @@ export async function setupStaffAuth(app: Express) {
         if (err) {
           console.error("Session destroy error:", err);
         }
-        res.clearCookie("connect.sid");
+        // Clear cookie with same options used to set it
+        res.clearCookie("connect.sid", {
+          path: "/",
+          httpOnly: true,
+          secure: true,
+          sameSite: "lax",
+        });
         res.json({ success: true, message: "Logged out successfully" });
       });
     });
