@@ -468,7 +468,7 @@ export default function FixFlipAnalyzerPage() {
                         onClick={() => setPropertyType(type.id)}
                         className={`py-2 px-2 rounded-md border transition-all flex flex-col items-center gap-1 ${
                           propertyType === type.id
-                            ? "border-primary bg-primary/10 text-primary"
+                            ? "border-primary bg-primary text-primary-foreground"
                             : "border-border hover:border-primary/50"
                         }`}
                         data-testid={`button-property-type-${type.id}`}
@@ -650,7 +650,7 @@ export default function FixFlipAnalyzerPage() {
                           onClick={() => setExperience(level.id)}
                           className={`flex-1 min-w-[60px] py-1.5 sm:py-2 px-1.5 sm:px-2 rounded-md border text-[10px] sm:text-xs font-medium transition-all ${
                             experience === level.id
-                              ? "border-primary bg-primary/10 text-primary"
+                              ? "border-primary bg-primary text-primary-foreground"
                               : "border-border hover:border-primary/50"
                           }`}
                           data-testid={`button-experience-${level.id}`}

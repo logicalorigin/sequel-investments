@@ -30,8 +30,63 @@ export function Footer() {
         className="text-muted-foreground" 
         opacity={0.1}
       />
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-10 sm:py-12 md:py-16">
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 md:gap-12 mb-8 sm:mb-12">
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-12 md:py-16">
+        {/* Mobile: Compact layout */}
+        <div className="sm:hidden space-y-4 mb-4">
+          <div className="flex items-center justify-between">
+            {logoUrl ? (
+              <img 
+                src={logoUrl} 
+                alt={companyName}
+                className="h-6 max-w-[120px] object-contain"
+                data-testid="img-footer-logo"
+              />
+            ) : (
+              <div className="flex items-center">
+                <span className="text-base font-bold text-primary" data-testid="text-footer-company-first">{firstName}</span>
+                {restOfName && <span className="text-base font-light text-foreground ml-1" data-testid="text-footer-company-rest">{restOfName}</span>}
+              </div>
+            )}
+            <div className="flex gap-2">
+              <Button size="icon" variant="outline" className="h-7 w-7" data-testid="button-social-facebook">
+                <Facebook className="h-3 w-3" />
+              </Button>
+              <Button size="icon" variant="outline" className="h-7 w-7" data-testid="button-social-twitter">
+                <Twitter className="h-3 w-3" />
+              </Button>
+              <Button size="icon" variant="outline" className="h-7 w-7" data-testid="button-social-linkedin">
+                <Linkedin className="h-3 w-3" />
+              </Button>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <h3 className="font-semibold text-xs mb-2">Products</h3>
+              <ul className="space-y-1">
+                <li><Link href="/dscr-loans"><span className="text-xs text-muted-foreground">DSCR Loans</span></Link></li>
+                <li><Link href="/fix-flip"><span className="text-xs text-muted-foreground">Fix & Flip</span></Link></li>
+                <li><Link href="/new-construction"><span className="text-xs text-muted-foreground">Construction</span></Link></li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-semibold text-xs mb-2">Company</h3>
+              <ul className="space-y-1">
+                <li><Link href="/about"><span className="text-xs text-muted-foreground">About</span></Link></li>
+                <li><Link href="/contact"><span className="text-xs text-muted-foreground">Contact</span></Link></li>
+                <li><Link href="/admin/login"><span className="text-xs text-muted-foreground">Staff Login</span></Link></li>
+              </ul>
+            </div>
+          </div>
+          
+          <div className="text-xs text-muted-foreground space-y-0.5" data-testid="footer-contact-info">
+            <p data-testid="text-footer-phone">{contactPhone}</p>
+            <p data-testid="text-footer-email">{contactEmail}</p>
+          </div>
+        </div>
+
+        {/* Desktop: Full layout */}
+        <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12 mb-8 sm:mb-12">
           <div className="col-span-2 lg:col-span-1">
             <div className="flex items-center mb-4 sm:mb-6">
               {logoUrl ? (
@@ -39,32 +94,32 @@ export function Footer() {
                   src={logoUrl} 
                   alt={companyName}
                   className="h-8 max-w-[150px] object-contain"
-                  data-testid="img-footer-logo"
+                  data-testid="img-footer-logo-desktop"
                 />
               ) : (
                 <>
-                  <span className="text-lg font-bold text-primary" data-testid="text-footer-company-first">{firstName}</span>
-                  {restOfName && <span className="text-lg font-light text-foreground ml-1" data-testid="text-footer-company-rest">{restOfName}</span>}
+                  <span className="text-lg font-bold text-primary">{firstName}</span>
+                  {restOfName && <span className="text-lg font-light text-foreground ml-1">{restOfName}</span>}
                 </>
               )}
             </div>
             <p className="text-sm sm:text-base text-muted-foreground mb-3 sm:mb-4">
               Private financing solutions for real estate investors. DSCR, Fix & Flip, and New Construction loans nationwide.
             </p>
-            <div className="text-xs sm:text-sm text-muted-foreground space-y-1 mb-3 sm:mb-4" data-testid="footer-contact-info">
-              <p data-testid="text-footer-phone">{contactPhone}</p>
-              <p data-testid="text-footer-email">{contactEmail}</p>
-              <p data-testid="text-footer-address-1">{addressLine1}</p>
-              {addressLine2 && <p data-testid="text-footer-address-2">{addressLine2}</p>}
+            <div className="text-xs sm:text-sm text-muted-foreground space-y-1 mb-3 sm:mb-4">
+              <p>{contactPhone}</p>
+              <p>{contactEmail}</p>
+              <p>{addressLine1}</p>
+              {addressLine2 && <p>{addressLine2}</p>}
             </div>
             <div className="flex gap-2 sm:gap-3">
-              <Button size="icon" variant="outline" className="h-8 w-8 sm:h-9 sm:w-9" data-testid="button-social-facebook">
+              <Button size="icon" variant="outline" className="h-8 w-8 sm:h-9 sm:w-9">
                 <Facebook className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </Button>
-              <Button size="icon" variant="outline" className="h-8 w-8 sm:h-9 sm:w-9" data-testid="button-social-twitter">
+              <Button size="icon" variant="outline" className="h-8 w-8 sm:h-9 sm:w-9">
                 <Twitter className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </Button>
-              <Button size="icon" variant="outline" className="h-8 w-8 sm:h-9 sm:w-9" data-testid="button-social-linkedin">
+              <Button size="icon" variant="outline" className="h-8 w-8 sm:h-9 sm:w-9">
                 <Linkedin className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </Button>
             </div>
@@ -162,14 +217,14 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="pt-6 sm:pt-8 border-t">
+        <div className="pt-4 sm:pt-8 border-t">
           {footerText && (
             <p className="text-muted-foreground text-xs sm:text-sm mb-4 text-center" data-testid="text-custom-footer">
               {footerText}
             </p>
           )}
-          <div className="flex flex-col md:flex-row justify-between items-center gap-2 sm:gap-4">
-            <p className="text-muted-foreground text-xs sm:text-sm text-center md:text-left" data-testid="text-footer-copyright">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-1 sm:gap-4">
+            <p className="text-muted-foreground text-[10px] sm:text-sm text-center sm:text-left" data-testid="text-footer-copyright">
               © {new Date().getFullYear()} {isDemoMode ? companyName : "Sequel Investments"}. All rights reserved.
               {isDemoMode && (
                 <span className="ml-2 text-primary" data-testid="text-powered-by-footer">
@@ -177,7 +232,7 @@ export function Footer() {
                 </span>
               )}
             </p>
-            <p className="text-muted-foreground text-xs sm:text-sm">
+            <p className="text-muted-foreground text-[10px] sm:text-sm">
               Licensed in 48 states + DC
             </p>
           </div>
