@@ -11,6 +11,12 @@ import {
   CarouselContent,
   CarouselItem,
 } from "@/components/ui/carousel";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { type StateData, getEligibleStates, type FundedDeal } from "@shared/schema";
 import { useQuery } from "@tanstack/react-query";
 import { 
@@ -323,7 +329,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="py-8 sm:py-12 bg-card border-b relative overflow-hidden">
+      <section className="py-4 sm:py-12 bg-card border-b relative overflow-hidden">
         <GeometricPattern 
           variant="dots" 
           className="text-primary" 
@@ -331,22 +337,42 @@ export default function HomePage() {
           animated={false}
         />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-8">
-            <div className="text-center group" data-testid="stat-funded">
-              <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-primary group-hover:animate-scale-pulse">$500M+</p>
-              <p className="text-xs sm:text-sm text-muted-foreground mt-1">Loans Funded</p>
+          {/* Mobile: 2x2 grid on very small screens, 4-column on larger mobile */}
+          <div className="sm:hidden grid grid-cols-2 min-[360px]:grid-cols-4 gap-2 min-[360px]:gap-1 text-center">
+            <div data-testid="stat-funded">
+              <p className="text-sm min-[360px]:text-base font-bold text-primary">$500M+</p>
+              <p className="text-[9px] text-muted-foreground leading-tight">Funded</p>
             </div>
-            <div className="text-center group" data-testid="stat-loans">
-              <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-primary group-hover:animate-scale-pulse">1,500+</p>
-              <p className="text-xs sm:text-sm text-muted-foreground mt-1">Investors Served</p>
+            <div data-testid="stat-loans">
+              <p className="text-sm min-[360px]:text-base font-bold text-primary">1,500+</p>
+              <p className="text-[9px] text-muted-foreground leading-tight">Investors</p>
             </div>
-            <div className="text-center group" data-testid="stat-closing">
-              <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-primary group-hover:animate-scale-pulse">48 hrs</p>
-              <p className="text-xs sm:text-sm text-muted-foreground mt-1">Fastest Closing</p>
+            <div data-testid="stat-closing">
+              <p className="text-sm min-[360px]:text-base font-bold text-primary">48 hrs</p>
+              <p className="text-[9px] text-muted-foreground leading-tight">Fastest</p>
             </div>
-            <div className="text-center group" data-testid="stat-states">
-              <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-primary group-hover:animate-scale-pulse">48 States</p>
-              <p className="text-xs sm:text-sm text-muted-foreground mt-1">+ DC Licensed</p>
+            <div data-testid="stat-states">
+              <p className="text-sm min-[360px]:text-base font-bold text-primary">48</p>
+              <p className="text-[9px] text-muted-foreground leading-tight">States</p>
+            </div>
+          </div>
+          {/* Desktop: Grid layout */}
+          <div className="hidden sm:grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-8">
+            <div className="text-center group">
+              <p className="text-3xl md:text-4xl font-bold text-primary group-hover:animate-scale-pulse">$500M+</p>
+              <p className="text-sm text-muted-foreground mt-1">Loans Funded</p>
+            </div>
+            <div className="text-center group">
+              <p className="text-3xl md:text-4xl font-bold text-primary group-hover:animate-scale-pulse">1,500+</p>
+              <p className="text-sm text-muted-foreground mt-1">Investors Served</p>
+            </div>
+            <div className="text-center group">
+              <p className="text-3xl md:text-4xl font-bold text-primary group-hover:animate-scale-pulse">48 hrs</p>
+              <p className="text-sm text-muted-foreground mt-1">Fastest Closing</p>
+            </div>
+            <div className="text-center group">
+              <p className="text-3xl md:text-4xl font-bold text-primary group-hover:animate-scale-pulse">48 States</p>
+              <p className="text-sm text-muted-foreground mt-1">+ DC Licensed</p>
             </div>
           </div>
         </div>
@@ -361,62 +387,135 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* Mobile: Horizontal scroll compact cards */}
-          <div className="sm:hidden flex gap-3 overflow-x-auto pb-4 -mx-4 px-4 snap-x snap-mandatory scrollbar-hide">
-            <Link href="/dscr-loans" className="flex-shrink-0 w-[75vw] snap-start">
-              <Card className="overflow-hidden h-full" data-testid="card-product-dscr-mobile">
-                <div className="h-24 overflow-hidden">
-                  <img src={dscrCardImage} alt="DSCR Loan" className="w-full h-full object-cover" />
-                </div>
-                <CardContent className="p-3">
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <Home className="h-4 w-4 text-primary" />
-                    <span className="font-semibold text-sm">DSCR Loans</span>
+          {/* Mobile: Accordion cards */}
+          <div className="sm:hidden">
+            <Accordion type="single" collapsible className="space-y-2">
+              <AccordionItem value="dscr" className="border rounded-lg overflow-hidden bg-card">
+                <AccordionTrigger className="px-3 py-2 hover:no-underline" data-testid="accordion-dscr-mobile">
+                  <div className="flex items-center gap-3 w-full">
+                    <div className="w-12 h-12 rounded-md overflow-hidden shrink-0">
+                      <img src={dscrCardImage} alt="DSCR" className="w-full h-full object-cover" />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <div className="flex items-center gap-1.5">
+                        <Home className="h-3.5 w-3.5 text-primary" />
+                        <span className="font-semibold text-sm">DSCR Loans</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">From 5.75% • 30-Year Fixed</p>
+                    </div>
                   </div>
-                  <p className="text-xs text-muted-foreground mb-2">Rental financing, no W2</p>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">From</span>
-                    <span className="font-semibold text-primary">5.75%</span>
+                </AccordionTrigger>
+                <AccordionContent className="px-3 pb-3 pt-0">
+                  <div className="space-y-2 text-xs">
+                    <p className="text-muted-foreground">Rental financing with no W2 or tax returns. Qualify based on property cash flow, not personal income.</p>
+                    <div className="grid grid-cols-3 gap-2 text-center py-2 border-y">
+                      <div>
+                        <p className="font-semibold">80%</p>
+                        <p className="text-[10px] text-muted-foreground">Max LTV</p>
+                      </div>
+                      <div>
+                        <p className="font-semibold">$3M</p>
+                        <p className="text-[10px] text-muted-foreground">Max Loan</p>
+                      </div>
+                      <div>
+                        <p className="font-semibold">No Min</p>
+                        <p className="text-[10px] text-muted-foreground">DSCR</p>
+                      </div>
+                    </div>
+                    <Link href="/dscr-loans">
+                      <Button size="sm" className="w-full text-xs h-8" data-testid="button-learn-dscr-mobile">
+                        Learn More
+                        <ArrowRight className="ml-1 h-3 w-3" />
+                      </Button>
+                    </Link>
                   </div>
-                </CardContent>
-              </Card>
-            </Link>
-            <Link href="/fix-flip" className="flex-shrink-0 w-[75vw] snap-start">
-              <Card className="overflow-hidden h-full" data-testid="card-product-fixflip-mobile">
-                <div className="h-24 overflow-hidden">
-                  <img src={fixFlipCardImage} alt="Fix & Flip" className="w-full h-full object-cover" />
-                </div>
-                <CardContent className="p-3">
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <TrendingUp className="h-4 w-4 text-primary" />
-                    <span className="font-semibold text-sm">Fix & Flip</span>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="fixflip" className="border rounded-lg overflow-hidden bg-card">
+                <AccordionTrigger className="px-3 py-2 hover:no-underline" data-testid="accordion-fixflip-mobile">
+                  <div className="flex items-center gap-3 w-full">
+                    <div className="w-12 h-12 rounded-md overflow-hidden shrink-0">
+                      <img src={fixFlipCardImage} alt="Fix & Flip" className="w-full h-full object-cover" />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <div className="flex items-center gap-1.5">
+                        <TrendingUp className="h-3.5 w-3.5 text-primary" />
+                        <span className="font-semibold text-sm">Fix & Flip</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">From 8.90% • 12-24 Mo Terms</p>
+                    </div>
                   </div>
-                  <p className="text-xs text-muted-foreground mb-2">Bridge financing for flips</p>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">From</span>
-                    <span className="font-semibold text-primary">8.90%</span>
+                </AccordionTrigger>
+                <AccordionContent className="px-3 pb-3 pt-0">
+                  <div className="space-y-2 text-xs">
+                    <p className="text-muted-foreground">Short-term bridge loans for property flips. Fast closings, renovation financing included.</p>
+                    <div className="grid grid-cols-3 gap-2 text-center py-2 border-y">
+                      <div>
+                        <p className="font-semibold">90%</p>
+                        <p className="text-[10px] text-muted-foreground">Max LTC</p>
+                      </div>
+                      <div>
+                        <p className="font-semibold">$2M</p>
+                        <p className="text-[10px] text-muted-foreground">Max Loan</p>
+                      </div>
+                      <div>
+                        <p className="font-semibold">48 hrs</p>
+                        <p className="text-[10px] text-muted-foreground">Close</p>
+                      </div>
+                    </div>
+                    <Link href="/fix-flip">
+                      <Button size="sm" className="w-full text-xs h-8" data-testid="button-learn-fixflip-mobile">
+                        Learn More
+                        <ArrowRight className="ml-1 h-3 w-3" />
+                      </Button>
+                    </Link>
                   </div>
-                </CardContent>
-              </Card>
-            </Link>
-            <Link href="/new-construction" className="flex-shrink-0 w-[75vw] snap-start">
-              <Card className="overflow-hidden h-full" data-testid="card-product-construction-mobile">
-                <div className="h-24 overflow-hidden">
-                  <img src={newConstructionCardImage} alt="New Construction" className="w-full h-full object-cover" />
-                </div>
-                <CardContent className="p-3">
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <Building2 className="h-4 w-4 text-primary" />
-                    <span className="font-semibold text-sm">New Construction</span>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="construction" className="border rounded-lg overflow-hidden bg-card">
+                <AccordionTrigger className="px-3 py-2 hover:no-underline" data-testid="accordion-construction-mobile">
+                  <div className="flex items-center gap-3 w-full">
+                    <div className="w-12 h-12 rounded-md overflow-hidden shrink-0">
+                      <img src={newConstructionCardImage} alt="New Construction" className="w-full h-full object-cover" />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <div className="flex items-center gap-1.5">
+                        <Building2 className="h-3.5 w-3.5 text-primary" />
+                        <span className="font-semibold text-sm">New Construction</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">From 9.90% • 18-24 Mo Terms</p>
+                    </div>
                   </div>
-                  <p className="text-xs text-muted-foreground mb-2">Ground-up financing</p>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">From</span>
-                    <span className="font-semibold text-primary">9.90%</span>
+                </AccordionTrigger>
+                <AccordionContent className="px-3 pb-3 pt-0">
+                  <div className="space-y-2 text-xs">
+                    <p className="text-muted-foreground">Ground-up construction financing with flexible draw schedules. Build your vision from the ground up.</p>
+                    <div className="grid grid-cols-3 gap-2 text-center py-2 border-y">
+                      <div>
+                        <p className="font-semibold">85%</p>
+                        <p className="text-[10px] text-muted-foreground">Max LTC</p>
+                      </div>
+                      <div>
+                        <p className="font-semibold">$5M</p>
+                        <p className="text-[10px] text-muted-foreground">Max Loan</p>
+                      </div>
+                      <div>
+                        <p className="font-semibold">Flexible</p>
+                        <p className="text-[10px] text-muted-foreground">Draws</p>
+                      </div>
+                    </div>
+                    <Link href="/new-construction">
+                      <Button size="sm" className="w-full text-xs h-8" data-testid="button-learn-construction-mobile">
+                        Learn More
+                        <ArrowRight className="ml-1 h-3 w-3" />
+                      </Button>
+                    </Link>
                   </div>
-                </CardContent>
-              </Card>
-            </Link>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </div>
 
           {/* Desktop: Full cards grid */}
