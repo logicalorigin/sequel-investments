@@ -77,7 +77,7 @@ interface FormData {
 
 interface Question {
   id: string;
-  type: "loan-type" | "sentence-input" | "address" | "experience" | "contact" | "transaction-type" | "dscr-purchase-financials" | "dscr-refinance-financials" | "property-details";
+  type: "loan-type" | "sentence-input" | "address" | "experience" | "contact" | "transaction-type" | "dscr-purchase-financials" | "dscr-refinance-financials" | "property-details" | "fixflip-financials" | "construction-financials";
   prompt: string;
   field?: keyof FormData;
   showFor?: LoanType[];
@@ -99,26 +99,18 @@ const questions: Question[] = [
     type: "loan-type",
     prompt: "What type of investment are you financing?",
   },
-  // Fix & Flip and Construction flow
-  {
-    id: "loan-amount",
-    type: "sentence-input",
-    prompt: "I'm looking to borrow around",
-    field: "loanAmount",
-    showFor: ["fix-flip", "construction"],
-  },
   {
     id: "property-address",
     type: "address",
     prompt: "Where is the property located?",
     field: "propertyAddress",
   },
-  // DSCR: Show property details after address
+  // DSCR & Fix & Flip: Show property details after address (existing properties)
   {
     id: "property-details",
     type: "property-details",
     prompt: "Property Details",
-    showFor: ["dscr"],
+    showFor: ["dscr", "fix-flip"],
   },
   // DSCR: Transaction type selection
   {
@@ -143,27 +135,19 @@ const questions: Question[] = [
     showFor: ["dscr"],
     showForTransaction: ["refinance"],
   },
-  // Fix & Flip / Construction flow continues
+  // Fix & Flip: Combined financials page
   {
-    id: "purchase-price",
-    type: "sentence-input",
-    prompt: "The purchase price is",
-    field: "purchasePrice",
-    showFor: ["fix-flip", "construction"],
+    id: "fixflip-financials",
+    type: "fixflip-financials",
+    prompt: "Deal Financials",
+    showFor: ["fix-flip"],
   },
+  // New Construction: Combined financials page
   {
-    id: "rehab-budget",
-    type: "sentence-input",
-    prompt: "My renovation budget is",
-    field: "rehabBudget",
-    showFor: ["fix-flip", "construction"],
-  },
-  {
-    id: "arv",
-    type: "sentence-input",
-    prompt: "After repairs, I expect it to be worth",
-    field: "afterRepairValue",
-    showFor: ["fix-flip", "construction"],
+    id: "construction-financials",
+    type: "construction-financials",
+    prompt: "Project Financials",
+    showFor: ["construction"],
   },
   {
     id: "experience",
@@ -407,7 +391,7 @@ export default function ConversationalQuote() {
     const questionId = currentQuestion.id;
     if (questionId === "loan-type") return 0;
     if (["property-address", "property-details"].includes(questionId)) return 1;
-    if (["transaction-type", "dscr-purchase-financials", "dscr-refinance-financials", "loan-amount", "purchase-price", "rehab-budget", "arv"].includes(questionId)) return 2;
+    if (["transaction-type", "dscr-purchase-financials", "dscr-refinance-financials", "fixflip-financials", "construction-financials"].includes(questionId)) return 2;
     if (questionId === "experience") return 3;
     if (questionId === "contact") return 4;
     return 0;
@@ -433,7 +417,42 @@ export default function ConversationalQuote() {
   });
 
   const updateField = useCallback((field: keyof FormData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      // If loan type is changing, reset financial fields to prevent data contamination
+      if (field === "loanType" && value !== prev.loanType) {
+        // Also reset the question index since we're starting a new flow
+        // Using setTimeout to avoid state update conflicts
+        setTimeout(() => {
+          setCurrentQuestionIndex(0);
+          setDirection(1);
+        }, 0);
+        
+        return {
+          ...prev,
+          [field]: value,
+          // Reset all financial fields when changing loan type
+          purchasePrice: "",
+          rehabBudget: "",
+          afterRepairValue: "",
+          monthlyRent: "",
+          transactionType: "" as TransactionType,
+          propertyDetails: { beds: "", baths: "", sqft: "", yearBuilt: "", estimatedValue: "" },
+          downPaymentPercent: "20",
+          propertyValue: "",
+          currentLoanBalance: "",
+          desiredCashOut: "",
+          annualTaxes: "",
+          annualInsurance: "",
+          annualHoa: "",
+          // Reset property address since it's entered after loan type selection
+          propertyAddress: "",
+          propertyCity: "",
+          propertyState: "",
+          propertyZip: "",
+        };
+      }
+      return { ...prev, [field]: value };
+    });
   }, []);
 
   const canContinue = () => {
@@ -442,8 +461,6 @@ export default function ConversationalQuote() {
     switch (currentQuestion.id) {
       case "loan-type":
         return !!formData.loanType;
-      case "loan-amount":
-        return !!formData.loanAmount;
       case "property-address":
         return !!formData.propertyAddress || !!formData.propertyCity;
       case "property-details":
@@ -454,14 +471,10 @@ export default function ConversationalQuote() {
         return !!formData.purchasePrice && !!formData.monthlyRent && !!formData.annualTaxes && !!formData.annualInsurance;
       case "dscr-refinance-financials":
         return !!formData.propertyValue && !!formData.currentLoanBalance && !!formData.monthlyRent && !!formData.annualTaxes && !!formData.annualInsurance;
-      case "purchase-price":
-        return !!formData.purchasePrice;
-      case "rehab-budget":
-        return !!formData.rehabBudget;
-      case "arv":
-        return !!formData.afterRepairValue;
-      case "monthly-rent":
-        return !!formData.monthlyRent;
+      case "fixflip-financials":
+        return !!formData.purchasePrice && !!formData.rehabBudget && !!formData.afterRepairValue;
+      case "construction-financials":
+        return !!formData.purchasePrice && !!formData.rehabBudget && !!formData.afterRepairValue;
       case "experience":
         return !!formData.experience;
       case "contact":
@@ -537,8 +550,8 @@ export default function ConversationalQuote() {
     }
 
     setFormData(prev => {
-      // For DSCR loans, fetch property details after updating state
-      if (prev.loanType === "dscr" && streetAddress) {
+      // For DSCR and Fix & Flip loans (existing properties), fetch property details
+      if ((prev.loanType === "dscr" || prev.loanType === "fix-flip") && streetAddress) {
         // Use setTimeout to ensure state is updated before fetching
         setTimeout(() => fetchPropertyDetails(streetAddress), 100);
       }
@@ -1090,6 +1103,155 @@ export default function ConversationalQuote() {
                   <span className="text-white/30 text-xs">Optional</span>
                 </div>
               </div>
+            </div>
+          </div>
+        );
+
+      case "fixflip-financials":
+        return (
+          <div className="space-y-6 max-w-xl mx-auto">
+            <div className="text-center">
+              <h2 className="text-2xl sm:text-3xl font-bold text-white leading-tight mb-2">
+                Deal Financials
+              </h2>
+              <p className="text-white/60 text-sm">Tell us about your fix & flip project</p>
+            </div>
+            <div className="space-y-4">
+              <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                <label className="text-white/50 text-xs uppercase tracking-wide block mb-2">Purchase Price</label>
+                <div className="flex items-center">
+                  <DollarSign className="w-5 h-5 text-white/40 mr-2" />
+                  <input
+                    type="text"
+                    value={formData.purchasePrice}
+                    onChange={(e) => updateField("purchasePrice", formatCurrency(e.target.value))}
+                    placeholder="0"
+                    className="w-full bg-transparent text-xl font-bold text-white focus:outline-none"
+                    data-testid="input-fixflip-purchase-price"
+                  />
+                </div>
+              </div>
+              <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                <label className="text-white/50 text-xs uppercase tracking-wide block mb-2">Renovation Budget</label>
+                <div className="flex items-center">
+                  <DollarSign className="w-5 h-5 text-white/40 mr-2" />
+                  <input
+                    type="text"
+                    value={formData.rehabBudget}
+                    onChange={(e) => updateField("rehabBudget", formatCurrency(e.target.value))}
+                    placeholder="0"
+                    className="w-full bg-transparent text-xl font-bold text-white focus:outline-none"
+                    data-testid="input-fixflip-rehab-budget"
+                  />
+                </div>
+                <p className="text-white/40 text-xs mt-2">Estimated cost for renovations</p>
+              </div>
+              <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                <label className="text-white/50 text-xs uppercase tracking-wide block mb-2">After Repair Value (ARV)</label>
+                <div className="flex items-center">
+                  <DollarSign className="w-5 h-5 text-white/40 mr-2" />
+                  <input
+                    type="text"
+                    value={formData.afterRepairValue}
+                    onChange={(e) => updateField("afterRepairValue", formatCurrency(e.target.value))}
+                    placeholder="0"
+                    className="w-full bg-transparent text-xl font-bold text-white focus:outline-none"
+                    data-testid="input-fixflip-arv"
+                  />
+                </div>
+                <p className="text-white/40 text-xs mt-2">Expected property value after renovations</p>
+              </div>
+              {formData.purchasePrice && formData.rehabBudget && formData.afterRepairValue && (
+                <div className="bg-primary/10 rounded-xl p-4 border border-primary/30">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-white/60">Total Investment</span>
+                    <span className="text-white font-medium">
+                      ${formatCurrency((parseFloat(formData.purchasePrice.replace(/,/g, "")) + parseFloat(formData.rehabBudget.replace(/,/g, ""))).toString())}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm mt-2">
+                    <span className="text-white/60">Potential Profit</span>
+                    <span className="text-primary font-bold">
+                      ${formatCurrency((parseFloat(formData.afterRepairValue.replace(/,/g, "")) - parseFloat(formData.purchasePrice.replace(/,/g, "")) - parseFloat(formData.rehabBudget.replace(/,/g, ""))).toString())}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+
+      case "construction-financials":
+        return (
+          <div className="space-y-6 max-w-xl mx-auto">
+            <div className="text-center">
+              <h2 className="text-2xl sm:text-3xl font-bold text-white leading-tight mb-2">
+                Project Financials
+              </h2>
+              <p className="text-white/60 text-sm">Tell us about your new construction project</p>
+            </div>
+            <div className="space-y-4">
+              <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                <label className="text-white/50 text-xs uppercase tracking-wide block mb-2">Land/Lot Cost</label>
+                <div className="flex items-center">
+                  <DollarSign className="w-5 h-5 text-white/40 mr-2" />
+                  <input
+                    type="text"
+                    value={formData.purchasePrice}
+                    onChange={(e) => updateField("purchasePrice", formatCurrency(e.target.value))}
+                    placeholder="0"
+                    className="w-full bg-transparent text-xl font-bold text-white focus:outline-none"
+                    data-testid="input-construction-land-cost"
+                  />
+                </div>
+                <p className="text-white/40 text-xs mt-2">Purchase price of the land</p>
+              </div>
+              <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                <label className="text-white/50 text-xs uppercase tracking-wide block mb-2">Construction Budget</label>
+                <div className="flex items-center">
+                  <DollarSign className="w-5 h-5 text-white/40 mr-2" />
+                  <input
+                    type="text"
+                    value={formData.rehabBudget}
+                    onChange={(e) => updateField("rehabBudget", formatCurrency(e.target.value))}
+                    placeholder="0"
+                    className="w-full bg-transparent text-xl font-bold text-white focus:outline-none"
+                    data-testid="input-construction-budget"
+                  />
+                </div>
+                <p className="text-white/40 text-xs mt-2">Total construction costs</p>
+              </div>
+              <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                <label className="text-white/50 text-xs uppercase tracking-wide block mb-2">Estimated Completed Value</label>
+                <div className="flex items-center">
+                  <DollarSign className="w-5 h-5 text-white/40 mr-2" />
+                  <input
+                    type="text"
+                    value={formData.afterRepairValue}
+                    onChange={(e) => updateField("afterRepairValue", formatCurrency(e.target.value))}
+                    placeholder="0"
+                    className="w-full bg-transparent text-xl font-bold text-white focus:outline-none"
+                    data-testid="input-construction-completed-value"
+                  />
+                </div>
+                <p className="text-white/40 text-xs mt-2">Expected value when complete</p>
+              </div>
+              {formData.purchasePrice && formData.rehabBudget && formData.afterRepairValue && (
+                <div className="bg-primary/10 rounded-xl p-4 border border-primary/30">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-white/60">Total Project Cost</span>
+                    <span className="text-white font-medium">
+                      ${formatCurrency((parseFloat(formData.purchasePrice.replace(/,/g, "")) + parseFloat(formData.rehabBudget.replace(/,/g, ""))).toString())}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm mt-2">
+                    <span className="text-white/60">Potential Profit</span>
+                    <span className="text-primary font-bold">
+                      ${formatCurrency((parseFloat(formData.afterRepairValue.replace(/,/g, "")) - parseFloat(formData.purchasePrice.replace(/,/g, "")) - parseFloat(formData.rehabBudget.replace(/,/g, ""))).toString())}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         );
