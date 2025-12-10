@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -22,6 +22,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   HardHat,
   Plus,
   Save,
@@ -29,6 +37,8 @@ import {
   X,
   DollarSign,
   Loader2,
+  AlertTriangle,
+  RefreshCw,
 } from "lucide-react";
 import type { 
   ApplicationScopeItem, 
@@ -42,6 +52,8 @@ import {
 interface ApplicationScopeBuilderProps {
   applicationId: string;
   readOnly?: boolean;
+  desiredRehabBudget?: number | null;
+  onUpdateRehabBudget?: (newBudget: number) => Promise<void>;
 }
 
 const categoryOrder: ScopeOfWorkCategory[] = [
@@ -63,11 +75,16 @@ function formatCurrency(amount: number | null | undefined): string {
 
 export function ApplicationScopeBuilder({ 
   applicationId, 
-  readOnly = false 
+  readOnly = false,
+  desiredRehabBudget,
+  onUpdateRehabBudget,
 }: ApplicationScopeBuilderProps) {
   const { toast } = useToast();
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editBudgetValue, setEditBudgetValue] = useState<string>("");
+  const [showMismatchDialog, setShowMismatchDialog] = useState(false);
+  const [newBudgetValue, setNewBudgetValue] = useState<string>("");
+  const [isUpdatingBudget, setIsUpdatingBudget] = useState(false);
 
   const { data: scopeItems = [], isLoading } = useQuery<ApplicationScopeItem[]>({
     queryKey: ["/api/loan-applications", applicationId, "scope-items"],
@@ -146,6 +163,54 @@ export function ApplicationScopeBuilder({
     return scopeItems.reduce((sum, item) => sum + (item.budgetAmount || 0), 0);
   }, [scopeItems]);
 
+  const hasMismatch = useMemo(() => {
+    if (desiredRehabBudget === null || desiredRehabBudget === undefined) return false;
+    if (scopeItems.length === 0) return false;
+    return grandTotalBudget !== desiredRehabBudget;
+  }, [grandTotalBudget, desiredRehabBudget, scopeItems.length]);
+
+  const mismatchAmount = useMemo(() => {
+    if (desiredRehabBudget === null || desiredRehabBudget === undefined) return 0;
+    return grandTotalBudget - desiredRehabBudget;
+  }, [grandTotalBudget, desiredRehabBudget]);
+
+  const handleOpenMismatchDialog = () => {
+    setNewBudgetValue(grandTotalBudget.toString());
+    setShowMismatchDialog(true);
+  };
+
+  const handleUpdateRehabBudget = async () => {
+    if (!onUpdateRehabBudget) return;
+    
+    const numValue = parseFloat(newBudgetValue.replace(/[^0-9.-]/g, ""));
+    if (isNaN(numValue) || numValue < 0) {
+      toast({
+        title: "Invalid Amount",
+        description: "Please enter a valid positive number.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsUpdatingBudget(true);
+    try {
+      await onUpdateRehabBudget(Math.round(numValue));
+      setShowMismatchDialog(false);
+      toast({
+        title: "Budget Updated",
+        description: "The desired rehab budget has been updated to match the scope total.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update the rehab budget.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdatingBudget(false);
+    }
+  };
+
   const handleSaveBudget = (itemId: string) => {
     const numValue = parseFloat(editBudgetValue.replace(/[^0-9.-]/g, ""));
     if (isNaN(numValue) || numValue < 0) {
@@ -221,12 +286,20 @@ export function ApplicationScopeBuilder({
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="grid grid-cols-3 gap-4 mb-4">
               <div className="text-center p-3 rounded-lg bg-muted/50">
                 <p className="text-lg font-bold" data-testid="text-total-budget">
                   {formatCurrency(grandTotalBudget)}
                 </p>
-                <p className="text-xs text-muted-foreground">Total Budget</p>
+                <p className="text-xs text-muted-foreground">Scope Total</p>
+              </div>
+              <div className="text-center p-3 rounded-lg bg-muted/50">
+                <p className="text-lg font-bold" data-testid="text-desired-budget">
+                  {desiredRehabBudget !== null && desiredRehabBudget !== undefined 
+                    ? formatCurrency(desiredRehabBudget) 
+                    : "Not Set"}
+                </p>
+                <p className="text-xs text-muted-foreground">Desired Budget</p>
               </div>
               <div className="text-center p-3 rounded-lg bg-muted/50">
                 <p className="text-lg font-bold" data-testid="text-line-items-count">
@@ -235,6 +308,35 @@ export function ApplicationScopeBuilder({
                 <p className="text-xs text-muted-foreground">Items with Budget</p>
               </div>
             </div>
+
+            {hasMismatch && !readOnly && (
+              <div 
+                className="flex items-center justify-between p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800"
+                data-testid="alert-budget-mismatch"
+              >
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-amber-500" />
+                  <div>
+                    <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                      Budget Mismatch
+                    </p>
+                    <p className="text-xs text-amber-600 dark:text-amber-400">
+                      Scope total is {formatCurrency(Math.abs(mismatchAmount))} {mismatchAmount > 0 ? "over" : "under"} the desired budget
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleOpenMismatchDialog}
+                  className="border-amber-300 hover:bg-amber-100 dark:border-amber-700 dark:hover:bg-amber-900/50"
+                  data-testid="button-update-desired-budget"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Update Budget
+                </Button>
+              </div>
+            )}
 
             <Accordion type="multiple" defaultValue={categoryOrder} className="space-y-2">
               {categorySummaries.map((cs) => (
@@ -344,6 +446,71 @@ export function ApplicationScopeBuilder({
           </div>
         )}
       </CardContent>
+
+      <Dialog open={showMismatchDialog} onOpenChange={setShowMismatchDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Update Desired Rehab Budget</DialogTitle>
+            <DialogDescription>
+              Your scope of work items total <span className="font-semibold">{formatCurrency(grandTotalBudget)}</span>, 
+              but your desired rehab budget is <span className="font-semibold">{formatCurrency(desiredRehabBudget || 0)}</span>.
+              Would you like to update your desired budget to match the scope total?
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <label className="text-sm font-medium mb-2 block">New Desired Budget</label>
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                value={newBudgetValue}
+                onChange={(e) => setNewBudgetValue(e.target.value)}
+                placeholder="Enter amount"
+                className="flex-1"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleUpdateRehabBudget();
+                }}
+                data-testid="input-new-budget"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Click "Match Scope Total" to set to {formatCurrency(grandTotalBudget)}
+            </p>
+          </div>
+
+          <DialogFooter className="flex-wrap gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowMismatchDialog(false)}
+              disabled={isUpdatingBudget}
+              data-testid="button-cancel-budget-update"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setNewBudgetValue(grandTotalBudget.toString())}
+              disabled={isUpdatingBudget}
+              data-testid="button-match-scope-total"
+            >
+              Match Scope Total
+            </Button>
+            <Button
+              onClick={handleUpdateRehabBudget}
+              disabled={isUpdatingBudget || !onUpdateRehabBudget}
+              data-testid="button-confirm-budget-update"
+            >
+              {isUpdatingBudget ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Check className="h-4 w-4 mr-2" />
+              )}
+              Update Budget
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
