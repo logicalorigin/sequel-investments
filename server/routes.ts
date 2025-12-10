@@ -941,14 +941,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       
-      if (user?.role === "borrower") {
-        return res.status(403).json({ error: "Only staff can perform this action" });
-      }
-      
       const loan = await storage.getServicedLoan(req.params.loanId);
       
       if (!loan) {
         return res.status(404).json({ error: "Loan not found" });
+      }
+      
+      // Borrowers can only initialize scope for their own loans
+      if (user?.role === "borrower" && loan.userId !== userId) {
+        return res.status(403).json({ error: "Not authorized to access this loan" });
       }
       
       const items = await storage.initializeScopeOfWork(loan.id);
