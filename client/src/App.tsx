@@ -24,7 +24,7 @@ import NewConstructionPage from "@/pages/NewConstructionPage";
 import CalculatorPage from "@/pages/CalculatorPage";
 import AboutPage from "@/pages/AboutPage";
 import ContactPage from "@/pages/ContactPage";
-import GetQuotePage from "@/pages/GetQuotePage";
+import ConversationalQuote from "@/components/ConversationalQuote";
 import WhereWeLendPage from "@/pages/WhereWeLendPage";
 import StateInvestmentPage from "@/pages/StateInvestmentPage";
 import StateLoanTypePage from "@/pages/StateLoanTypePage";
@@ -74,7 +74,7 @@ function Router() {
       <Route path="/calculator" component={CalculatorPage} />
       <Route path="/about" component={AboutPage} />
       <Route path="/contact" component={ContactPage} />
-      <Route path="/get-quote" component={GetQuotePage} />
+      <Route path="/get-quote" component={ConversationalQuote} />
       <Route path="/where-we-lend" component={WhereWeLendPage} />
       <Route path="/states/:stateSlug" component={StateInvestmentPage} />
       <Route path="/states/:stateSlug/:loanType" component={StateLoanTypePage} />
