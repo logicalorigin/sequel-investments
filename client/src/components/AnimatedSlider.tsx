@@ -106,7 +106,7 @@ export function AnimatedSlider({
       {(label || showValue) && (
         <div className="flex items-center justify-between">
           {label && (
-            <label className="text-foreground/80 text-xs font-medium uppercase tracking-wide">{label}</label>
+            <label className="text-amber-500 text-xs font-medium uppercase tracking-wide">{label}</label>
           )}
           {showValue && (
             <motion.div 
@@ -114,22 +114,23 @@ export function AnimatedSlider({
               animate={{ scale: isDragging ? 1.05 : 1 }}
               transition={{ duration: 0.15 }}
             >
-              {prefix && <span className="text-foreground/60 text-lg">{prefix}</span>}
+              {prefix && <span className="text-amber-400 text-lg">{prefix}</span>}
               <AnimatedNumber value={localValue} formatValue={formatValue} />
-              {suffix && <span className="text-foreground/60 text-lg">{suffix}</span>}
+              {suffix && <span className="text-amber-400 text-lg">{suffix}</span>}
             </motion.div>
           )}
         </div>
       )}
       
-      <div
-        ref={trackRef}
-        className={`relative h-8 cursor-pointer touch-none flex items-center ${trackClassName}`}
-        onPointerDown={handleTrackClick}
-        data-testid={testId}
-      >
-        {/* Track container - centered vertically */}
-        <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-2 rounded-full">
+      {/* Outer padding container - does NOT stretch */}
+      <div className="py-3">
+        {/* Fixed-height track wrapper - this is our positioning context */}
+        <div
+          ref={trackRef}
+          className={`relative h-2 cursor-pointer touch-none ${trackClassName}`}
+          onPointerDown={handleTrackClick}
+          data-testid={testId}
+        >
           {/* Background track - gray */}
           <div className="absolute inset-0 rounded-full bg-gray-300 dark:bg-gray-600" />
           
@@ -141,42 +142,42 @@ export function AnimatedSlider({
               background: "linear-gradient(to right, #f59e0b, #fbbf24)"
             }}
           />
-        </div>
-        
-        {/* Thumb - positioned relative to container */}
-        <motion.div
-          className={`absolute w-6 h-6 rounded-full bg-white shadow-md cursor-grab active:cursor-grabbing touch-none flex items-center justify-center z-10 ${thumbClassName}`}
-          style={{ 
-            left: `calc(${percentage}% - 12px)`,
-            top: '50%',
-            transform: 'translateY(-50%)'
-          }}
-          animate={{ 
-            scale: isDragging ? 1.15 : 1,
-            boxShadow: isDragging 
-              ? "0 2px 8px rgba(0,0,0,0.25)" 
-              : "0 1px 4px rgba(0,0,0,0.15)"
-          }}
-          whileHover={{ scale: 1.08 }}
-          whileTap={{ scale: 1.12 }}
-          onPointerDown={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            (e.target as HTMLElement).setPointerCapture(e.pointerId);
-            setIsDragging(true);
-          }}
-          transition={{ type: "spring", stiffness: 400, damping: 25 }}
-        >
-          {/* Inner amber circle */}
+          
+          {/* Thumb - centered on track using negative margin */}
           <motion.div
-            className="w-3.5 h-3.5 rounded-full"
-            style={{ background: "linear-gradient(135deg, #f59e0b, #fbbf24)" }}
-            animate={{ scale: isDragging ? 1.1 : 1 }}
-          />
-        </motion.div>
+            className={`absolute w-6 h-6 rounded-full bg-white shadow-md cursor-grab active:cursor-grabbing touch-none flex items-center justify-center z-10 ${thumbClassName}`}
+            style={{ 
+              left: `calc(${percentage}% - 12px)`,
+              top: '50%',
+              marginTop: '-12px'
+            }}
+            animate={{ 
+              scale: isDragging ? 1.15 : 1,
+              boxShadow: isDragging 
+                ? "0 2px 8px rgba(0,0,0,0.25)" 
+                : "0 1px 4px rgba(0,0,0,0.15)"
+            }}
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 1.12 }}
+            onPointerDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              (e.target as HTMLElement).setPointerCapture(e.pointerId);
+              setIsDragging(true);
+            }}
+            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+          >
+            {/* Inner amber circle */}
+            <motion.div
+              className="w-3.5 h-3.5 rounded-full"
+              style={{ background: "linear-gradient(135deg, #f59e0b, #fbbf24)" }}
+              animate={{ scale: isDragging ? 1.1 : 1 }}
+            />
+          </motion.div>
+        </div>
       </div>
       
-      <div className="flex justify-between text-xs text-foreground/40">
+      <div className="flex justify-between text-xs text-amber-400/60">
         <span>{prefix}{formatValue(min)}{suffix}</span>
         <span>{prefix}{formatValue(max)}{suffix}</span>
       </div>
@@ -215,7 +216,7 @@ function AnimatedNumber({ value, formatValue }: { value: number; formatValue: (v
   
   return (
     <motion.span 
-      className="text-2xl font-bold text-foreground tabular-nums"
+      className="text-2xl font-bold text-amber-500 tabular-nums"
       key={displayValue}
     >
       {formatValue(displayValue)}
@@ -257,17 +258,17 @@ export function CurrencySliderInput({
   }, [onChange]);
   
   return (
-    <div className="bg-card/80 rounded-xl p-4 border border-border space-y-4">
+    <div className="bg-card/80 rounded-xl p-4 border border-border space-y-2">
       <div className="flex items-center justify-between">
-        <label className="text-foreground/80 text-xs font-medium uppercase tracking-wide">{label}</label>
+        <label className="text-amber-500 text-xs font-medium uppercase tracking-wide">{label}</label>
         <div className="flex items-center">
-          <DollarSign className="w-4 h-4 text-foreground/60 mr-1" />
+          <DollarSign className="w-4 h-4 text-amber-400 mr-1" />
           <input
             type="text"
             value={value}
             onChange={handleInputChange}
             placeholder="0"
-            className="w-32 bg-transparent text-xl font-bold text-foreground text-right focus:outline-none"
+            className="w-32 bg-transparent text-xl font-bold text-amber-500 text-right focus:outline-none"
             data-testid={testId ? `${testId}-input` : undefined}
           />
         </div>
@@ -285,7 +286,7 @@ export function CurrencySliderInput({
       />
       
       {helperText && (
-        <p className="text-foreground/50 text-xs">{helperText}</p>
+        <p className="text-amber-400/60 text-xs">{helperText}</p>
       )}
     </div>
   );
@@ -327,18 +328,18 @@ export function PercentageSlider({
   }, [onChange, min, max]);
   
   return (
-    <div className="bg-card/80 rounded-xl p-4 border border-border space-y-4">
+    <div className="bg-card/80 rounded-xl p-4 border border-border space-y-2">
       <div className="flex items-center justify-between">
-        <label className="text-foreground/80 text-xs font-medium uppercase tracking-wide">{label}</label>
+        <label className="text-amber-500 text-xs font-medium uppercase tracking-wide">{label}</label>
         <div className="flex items-center gap-1">
           <input
             type="text"
             value={numericValue}
             onChange={handleInputChange}
-            className="w-12 bg-transparent text-2xl font-bold text-foreground text-right focus:outline-none"
+            className="w-12 bg-transparent text-2xl font-bold text-amber-500 text-right focus:outline-none"
             data-testid={testId ? `${testId}-input` : undefined}
           />
-          <span className="text-foreground/60 text-lg">%</span>
+          <span className="text-amber-400 text-lg">%</span>
         </div>
       </div>
       
@@ -354,7 +355,7 @@ export function PercentageSlider({
       />
       
       <div className="flex items-center justify-between">
-        <span className="text-foreground/40 text-xs">{min}%</span>
+        <span className="text-amber-400/50 text-xs">{min}%</span>
         {calculatedAmount !== undefined && (
           <motion.span 
             className="text-amber-500 text-sm font-medium"
@@ -365,11 +366,11 @@ export function PercentageSlider({
             = ${formatCurrencyDisplay(calculatedAmount)} down
           </motion.span>
         )}
-        <span className="text-foreground/40 text-xs">{max}%</span>
+        <span className="text-amber-400/50 text-xs">{max}%</span>
       </div>
       
       {helperText && (
-        <p className="text-foreground/50 text-xs text-center">{helperText}</p>
+        <p className="text-amber-400/60 text-xs text-center">{helperText}</p>
       )}
     </div>
   );
