@@ -488,14 +488,14 @@ export default function PhotoVerificationPage() {
       
       <main className="flex-1 flex flex-col overflow-hidden" id={`panel-${activeCategory}`} role="tabpanel">
         <div className="p-3 border-b bg-muted/30">
-          <button 
-            onClick={() => setShowPhotoList(!showPhotoList)}
-            className="w-full flex items-center justify-between gap-2 min-h-11"
-            aria-expanded={showPhotoList}
-            aria-controls="photo-list"
-            data-testid="button-toggle-photo-list"
-          >
-            <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center justify-between gap-2 min-h-11">
+            <button 
+              onClick={() => setShowPhotoList(!showPhotoList)}
+              className="flex items-center gap-3 min-w-0 flex-1"
+              aria-expanded={showPhotoList}
+              aria-controls="photo-list"
+              data-testid="button-toggle-photo-list"
+            >
               {existingPhoto ? (
                 getStatusIcon(existingPhoto.verificationStatus)
               ) : (
@@ -507,12 +507,13 @@ export default function PhotoVerificationPage() {
                   {activePhotoIndex + 1} of {currentCategory.photos.length}
                 </p>
               </div>
-            </div>
+              {showPhotoList ? <ChevronUp className="h-5 w-5 shrink-0" /> : <ChevronDown className="h-5 w-5 shrink-0" />}
+            </button>
             <div className="flex items-center gap-2 shrink-0">
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={(e) => { e.stopPropagation(); navigatePhoto('prev'); }}
+                onClick={() => navigatePhoto('prev')}
                 disabled={activePhotoIndex === 0}
                 className="min-h-11 min-w-11"
                 aria-label="Previous photo"
@@ -523,7 +524,7 @@ export default function PhotoVerificationPage() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={(e) => { e.stopPropagation(); navigatePhoto('next'); }}
+                onClick={() => navigatePhoto('next')}
                 disabled={activePhotoIndex === currentCategory.photos.length - 1}
                 className="min-h-11 min-w-11"
                 aria-label="Next photo"
@@ -531,9 +532,8 @@ export default function PhotoVerificationPage() {
               >
                 <ChevronRight className="h-5 w-5" />
               </Button>
-              {showPhotoList ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
             </div>
-          </button>
+          </div>
           
           {showPhotoList && (
             <div id="photo-list" className="mt-3 space-y-1 max-h-48 overflow-y-auto" role="listbox">
