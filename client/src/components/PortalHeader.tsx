@@ -61,12 +61,12 @@ export function PortalHeader({ user, title, titleExtra, backHref }: PortalHeader
     },
     onSuccess: () => {
       queryClient.clear();
-      window.location.href = "/login";
+      window.location.assign("/");
     },
     onError: (error) => {
       console.error("Logout error:", error);
       queryClient.clear();
-      window.location.href = "/login";
+      window.location.assign("/");
     },
   });
 
@@ -325,19 +325,12 @@ export function PortalHeader({ user, title, titleExtra, backHref }: PortalHeader
               <DropdownMenuItem 
                 onSelect={(e) => {
                   e.preventDefault();
-                  // Force redirect after logout - use setTimeout to ensure it runs after dropdown closes
+                  // Clear query cache and redirect to home page
+                  queryClient.clear();
                   fetch("/api/borrower/logout", { method: "POST", credentials: "include" })
-                    .then(() => {
-                      queryClient.clear();
-                      setTimeout(() => {
-                        window.location.replace("/login");
-                      }, 100);
-                    })
-                    .catch(() => {
-                      queryClient.clear();
-                      setTimeout(() => {
-                        window.location.replace("/login");
-                      }, 100);
+                    .finally(() => {
+                      // Use assign for reliable navigation
+                      window.location.assign("/");
                     });
                 }}
                 className="flex items-center gap-2 cursor-pointer text-destructive"
