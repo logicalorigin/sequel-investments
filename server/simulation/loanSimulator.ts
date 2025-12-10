@@ -1,5 +1,5 @@
 import { db } from "../db";
-import { users, loanApplications, applicationStageHistory, loanAssignments } from "@shared/schema";
+import { users, loanApplications, applicationStageHistory, loanAssignments, servicedLoans } from "@shared/schema";
 import { eq, sql } from "drizzle-orm";
 
 // ============================================================
@@ -552,6 +552,11 @@ async function createLoanWithHistory(
   
   // Create staff assignments based on stage
   await createStaffAssignments(loan.id, stage, staffMap);
+  
+  // Create serviced loan if created as funded
+  if (status === "funded") {
+    await createServicedLoanFromApplication(loan);
+  }
   
   return loan.id;
 }
@@ -1155,6 +1160,9 @@ async function advanceLoan(
       isPrimary: true,
       assignedByUserId: staffMap.processor
     });
+    
+    // CREATE SERVICED LOAN when funded
+    await createServicedLoanFromApplication(loan);
   }
   
   console.log(`[Lifecycle] Advanced loan ${loan.id.substring(0, 8)} from ${loan.processingStage} to ${nextStage}`);
@@ -1199,4 +1207,91 @@ async function denyLoan(
   });
   
   console.log(`[Lifecycle] Denied loan ${loan.id.substring(0, 8)} at ${loan.processingStage} stage`);
+}
+
+// ============================================================
+// SERVICED LOAN CREATION
+// ============================================================
+
+function generateLoanNumber(loanType: string): string {
+  const prefix = loanType === "DSCR" ? "DSCR" : 
+                 loanType === "Fix & Flip" ? "FF" : 
+                 loanType === "New Construction" ? "NC" : "BR";
+  const timestamp = Date.now().toString().slice(-6);
+  const random = Math.random().toString(36).substring(2, 5).toUpperCase();
+  return `${prefix}-${timestamp}-${random}`;
+}
+
+function mapLoanTypeToServicedType(appLoanType: string): "dscr" | "fix_flip" | "new_construction" | "bridge" {
+  const type = appLoanType.toLowerCase();
+  if (type.includes("dscr")) return "dscr";
+  if (type.includes("fix") || type.includes("flip")) return "fix_flip";
+  if (type.includes("construction") || type.includes("ground")) return "new_construction";
+  if (type.includes("bridge")) return "bridge";
+  return "dscr"; // Default to DSCR
+}
+
+async function createServicedLoanFromApplication(
+  loan: typeof loanApplications.$inferSelect
+): Promise<void> {
+  try {
+    const loanType = mapLoanTypeToServicedType(loan.loanType);
+    const loanNumber = generateLoanNumber(loan.loanType);
+    
+    // Calculate payment based on loan type (use purchasePrice or default)
+    const loanAmount = loan.purchasePrice || 500000;
+    const rate = 7.5; // Default rate
+    const termMonths = loanType === "dscr" ? 360 : (loan.loanTermMonths || 12);
+    const isInterestOnly = loanType !== "dscr";
+    
+    // Calculate monthly payment
+    let monthlyPayment: number;
+    if (isInterestOnly) {
+      // Interest-only payment
+      monthlyPayment = Math.round((loanAmount * (rate / 100)) / 12);
+    } else {
+      // Amortizing payment
+      const monthlyRate = rate / 100 / 12;
+      monthlyPayment = Math.round(
+        loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, termMonths)) / 
+        (Math.pow(1 + monthlyRate, termMonths) - 1)
+      );
+    }
+    
+    // Create the serviced loan
+    const now = new Date();
+    const nextPaymentDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const maturityDate = new Date(now.getTime() + termMonths * 30 * 24 * 60 * 60 * 1000);
+    
+    await db.insert(servicedLoans).values({
+      userId: loan.userId,
+      loanApplicationId: loan.id,
+      loanNumber,
+      loanType,
+      loanStatus: "current",
+      propertyAddress: loan.propertyAddress || `${Math.floor(Math.random() * 9999) + 100} Main Street`,
+      propertyCity: loan.propertyCity || "Unknown City",
+      propertyState: loan.propertyState || "CA",
+      propertyZip: loan.propertyZip || "90210",
+      originalLoanAmount: loanAmount,
+      currentBalance: loanAmount,
+      interestRate: rate.toString(),
+      loanTermMonths: termMonths,
+      isInterestOnly,
+      monthlyPayment,
+      closingDate: now,
+      firstPaymentDate: nextPaymentDate,
+      maturityDate,
+      nextPaymentDate,
+      totalPrincipalPaid: 0,
+      totalInterestPaid: 0,
+      escrowBalance: loanType === "dscr" ? Math.round(loanAmount * 0.02) : 0,
+      totalRehabBudget: loanType !== "dscr" ? 100000 : null,
+      totalDrawsFunded: 0,
+    });
+    
+    console.log(`[Lifecycle] Created serviced loan ${loanNumber} from application ${loan.id.substring(0, 8)}`);
+  } catch (error) {
+    console.error(`[Lifecycle] Failed to create serviced loan for ${loan.id}:`, error);
+  }
 }
