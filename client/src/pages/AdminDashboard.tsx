@@ -241,11 +241,13 @@ export default function AdminDashboard() {
     subscribedEvents: ["fundedDeal.created", "fundedDeal.updated", "fundedDeal.deleted"] as string[],
   });
   const [newWebhookSecret, setNewWebhookSecret] = useState<string | null>(null);
+  const [showSimulationSection, setShowSimulationSection] = useState(false);
 
   const applicationsRef = useRef<HTMLElement>(null);
   const borrowersRef = useRef<HTMLElement>(null);
   const fundedRef = useRef<HTMLElement>(null);
   const staffRef = useRef<HTMLElement>(null);
+  const simulationRef = useRef<HTMLElement>(null);
 
   const scrollToSection = (ref: React.RefObject<HTMLElement | null>) => {
     ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -283,6 +285,67 @@ export default function AdminDashboard() {
   const { data: webhookEndpoints, isLoading: webhooksLoading } = useQuery<WebhookEndpoint[]>({
     queryKey: ["/api/admin/webhooks/endpoints"],
     enabled: currentUser?.role === "admin",
+  });
+
+  // Simulation status query
+  type SimulationStatus = {
+    isRunning: boolean;
+    loansCreated: number;
+    totalLoans: number;
+    currentBatch: number;
+    totalBatches: number;
+    percentComplete: number;
+    startedAt?: string;
+    estimatedCompletion?: string;
+  };
+  
+  const { data: simulationStatus, isLoading: simulationLoading, refetch: refetchSimulation } = useQuery<SimulationStatus>({
+    queryKey: ["/api/admin/simulation/status"],
+    enabled: currentUser?.role === "admin" && showSimulationSection,
+    refetchInterval: (query) => query.state.data?.isRunning ? 5000 : false, // Poll every 5s while running
+  });
+
+  const startSimulationMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/admin/simulation/start");
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      refetchSimulation();
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/applications"] });
+      toast({
+        title: "Simulation Started",
+        description: data.message || "Creating 100 test loans over the next hour",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to start simulation",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const stopSimulationMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/admin/simulation/stop");
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      refetchSimulation();
+      toast({
+        title: "Simulation Stopped",
+        description: data.message || "Simulation has been stopped",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to stop simulation",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    },
   });
 
   const logoutMutation = useMutation({
@@ -678,6 +741,16 @@ export default function AdminDashboard() {
                   >
                     <Webhook className="h-4 w-4 mr-2" />
                     Webhooks
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => {
+                      setShowSimulationSection(true);
+                      setTimeout(() => scrollToSection(simulationRef), 100);
+                    }}
+                    data-testid="dropdown-simulation"
+                  >
+                    <BarChart3 className="h-4 w-4 mr-2" />
+                    Loan Simulation
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -1734,6 +1807,175 @@ export default function AdminDashboard() {
                 </CardContent>
               </Card>
             </div>
+          </section>
+        )}
+
+        {/* Simulation Section (Admin Only) */}
+        {currentUser.role === "admin" && showSimulationSection && (
+          <section ref={simulationRef} id="simulation" className="scroll-mt-32">
+            <Card>
+              <CardHeader className="p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                      <BarChart3 className="h-5 w-5" />
+                      Loan Simulation
+                    </CardTitle>
+                    <CardDescription className="text-xs sm:text-sm">
+                      Generate 100 test loans with realistic data spread over ~1 hour
+                    </CardDescription>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-4 right-4"
+                    onClick={() => setShowSimulationSection(false)}
+                    data-testid="button-close-simulation"
+                  >
+                    <ChevronDown className="h-5 w-5" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="p-4 sm:p-6 pt-0 space-y-6">
+                {simulationLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : (
+                  <>
+                    {/* Status Display */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                      <div className="p-4 rounded-lg bg-muted/50">
+                        <p className="text-xs text-muted-foreground">Status</p>
+                        <p className="text-lg font-semibold flex items-center gap-2" data-testid="text-simulation-status">
+                          {simulationStatus?.isRunning ? (
+                            <>
+                              <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                              Running
+                            </>
+                          ) : (
+                            <>
+                              <span className="h-2 w-2 rounded-full bg-gray-400" />
+                              Idle
+                            </>
+                          )}
+                        </p>
+                      </div>
+                      <div className="p-4 rounded-lg bg-muted/50">
+                        <p className="text-xs text-muted-foreground">Loans Created</p>
+                        <p className="text-lg font-semibold" data-testid="text-loans-created">
+                          {simulationStatus?.loansCreated ?? 0} / {simulationStatus?.totalLoans ?? 100}
+                        </p>
+                      </div>
+                      <div className="p-4 rounded-lg bg-muted/50">
+                        <p className="text-xs text-muted-foreground">Progress</p>
+                        <p className="text-lg font-semibold" data-testid="text-simulation-progress">
+                          {simulationStatus?.percentComplete?.toFixed(0) ?? 0}%
+                        </p>
+                      </div>
+                      <div className="p-4 rounded-lg bg-muted/50">
+                        <p className="text-xs text-muted-foreground">Batch</p>
+                        <p className="text-lg font-semibold" data-testid="text-simulation-batch">
+                          {simulationStatus?.currentBatch ?? 0} / {simulationStatus?.totalBatches ?? 10}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Progress Bar */}
+                    {simulationStatus?.isRunning && (
+                      <div className="space-y-2">
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-gradient-to-r from-amber-500 to-amber-600 transition-all duration-500"
+                            style={{ width: `${simulationStatus?.percentComplete ?? 0}%` }}
+                          />
+                        </div>
+                        {simulationStatus?.startedAt && (
+                          <p className="text-xs text-muted-foreground text-center">
+                            Started: {new Date(simulationStatus.startedAt).toLocaleTimeString()}
+                            {simulationStatus?.estimatedCompletion && (
+                              <> | Est. completion: {new Date(simulationStatus.estimatedCompletion).toLocaleTimeString()}</>
+                            )}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Loan Distribution Info */}
+                    <div className="p-4 rounded-lg border bg-card">
+                      <h4 className="font-medium text-sm mb-3">Loan Distribution</h4>
+                      <div className="grid grid-cols-3 gap-4 text-center">
+                        <div>
+                          <p className="text-2xl font-bold text-amber-600">40</p>
+                          <p className="text-xs text-muted-foreground">DSCR Loans</p>
+                          <p className="text-[10px] text-muted-foreground">(16 Purchase, 16 Cash-Out, 8 Rate/Term)</p>
+                        </div>
+                        <div>
+                          <p className="text-2xl font-bold text-blue-600">35</p>
+                          <p className="text-xs text-muted-foreground">Fix & Flip</p>
+                        </div>
+                        <div>
+                          <p className="text-2xl font-bold text-green-600">25</p>
+                          <p className="text-xs text-muted-foreground">New Construction</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-3 justify-center">
+                      {simulationStatus?.isRunning ? (
+                        <Button 
+                          variant="destructive" 
+                          onClick={() => stopSimulationMutation.mutate()}
+                          disabled={stopSimulationMutation.isPending}
+                          data-testid="button-stop-simulation"
+                        >
+                          {stopSimulationMutation.isPending ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <AlertCircle className="h-4 w-4 mr-2" />
+                          )}
+                          Stop Simulation
+                        </Button>
+                      ) : (
+                        <Button 
+                          onClick={() => startSimulationMutation.mutate()}
+                          disabled={startSimulationMutation.isPending}
+                          className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700"
+                          data-testid="button-start-simulation"
+                        >
+                          {startSimulationMutation.isPending ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <BarChart3 className="h-4 w-4 mr-2" />
+                          )}
+                          Start Simulation
+                        </Button>
+                      )}
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          refetchSimulation();
+                          queryClient.invalidateQueries({ queryKey: ["/api/admin/applications"] });
+                        }}
+                        data-testid="button-refresh-simulation"
+                      >
+                        Refresh
+                      </Button>
+                    </div>
+
+                    {/* Warning */}
+                    <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
+                      <p className="text-xs text-amber-700">
+                        <strong>Note:</strong> This will create 100 test loans with simulated borrowers, properties, and stage histories.
+                        The simulation spreads data creation over approximately 1 hour (10 batches of 10 loans each).
+                        Loans will be in various stages and statuses for pipeline testing.
+                      </p>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
           </section>
         )}
       </main>
