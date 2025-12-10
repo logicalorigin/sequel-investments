@@ -4346,6 +4346,190 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============================================
+  // APPLICATION STAGE HISTORY (Timeline Audit Trail)
+  // ============================================
+  
+  // Get stage history for an application (staff only)
+  app.get("/api/admin/applications/:id/stage-history", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const history = await storage.getApplicationStageHistory(id);
+      return res.json(history);
+    } catch (error) {
+      console.error("Error fetching stage history:", error);
+      return res.status(500).json({ error: "Failed to fetch stage history" });
+    }
+  });
+  
+  // Create stage history entry (staff only - normally auto-created on status change)
+  app.post("/api/admin/applications/:id/stage-history", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { fromStatus, toStatus, fromStage, toStage, notes, reason, isAutomated, durationMinutes } = req.body;
+      
+      if (!toStatus) {
+        return res.status(400).json({ error: "toStatus is required" });
+      }
+      
+      const userId = req.user?.claims?.sub;
+      const user = userId ? await storage.getUser(userId) : null;
+      
+      const entry = await storage.createStageHistoryEntry({
+        loanApplicationId: id,
+        fromStatus,
+        toStatus,
+        fromStage,
+        toStage,
+        changedByUserId: userId,
+        changedByName: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email : undefined,
+        notes,
+        reason,
+        isAutomated: isAutomated || false,
+        durationMinutes,
+      });
+      
+      return res.status(201).json(entry);
+    } catch (error) {
+      console.error("Error creating stage history:", error);
+      return res.status(500).json({ error: "Failed to create stage history" });
+    }
+  });
+  
+  // Get stage history stats for an application
+  app.get("/api/admin/applications/:id/stage-history/stats", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const stats = await storage.getStageHistoryStats(id);
+      return res.json(stats);
+    } catch (error) {
+      console.error("Error fetching stage history stats:", error);
+      return res.status(500).json({ error: "Failed to fetch stage history stats" });
+    }
+  });
+  
+  // ============================================
+  // LOAN ASSIGNMENTS (Staff Ownership)
+  // ============================================
+  
+  // Get assignments for an application (staff only)
+  app.get("/api/admin/applications/:id/assignments", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const assignments = await storage.getLoanAssignments(id);
+      
+      // Enrich with user details
+      const enriched = await Promise.all(assignments.map(async (assignment) => {
+        const user = await storage.getUser(assignment.userId);
+        return {
+          ...assignment,
+          userName: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email : 'Unknown',
+          userEmail: user?.email,
+        };
+      }));
+      
+      return res.json(enriched);
+    } catch (error) {
+      console.error("Error fetching assignments:", error);
+      return res.status(500).json({ error: "Failed to fetch assignments" });
+    }
+  });
+  
+  // Create assignment for an application (staff only)
+  app.post("/api/admin/applications/:id/assignments", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { userId, role, isPrimary } = req.body;
+      
+      if (!userId || !role) {
+        return res.status(400).json({ error: "userId and role are required" });
+      }
+      
+      const validRoles = ['account_executive', 'processor', 'underwriter', 'closer', 'servicer'];
+      if (!validRoles.includes(role)) {
+        return res.status(400).json({ error: `Invalid role. Must be one of: ${validRoles.join(', ')}` });
+      }
+      
+      const assignedByUserId = req.user?.claims?.sub;
+      
+      const assignment = await storage.createLoanAssignment({
+        loanApplicationId: id,
+        userId,
+        role,
+        isPrimary: isPrimary ?? true,
+        assignedByUserId,
+      });
+      
+      return res.status(201).json(assignment);
+    } catch (error) {
+      console.error("Error creating assignment:", error);
+      return res.status(500).json({ error: "Failed to create assignment" });
+    }
+  });
+  
+  // Update assignment (staff only)
+  app.patch("/api/admin/assignments/:id", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { isPrimary, isActive } = req.body;
+      
+      const updated = await storage.updateLoanAssignment(id, { isPrimary, isActive });
+      if (!updated) {
+        return res.status(404).json({ error: "Assignment not found" });
+      }
+      
+      return res.json(updated);
+    } catch (error) {
+      console.error("Error updating assignment:", error);
+      return res.status(500).json({ error: "Failed to update assignment" });
+    }
+  });
+  
+  // Deactivate assignment (staff only)
+  app.delete("/api/admin/assignments/:id", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const deactivated = await storage.deactivateLoanAssignment(id);
+      if (!deactivated) {
+        return res.status(404).json({ error: "Assignment not found" });
+      }
+      return res.json({ message: "Assignment deactivated", assignment: deactivated });
+    } catch (error) {
+      console.error("Error deactivating assignment:", error);
+      return res.status(500).json({ error: "Failed to deactivate assignment" });
+    }
+  });
+  
+  // Get user's active assignments (for staff dashboard)
+  app.get("/api/my-assignments", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ error: "User not authenticated" });
+      }
+      
+      const assignments = await storage.getActiveAssignmentsByUser(userId);
+      
+      // Enrich with application details
+      const enriched = await Promise.all(assignments.map(async (assignment) => {
+        const application = await storage.getLoanApplication(assignment.loanApplicationId);
+        return {
+          ...assignment,
+          loanType: application?.loanType,
+          borrowerName: application?.borrowerName,
+          propertyAddress: application?.propertyAddress,
+          loanAmount: application?.loanAmount,
+          applicationStatus: application?.status,
+        };
+      }));
+      
+      return res.json(enriched);
+    } catch (error) {
+      console.error("Error fetching user assignments:", error);
+      return res.status(500).json({ error: "Failed to fetch assignments" });
+    }
+  });
+
   // Validate invite token (public route for invite page)
   app.get("/api/invites/:token", async (req, res) => {
     try {
