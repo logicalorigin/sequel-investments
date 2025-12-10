@@ -41,6 +41,8 @@ import {
   photoVerificationAudits,
   verificationPhotos,
   verificationWorkflows,
+  applicationStageHistory,
+  loanAssignments,
   type User, 
   type UpsertUser,
   type Lead, 
@@ -129,6 +131,11 @@ import {
   type InsertVerificationPhoto,
   type VerificationWorkflow,
   type InsertVerificationWorkflow,
+  type ApplicationStageHistory,
+  type InsertApplicationStageHistory,
+  type LoanAssignment,
+  type InsertLoanAssignment,
+  type LoanAssignmentRole,
   DEFAULT_DOCUMENT_TYPES,
   DEFAULT_BUSINESS_HOURS,
 } from "@shared/schema";
@@ -425,6 +432,21 @@ export interface IStorage {
   createVerificationWorkflow(data: InsertVerificationWorkflow): Promise<VerificationWorkflow>;
   updateVerificationWorkflow(id: string, data: Partial<InsertVerificationWorkflow>): Promise<VerificationWorkflow | undefined>;
   deleteVerificationWorkflow(id: string): Promise<boolean>;
+  
+  // Application stage history operations (timeline audit trail)
+  getApplicationStageHistory(loanApplicationId: string): Promise<ApplicationStageHistory[]>;
+  createStageHistoryEntry(data: InsertApplicationStageHistory): Promise<ApplicationStageHistory>;
+  getStageHistoryStats(loanApplicationId: string): Promise<{ totalDurationMinutes: number; stageCount: number }>;
+  
+  // Loan assignment operations (staff ownership)
+  getLoanAssignments(loanApplicationId: string): Promise<LoanAssignment[]>;
+  getActiveAssignmentsByUser(userId: string): Promise<LoanAssignment[]>;
+  getAssignmentsByRole(role: LoanAssignmentRole): Promise<LoanAssignment[]>;
+  getLoanAssignment(id: string): Promise<LoanAssignment | undefined>;
+  createLoanAssignment(data: InsertLoanAssignment): Promise<LoanAssignment>;
+  updateLoanAssignment(id: string, data: Partial<InsertLoanAssignment>): Promise<LoanAssignment | undefined>;
+  deactivateLoanAssignment(id: string): Promise<LoanAssignment | undefined>;
+  getPrimaryAssignee(loanApplicationId: string, role: LoanAssignmentRole): Promise<LoanAssignment | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2512,6 +2534,115 @@ export class DatabaseStorage implements IStorage {
       .delete(verificationWorkflows)
       .where(eq(verificationWorkflows.id, id));
     return true;
+  }
+  
+  // ============================================
+  // APPLICATION STAGE HISTORY (Timeline Audit Trail)
+  // ============================================
+  async getApplicationStageHistory(loanApplicationId: string): Promise<ApplicationStageHistory[]> {
+    return await db
+      .select()
+      .from(applicationStageHistory)
+      .where(eq(applicationStageHistory.loanApplicationId, loanApplicationId))
+      .orderBy(desc(applicationStageHistory.createdAt));
+  }
+  
+  async createStageHistoryEntry(data: InsertApplicationStageHistory): Promise<ApplicationStageHistory> {
+    const [entry] = await db
+      .insert(applicationStageHistory)
+      .values(data)
+      .returning();
+    return entry;
+  }
+  
+  async getStageHistoryStats(loanApplicationId: string): Promise<{ totalDurationMinutes: number; stageCount: number }> {
+    const history = await db
+      .select()
+      .from(applicationStageHistory)
+      .where(eq(applicationStageHistory.loanApplicationId, loanApplicationId));
+    
+    const totalDurationMinutes = history.reduce((sum, entry) => sum + (entry.durationMinutes || 0), 0);
+    return { totalDurationMinutes, stageCount: history.length };
+  }
+  
+  // ============================================
+  // LOAN ASSIGNMENTS (Staff Ownership)
+  // ============================================
+  async getLoanAssignments(loanApplicationId: string): Promise<LoanAssignment[]> {
+    return await db
+      .select()
+      .from(loanAssignments)
+      .where(eq(loanAssignments.loanApplicationId, loanApplicationId))
+      .orderBy(loanAssignments.role);
+  }
+  
+  async getActiveAssignmentsByUser(userId: string): Promise<LoanAssignment[]> {
+    return await db
+      .select()
+      .from(loanAssignments)
+      .where(and(
+        eq(loanAssignments.userId, userId),
+        eq(loanAssignments.isActive, true)
+      ))
+      .orderBy(desc(loanAssignments.assignedAt));
+  }
+  
+  async getAssignmentsByRole(role: LoanAssignmentRole): Promise<LoanAssignment[]> {
+    return await db
+      .select()
+      .from(loanAssignments)
+      .where(and(
+        eq(loanAssignments.role, role),
+        eq(loanAssignments.isActive, true)
+      ))
+      .orderBy(desc(loanAssignments.assignedAt));
+  }
+  
+  async getLoanAssignment(id: string): Promise<LoanAssignment | undefined> {
+    const [assignment] = await db
+      .select()
+      .from(loanAssignments)
+      .where(eq(loanAssignments.id, id));
+    return assignment;
+  }
+  
+  async createLoanAssignment(data: InsertLoanAssignment): Promise<LoanAssignment> {
+    const [assignment] = await db
+      .insert(loanAssignments)
+      .values(data)
+      .returning();
+    return assignment;
+  }
+  
+  async updateLoanAssignment(id: string, data: Partial<InsertLoanAssignment>): Promise<LoanAssignment | undefined> {
+    const [updated] = await db
+      .update(loanAssignments)
+      .set(data)
+      .where(eq(loanAssignments.id, id))
+      .returning();
+    return updated;
+  }
+  
+  async deactivateLoanAssignment(id: string): Promise<LoanAssignment | undefined> {
+    const [updated] = await db
+      .update(loanAssignments)
+      .set({ isActive: false, unassignedAt: new Date() })
+      .where(eq(loanAssignments.id, id))
+      .returning();
+    return updated;
+  }
+  
+  async getPrimaryAssignee(loanApplicationId: string, role: LoanAssignmentRole): Promise<LoanAssignment | undefined> {
+    const [assignment] = await db
+      .select()
+      .from(loanAssignments)
+      .where(and(
+        eq(loanAssignments.loanApplicationId, loanApplicationId),
+        eq(loanAssignments.role, role),
+        eq(loanAssignments.isPrimary, true),
+        eq(loanAssignments.isActive, true)
+      ));
+    return assignment;
   }
 }
 
