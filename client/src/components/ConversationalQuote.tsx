@@ -883,7 +883,7 @@ export default function ConversationalQuote() {
         const loanAmount = purchasePriceNum - downPaymentAmount;
         
         return (
-          <div className="space-y-3 sm:space-y-6 max-w-xl mx-auto">
+          <div className="space-y-3 sm:space-y-6 max-w-xl mx-auto px-2 sm:px-0">
             <div className="text-center">
               <h2 className="text-lg sm:text-3xl font-bold text-white leading-tight mb-1">
                 Purchase Details
@@ -993,8 +993,15 @@ export default function ConversationalQuote() {
         );
 
       case "dscr-refinance-financials":
+        const refiPropertyValue = parseFloat(formData.propertyValue.replace(/,/g, "")) || 0;
+        const refiLoanBalance = parseFloat(formData.currentLoanBalance.replace(/,/g, "")) || 0;
+        const refiCashOut = parseFloat(formData.desiredCashOut.replace(/,/g, "")) || 0;
+        const refiMaxLoan = refiPropertyValue * 0.75;
+        const refiNewLoanAmount = refiLoanBalance + refiCashOut;
+        const refiEquity = refiPropertyValue - refiLoanBalance;
+        
         return (
-          <div className="space-y-3 sm:space-y-6 max-w-xl mx-auto">
+          <div className="space-y-3 sm:space-y-6 max-w-xl mx-auto px-2 sm:px-0">
             <div className="text-center">
               <h2 className="text-lg sm:text-3xl font-bold text-white leading-tight mb-1">
                 Refinance Details
@@ -1002,68 +1009,81 @@ export default function ConversationalQuote() {
               <p className="text-white/60 text-xs sm:text-sm">75% LTV maximum for cash out</p>
             </div>
             <div className="space-y-2 sm:space-y-4">
-              <div className="bg-white/5 rounded-lg sm:rounded-xl p-2 sm:p-4 border border-white/10">
-                <label className="text-white/50 text-[10px] sm:text-xs uppercase tracking-wide block mb-1 sm:mb-2">Property Value</label>
-                <div className="flex items-center">
-                  <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-white/40 mr-1 sm:mr-2" />
-                  <input
-                    type="text"
-                    value={formData.propertyValue}
-                    onChange={(e) => updateField("propertyValue", formatCurrency(e.target.value))}
-                    placeholder="0"
-                    className="w-full bg-transparent text-base sm:text-xl font-bold text-white focus:outline-none"
-                    data-testid="input-property-value"
-                  />
-                </div>
-              </div>
-              <div className="bg-white/5 rounded-lg sm:rounded-xl p-2 sm:p-4 border border-white/10">
-                <label className="text-white/50 text-[10px] sm:text-xs uppercase tracking-wide block mb-1 sm:mb-2">Current Loan Balance</label>
-                <div className="flex items-center">
-                  <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-white/40 mr-1 sm:mr-2" />
-                  <input
-                    type="text"
-                    value={formData.currentLoanBalance}
-                    onChange={(e) => updateField("currentLoanBalance", formatCurrency(e.target.value))}
-                    placeholder="0"
-                    className="w-full bg-transparent text-base sm:text-xl font-bold text-white focus:outline-none"
-                    data-testid="input-current-loan-balance"
-                  />
-                </div>
-              </div>
-              <div className="bg-white/5 rounded-lg sm:rounded-xl p-2 sm:p-4 border border-white/10">
-                <label className="text-white/50 text-[10px] sm:text-xs uppercase tracking-wide block mb-1 sm:mb-2">Desired Cash Out</label>
-                <div className="flex items-center">
-                  <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-white/40 mr-1 sm:mr-2" />
-                  <input
-                    type="text"
-                    value={formData.desiredCashOut}
-                    onChange={(e) => updateField("desiredCashOut", formatCurrency(e.target.value))}
-                    placeholder="0"
-                    className="w-full bg-transparent text-base sm:text-xl font-bold text-white focus:outline-none"
-                    data-testid="input-desired-cash-out"
-                  />
-                </div>
-                {maxCashOut > 0 && (
-                  <p className="text-white/40 text-[10px] sm:text-xs mt-1">
-                    Max: ${formatCurrency(maxCashOut.toString())}
-                  </p>
-                )}
-              </div>
-              <div className="bg-white/5 rounded-lg sm:rounded-xl p-2 sm:p-4 border border-white/10">
-                <label className="text-white/50 text-[10px] sm:text-xs uppercase tracking-wide block mb-1 sm:mb-2">Monthly Rent</label>
-                <div className="flex items-center">
-                  <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-white/40 mr-1 sm:mr-2" />
-                  <input
-                    type="text"
-                    value={formData.monthlyRent}
-                    onChange={(e) => updateField("monthlyRent", formatCurrency(e.target.value))}
-                    placeholder="0"
-                    className="w-full bg-transparent text-base sm:text-xl font-bold text-white focus:outline-none"
-                    data-testid="input-refi-monthly-rent"
-                  />
-                  <span className="text-white/40 ml-1 sm:ml-2 text-xs sm:text-base">/mo</span>
-                </div>
-              </div>
+              <CurrencySliderInput
+                value={formData.propertyValue}
+                onChange={(val) => updateField("propertyValue", val)}
+                min={100000}
+                max={5000000}
+                step={25000}
+                label="Property Value"
+                helperText="Current market value"
+                data-testid="input-property-value"
+              />
+              
+              <CurrencySliderInput
+                value={formData.currentLoanBalance}
+                onChange={(val) => updateField("currentLoanBalance", val)}
+                min={0}
+                max={3000000}
+                step={10000}
+                label="Current Loan Balance"
+                helperText="Outstanding mortgage balance"
+                data-testid="input-current-loan-balance"
+              />
+              
+              {refiPropertyValue > 0 && refiLoanBalance > 0 && (
+                <motion.div 
+                  className="bg-primary/10 rounded-lg sm:rounded-xl p-2 sm:p-4 border border-primary/30"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  <div className="flex justify-between text-xs sm:text-sm">
+                    <span className="text-white/60">Current Equity</span>
+                    <motion.span 
+                      className="text-white font-medium"
+                      key={refiEquity}
+                      initial={{ scale: 0.9 }}
+                      animate={{ scale: 1 }}
+                    >
+                      ${refiEquity.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                    </motion.span>
+                  </div>
+                  <div className="flex justify-between text-xs sm:text-sm mt-1">
+                    <span className="text-white/60">Max Cash Out (75% LTV)</span>
+                    <motion.span 
+                      className="text-primary font-bold"
+                      key={refiMaxLoan - refiLoanBalance}
+                      initial={{ scale: 0.9 }}
+                      animate={{ scale: 1 }}
+                    >
+                      ${Math.max(0, refiMaxLoan - refiLoanBalance).toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                    </motion.span>
+                  </div>
+                </motion.div>
+              )}
+              
+              <CurrencySliderInput
+                value={formData.desiredCashOut}
+                onChange={(val) => updateField("desiredCashOut", val)}
+                min={0}
+                max={Math.max(500000, Math.floor((refiMaxLoan - refiLoanBalance) / 10000) * 10000)}
+                step={10000}
+                label="Desired Cash Out"
+                helperText="Amount you want to take out"
+                data-testid="input-desired-cash-out"
+              />
+              
+              <CurrencySliderInput
+                value={formData.monthlyRent}
+                onChange={(val) => updateField("monthlyRent", val)}
+                min={500}
+                max={15000}
+                step={100}
+                label="Current Monthly Rent"
+                helperText="Monthly rental income"
+                data-testid="input-refi-monthly-rent"
+              />
+              
               <div className="grid grid-cols-3 gap-2 sm:gap-3">
                 <div className="bg-white/5 rounded-lg sm:rounded-xl p-2 sm:p-4 border border-white/10">
                   <label className="text-white/50 text-[10px] sm:text-xs uppercase tracking-wide block mb-1 sm:mb-2">Taxes</label>
@@ -1120,7 +1140,7 @@ export default function ConversationalQuote() {
         const ffPotentialProfit = ffArv - ffTotalInvestment;
         
         return (
-          <div className="space-y-3 sm:space-y-6 max-w-xl mx-auto">
+          <div className="space-y-3 sm:space-y-6 max-w-xl mx-auto px-2 sm:px-0">
             <div className="text-center">
               <h2 className="text-lg sm:text-3xl font-bold text-white leading-tight mb-1">
                 Deal Financials
@@ -1216,7 +1236,7 @@ export default function ConversationalQuote() {
         const cPotentialProfit = cCompleted - cTotalCost;
         
         return (
-          <div className="space-y-3 sm:space-y-6 max-w-xl mx-auto">
+          <div className="space-y-3 sm:space-y-6 max-w-xl mx-auto px-2 sm:px-0">
             <div className="text-center">
               <h2 className="text-lg sm:text-3xl font-bold text-white leading-tight mb-1">
                 Project Financials
