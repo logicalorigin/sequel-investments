@@ -280,6 +280,10 @@ export function ApplicationScopeBuilder({
                                     className="w-28 text-right h-8"
                                     placeholder="0"
                                     autoFocus
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") handleSaveBudget(item.id);
+                                      if (e.key === "Escape") handleCancelEdit();
+                                    }}
                                     data-testid={`input-budget-${item.id}`}
                                   />
                                   <Button
