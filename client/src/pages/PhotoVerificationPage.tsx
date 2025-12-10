@@ -15,7 +15,6 @@ import {
   ChevronRight, 
   Home, 
   Building2, 
-  Hammer, 
   MapPin,
   AlertCircle,
   CheckCircle2,
@@ -64,7 +63,7 @@ interface LoanApplication {
   status: string;
 }
 
-const PHOTO_CATEGORIES = {
+const PROPERTY_PHOTO_CATEGORIES = {
   exterior: {
     label: "Property Exterior",
     shortLabel: "Exterior",
@@ -95,25 +94,9 @@ const PHOTO_CATEGORIES = {
       { type: "bedroom_3", label: "Bedroom 3", description: "Third bedroom (if applicable)" },
     ]
   },
-  renovation: {
-    label: "Renovation Areas",
-    shortLabel: "Renovation",
-    icon: Hammer,
-    description: "Document areas that require or are undergoing renovation",
-    photos: [
-      { type: "renovation_area_1", label: "Renovation Area 1", description: "Primary area requiring work" },
-      { type: "renovation_area_2", label: "Renovation Area 2", description: "Secondary area requiring work" },
-      { type: "renovation_area_3", label: "Renovation Area 3", description: "Additional renovation area" },
-      { type: "hvac_system", label: "HVAC System", description: "Heating/cooling equipment" },
-      { type: "electrical_panel", label: "Electrical Panel", description: "Main electrical panel" },
-      { type: "plumbing", label: "Plumbing", description: "Visible plumbing infrastructure" },
-      { type: "roof", label: "Roof", description: "Roof condition (if visible)" },
-      { type: "foundation", label: "Foundation", description: "Foundation condition (if visible)" },
-    ]
-  },
 };
 
-type CategoryKey = keyof typeof PHOTO_CATEGORIES;
+type CategoryKey = keyof typeof PROPERTY_PHOTO_CATEGORIES;
 
 export default function PhotoVerificationPage() {
   const { applicationId } = useParams<{ applicationId: string }>();
@@ -190,7 +173,7 @@ export default function PhotoVerificationPage() {
       setNotes("");
       toast({ title: "Photo uploaded successfully" });
       
-      const currentCategory = PHOTO_CATEGORIES[activeCategory];
+      const currentCategory = PROPERTY_PHOTO_CATEGORIES[activeCategory];
       if (activePhotoIndex < currentCategory.photos.length - 1) {
         setActivePhotoIndex(prev => prev + 1);
       }
@@ -232,20 +215,27 @@ export default function PhotoVerificationPage() {
   const startCamera = useCallback(async () => {
     try {
       requestLocation();
+      setIsCapturing(true);
+      
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { 
-          facingMode: "environment", 
+          facingMode: { ideal: "environment" }, 
           width: { ideal: 1280, max: 1920 }, 
-          height: { ideal: 720, max: 1080 } 
+          height: { ideal: 960, max: 1440 } 
         },
+        audio: false,
       });
       streamRef.current = stream;
+      
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        videoRef.current.onloadedmetadata = () => {
+          videoRef.current?.play().catch(console.error);
+        };
       }
-      setIsCapturing(true);
     } catch (error) {
       console.error("Camera error:", error);
+      setIsCapturing(false);
       toast({ 
         title: "Camera access denied", 
         description: "Please allow camera access or use the upload button instead", 
@@ -317,7 +307,7 @@ export default function PhotoVerificationPage() {
   
   const handleUpload = useCallback(() => {
     if (capturedFile) {
-      const currentPhoto = PHOTO_CATEGORIES[activeCategory].photos[activePhotoIndex];
+      const currentPhoto = PROPERTY_PHOTO_CATEGORIES[activeCategory].photos[activePhotoIndex];
       uploadMutation.mutate({
         file: capturedFile,
         photoType: currentPhoto.type,
@@ -331,16 +321,15 @@ export default function PhotoVerificationPage() {
   }, [photos]);
   
   const getCategoryProgress = useCallback((category: CategoryKey): number => {
-    const categoryPhotos = PHOTO_CATEGORIES[category].photos;
+    const categoryPhotos = PROPERTY_PHOTO_CATEGORIES[category].photos;
     const uploadedCount = categoryPhotos.filter(p => getPhotoForType(p.type)).length;
     return Math.round((uploadedCount / categoryPhotos.length) * 100);
   }, [getPhotoForType]);
   
   const totalProgress = useMemo(() => {
-    const allPhotos = Object.values(PHOTO_CATEGORIES).flatMap(c => c.photos);
-    const requiredPhotos = allPhotos.slice(0, 12);
-    const uploadedCount = requiredPhotos.filter(p => getPhotoForType(p.type)).length;
-    return Math.round((uploadedCount / requiredPhotos.length) * 100);
+    const allPhotos = Object.values(PROPERTY_PHOTO_CATEGORIES).flatMap(c => c.photos);
+    const uploadedCount = allPhotos.filter(p => getPhotoForType(p.type)).length;
+    return Math.round((uploadedCount / allPhotos.length) * 100);
   }, [getPhotoForType]);
   
   const getStatusIcon = (status: string) => {
@@ -376,7 +365,7 @@ export default function PhotoVerificationPage() {
   }, [stopCamera]);
 
   const navigatePhoto = useCallback((direction: 'prev' | 'next') => {
-    const currentCategory = PHOTO_CATEGORIES[activeCategory];
+    const currentCategory = PROPERTY_PHOTO_CATEGORIES[activeCategory];
     if (direction === 'prev' && activePhotoIndex > 0) {
       handlePhotoSelect(activePhotoIndex - 1);
     } else if (direction === 'next' && activePhotoIndex < currentCategory.photos.length - 1) {
@@ -408,7 +397,7 @@ export default function PhotoVerificationPage() {
     );
   }
   
-  const currentCategory = PHOTO_CATEGORIES[activeCategory];
+  const currentCategory = PROPERTY_PHOTO_CATEGORIES[activeCategory];
   const currentPhoto = currentCategory.photos[activePhotoIndex];
   const existingPhoto = getPhotoForType(currentPhoto.type);
   
@@ -451,7 +440,7 @@ export default function PhotoVerificationPage() {
         <div className="border-t">
           <ScrollArea className="w-full">
             <div className="flex p-2 gap-2" role="tablist" aria-label="Photo categories">
-              {(Object.entries(PHOTO_CATEGORIES) as [CategoryKey, typeof PHOTO_CATEGORIES[CategoryKey]][]).map(([key, category]) => {
+              {(Object.entries(PROPERTY_PHOTO_CATEGORIES) as [CategoryKey, typeof PROPERTY_PHOTO_CATEGORIES[CategoryKey]][]).map(([key, category]) => {
                 const Icon = category.icon;
                 const progress = getCategoryProgress(key);
                 const isActive = activeCategory === key;
@@ -632,38 +621,76 @@ export default function PhotoVerificationPage() {
               </div>
             </div>
           ) : isCapturing ? (
-            <div className="space-y-3">
-              <div className="relative bg-black rounded-lg overflow-hidden" style={{ maxHeight: '60vh' }}>
+            <div className="fixed inset-0 z-[100] bg-black flex flex-col">
+              <div className="relative flex-1 flex items-center justify-center overflow-hidden">
                 <video
                   ref={videoRef}
                   autoPlay
                   playsInline
                   muted
-                  className="w-full h-auto"
-                  style={{ maxHeight: '60vh', objectFit: 'contain' }}
+                  className="w-full h-full object-cover"
                 />
                 <canvas ref={canvasRef} className="hidden" />
+                
+                <div className="absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-black/70 to-transparent">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="text-white">
+                      <p className="text-lg font-semibold">{currentPhoto.label}</p>
+                      <p className="text-sm text-white/80">{currentPhoto.description}</p>
+                    </div>
+                    <Badge 
+                      variant="secondary" 
+                      className="bg-white/20 text-white border-white/30 shrink-0"
+                    >
+                      {activePhotoIndex + 1}/{currentCategory.photos.length}
+                    </Badge>
+                  </div>
+                </div>
+                
+                <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/70 to-transparent">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-white/80 text-sm">{currentCategory.label}</p>
+                    <div className="flex gap-1.5">
+                      {currentCategory.photos.map((photo, idx) => {
+                        const hasPhoto = !!getPhotoForType(photo.type);
+                        const isCurrent = idx === activePhotoIndex;
+                        return (
+                          <div 
+                            key={photo.type}
+                            className={`w-2.5 h-2.5 rounded-full transition-colors ${
+                              hasPhoto ? 'bg-green-500' : 
+                              isCurrent ? 'bg-white' : 'bg-white/30'
+                            }`}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
               </div>
               
-              <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  className="min-h-14 min-w-14"
-                  size="icon"
-                  onClick={stopCamera}
-                  data-testid="button-cancel-camera"
-                  aria-label="Cancel"
-                >
-                  <X className="h-6 w-6" />
-                </Button>
-                <Button
-                  className="flex-1 min-h-14 text-lg"
-                  onClick={capturePhoto}
-                  data-testid="button-capture-photo"
-                >
-                  <Camera className="h-6 w-6 mr-2" />
-                  Take Photo
-                </Button>
+              <div className="p-4 bg-black safe-area-inset-bottom">
+                <div className="flex items-center justify-center gap-6">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-14 w-14 rounded-full bg-white/10 text-white hover:bg-white/20"
+                    onClick={stopCamera}
+                    data-testid="button-cancel-camera"
+                    aria-label="Cancel"
+                  >
+                    <X className="h-7 w-7" />
+                  </Button>
+                  <button
+                    onClick={capturePhoto}
+                    data-testid="button-capture-photo"
+                    className="h-20 w-20 rounded-full bg-white flex items-center justify-center hover-elevate active:scale-95 transition-transform"
+                    aria-label="Take photo"
+                  >
+                    <div className="h-16 w-16 rounded-full border-4 border-black/20" />
+                  </button>
+                  <div className="h-14 w-14" />
+                </div>
               </div>
             </div>
           ) : capturedImage ? (
