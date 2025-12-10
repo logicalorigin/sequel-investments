@@ -31,6 +31,7 @@ interface PortalHeaderProps {
   title?: string;
   titleExtra?: React.ReactNode;
   backHref?: string;
+  hideTitleOnMobile?: boolean;
 }
 
 const getNotificationIcon = (type: string) => {
@@ -51,7 +52,7 @@ const getNotificationIcon = (type: string) => {
   }
 };
 
-export function PortalHeader({ user, title, titleExtra, backHref }: PortalHeaderProps) {
+export function PortalHeader({ user, title, titleExtra, backHref, hideTitleOnMobile }: PortalHeaderProps) {
   const [location, navigate] = useLocation();
 
   const logoutMutation = useMutation({
@@ -127,7 +128,7 @@ export function PortalHeader({ user, title, titleExtra, backHref }: PortalHeader
           </Link>
           
           {title && (
-            <div className="flex items-center gap-1.5 min-w-0">
+            <div className={`flex items-center gap-1.5 min-w-0 ${hideTitleOnMobile ? "hidden sm:flex" : ""}`}>
               {backHref && (
                 <Link href={backHref}>
                   <Button variant="ghost" size="icon" className="shrink-0 h-7 w-7" data-testid="button-back">
