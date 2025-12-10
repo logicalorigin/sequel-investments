@@ -948,23 +948,6 @@ export default function ApplicationDetailPage() {
               </CardContent>
             </Card>
 
-            {(application.analyzerType === "fixflip" || 
-              application.analyzerType === "construction" ||
-              application.loanType?.toLowerCase().includes("flip") || 
-              application.loanType?.toLowerCase().includes("construction")) && (
-              <ApplicationScopeBuilder 
-                applicationId={applicationId!} 
-                readOnly={application.status !== "draft" && application.status !== "submitted"}
-                desiredRehabBudget={application.rehabBudget}
-                onUpdateRehabBudget={async (newBudget: number) => {
-                  await apiRequest("PATCH", `/api/applications/${applicationId}`, { 
-                    rehabBudget: newBudget 
-                  });
-                  queryClient.invalidateQueries({ queryKey: ["/api/applications", applicationId] });
-                }}
-              />
-            )}
-
             <Card>
               <CardHeader className="flex flex-row items-center justify-between gap-2">
                 <CardTitle className="flex items-center gap-2">
@@ -1066,6 +1049,23 @@ export default function ApplicationDetailPage() {
                 )}
               </CardContent>
             </Card>
+
+            {(application.analyzerType === "fixflip" || 
+              application.analyzerType === "construction" ||
+              application.loanType?.toLowerCase().includes("flip") || 
+              application.loanType?.toLowerCase().includes("construction")) && (
+              <ApplicationScopeBuilder 
+                applicationId={applicationId!} 
+                readOnly={application.status !== "draft" && application.status !== "submitted"}
+                desiredRehabBudget={application.rehabBudget}
+                onUpdateRehabBudget={async (newBudget: number) => {
+                  await apiRequest("PATCH", `/api/applications/${applicationId}`, { 
+                    rehabBudget: newBudget 
+                  });
+                  queryClient.invalidateQueries({ queryKey: ["/api/applications", applicationId] });
+                }}
+              />
+            )}
 
             {application.status === "funded" && application.loanType?.toLowerCase().includes("dscr") && (
               <>

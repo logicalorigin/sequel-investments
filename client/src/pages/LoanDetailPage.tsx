@@ -925,6 +925,104 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
               </div>
             ) : (
               <>
+                <div className="flex justify-start mb-4">
+                  <Dialog open={newDrawOpen} onOpenChange={setNewDrawOpen}>
+                    <DialogTrigger asChild>
+                      <Button data-testid="button-new-draw">
+                        <Plus className="h-4 w-4 mr-2" />
+                        New Draw Request
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle>Request New Draw</DialogTitle>
+                        <DialogDescription>
+                          Enter amounts for each scope item to include in this draw. Maximum available: {formatCurrency(remaining)}
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="drawDescription">Description (optional)</Label>
+                          <Textarea
+                            id="drawDescription"
+                            value={newDrawDescription}
+                            onChange={(e) => setNewDrawDescription(e.target.value)}
+                            placeholder="Describe the work completed for this draw..."
+                            data-testid="input-draw-description"
+                          />
+                        </div>
+
+                        <Separator />
+
+                        <div className="space-y-4">
+                          {categorySummaries.map((cs) => (
+                            <div key={cs.category}>
+                              <h4 className="font-medium text-sm mb-2">{SCOPE_OF_WORK_CATEGORY_NAMES[cs.category]}</h4>
+                              <div className="space-y-2">
+                                {cs.items.map((item) => {
+                                  const itemRemaining = item.budgetAmount - item.totalFunded;
+                                  return (
+                                    <div key={item.id} className="flex items-center justify-between gap-4">
+                                      <div className="flex-1">
+                                        <span className="text-sm">{item.itemName}</span>
+                                        <span className="text-xs text-muted-foreground ml-2">
+                                          (Remaining: {formatCurrency(itemRemaining)})
+                                        </span>
+                                      </div>
+                                      <Input
+                                        type="number"
+                                        min={0}
+                                        max={itemRemaining}
+                                        value={drawLineAmounts[item.id] || ""}
+                                        onChange={(e) => {
+                                          const val = parseInt(e.target.value) || 0;
+                                          setDrawLineAmounts(prev => ({
+                                            ...prev,
+                                            [item.id]: Math.min(val, itemRemaining)
+                                          }));
+                                        }}
+                                        placeholder="0"
+                                        className="w-28 text-right"
+                                        data-testid={`input-draw-line-${item.id}`}
+                                      />
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        <Separator />
+
+                        <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                          <span className="font-medium">Draw Total:</span>
+                          <span className="text-xl font-bold text-primary" data-testid="text-draw-total">
+                            {formatCurrency(newDrawTotal)}
+                          </span>
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => {
+                          setNewDrawOpen(false);
+                          setDrawLineAmounts({});
+                          setNewDrawDescription("");
+                        }}>Cancel</Button>
+                        <Button 
+                          onClick={() => createDrawMutation.mutate({
+                            requestedAmount: newDrawTotal,
+                            description: newDrawDescription,
+                          })}
+                          disabled={newDrawTotal === 0 || createDrawMutation.isPending}
+                          data-testid="button-create-draw"
+                        >
+                          Create Draw Request
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+
                 <Accordion type="multiple" defaultValue={categoryOrder} className="space-y-2">
                   {categorySummaries.map((cs) => {
                     const categoryPercent = cs.totalBudget > 0 ? (cs.totalFunded / cs.totalBudget) * 100 : 0;
@@ -1020,104 +1118,6 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
                     );
                   })}
                 </Accordion>
-
-                <div className="flex justify-end mt-4">
-                  <Dialog open={newDrawOpen} onOpenChange={setNewDrawOpen}>
-                    <DialogTrigger asChild>
-                      <Button data-testid="button-new-draw">
-                        <Plus className="h-4 w-4 mr-2" />
-                        New Draw Request
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                      <DialogHeader>
-                        <DialogTitle>Request New Draw</DialogTitle>
-                        <DialogDescription>
-                          Enter amounts for each scope item to include in this draw. Maximum available: {formatCurrency(remaining)}
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <div>
-                          <Label htmlFor="drawDescription">Description (optional)</Label>
-                          <Textarea
-                            id="drawDescription"
-                            value={newDrawDescription}
-                            onChange={(e) => setNewDrawDescription(e.target.value)}
-                            placeholder="Describe the work completed for this draw..."
-                            data-testid="input-draw-description"
-                          />
-                        </div>
-
-                        <Separator />
-
-                        <div className="space-y-4">
-                          {categorySummaries.map((cs) => (
-                            <div key={cs.category}>
-                              <h4 className="font-medium text-sm mb-2">{SCOPE_OF_WORK_CATEGORY_NAMES[cs.category]}</h4>
-                              <div className="space-y-2">
-                                {cs.items.map((item) => {
-                                  const remaining = item.budgetAmount - item.totalFunded;
-                                  return (
-                                    <div key={item.id} className="flex items-center justify-between gap-4">
-                                      <div className="flex-1">
-                                        <span className="text-sm">{item.itemName}</span>
-                                        <span className="text-xs text-muted-foreground ml-2">
-                                          (Remaining: {formatCurrency(remaining)})
-                                        </span>
-                                      </div>
-                                      <Input
-                                        type="number"
-                                        min={0}
-                                        max={remaining}
-                                        value={drawLineAmounts[item.id] || ""}
-                                        onChange={(e) => {
-                                          const val = parseInt(e.target.value) || 0;
-                                          setDrawLineAmounts(prev => ({
-                                            ...prev,
-                                            [item.id]: Math.min(val, remaining)
-                                          }));
-                                        }}
-                                        placeholder="0"
-                                        className="w-28 text-right"
-                                        data-testid={`input-draw-line-${item.id}`}
-                                      />
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-
-                        <Separator />
-
-                        <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                          <span className="font-medium">Draw Total:</span>
-                          <span className="text-xl font-bold text-primary" data-testid="text-draw-total">
-                            {formatCurrency(newDrawTotal)}
-                          </span>
-                        </div>
-                      </div>
-                      <DialogFooter>
-                        <Button variant="outline" onClick={() => {
-                          setNewDrawOpen(false);
-                          setDrawLineAmounts({});
-                          setNewDrawDescription("");
-                        }}>Cancel</Button>
-                        <Button 
-                          onClick={() => createDrawMutation.mutate({
-                            requestedAmount: newDrawTotal,
-                            description: newDrawDescription,
-                          })}
-                          disabled={newDrawTotal === 0 || createDrawMutation.isPending}
-                          data-testid="button-create-draw"
-                        >
-                          Create Draw Request
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                </div>
               </>
             )}
           </div>
