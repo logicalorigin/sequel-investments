@@ -906,7 +906,7 @@ export default function ConversationalQuote() {
                 onChange={(val) => updateField("downPaymentPercent", val)}
                 min={20}
                 max={50}
-                step={1}
+                step={5}
                 label="Down Payment"
                 calculatedAmount={downPaymentAmount}
                 helperText="Minimum 20% required"
@@ -1449,8 +1449,7 @@ export default function ConversationalQuote() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
           <Link href="/" data-testid="link-logo-home">
             <div className="flex items-center gap-2 cursor-pointer">
-              <img src={logoIcon} alt="Sequel Investments" className="h-8 w-8 sm:h-10 sm:w-10 object-contain brightness-0 invert" />
-              <span className="font-bold text-base sm:text-xl text-white hidden sm:inline">Sequel Investments</span>
+              <span className="font-bold text-xl sm:text-2xl text-amber-500">SEQUEL</span>
             </div>
           </Link>
           <Link href="/" data-testid="link-close">
