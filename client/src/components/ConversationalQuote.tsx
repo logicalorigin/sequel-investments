@@ -33,7 +33,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Link } from "wouter";
-import logoIcon from "@assets/logo_saf_only_removed_bg (1)_1764095523171.png";
+import logoIcon from "@assets/generated_images/sequel_investments_s_logo_icon.png";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
 import { CurrencySliderInput, PercentageSlider } from "@/components/AnimatedSlider";
 

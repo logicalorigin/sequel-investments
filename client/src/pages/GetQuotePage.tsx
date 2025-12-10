@@ -24,7 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import logoIcon from "@assets/logo_saf_only_removed_bg (1)_1764095523171.png";
+import logoIcon from "@assets/generated_images/sequel_investments_s_logo_icon.png";
 import { Link } from "wouter";
 
 type LoanType = "dscr" | "fix-flip" | "construction" | "";
@@ -856,7 +856,7 @@ export default function GetQuotePage() {
                       <div className="flex justify-between">
                         <span className="text-white/60">Loan Product</span>
                         <span className="text-white font-medium">
-                          {formData.loanType === "dscr" ? "SAFRENT" : formData.loanType === "fix-flip" ? "SAFFIX" : "SAFBUILD"}
+                          {formData.loanType === "dscr" ? "SEQUEL DSCR" : formData.loanType === "fix-flip" ? "SEQUEL FIX & FLIP" : "SEQUEL CONSTRUCTION"}
                         </span>
                       </div>
                       <div className="flex justify-between">

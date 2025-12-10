@@ -9,7 +9,7 @@ import { Home, Lock, Loader2, Mail } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import logoIcon from "@assets/logo_saf_only_removed_bg (1)_1764095523171.png";
+import logoIcon from "@assets/generated_images/sequel_investments_s_logo_icon.png";
 
 export default function LoginPage() {
   const { isAuthenticated, isLoading } = useAuth();
