@@ -39,6 +39,7 @@ import {
   propertyLocations,
   drawPhotos,
   photoVerificationAudits,
+  verificationPhotos,
   type User, 
   type UpsertUser,
   type Lead, 
@@ -123,6 +124,8 @@ import {
   type InsertDrawPhoto,
   type PhotoVerificationAudit,
   type InsertPhotoVerificationAudit,
+  type VerificationPhoto,
+  type InsertVerificationPhoto,
   DEFAULT_DOCUMENT_TYPES,
   DEFAULT_BUSINESS_HOURS,
 } from "@shared/schema";
@@ -402,6 +405,13 @@ export interface IStorage {
   // Photo verification audit operations
   getPhotoVerificationAudits(drawPhotoId: string): Promise<PhotoVerificationAudit[]>;
   createPhotoVerificationAudit(data: InsertPhotoVerificationAudit): Promise<PhotoVerificationAudit>;
+  
+  // Verification photo operations (property & renovation verification)
+  getVerificationPhotos(loanApplicationId: string): Promise<VerificationPhoto[]>;
+  getVerificationPhoto(id: string): Promise<VerificationPhoto | undefined>;
+  createVerificationPhoto(data: InsertVerificationPhoto): Promise<VerificationPhoto>;
+  updateVerificationPhoto(id: string, data: Partial<InsertVerificationPhoto>): Promise<VerificationPhoto | undefined>;
+  deleteVerificationPhoto(id: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2380,6 +2390,47 @@ export class DatabaseStorage implements IStorage {
       .values(data)
       .returning();
     return audit;
+  }
+
+  // Verification photo operations (property & renovation verification)
+  async getVerificationPhotos(loanApplicationId: string): Promise<VerificationPhoto[]> {
+    return await db
+      .select()
+      .from(verificationPhotos)
+      .where(eq(verificationPhotos.loanApplicationId, loanApplicationId))
+      .orderBy(verificationPhotos.createdAt);
+  }
+
+  async getVerificationPhoto(id: string): Promise<VerificationPhoto | undefined> {
+    const [photo] = await db
+      .select()
+      .from(verificationPhotos)
+      .where(eq(verificationPhotos.id, id));
+    return photo;
+  }
+
+  async createVerificationPhoto(data: InsertVerificationPhoto): Promise<VerificationPhoto> {
+    const [photo] = await db
+      .insert(verificationPhotos)
+      .values(data)
+      .returning();
+    return photo;
+  }
+
+  async updateVerificationPhoto(id: string, data: Partial<InsertVerificationPhoto>): Promise<VerificationPhoto | undefined> {
+    const [updated] = await db
+      .update(verificationPhotos)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(verificationPhotos.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteVerificationPhoto(id: string): Promise<boolean> {
+    await db
+      .delete(verificationPhotos)
+      .where(eq(verificationPhotos.id, id));
+    return true;
   }
 }
 

@@ -31,6 +31,7 @@ import StateLoanTypePage from "@/pages/StateLoanTypePage";
 import PortalPage from "@/pages/PortalPage";
 import ApplicationDetailPage from "@/pages/ApplicationDetailPage";
 import ApplicationDocumentsPage from "@/pages/ApplicationDocumentsPage";
+import PhotoVerificationPage from "@/pages/PhotoVerificationPage";
 import InvestmentAnalysisPage from "@/pages/InvestmentAnalysisPage";
 import DSCRAnalyzerPage from "@/pages/DSCRAnalyzerPage";
 import FixFlipAnalyzerPage from "@/pages/FixFlipAnalyzerPage";
@@ -80,6 +81,7 @@ function Router() {
       <Route path="/portal" component={PortalPage} />
       <Route path="/portal/application/:id" component={ApplicationDetailPage} />
       <Route path="/portal/application/:id/documents" component={ApplicationDocumentsPage} />
+      <Route path="/portal/application/:id/verification" component={PhotoVerificationPage} />
       <Route path="/portal/investment-analysis" component={InvestmentAnalysisPage} />
       <Route path="/portal/dscr-analyzer" component={DSCRAnalyzerPage} />
       <Route path="/portal/fixflip-analyzer" component={FixFlipAnalyzerPage} />
