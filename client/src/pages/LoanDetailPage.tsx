@@ -851,19 +851,19 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between gap-4">
-        <div>
-          <CardTitle className="flex items-center gap-2">
-            <Wallet className="h-5 w-5" />
-            Draw Management
-          </CardTitle>
-          <CardDescription>Scope of work budget and draw requests</CardDescription>
-        </div>
-        <div className="flex items-center gap-2">
+      <CardHeader className="space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Wallet className="h-5 w-5" />
+              Draw Management
+            </CardTitle>
+            <CardDescription>Scope of work budget and draw requests</CardDescription>
+          </div>
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "scope" | "draws")}>
-            <TabsList>
-              <TabsTrigger value="scope" data-testid="tab-scope-of-work">Scope of Work</TabsTrigger>
-              <TabsTrigger value="draws" data-testid="tab-draw-requests">Draw Requests</TabsTrigger>
+            <TabsList className="w-full sm:w-auto">
+              <TabsTrigger value="scope" className="flex-1 sm:flex-none text-xs sm:text-sm" data-testid="tab-scope-of-work">Scope of Work</TabsTrigger>
+              <TabsTrigger value="draws" className="flex-1 sm:flex-none text-xs sm:text-sm" data-testid="tab-draw-requests">Draw Requests</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
@@ -1028,21 +1028,22 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
                     const categoryPercent = cs.totalBudget > 0 ? (cs.totalFunded / cs.totalBudget) * 100 : 0;
                     return (
                       <AccordionItem key={cs.category} value={cs.category} className="border rounded-lg">
-                        <AccordionTrigger className="px-4 hover:no-underline" data-testid={`accordion-category-${cs.category}`}>
-                          <div className="flex items-center justify-between w-full pr-4">
-                            <span className="font-medium">{SCOPE_OF_WORK_CATEGORY_NAMES[cs.category]}</span>
-                            <div className="flex items-center gap-4">
-                              <div className="w-32">
+                        <AccordionTrigger className="px-3 sm:px-4 hover:no-underline" data-testid={`accordion-category-${cs.category}`}>
+                          <div className="flex items-center justify-between w-full pr-2 sm:pr-4 gap-2">
+                            <span className="font-medium text-sm sm:text-base truncate">{SCOPE_OF_WORK_CATEGORY_NAMES[cs.category]}</span>
+                            <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+                              <div className="hidden sm:block w-24 md:w-32">
                                 <Progress value={categoryPercent} className="h-2" />
                               </div>
-                              <span className="text-sm text-muted-foreground min-w-[100px] text-right">
+                              <span className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
                                 {formatCurrency(cs.totalFunded)} / {formatCurrency(cs.totalBudget)}
                               </span>
                             </div>
                           </div>
                         </AccordionTrigger>
                         <AccordionContent className="px-0 pb-0">
-                          <Table>
+                          <div className="overflow-x-auto">
+                          <Table className="min-w-[400px]">
                             <TableHeader>
                               <TableRow>
                                 <TableHead className="pl-4">Item</TableHead>
@@ -1113,6 +1114,7 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
                               </TableRow>
                             </TableBody>
                           </Table>
+                          </div>
                         </AccordionContent>
                       </AccordionItem>
                     );
@@ -1762,13 +1764,15 @@ export default function LoanDetailPage() {
         
         {isHardMoney ? (
           <Tabs defaultValue="draws" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5">
-              <TabsTrigger value="draws" data-testid="tab-draws">Draws</TabsTrigger>
-              <TabsTrigger value="payments" data-testid="tab-payments">Payments</TabsTrigger>
-              <TabsTrigger value="payoff" data-testid="tab-payoff">Payoff</TabsTrigger>
-              <TabsTrigger value="milestones" data-testid="tab-milestones">Milestones</TabsTrigger>
-              <TabsTrigger value="documents" data-testid="tab-documents">Documents</TabsTrigger>
-            </TabsList>
+            <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
+              <TabsList className="inline-flex w-auto min-w-full sm:grid sm:w-full sm:grid-cols-5">
+                <TabsTrigger value="draws" className="flex-shrink-0" data-testid="tab-draws">Draws</TabsTrigger>
+                <TabsTrigger value="payments" className="flex-shrink-0" data-testid="tab-payments">Payments</TabsTrigger>
+                <TabsTrigger value="payoff" className="flex-shrink-0" data-testid="tab-payoff">Payoff</TabsTrigger>
+                <TabsTrigger value="milestones" className="flex-shrink-0" data-testid="tab-milestones">Milestones</TabsTrigger>
+                <TabsTrigger value="documents" className="flex-shrink-0" data-testid="tab-documents">Documents</TabsTrigger>
+              </TabsList>
+            </div>
             
             <TabsContent value="draws">
               <DrawManagement loan={loan} draws={loanDetails.draws} />
@@ -1866,13 +1870,15 @@ export default function LoanDetailPage() {
           </Tabs>
         ) : (
           <Tabs defaultValue="amortization" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5">
-              <TabsTrigger value="amortization" data-testid="tab-amortization">Amortization</TabsTrigger>
-              <TabsTrigger value="payments" data-testid="tab-payments">Payment History</TabsTrigger>
-              <TabsTrigger value="payoff" data-testid="tab-payoff">Payoff</TabsTrigger>
-              <TabsTrigger value="escrow" data-testid="tab-escrow">Escrow</TabsTrigger>
-              <TabsTrigger value="documents" data-testid="tab-documents">Documents</TabsTrigger>
-            </TabsList>
+            <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
+              <TabsList className="inline-flex w-auto min-w-full sm:grid sm:w-full sm:grid-cols-5">
+                <TabsTrigger value="amortization" className="flex-shrink-0 text-xs sm:text-sm" data-testid="tab-amortization">Amortization</TabsTrigger>
+                <TabsTrigger value="payments" className="flex-shrink-0 text-xs sm:text-sm" data-testid="tab-payments">Payments</TabsTrigger>
+                <TabsTrigger value="payoff" className="flex-shrink-0" data-testid="tab-payoff">Payoff</TabsTrigger>
+                <TabsTrigger value="escrow" className="flex-shrink-0" data-testid="tab-escrow">Escrow</TabsTrigger>
+                <TabsTrigger value="documents" className="flex-shrink-0" data-testid="tab-documents">Documents</TabsTrigger>
+              </TabsList>
+            </div>
             
             <TabsContent value="amortization">
               <AmortizationCalculator loan={loan} />
