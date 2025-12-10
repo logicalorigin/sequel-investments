@@ -635,11 +635,11 @@ export default function ConversationalQuote() {
     switch (currentQuestion.type) {
       case "loan-type":
         return (
-          <div className="space-y-8">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white text-center leading-tight">
+          <div className="space-y-4 sm:space-y-8">
+            <h2 className="text-xl sm:text-3xl md:text-4xl font-bold text-white text-center leading-tight">
               <TypewriterText text={currentQuestion.prompt} />
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 max-w-3xl mx-auto">
               {loanProducts.map((product) => {
                 const Icon = product.icon;
                 const isSelected = formData.loanType === product.id;
@@ -649,7 +649,7 @@ export default function ConversationalQuote() {
                     key={product.id}
                     onClick={() => updateField("loanType", product.id)}
                     className={`
-                      relative p-6 rounded-2xl border-2 transition-all
+                      relative p-3 sm:p-6 rounded-xl sm:rounded-2xl border-2 transition-all
                       bg-gradient-to-br ${product.color}
                       ${isSelected ? `${product.borderColor} shadow-lg shadow-primary/20` : "border-white/10 hover:border-white/30"}
                     `}
@@ -661,14 +661,14 @@ export default function ConversationalQuote() {
                       <motion.div
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
-                        className="absolute -top-2 -right-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center"
+                        className="absolute -top-1.5 -right-1.5 sm:-top-2 sm:-right-2 w-5 h-5 sm:w-6 sm:h-6 bg-primary rounded-full flex items-center justify-center"
                       >
-                        <CheckCircle2 className="w-4 h-4 text-white" />
+                        <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
                       </motion.div>
                     )}
-                    <Icon className={`w-10 h-10 mx-auto mb-3 ${isSelected ? "text-primary" : "text-white/70"}`} />
-                    <h3 className="text-lg font-bold text-white">{product.title}</h3>
-                    <p className="text-sm text-white/60 mt-1">{product.description}</p>
+                    <Icon className={`w-7 h-7 sm:w-10 sm:h-10 mx-auto mb-2 sm:mb-3 ${isSelected ? "text-primary" : "text-white/70"}`} />
+                    <h3 className="text-sm sm:text-lg font-bold text-white">{product.title}</h3>
+                    <p className="text-xs text-white/60 mt-1 hidden sm:block">{product.description}</p>
                   </motion.button>
                 );
               })}
@@ -697,8 +697,8 @@ export default function ConversationalQuote() {
 
       case "address":
         return (
-          <div className="space-y-8 text-center max-w-xl mx-auto">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white leading-tight">
+          <div className="space-y-4 sm:space-y-8 text-center max-w-xl mx-auto">
+            <h2 className="text-xl sm:text-3xl md:text-4xl font-bold text-white leading-tight">
               <TypewriterText text={currentQuestion.prompt} />
             </h2>
             <div className="relative">
@@ -713,12 +713,12 @@ export default function ConversationalQuote() {
                   onChange={(val) => updateField("propertyAddress", val)}
                   onPlaceSelect={handleAddressSelect}
                   placeholder="Enter property address..."
-                  className="w-full text-lg p-4 rounded-xl border-2 border-white/20 bg-white/5 text-white placeholder:text-white/40 focus:border-primary focus:outline-none transition-all"
+                  className="w-full text-base sm:text-lg p-3 sm:p-4 rounded-xl border-2 border-white/20 bg-white/5 text-white placeholder:text-white/40 focus:border-primary focus:outline-none transition-all"
                 />
               </div>
             </div>
-            <p className="text-white/50 text-sm">
-              <MapPin className="w-4 h-4 inline mr-1" />
+            <p className="text-white/50 text-xs sm:text-sm">
+              <MapPin className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1" />
               {formData.propertyCity && formData.propertyState 
                 ? `${formData.propertyCity}, ${formData.propertyState}`
                 : "Start typing to search..."}
@@ -728,104 +728,104 @@ export default function ConversationalQuote() {
 
       case "property-details":
         return (
-          <div className="space-y-6 text-center max-w-xl mx-auto">
+          <div className="space-y-3 sm:space-y-6 text-center max-w-xl mx-auto">
             <div>
-              <h2 className="text-2xl sm:text-3xl font-bold text-white leading-tight mb-2">
+              <h2 className="text-lg sm:text-3xl font-bold text-white leading-tight mb-1 sm:mb-2">
                 Property Details
               </h2>
-              <p className="text-white/60 text-sm">
+              <p className="text-white/60 text-xs sm:text-sm">
                 {formData.propertyAddress && (
                   <span className="flex items-center justify-center gap-1">
-                    <MapPin className="w-4 h-4" />
-                    {formData.propertyAddress}
+                    <MapPin className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <span className="truncate max-w-[200px] sm:max-w-none">{formData.propertyAddress}</span>
                   </span>
                 )}
               </p>
             </div>
             {isLoadingPropertyDetails ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                <span className="ml-3 text-white/60">Fetching property details...</span>
+              <div className="flex items-center justify-center py-4 sm:py-8">
+                <Loader2 className="w-6 h-6 sm:w-8 sm:h-8 text-primary animate-spin" />
+                <span className="ml-2 sm:ml-3 text-white/60 text-sm">Fetching details...</span>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                  <label className="text-white/50 text-xs uppercase tracking-wide block mb-2">Bedrooms</label>
+              <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                <div className="bg-white/5 rounded-lg sm:rounded-xl p-2 sm:p-4 border border-white/10">
+                  <label className="text-white/50 text-[10px] sm:text-xs uppercase tracking-wide block mb-1 sm:mb-2">Beds</label>
                   <input
                     type="text"
                     value={formData.propertyDetails.beds}
                     onChange={(e) => updatePropertyDetail("beds", e.target.value)}
                     placeholder="--"
-                    className="w-full bg-transparent text-2xl font-bold text-white text-center focus:outline-none"
+                    className="w-full bg-transparent text-lg sm:text-2xl font-bold text-white text-center focus:outline-none"
                     data-testid="input-beds"
                   />
                 </div>
-                <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                  <label className="text-white/50 text-xs uppercase tracking-wide block mb-2">Bathrooms</label>
+                <div className="bg-white/5 rounded-lg sm:rounded-xl p-2 sm:p-4 border border-white/10">
+                  <label className="text-white/50 text-[10px] sm:text-xs uppercase tracking-wide block mb-1 sm:mb-2">Baths</label>
                   <input
                     type="text"
                     value={formData.propertyDetails.baths}
                     onChange={(e) => updatePropertyDetail("baths", e.target.value)}
                     placeholder="--"
-                    className="w-full bg-transparent text-2xl font-bold text-white text-center focus:outline-none"
+                    className="w-full bg-transparent text-lg sm:text-2xl font-bold text-white text-center focus:outline-none"
                     data-testid="input-baths"
                   />
                 </div>
-                <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                  <label className="text-white/50 text-xs uppercase tracking-wide block mb-2">Sq. Ft.</label>
+                <div className="bg-white/5 rounded-lg sm:rounded-xl p-2 sm:p-4 border border-white/10">
+                  <label className="text-white/50 text-[10px] sm:text-xs uppercase tracking-wide block mb-1 sm:mb-2">Sq Ft</label>
                   <input
                     type="text"
                     value={formData.propertyDetails.sqft}
                     onChange={(e) => updatePropertyDetail("sqft", e.target.value)}
                     placeholder="--"
-                    className="w-full bg-transparent text-2xl font-bold text-white text-center focus:outline-none"
+                    className="w-full bg-transparent text-lg sm:text-2xl font-bold text-white text-center focus:outline-none"
                     data-testid="input-sqft"
                   />
                 </div>
-                <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                  <label className="text-white/50 text-xs uppercase tracking-wide block mb-2">Year Built</label>
+                <div className="bg-white/5 rounded-lg sm:rounded-xl p-2 sm:p-4 border border-white/10">
+                  <label className="text-white/50 text-[10px] sm:text-xs uppercase tracking-wide block mb-1 sm:mb-2">Year</label>
                   <input
                     type="text"
                     value={formData.propertyDetails.yearBuilt}
                     onChange={(e) => updatePropertyDetail("yearBuilt", e.target.value)}
                     placeholder="--"
-                    className="w-full bg-transparent text-2xl font-bold text-white text-center focus:outline-none"
+                    className="w-full bg-transparent text-lg sm:text-2xl font-bold text-white text-center focus:outline-none"
                     data-testid="input-yearBuilt"
                   />
                 </div>
-                <div className="bg-white/5 rounded-xl p-4 border border-white/10 col-span-2">
-                  <label className="text-white/50 text-xs uppercase tracking-wide block mb-2">Estimated Value</label>
+                <div className="bg-white/5 rounded-lg sm:rounded-xl p-2 sm:p-4 border border-white/10 col-span-2">
+                  <label className="text-white/50 text-[10px] sm:text-xs uppercase tracking-wide block mb-1 sm:mb-2">Est. Value</label>
                   <div className="flex items-center justify-center">
-                    <span className="text-white/60 text-2xl mr-1">$</span>
+                    <span className="text-white/60 text-lg sm:text-2xl mr-1">$</span>
                     <input
                       type="text"
                       value={formData.propertyDetails.estimatedValue}
                       onChange={(e) => updatePropertyDetail("estimatedValue", formatCurrency(e.target.value))}
                       placeholder="--"
-                      className="w-full bg-transparent text-2xl font-bold text-white text-center focus:outline-none"
+                      className="w-full bg-transparent text-lg sm:text-2xl font-bold text-white text-center focus:outline-none"
                       data-testid="input-estimatedValue"
                     />
                   </div>
                 </div>
               </div>
             )}
-            <p className="text-white/40 text-xs">
-              Values are auto-filled when available. You can edit if needed.
+            <p className="text-white/40 text-[10px] sm:text-xs">
+              Auto-filled when available. Edit if needed.
             </p>
           </div>
         );
 
       case "transaction-type":
         return (
-          <div className="space-y-8">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white text-center leading-tight">
+          <div className="space-y-4 sm:space-y-8">
+            <h2 className="text-xl sm:text-3xl md:text-4xl font-bold text-white text-center leading-tight">
               <TypewriterText text={currentQuestion.prompt} />
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl mx-auto">
+            <div className="grid grid-cols-2 gap-2 sm:gap-4 max-w-xl mx-auto">
               <motion.button
                 onClick={() => updateField("transactionType", "purchase")}
                 className={`
-                  relative p-6 rounded-2xl border-2 transition-all
+                  relative p-3 sm:p-6 rounded-xl sm:rounded-2xl border-2 transition-all
                   bg-gradient-to-br from-blue-500/20 to-blue-600/20
                   ${formData.transactionType === "purchase" ? "border-blue-500 shadow-lg shadow-blue-500/20" : "border-white/10 hover:border-white/30"}
                 `}
@@ -837,20 +837,20 @@ export default function ConversationalQuote() {
                   <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    className="absolute -top-2 -right-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center"
+                    className="absolute -top-1.5 -right-1.5 sm:-top-2 sm:-right-2 w-5 h-5 sm:w-6 sm:h-6 bg-blue-500 rounded-full flex items-center justify-center"
                   >
-                    <CheckCircle2 className="w-4 h-4 text-white" />
+                    <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
                   </motion.div>
                 )}
-                <ShoppingCart className={`w-10 h-10 mx-auto mb-3 ${formData.transactionType === "purchase" ? "text-blue-500" : "text-white/70"}`} />
-                <h3 className="text-lg font-bold text-white">Purchase</h3>
-                <p className="text-sm text-white/60 mt-1">Buying a new property</p>
-                <p className="text-xs text-white/40 mt-2">Up to 80% LTV</p>
+                <ShoppingCart className={`w-7 h-7 sm:w-10 sm:h-10 mx-auto mb-2 sm:mb-3 ${formData.transactionType === "purchase" ? "text-blue-500" : "text-white/70"}`} />
+                <h3 className="text-sm sm:text-lg font-bold text-white">Purchase</h3>
+                <p className="text-xs text-white/60 mt-1 hidden sm:block">Buying a new property</p>
+                <p className="text-[10px] sm:text-xs text-white/40 mt-1 sm:mt-2">80% LTV</p>
               </motion.button>
               <motion.button
                 onClick={() => updateField("transactionType", "refinance")}
                 className={`
-                  relative p-6 rounded-2xl border-2 transition-all
+                  relative p-3 sm:p-6 rounded-xl sm:rounded-2xl border-2 transition-all
                   bg-gradient-to-br from-emerald-500/20 to-green-600/20
                   ${formData.transactionType === "refinance" ? "border-emerald-500 shadow-lg shadow-emerald-500/20" : "border-white/10 hover:border-white/30"}
                 `}
@@ -862,15 +862,15 @@ export default function ConversationalQuote() {
                   <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    className="absolute -top-2 -right-2 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center"
+                    className="absolute -top-1.5 -right-1.5 sm:-top-2 sm:-right-2 w-5 h-5 sm:w-6 sm:h-6 bg-emerald-500 rounded-full flex items-center justify-center"
                   >
-                    <CheckCircle2 className="w-4 h-4 text-white" />
+                    <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
                   </motion.div>
                 )}
-                <RefreshCw className={`w-10 h-10 mx-auto mb-3 ${formData.transactionType === "refinance" ? "text-emerald-500" : "text-white/70"}`} />
-                <h3 className="text-lg font-bold text-white">Refinance</h3>
-                <p className="text-sm text-white/60 mt-1">Refinance existing property</p>
-                <p className="text-xs text-white/40 mt-2">Up to 75% LTV (cash out)</p>
+                <RefreshCw className={`w-7 h-7 sm:w-10 sm:h-10 mx-auto mb-2 sm:mb-3 ${formData.transactionType === "refinance" ? "text-emerald-500" : "text-white/70"}`} />
+                <h3 className="text-sm sm:text-lg font-bold text-white">Refinance</h3>
+                <p className="text-xs text-white/60 mt-1 hidden sm:block">Refinance existing property</p>
+                <p className="text-[10px] sm:text-xs text-white/40 mt-1 sm:mt-2">75% LTV</p>
               </motion.button>
             </div>
           </div>
@@ -883,14 +883,14 @@ export default function ConversationalQuote() {
         const loanAmount = purchasePriceNum - downPaymentAmount;
         
         return (
-          <div className="space-y-6 max-w-xl mx-auto">
+          <div className="space-y-3 sm:space-y-6 max-w-xl mx-auto">
             <div className="text-center">
-              <h2 className="text-2xl sm:text-3xl font-bold text-white leading-tight mb-2">
+              <h2 className="text-lg sm:text-3xl font-bold text-white leading-tight mb-1">
                 Purchase Details
               </h2>
-              <p className="text-white/60 text-sm">80% LTV maximum</p>
+              <p className="text-white/60 text-xs sm:text-sm">80% LTV maximum</p>
             </div>
-            <div className="space-y-4">
+            <div className="space-y-2 sm:space-y-4">
               <CurrencySliderInput
                 value={formData.purchasePrice}
                 onChange={(val) => updateField("purchasePrice", val)}
@@ -915,14 +915,14 @@ export default function ConversationalQuote() {
               
               {purchasePriceNum > 0 && (
                 <motion.div 
-                  className="bg-primary/10 rounded-xl p-4 border border-primary/30"
+                  className="bg-primary/10 rounded-lg sm:rounded-xl p-2 sm:p-4 border border-primary/30"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                 >
                   <div className="flex justify-between items-center">
-                    <span className="text-white/60 text-sm">Estimated Loan Amount</span>
+                    <span className="text-white/60 text-xs sm:text-sm">Est. Loan Amount</span>
                     <motion.span 
-                      className="text-xl font-bold text-primary"
+                      className="text-base sm:text-xl font-bold text-primary"
                       key={loanAmount}
                       initial={{ scale: 0.9 }}
                       animate={{ scale: 1 }}
@@ -944,49 +944,48 @@ export default function ConversationalQuote() {
                 data-testid="input-dscr-monthly-rent"
               />
               
-              <div className="grid grid-cols-3 gap-3">
-                <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                  <label className="text-white/50 text-xs uppercase tracking-wide block mb-2">Annual Taxes</label>
+              <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                <div className="bg-white/5 rounded-lg sm:rounded-xl p-2 sm:p-4 border border-white/10">
+                  <label className="text-white/50 text-[10px] sm:text-xs uppercase tracking-wide block mb-1 sm:mb-2">Taxes</label>
                   <div className="flex items-center">
-                    <span className="text-white/40 mr-1">$</span>
+                    <span className="text-white/40 mr-0.5 text-xs sm:text-base">$</span>
                     <input
                       type="text"
                       value={formData.annualTaxes}
                       onChange={(e) => updateField("annualTaxes", formatCurrency(e.target.value))}
                       placeholder="0"
-                      className="w-full bg-transparent text-lg font-bold text-white focus:outline-none"
+                      className="w-full bg-transparent text-sm sm:text-lg font-bold text-white focus:outline-none"
                       data-testid="input-annual-taxes"
                     />
                   </div>
                 </div>
-                <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                  <label className="text-white/50 text-xs uppercase tracking-wide block mb-2">Annual Insurance</label>
+                <div className="bg-white/5 rounded-lg sm:rounded-xl p-2 sm:p-4 border border-white/10">
+                  <label className="text-white/50 text-[10px] sm:text-xs uppercase tracking-wide block mb-1 sm:mb-2">Ins.</label>
                   <div className="flex items-center">
-                    <span className="text-white/40 mr-1">$</span>
+                    <span className="text-white/40 mr-0.5 text-xs sm:text-base">$</span>
                     <input
                       type="text"
                       value={formData.annualInsurance}
                       onChange={(e) => updateField("annualInsurance", formatCurrency(e.target.value))}
                       placeholder="0"
-                      className="w-full bg-transparent text-lg font-bold text-white focus:outline-none"
+                      className="w-full bg-transparent text-sm sm:text-lg font-bold text-white focus:outline-none"
                       data-testid="input-annual-insurance"
                     />
                   </div>
                 </div>
-                <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                  <label className="text-white/50 text-xs uppercase tracking-wide block mb-2">Annual HOA</label>
+                <div className="bg-white/5 rounded-lg sm:rounded-xl p-2 sm:p-4 border border-white/10">
+                  <label className="text-white/50 text-[10px] sm:text-xs uppercase tracking-wide block mb-1 sm:mb-2">HOA</label>
                   <div className="flex items-center">
-                    <span className="text-white/40 mr-1">$</span>
+                    <span className="text-white/40 mr-0.5 text-xs sm:text-base">$</span>
                     <input
                       type="text"
                       value={formData.annualHoa}
                       onChange={(e) => updateField("annualHoa", formatCurrency(e.target.value))}
                       placeholder="0"
-                      className="w-full bg-transparent text-lg font-bold text-white focus:outline-none"
+                      className="w-full bg-transparent text-sm sm:text-lg font-bold text-white focus:outline-none"
                       data-testid="input-annual-hoa"
                     />
                   </div>
-                  <span className="text-white/30 text-xs">Optional</span>
                 </div>
               </div>
             </div>
@@ -995,119 +994,118 @@ export default function ConversationalQuote() {
 
       case "dscr-refinance-financials":
         return (
-          <div className="space-y-6 max-w-xl mx-auto">
+          <div className="space-y-3 sm:space-y-6 max-w-xl mx-auto">
             <div className="text-center">
-              <h2 className="text-2xl sm:text-3xl font-bold text-white leading-tight mb-2">
+              <h2 className="text-lg sm:text-3xl font-bold text-white leading-tight mb-1">
                 Refinance Details
               </h2>
-              <p className="text-white/60 text-sm">75% LTV maximum for cash out</p>
+              <p className="text-white/60 text-xs sm:text-sm">75% LTV maximum for cash out</p>
             </div>
-            <div className="space-y-4">
-              <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                <label className="text-white/50 text-xs uppercase tracking-wide block mb-2">Property Value</label>
+            <div className="space-y-2 sm:space-y-4">
+              <div className="bg-white/5 rounded-lg sm:rounded-xl p-2 sm:p-4 border border-white/10">
+                <label className="text-white/50 text-[10px] sm:text-xs uppercase tracking-wide block mb-1 sm:mb-2">Property Value</label>
                 <div className="flex items-center">
-                  <DollarSign className="w-5 h-5 text-white/40 mr-2" />
+                  <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-white/40 mr-1 sm:mr-2" />
                   <input
                     type="text"
                     value={formData.propertyValue}
                     onChange={(e) => updateField("propertyValue", formatCurrency(e.target.value))}
                     placeholder="0"
-                    className="w-full bg-transparent text-xl font-bold text-white focus:outline-none"
+                    className="w-full bg-transparent text-base sm:text-xl font-bold text-white focus:outline-none"
                     data-testid="input-property-value"
                   />
                 </div>
               </div>
-              <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                <label className="text-white/50 text-xs uppercase tracking-wide block mb-2">Current Loan Balance</label>
+              <div className="bg-white/5 rounded-lg sm:rounded-xl p-2 sm:p-4 border border-white/10">
+                <label className="text-white/50 text-[10px] sm:text-xs uppercase tracking-wide block mb-1 sm:mb-2">Current Loan Balance</label>
                 <div className="flex items-center">
-                  <DollarSign className="w-5 h-5 text-white/40 mr-2" />
+                  <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-white/40 mr-1 sm:mr-2" />
                   <input
                     type="text"
                     value={formData.currentLoanBalance}
                     onChange={(e) => updateField("currentLoanBalance", formatCurrency(e.target.value))}
                     placeholder="0"
-                    className="w-full bg-transparent text-xl font-bold text-white focus:outline-none"
+                    className="w-full bg-transparent text-base sm:text-xl font-bold text-white focus:outline-none"
                     data-testid="input-current-loan-balance"
                   />
                 </div>
               </div>
-              <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                <label className="text-white/50 text-xs uppercase tracking-wide block mb-2">Desired Cash Out</label>
+              <div className="bg-white/5 rounded-lg sm:rounded-xl p-2 sm:p-4 border border-white/10">
+                <label className="text-white/50 text-[10px] sm:text-xs uppercase tracking-wide block mb-1 sm:mb-2">Desired Cash Out</label>
                 <div className="flex items-center">
-                  <DollarSign className="w-5 h-5 text-white/40 mr-2" />
+                  <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-white/40 mr-1 sm:mr-2" />
                   <input
                     type="text"
                     value={formData.desiredCashOut}
                     onChange={(e) => updateField("desiredCashOut", formatCurrency(e.target.value))}
                     placeholder="0"
-                    className="w-full bg-transparent text-xl font-bold text-white focus:outline-none"
+                    className="w-full bg-transparent text-base sm:text-xl font-bold text-white focus:outline-none"
                     data-testid="input-desired-cash-out"
                   />
                 </div>
                 {maxCashOut > 0 && (
-                  <p className="text-white/40 text-xs mt-2">
-                    Max available: ${formatCurrency(maxCashOut.toString())} (75% LTV)
+                  <p className="text-white/40 text-[10px] sm:text-xs mt-1">
+                    Max: ${formatCurrency(maxCashOut.toString())}
                   </p>
                 )}
               </div>
-              <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                <label className="text-white/50 text-xs uppercase tracking-wide block mb-2">Current Monthly Rent</label>
+              <div className="bg-white/5 rounded-lg sm:rounded-xl p-2 sm:p-4 border border-white/10">
+                <label className="text-white/50 text-[10px] sm:text-xs uppercase tracking-wide block mb-1 sm:mb-2">Monthly Rent</label>
                 <div className="flex items-center">
-                  <DollarSign className="w-5 h-5 text-white/40 mr-2" />
+                  <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-white/40 mr-1 sm:mr-2" />
                   <input
                     type="text"
                     value={formData.monthlyRent}
                     onChange={(e) => updateField("monthlyRent", formatCurrency(e.target.value))}
                     placeholder="0"
-                    className="w-full bg-transparent text-xl font-bold text-white focus:outline-none"
+                    className="w-full bg-transparent text-base sm:text-xl font-bold text-white focus:outline-none"
                     data-testid="input-refi-monthly-rent"
                   />
-                  <span className="text-white/40 ml-2">/mo</span>
+                  <span className="text-white/40 ml-1 sm:ml-2 text-xs sm:text-base">/mo</span>
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                  <label className="text-white/50 text-xs uppercase tracking-wide block mb-2">Annual Taxes</label>
+              <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                <div className="bg-white/5 rounded-lg sm:rounded-xl p-2 sm:p-4 border border-white/10">
+                  <label className="text-white/50 text-[10px] sm:text-xs uppercase tracking-wide block mb-1 sm:mb-2">Taxes</label>
                   <div className="flex items-center">
-                    <span className="text-white/40 mr-1">$</span>
+                    <span className="text-white/40 mr-0.5 text-xs sm:text-base">$</span>
                     <input
                       type="text"
                       value={formData.annualTaxes}
                       onChange={(e) => updateField("annualTaxes", formatCurrency(e.target.value))}
                       placeholder="0"
-                      className="w-full bg-transparent text-lg font-bold text-white focus:outline-none"
+                      className="w-full bg-transparent text-sm sm:text-lg font-bold text-white focus:outline-none"
                       data-testid="input-refi-annual-taxes"
                     />
                   </div>
                 </div>
-                <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                  <label className="text-white/50 text-xs uppercase tracking-wide block mb-2">Annual Insurance</label>
+                <div className="bg-white/5 rounded-lg sm:rounded-xl p-2 sm:p-4 border border-white/10">
+                  <label className="text-white/50 text-[10px] sm:text-xs uppercase tracking-wide block mb-1 sm:mb-2">Ins.</label>
                   <div className="flex items-center">
-                    <span className="text-white/40 mr-1">$</span>
+                    <span className="text-white/40 mr-0.5 text-xs sm:text-base">$</span>
                     <input
                       type="text"
                       value={formData.annualInsurance}
                       onChange={(e) => updateField("annualInsurance", formatCurrency(e.target.value))}
                       placeholder="0"
-                      className="w-full bg-transparent text-lg font-bold text-white focus:outline-none"
+                      className="w-full bg-transparent text-sm sm:text-lg font-bold text-white focus:outline-none"
                       data-testid="input-refi-annual-insurance"
                     />
                   </div>
                 </div>
-                <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                  <label className="text-white/50 text-xs uppercase tracking-wide block mb-2">Annual HOA</label>
+                <div className="bg-white/5 rounded-lg sm:rounded-xl p-2 sm:p-4 border border-white/10">
+                  <label className="text-white/50 text-[10px] sm:text-xs uppercase tracking-wide block mb-1 sm:mb-2">HOA</label>
                   <div className="flex items-center">
-                    <span className="text-white/40 mr-1">$</span>
+                    <span className="text-white/40 mr-0.5 text-xs sm:text-base">$</span>
                     <input
                       type="text"
                       value={formData.annualHoa}
                       onChange={(e) => updateField("annualHoa", formatCurrency(e.target.value))}
                       placeholder="0"
-                      className="w-full bg-transparent text-lg font-bold text-white focus:outline-none"
+                      className="w-full bg-transparent text-sm sm:text-lg font-bold text-white focus:outline-none"
                       data-testid="input-refi-annual-hoa"
                     />
                   </div>
-                  <span className="text-white/30 text-xs">Optional</span>
                 </div>
               </div>
             </div>
@@ -1122,14 +1120,14 @@ export default function ConversationalQuote() {
         const ffPotentialProfit = ffArv - ffTotalInvestment;
         
         return (
-          <div className="space-y-6 max-w-xl mx-auto">
+          <div className="space-y-3 sm:space-y-6 max-w-xl mx-auto">
             <div className="text-center">
-              <h2 className="text-2xl sm:text-3xl font-bold text-white leading-tight mb-2">
+              <h2 className="text-lg sm:text-3xl font-bold text-white leading-tight mb-1">
                 Deal Financials
               </h2>
-              <p className="text-white/60 text-sm">Tell us about your fix & flip project</p>
+              <p className="text-white/60 text-xs sm:text-sm">Your fix & flip project details</p>
             </div>
-            <div className="space-y-4">
+            <div className="space-y-2 sm:space-y-4">
               <CurrencySliderInput
                 value={formData.purchasePrice}
                 onChange={(val) => updateField("purchasePrice", val)}
@@ -1165,11 +1163,11 @@ export default function ConversationalQuote() {
               
               {(ffPurchase > 0 || ffRehab > 0 || ffArv > 0) && (
                 <motion.div 
-                  className="bg-primary/10 rounded-xl p-4 border border-primary/30"
+                  className="bg-primary/10 rounded-lg sm:rounded-xl p-2 sm:p-4 border border-primary/30"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                 >
-                  <div className="flex justify-between text-sm">
+                  <div className="flex justify-between text-xs sm:text-sm">
                     <span className="text-white/60">Total Investment</span>
                     <motion.span 
                       className="text-white font-medium"
@@ -1180,7 +1178,7 @@ export default function ConversationalQuote() {
                       ${ffTotalInvestment.toLocaleString("en-US", { maximumFractionDigits: 0 })}
                     </motion.span>
                   </div>
-                  <div className="flex justify-between text-sm mt-2">
+                  <div className="flex justify-between text-xs sm:text-sm mt-1 sm:mt-2">
                     <span className="text-white/60">Potential Profit</span>
                     <motion.span 
                       className={`font-bold ${ffPotentialProfit >= 0 ? "text-primary" : "text-red-400"}`}
@@ -1192,8 +1190,8 @@ export default function ConversationalQuote() {
                     </motion.span>
                   </div>
                   {ffArv > 0 && ffTotalInvestment > 0 && (
-                    <div className="flex justify-between text-xs mt-2 pt-2 border-t border-white/10">
-                      <span className="text-white/40">Return on Investment</span>
+                    <div className="flex justify-between text-[10px] sm:text-xs mt-1 sm:mt-2 pt-1 sm:pt-2 border-t border-white/10">
+                      <span className="text-white/40">ROI</span>
                       <motion.span 
                         className={`font-medium ${ffPotentialProfit >= 0 ? "text-green-400" : "text-red-400"}`}
                         key={ffPotentialProfit / ffTotalInvestment}
@@ -1218,14 +1216,14 @@ export default function ConversationalQuote() {
         const cPotentialProfit = cCompleted - cTotalCost;
         
         return (
-          <div className="space-y-6 max-w-xl mx-auto">
+          <div className="space-y-3 sm:space-y-6 max-w-xl mx-auto">
             <div className="text-center">
-              <h2 className="text-2xl sm:text-3xl font-bold text-white leading-tight mb-2">
+              <h2 className="text-lg sm:text-3xl font-bold text-white leading-tight mb-1">
                 Project Financials
               </h2>
-              <p className="text-white/60 text-sm">Tell us about your new construction project</p>
+              <p className="text-white/60 text-xs sm:text-sm">Your new construction project</p>
             </div>
-            <div className="space-y-4">
+            <div className="space-y-2 sm:space-y-4">
               <CurrencySliderInput
                 value={formData.purchasePrice}
                 onChange={(val) => updateField("purchasePrice", val)}
@@ -1261,11 +1259,11 @@ export default function ConversationalQuote() {
               
               {(cLand > 0 || cBuild > 0 || cCompleted > 0) && (
                 <motion.div 
-                  className="bg-primary/10 rounded-xl p-4 border border-primary/30"
+                  className="bg-primary/10 rounded-lg sm:rounded-xl p-2 sm:p-4 border border-primary/30"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                 >
-                  <div className="flex justify-between text-sm">
+                  <div className="flex justify-between text-xs sm:text-sm">
                     <span className="text-white/60">Total Project Cost</span>
                     <motion.span 
                       className="text-white font-medium"
@@ -1276,7 +1274,7 @@ export default function ConversationalQuote() {
                       ${cTotalCost.toLocaleString("en-US", { maximumFractionDigits: 0 })}
                     </motion.span>
                   </div>
-                  <div className="flex justify-between text-sm mt-2">
+                  <div className="flex justify-between text-xs sm:text-sm mt-1 sm:mt-2">
                     <span className="text-white/60">Potential Profit</span>
                     <motion.span 
                       className={`font-bold ${cPotentialProfit >= 0 ? "text-primary" : "text-red-400"}`}
@@ -1288,8 +1286,8 @@ export default function ConversationalQuote() {
                     </motion.span>
                   </div>
                   {cCompleted > 0 && cTotalCost > 0 && (
-                    <div className="flex justify-between text-xs mt-2 pt-2 border-t border-white/10">
-                      <span className="text-white/40">Return on Investment</span>
+                    <div className="flex justify-between text-[10px] sm:text-xs mt-1 sm:mt-2 pt-1 sm:pt-2 border-t border-white/10">
+                      <span className="text-white/40">ROI</span>
                       <motion.span 
                         className={`font-medium ${cPotentialProfit >= 0 ? "text-green-400" : "text-red-400"}`}
                         key={cPotentialProfit / cTotalCost}
@@ -1308,11 +1306,11 @@ export default function ConversationalQuote() {
 
       case "experience":
         return (
-          <div className="space-y-8 text-center">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white leading-tight">
+          <div className="space-y-4 sm:space-y-8 text-center">
+            <h2 className="text-xl sm:text-3xl md:text-4xl font-bold text-white leading-tight">
               <TypewriterText text={currentQuestion.prompt} />
             </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-2xl mx-auto">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 max-w-2xl mx-auto">
               {experienceLevels.map((level) => {
                 const isSelected = formData.experience === level.id;
                 const IconComponent = level.icon === "seedling" ? Sprout 
@@ -1324,7 +1322,7 @@ export default function ConversationalQuote() {
                     key={level.id}
                     onClick={() => updateField("experience", level.id)}
                     className={`
-                      p-4 rounded-xl border-2 transition-all
+                      p-2 sm:p-4 rounded-lg sm:rounded-xl border-2 transition-all
                       ${isSelected 
                         ? "border-primary bg-primary/20" 
                         : "border-white/10 bg-white/5 hover:border-white/30"}
@@ -1333,8 +1331,8 @@ export default function ConversationalQuote() {
                     whileTap={{ scale: 0.95 }}
                     data-testid={`option-experience-${level.id}`}
                   >
-                    <IconComponent className={`w-8 h-8 mx-auto mb-2 ${isSelected ? "text-primary" : "text-white/60"}`} />
-                    <span className="text-sm text-white font-medium">{level.label}</span>
+                    <IconComponent className={`w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-1 sm:mb-2 ${isSelected ? "text-primary" : "text-white/60"}`} />
+                    <span className="text-[10px] sm:text-sm text-white font-medium">{level.label}</span>
                   </motion.button>
                 );
               })}
@@ -1344,63 +1342,63 @@ export default function ConversationalQuote() {
 
       case "contact":
         return (
-          <div className="space-y-8 text-center max-w-md mx-auto">
+          <div className="space-y-4 sm:space-y-8 text-center max-w-md mx-auto">
             <div>
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/20 flex items-center justify-center"
+                className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-2 sm:mb-4 rounded-full bg-primary/20 flex items-center justify-center"
               >
-                <Sparkles className="w-8 h-8 text-primary" />
+                <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
               </motion.div>
-              <h2 className="text-2xl sm:text-3xl font-bold text-white leading-tight">
+              <h2 className="text-lg sm:text-3xl font-bold text-white leading-tight">
                 <TypewriterText text={currentQuestion.prompt} />
               </h2>
             </div>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2 sm:space-y-4">
+              <div className="grid grid-cols-2 gap-2 sm:gap-3">
                 <div className="relative">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
+                  <User className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-white/40" />
                   <input
                     type="text"
                     value={formData.firstName}
                     onChange={(e) => updateField("firstName", e.target.value)}
                     placeholder="First name"
-                    className="w-full pl-12 pr-4 py-4 rounded-xl border-2 border-white/20 bg-white/5 text-white placeholder:text-white/40 focus:border-primary focus:outline-none transition-all text-lg"
+                    className="w-full pl-9 sm:pl-12 pr-3 sm:pr-4 py-3 sm:py-4 rounded-lg sm:rounded-xl border-2 border-white/20 bg-white/5 text-white placeholder:text-white/40 focus:border-primary focus:outline-none transition-all text-sm sm:text-lg"
                     data-testid="input-firstName"
                   />
                 </div>
                 <div className="relative">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
+                  <User className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-white/40" />
                   <input
                     type="text"
                     value={formData.lastName}
                     onChange={(e) => updateField("lastName", e.target.value)}
                     placeholder="Last name"
-                    className="w-full pl-12 pr-4 py-4 rounded-xl border-2 border-white/20 bg-white/5 text-white placeholder:text-white/40 focus:border-primary focus:outline-none transition-all text-lg"
+                    className="w-full pl-9 sm:pl-12 pr-3 sm:pr-4 py-3 sm:py-4 rounded-lg sm:rounded-xl border-2 border-white/20 bg-white/5 text-white placeholder:text-white/40 focus:border-primary focus:outline-none transition-all text-sm sm:text-lg"
                     data-testid="input-lastName"
                   />
                 </div>
               </div>
               <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
+                <Mail className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-white/40" />
                 <input
                   type="email"
                   value={formData.email}
                   onChange={(e) => updateField("email", e.target.value)}
                   placeholder="Email address"
-                  className="w-full pl-12 pr-4 py-4 rounded-xl border-2 border-white/20 bg-white/5 text-white placeholder:text-white/40 focus:border-primary focus:outline-none transition-all text-lg"
+                  className="w-full pl-9 sm:pl-12 pr-3 sm:pr-4 py-3 sm:py-4 rounded-lg sm:rounded-xl border-2 border-white/20 bg-white/5 text-white placeholder:text-white/40 focus:border-primary focus:outline-none transition-all text-sm sm:text-lg"
                   data-testid="input-email"
                 />
               </div>
               <div className="relative">
-                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
+                <Phone className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-white/40" />
                 <input
                   type="tel"
                   value={formData.phone}
                   onChange={(e) => updateField("phone", e.target.value)}
                   placeholder="Phone number"
-                  className="w-full pl-12 pr-4 py-4 rounded-xl border-2 border-white/20 bg-white/5 text-white placeholder:text-white/40 focus:border-primary focus:outline-none transition-all text-lg"
+                  className="w-full pl-9 sm:pl-12 pr-3 sm:pr-4 py-3 sm:py-4 rounded-lg sm:rounded-xl border-2 border-white/20 bg-white/5 text-white placeholder:text-white/40 focus:border-primary focus:outline-none transition-all text-sm sm:text-lg"
                   data-testid="input-phone"
                 />
               </div>
@@ -1444,23 +1442,23 @@ export default function ConversationalQuote() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col">
-      <header className="border-b border-white/10 bg-black/20 backdrop-blur-sm">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
+    <div className="h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col overflow-hidden">
+      <header className="flex-shrink-0 border-b border-white/10 bg-black/20 backdrop-blur-sm">
+        <div className="max-w-6xl mx-auto px-3 sm:px-6 py-2 sm:py-3 flex items-center justify-between">
           <Link href="/" data-testid="link-logo-home">
             <div className="flex items-center gap-2 cursor-pointer">
-              <span className="font-bold text-xl sm:text-2xl text-amber-500">SEQUEL</span>
+              <span className="font-bold text-lg sm:text-2xl text-amber-500">SEQUEL</span>
             </div>
           </Link>
           <Link href="/" data-testid="link-close">
-            <Button variant="ghost" className="text-white/70 hover:text-white h-8 sm:h-9 text-sm">
+            <Button variant="ghost" className="text-white/70 hover:text-white h-7 sm:h-9 text-xs sm:text-sm px-2 sm:px-3">
               Close
             </Button>
           </Link>
         </div>
         
-        {/* Pipeline Iconography */}
-        <div className="max-w-2xl mx-auto px-4 py-3">
+        {/* Pipeline Iconography - compact on mobile */}
+        <div className="max-w-2xl mx-auto px-3 sm:px-4 py-1.5 sm:py-3">
           <div className="flex items-center justify-between">
             {pipelineSteps.map((step, index) => {
               const Icon = step.icon;
@@ -1473,16 +1471,16 @@ export default function ConversationalQuote() {
                   <div className="flex flex-col items-center">
                     <motion.div
                       className={`
-                        w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all
+                        w-6 h-6 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all
                         ${isCompleted ? "bg-primary text-white" : isActive ? "bg-primary/20 border-2 border-primary text-primary" : "bg-white/10 text-white/40"}
                       `}
                       animate={{ scale: isActive ? 1.1 : 1 }}
                       transition={{ duration: 0.2 }}
                     >
                       {isCompleted ? (
-                        <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                        <CheckCircle2 className="w-3 h-3 sm:w-5 sm:h-5" />
                       ) : (
-                        <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
+                        <Icon className="w-3 h-3 sm:w-5 sm:h-5" />
                       )}
                     </motion.div>
                     <span className={`text-xs mt-1 hidden sm:block ${isActive ? "text-primary font-medium" : isCompleted ? "text-white/70" : "text-white/40"}`}>
@@ -1490,7 +1488,7 @@ export default function ConversationalQuote() {
                     </span>
                   </div>
                   {index < pipelineSteps.length - 1 && (
-                    <div className={`flex-1 h-0.5 mx-2 ${isCompleted ? "bg-primary" : "bg-white/10"}`} />
+                    <div className={`flex-1 h-0.5 mx-1 sm:mx-2 ${isCompleted ? "bg-primary" : "bg-white/10"}`} />
                   )}
                 </div>
               );
@@ -1498,12 +1496,12 @@ export default function ConversationalQuote() {
           </div>
         </div>
         
-        <div className="max-w-md mx-auto px-6 pb-4">
+        <div className="max-w-md mx-auto px-4 sm:px-6 pb-2 sm:pb-4">
           <FluidProgressBar progress={progress} />
         </div>
       </header>
 
-      <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-12">
+      <div className="flex-1 flex flex-col items-center justify-start sm:justify-center p-3 sm:p-12 overflow-y-auto">
         <div className="w-full max-w-4xl">
           <AnimatePresence mode="wait" custom={direction}>
             <motion.div
@@ -1522,8 +1520,8 @@ export default function ConversationalQuote() {
         </div>
       </div>
 
-      <footer className="border-t border-white/10 bg-black/20 backdrop-blur-sm">
-        <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
+      <footer className="flex-shrink-0 border-t border-white/10 bg-black/20 backdrop-blur-sm">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-2 sm:py-4 flex items-center justify-between">
           <Button
             variant="ghost"
             onClick={handleBack}

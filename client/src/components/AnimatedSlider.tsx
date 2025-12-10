@@ -102,28 +102,28 @@ export function AnimatedSlider({
   }, [isDragging, handleDrag, handleDragEnd]);
 
   return (
-    <div className={`space-y-3 ${className}`}>
+    <div className={`space-y-2 sm:space-y-3 ${className}`}>
       {(label || showValue) && (
         <div className="flex items-center justify-between">
           {label && (
-            <label className="text-amber-500 text-xs font-medium uppercase tracking-wide">{label}</label>
+            <label className="text-amber-500 text-[10px] sm:text-xs font-medium uppercase tracking-wide">{label}</label>
           )}
           {showValue && (
             <motion.div 
-              className="flex items-center gap-1"
+              className="flex items-center gap-0.5 sm:gap-1"
               animate={{ scale: isDragging ? 1.05 : 1 }}
               transition={{ duration: 0.15 }}
             >
-              {prefix && <span className="text-amber-400 text-lg">{prefix}</span>}
+              {prefix && <span className="text-amber-400 text-sm sm:text-lg">{prefix}</span>}
               <AnimatedNumber value={localValue} formatValue={formatValue} />
-              {suffix && <span className="text-amber-400 text-lg">{suffix}</span>}
+              {suffix && <span className="text-amber-400 text-sm sm:text-lg">{suffix}</span>}
             </motion.div>
           )}
         </div>
       )}
       
       {/* Outer padding container - does NOT stretch */}
-      <div className="py-3">
+      <div className="py-2 sm:py-3">
         {/* Fixed-height track wrapper - this is our positioning context */}
         <div
           ref={trackRef}
@@ -177,7 +177,7 @@ export function AnimatedSlider({
         </div>
       </div>
       
-      <div className="flex justify-between text-xs text-amber-400/60">
+      <div className="flex justify-between text-[10px] sm:text-xs text-amber-400/60">
         <span>{prefix}{formatValue(min)}{suffix}</span>
         <span>{prefix}{formatValue(max)}{suffix}</span>
       </div>
@@ -216,7 +216,7 @@ function AnimatedNumber({ value, formatValue }: { value: number; formatValue: (v
   
   return (
     <motion.span 
-      className="text-2xl font-bold text-amber-500 tabular-nums"
+      className="text-lg sm:text-2xl font-bold text-amber-500 tabular-nums"
       key={displayValue}
     >
       {formatValue(displayValue)}
@@ -258,17 +258,17 @@ export function CurrencySliderInput({
   }, [onChange]);
   
   return (
-    <div className="bg-gray-900/90 rounded-xl p-4 border border-gray-700 space-y-2">
-      <div className="flex items-center justify-between gap-2">
-        <label className="text-amber-500 text-xs font-medium uppercase tracking-wide whitespace-nowrap">{label}</label>
+    <div className="bg-gray-900/90 rounded-lg sm:rounded-xl p-2 sm:p-4 border border-gray-700 space-y-1 sm:space-y-2">
+      <div className="flex items-center justify-between gap-1 sm:gap-2">
+        <label className="text-amber-500 text-[10px] sm:text-xs font-medium uppercase tracking-wide whitespace-nowrap">{label}</label>
         <div className="flex items-center">
-          <DollarSign className="w-4 h-4 text-amber-400 mr-1" />
+          <DollarSign className="w-3 h-3 sm:w-4 sm:h-4 text-amber-400 mr-0.5 sm:mr-1" />
           <input
             type="text"
             value={value}
             onChange={handleInputChange}
             placeholder="0"
-            className="w-32 bg-transparent text-xl font-bold text-amber-500 text-right focus:outline-none"
+            className="w-24 sm:w-32 bg-transparent text-base sm:text-xl font-bold text-amber-500 text-right focus:outline-none"
             data-testid={testId ? `${testId}-input` : undefined}
           />
         </div>
@@ -286,7 +286,7 @@ export function CurrencySliderInput({
       />
       
       {helperText && (
-        <p className="text-amber-400/60 text-xs">{helperText}</p>
+        <p className="text-amber-400/60 text-[10px] sm:text-xs">{helperText}</p>
       )}
     </div>
   );
@@ -328,18 +328,18 @@ export function PercentageSlider({
   }, [onChange, min, max]);
   
   return (
-    <div className="bg-gray-900/90 rounded-xl p-4 border border-gray-700 space-y-2">
+    <div className="bg-gray-900/90 rounded-lg sm:rounded-xl p-2 sm:p-4 border border-gray-700 space-y-1 sm:space-y-2">
       <div className="flex items-center justify-between">
-        <label className="text-amber-500 text-xs font-medium uppercase tracking-wide">{label}</label>
-        <div className="flex items-center gap-1">
+        <label className="text-amber-500 text-[10px] sm:text-xs font-medium uppercase tracking-wide">{label}</label>
+        <div className="flex items-center gap-0.5 sm:gap-1">
           <input
             type="text"
             value={numericValue}
             onChange={handleInputChange}
-            className="w-12 bg-transparent text-2xl font-bold text-amber-500 text-right focus:outline-none"
+            className="w-10 sm:w-12 bg-transparent text-lg sm:text-2xl font-bold text-amber-500 text-right focus:outline-none"
             data-testid={testId ? `${testId}-input` : undefined}
           />
-          <span className="text-amber-400 text-lg">%</span>
+          <span className="text-amber-400 text-sm sm:text-lg">%</span>
         </div>
       </div>
       
@@ -357,7 +357,7 @@ export function PercentageSlider({
       {calculatedAmount !== undefined && (
         <div className="flex items-center justify-center">
           <motion.span 
-            className="text-amber-500 text-sm font-medium"
+            className="text-amber-500 text-xs sm:text-sm font-medium"
             key={calculatedAmount}
             initial={{ y: -5, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -368,7 +368,7 @@ export function PercentageSlider({
       )}
       
       {helperText && (
-        <p className="text-amber-400/60 text-xs text-center">{helperText}</p>
+        <p className="text-amber-400/60 text-[10px] sm:text-xs text-center">{helperText}</p>
       )}
     </div>
   );
