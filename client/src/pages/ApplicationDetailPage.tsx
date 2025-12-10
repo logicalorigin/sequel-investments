@@ -364,23 +364,18 @@ export default function ApplicationDetailPage() {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-2 sm:gap-4">
           <Link href="/">
             <div className="flex items-center gap-2 cursor-pointer">
               <Building2 className="h-6 w-6 text-primary" />
-              <span className="font-bold text-lg">Sequel Investments</span>
+              <span className="font-bold text-lg hidden sm:inline">Sequel Investments</span>
             </div>
           </Link>
           
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             <Link href="/portal">
-              <Button variant="ghost" size="sm" data-testid="link-portfolio">
+              <Button variant="ghost" size="sm" data-testid="link-portfolio" className="hidden sm:flex">
                 Portfolio
-              </Button>
-            </Link>
-            <Link href="/portal">
-              <Button variant="ghost" size="sm" data-testid="link-analyzers">
-                Analyzers
               </Button>
             </Link>
             <div className="flex items-center gap-2">
@@ -388,13 +383,23 @@ export default function ApplicationDetailPage() {
                 <AvatarImage src={user?.profileImageUrl || undefined} />
                 <AvatarFallback>{getInitials(user?.firstName, user?.lastName)}</AvatarFallback>
               </Avatar>
-              <span className="text-sm font-medium hidden sm:inline">
+              <span className="text-sm font-medium hidden md:inline">
                 {user?.firstName || user?.email || "User"}
               </span>
             </div>
             <Button 
               variant="ghost" 
+              size="icon"
+              className="sm:hidden"
+              data-testid="button-logout-mobile"
+              onClick={() => logoutMutation.mutate()}
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant="ghost" 
               size="sm" 
+              className="hidden sm:flex"
               data-testid="button-logout"
               onClick={() => logoutMutation.mutate()}
             >
@@ -405,9 +410,9 @@ export default function ApplicationDetailPage() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-8">
-        <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
-          <div className="flex items-center gap-4">
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-8">
+        <div className="flex items-center justify-between mb-4 sm:mb-6 gap-3 sm:gap-4 flex-wrap">
+          <div className="flex items-center gap-3 sm:gap-4">
             <Link href="/portal">
               <Button variant="ghost" size="icon" data-testid="button-back">
                 <ArrowLeft className="h-5 w-5" />
@@ -567,8 +572,8 @@ export default function ApplicationDetailPage() {
           </CardContent>
         </Card>
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between gap-2">
                 <div className="flex items-center gap-3">
@@ -949,13 +954,57 @@ export default function ApplicationDetailPage() {
               </CardContent>
             </Card>
 
+            {(application.analyzerType === "fixflip" || 
+              application.analyzerType === "construction" ||
+              application.loanType?.toLowerCase().includes("flip") || 
+              application.loanType?.toLowerCase().includes("construction")) && (
+              <>
+                <Card className="border-primary/20 bg-primary/5">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Camera className="h-5 w-5 text-primary" />
+                      Property Verification Photos
+                    </CardTitle>
+                    <CardDescription>
+                      Take and submit required photos of the property to verify its condition
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Photo verification is required for Fix & Flip and Construction loans to move your application forward. 
+                      Use your phone's camera to capture photos of the property exterior and interior.
+                    </p>
+                    <Button 
+                      onClick={() => navigate(`/portal/application/${applicationId}/verification`)}
+                      data-testid="button-start-photo-verification"
+                    >
+                      <Camera className="h-4 w-4 mr-2" />
+                      Start Photo Verification
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <ApplicationScopeBuilder 
+                  applicationId={applicationId!} 
+                  readOnly={application.status !== "draft" && application.status !== "submitted"}
+                  desiredRehabBudget={application.rehabBudget}
+                  onUpdateRehabBudget={async (newBudget: number) => {
+                    await apiRequest("PATCH", `/api/applications/${applicationId}`, { 
+                      rehabBudget: newBudget 
+                    });
+                    queryClient.invalidateQueries({ queryKey: ["/api/applications", applicationId] });
+                  }}
+                />
+              </>
+            )}
+
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between gap-2">
+              <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
                 <CardTitle className="flex items-center gap-2">
                   <FileText className="h-5 w-5 text-primary" />
                   Document Checklist
                 </CardTitle>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   {outstandingDocs > 0 && (
                     <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800">
                       {outstandingDocs} Outstanding
@@ -978,14 +1027,13 @@ export default function ApplicationDetailPage() {
                 ) : documents && documents.length > 0 ? (
                   <div className="border rounded-lg overflow-hidden">
                     <div className="overflow-x-auto">
-                      <table className="w-full">
+                      <table className="w-full min-w-[500px]">
                         <thead className="bg-muted/50">
                           <tr>
-                            <th className="text-left px-4 py-3 text-xs font-semibold text-primary uppercase tracking-wide">Document Name</th>
-                            <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide hidden lg:table-cell">Description</th>
-                            <th className="text-center px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Status</th>
-                            <th className="text-center px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Documents</th>
-                            <th className="text-center px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Comments</th>
+                            <th className="text-left px-3 py-3 text-xs font-semibold text-primary uppercase tracking-wide">Document Name</th>
+                            <th className="text-left px-3 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide hidden lg:table-cell">Description</th>
+                            <th className="text-center px-3 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Status</th>
+                            <th className="text-center px-3 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Actions</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -994,18 +1042,18 @@ export default function ApplicationDetailPage() {
                             const hasFile = doc.status === "uploaded" || doc.status === "approved";
                             return (
                               <tr key={doc.id} className="border-t hover-elevate" data-testid={`doc-row-${doc.id}`}>
-                                <td className="px-4 py-3">
+                                <td className="px-3 py-3">
                                   <span className="text-sm font-medium">{doc.documentType?.name || "Document"}</span>
                                 </td>
-                                <td className="px-4 py-3 text-sm text-muted-foreground hidden lg:table-cell max-w-xs">
+                                <td className="px-3 py-3 text-sm text-muted-foreground hidden lg:table-cell max-w-xs">
                                   <span className="line-clamp-2">{doc.documentType?.description || "-"}</span>
                                 </td>
-                                <td className="px-4 py-3 text-center">
+                                <td className="px-3 py-3 text-center">
                                   <Badge className={status.color} data-testid={`doc-status-${doc.id}`}>
                                     {status.label}
                                   </Badge>
                                 </td>
-                                <td className="px-4 py-3">
+                                <td className="px-3 py-3">
                                   <div className="flex items-center justify-center gap-1">
                                     <Link href={`/portal/application/${applicationId}/documents`}>
                                       <Button
@@ -1026,13 +1074,11 @@ export default function ApplicationDetailPage() {
                                     >
                                       <Download className="h-4 w-4" />
                                     </Button>
+                                    <DocumentCommentsDialog
+                                      documentId={doc.id}
+                                      documentName={doc.documentType?.name || "Document"}
+                                    />
                                   </div>
-                                </td>
-                                <td className="px-4 py-3 text-center">
-                                  <DocumentCommentsDialog
-                                    documentId={doc.id}
-                                    documentName={doc.documentType?.name || "Document"}
-                                  />
                                 </td>
                               </tr>
                             );
@@ -1050,50 +1096,6 @@ export default function ApplicationDetailPage() {
                 )}
               </CardContent>
             </Card>
-
-            {(application.analyzerType === "fixflip" || 
-              application.analyzerType === "construction" ||
-              application.loanType?.toLowerCase().includes("flip") || 
-              application.loanType?.toLowerCase().includes("construction")) && (
-              <>
-                <ApplicationScopeBuilder 
-                  applicationId={applicationId!} 
-                  readOnly={application.status !== "draft" && application.status !== "submitted"}
-                  desiredRehabBudget={application.rehabBudget}
-                  onUpdateRehabBudget={async (newBudget: number) => {
-                    await apiRequest("PATCH", `/api/applications/${applicationId}`, { 
-                      rehabBudget: newBudget 
-                    });
-                    queryClient.invalidateQueries({ queryKey: ["/api/applications", applicationId] });
-                  }}
-                />
-
-                <Card className="border-primary/20 bg-primary/5">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Camera className="h-5 w-5 text-primary" />
-                      Property Verification Photos
-                    </CardTitle>
-                    <CardDescription>
-                      Take and submit required photos of the property to verify its condition
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Photo verification is required for Fix & Flip and Construction loans to move your application forward. 
-                      Use your phone's camera to capture photos of the property exterior, interior, and any renovation areas.
-                    </p>
-                    <Button 
-                      onClick={() => navigate(`/portal/application/${applicationId}/verification`)}
-                      data-testid="button-start-photo-verification"
-                    >
-                      <Camera className="h-4 w-4 mr-2" />
-                      Start Photo Verification
-                    </Button>
-                  </CardContent>
-                </Card>
-              </>
-            )}
 
             {application.status === "funded" && application.loanType?.toLowerCase().includes("dscr") && (
               <>
