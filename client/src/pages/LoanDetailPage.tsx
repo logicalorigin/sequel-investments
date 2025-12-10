@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute, useLocation } from "wouter";
 import { format, differenceInDays, addMonths } from "date-fns";
@@ -12,6 +12,7 @@ import {
   HardHat,
   Hammer,
   Clock,
+  Check,
   CheckCircle2,
   AlertCircle,
   AlertTriangle,
@@ -724,6 +725,104 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
   const [drawLineAmounts, setDrawLineAmounts] = useState<Record<string, number>>({});
   const [editingBudget, setEditingBudget] = useState<string | null>(null);
   const [editBudgetValue, setEditBudgetValue] = useState("");
+  const [draftStatus, setDraftStatus] = useState<"saved" | "saving" | null>(null);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const pendingDataRef = useRef<{ description: string; lineAmounts: Record<string, number> } | null>(null);
+
+  // Auto-save draft key
+  const draftKey = `draw_draft_${loan.id}`;
+
+  // Save draft function
+  const saveDraftNow = useCallback(() => {
+    const data = pendingDataRef.current;
+    if (!data) return;
+    
+    const hasData = data.description || Object.values(data.lineAmounts).some(v => v > 0);
+    if (!hasData) {
+      localStorage.removeItem(draftKey);
+      setDraftStatus(null);
+      return;
+    }
+    
+    try {
+      localStorage.setItem(draftKey, JSON.stringify({
+        description: data.description,
+        lineAmounts: data.lineAmounts,
+        savedAt: Date.now(),
+      }));
+      setDraftStatus("saved");
+    } catch (e) {
+      console.error("Failed to save draft:", e);
+    }
+  }, [draftKey]);
+
+  // Load draft when dialog opens
+  useEffect(() => {
+    if (newDrawOpen) {
+      try {
+        const saved = localStorage.getItem(draftKey);
+        if (saved) {
+          const draft = JSON.parse(saved);
+          if (draft.description) setNewDrawDescription(draft.description);
+          if (draft.lineAmounts) setDrawLineAmounts(draft.lineAmounts);
+          setDraftStatus("saved");
+        }
+      } catch (e) {
+        console.error("Failed to load draft:", e);
+      }
+    } else {
+      // Flush pending draft when dialog closes
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
+      }
+      saveDraftNow();
+    }
+  }, [newDrawOpen, draftKey, saveDraftNow]);
+
+  // Auto-save draft with debounce - update pending data ref and schedule save
+  useEffect(() => {
+    if (!newDrawOpen) return;
+    
+    // Update pending data
+    pendingDataRef.current = { description: newDrawDescription, lineAmounts: drawLineAmounts };
+    
+    // Check if there's anything to save
+    const hasData = newDrawDescription || Object.values(drawLineAmounts).some(v => v > 0);
+    if (!hasData) {
+      localStorage.removeItem(draftKey);
+      setDraftStatus(null);
+      return;
+    }
+
+    setDraftStatus("saving");
+    
+    // Clear previous timeout and schedule new one
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    
+    saveTimeoutRef.current = setTimeout(() => {
+      saveDraftNow();
+      saveTimeoutRef.current = null;
+    }, 500);
+  }, [newDrawDescription, drawLineAmounts, newDrawOpen, draftKey, saveDraftNow]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Clear draft after successful submission
+  const clearDraft = useCallback(() => {
+    localStorage.removeItem(draftKey);
+    pendingDataRef.current = null;
+    setDraftStatus(null);
+  }, [draftKey]);
 
   const { data: scopeOfWorkItems = [], isLoading: scopeLoading } = useQuery<ScopeOfWorkItem[]>({
     queryKey: ["/api/serviced-loans", loan.id, "scope-of-work"],
@@ -779,6 +878,7 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
       queryClient.invalidateQueries({ queryKey: ["/api/serviced-loans", loan.id, "details"] });
       queryClient.invalidateQueries({ queryKey: ["/api/serviced-loans", loan.id, "scope-of-work"] });
       queryClient.invalidateQueries({ queryKey: ["/api/serviced-loans", loan.id, "all-draw-line-items"] });
+      clearDraft();
       setNewDrawOpen(false);
       setNewDrawDescription("");
       setDrawLineAmounts({});
@@ -935,7 +1035,24 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
                     </DialogTrigger>
                     <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                       <DialogHeader>
-                        <DialogTitle>Request New Draw</DialogTitle>
+                        <div className="flex items-center justify-between gap-2">
+                          <DialogTitle>Request New Draw</DialogTitle>
+                          {draftStatus && (
+                            <Badge variant="outline" className="text-xs shrink-0" data-testid="badge-draft-status">
+                              {draftStatus === "saving" ? (
+                                <>
+                                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                  Saving...
+                                </>
+                              ) : (
+                                <>
+                                  <Check className="h-3 w-3 mr-1 text-green-500" />
+                                  Draft saved
+                                </>
+                              )}
+                            </Badge>
+                          )}
+                        </div>
                         <DialogDescription>
                           Enter amounts for each scope item to include in this draw. Maximum available: {formatCurrency(remaining)}
                         </DialogDescription>

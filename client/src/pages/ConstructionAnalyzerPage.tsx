@@ -458,6 +458,7 @@ export default function ConstructionAnalyzerPage() {
         user={user} 
         title="Construction Analyzer"
         backHref={applicationId ? `/portal/application/${applicationId}` : undefined}
+        hideTitleOnMobile={true}
         titleExtra={
           <ScenarioManager
             analyzerType="construction"
@@ -466,6 +467,20 @@ export default function ConstructionAnalyzerPage() {
           />
         }
       />
+
+      {/* Mobile-only sticky title bar */}
+      <div className="sm:hidden sticky top-[57px] z-40 bg-background border-b px-3 py-2">
+        <div className="flex items-center justify-between gap-2">
+          <h1 className="text-base font-bold truncate" data-testid="text-mobile-page-title">
+            Construction Analyzer
+          </h1>
+          <ScenarioManager
+            analyzerType="construction"
+            currentData={getCurrentScenarioData()}
+            onLoadScenario={handleLoadScenario}
+          />
+        </div>
+      </div>
 
       <main className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">

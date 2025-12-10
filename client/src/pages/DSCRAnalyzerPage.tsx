@@ -536,6 +536,7 @@ export default function DSCRAnalyzerPage() {
         user={user} 
         title="DSCR Loan Analyzer"
         backHref={applicationId ? `/portal/application/${applicationId}` : undefined}
+        hideTitleOnMobile={true}
         titleExtra={
           <ScenarioManager
             analyzerType="dscr"
@@ -546,6 +547,22 @@ export default function DSCRAnalyzerPage() {
           />
         }
       />
+
+      {/* Mobile-only sticky title bar */}
+      <div className="sm:hidden sticky top-[57px] z-40 bg-background border-b px-3 py-2">
+        <div className="flex items-center justify-between gap-2">
+          <h1 className="text-base font-bold truncate" data-testid="text-mobile-page-title">
+            DSCR Loan Analyzer
+          </h1>
+          <ScenarioManager
+            analyzerType="dscr"
+            currentData={getCurrentScenarioData()}
+            onLoadScenario={handleLoadScenario}
+            resultsData={results}
+            userName={user?.firstName || user?.email || undefined}
+          />
+        </div>
+      </div>
 
       <main className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
