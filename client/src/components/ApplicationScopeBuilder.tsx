@@ -14,6 +14,11 @@ import {
   AccordionTrigger 
 } from "@/components/ui/accordion";
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
   Table,
   TableBody,
   TableCell,
@@ -39,6 +44,10 @@ import {
   Loader2,
   AlertTriangle,
   RefreshCw,
+  ChevronDown,
+  ChevronRight,
+  Send,
+  Pencil,
 } from "lucide-react";
 import type { 
   ApplicationScopeItem, 
@@ -85,6 +94,8 @@ export function ApplicationScopeBuilder({
   const [showMismatchDialog, setShowMismatchDialog] = useState(false);
   const [newBudgetValue, setNewBudgetValue] = useState<string>("");
   const [isUpdatingBudget, setIsUpdatingBudget] = useState(false);
+  const [isScopeExpanded, setIsScopeExpanded] = useState(true);
+  const [isScopeSubmitted, setIsScopeSubmitted] = useState(false);
 
   const { data: scopeItems = [], isLoading } = useQuery<ApplicationScopeItem[]>({
     queryKey: ["/api/loan-applications", applicationId, "scope-items"],
@@ -247,21 +258,81 @@ export function ApplicationScopeBuilder({
     );
   }
 
+  const handleSubmitScope = () => {
+    if (hasMismatch) {
+      toast({
+        title: "Budget Mismatch",
+        description: "Please resolve the budget mismatch before submitting the scope of work.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (grandTotalBudget === 0) {
+      toast({
+        title: "No Budget Set",
+        description: "Please add budget amounts to at least one item before submitting.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setIsScopeSubmitted(true);
+    setIsScopeExpanded(false);
+    toast({
+      title: "Scope of Work Submitted",
+      description: "Your scope of work has been submitted. You can reopen it to make changes if needed.",
+    });
+  };
+
+  const handleEditScope = () => {
+    setIsScopeExpanded(true);
+    setIsScopeSubmitted(false);
+  };
+
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between gap-2">
-        <CardTitle className="flex items-center gap-2">
-          <HardHat className="h-5 w-5 text-primary" />
-          Scope of Work
-        </CardTitle>
-        {scopeItems.length > 0 && (
-          <Badge variant="outline" className="text-sm">
-            <DollarSign className="h-3 w-3 mr-1" />
-            Total: {formatCurrency(grandTotalBudget)}
-          </Badge>
-        )}
-      </CardHeader>
-      <CardContent>
+      <Collapsible open={isScopeExpanded} onOpenChange={setIsScopeExpanded}>
+        <CardHeader className="flex flex-row items-center justify-between gap-2">
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" className="flex items-center gap-2 p-0 h-auto hover:bg-transparent" data-testid="button-toggle-scope">
+              {isScopeExpanded ? (
+                <ChevronDown className="h-5 w-5 text-muted-foreground" />
+              ) : (
+                <ChevronRight className="h-5 w-5 text-muted-foreground" />
+              )}
+              <CardTitle className="flex items-center gap-2">
+                <HardHat className="h-5 w-5 text-primary" />
+                Scope of Work
+              </CardTitle>
+            </Button>
+          </CollapsibleTrigger>
+          <div className="flex items-center gap-2">
+            {isScopeSubmitted && !isScopeExpanded && (
+              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800">
+                <Check className="h-3 w-3 mr-1" />
+                Submitted
+              </Badge>
+            )}
+            {scopeItems.length > 0 && (
+              <Badge variant="outline" className="text-sm">
+                <DollarSign className="h-3 w-3 mr-1" />
+                Total: {formatCurrency(grandTotalBudget)}
+              </Badge>
+            )}
+            {isScopeSubmitted && !isScopeExpanded && !readOnly && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleEditScope}
+                data-testid="button-edit-scope"
+              >
+                <Pencil className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CollapsibleContent>
+          <CardContent>
         {scopeItems.length === 0 ? (
           <div className="text-center py-8">
             <HardHat className="h-10 w-10 mx-auto text-muted-foreground/50 mb-2" />
@@ -445,13 +516,26 @@ export function ApplicationScopeBuilder({
             </Accordion>
 
             {!readOnly && (
-              <p className="text-xs text-muted-foreground text-center mt-4">
-                Click on any budget amount to edit it
-              </p>
+              <div className="flex flex-col items-center gap-3 mt-6 pt-4 border-t">
+                <p className="text-xs text-muted-foreground">
+                  Click on any budget amount to edit it
+                </p>
+                <Button
+                  onClick={handleSubmitScope}
+                  disabled={grandTotalBudget === 0}
+                  className="w-full sm:w-auto"
+                  data-testid="button-submit-scope"
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  Submit Scope of Work
+                </Button>
+              </div>
             )}
           </div>
         )}
-      </CardContent>
+          </CardContent>
+        </CollapsibleContent>
+      </Collapsible>
 
       <Dialog open={showMismatchDialog} onOpenChange={setShowMismatchDialog}>
         <DialogContent>
