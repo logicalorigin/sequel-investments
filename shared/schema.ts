@@ -55,11 +55,20 @@ export const processingStageEnum = pgEnum("processing_stage", [
   "closed"
 ]);
 
+// Product variant enum (for DSCR loan types)
+export const productVariantEnum = pgEnum("product_variant", [
+  "purchase",
+  "cash_out",
+  "rate_term"
+]);
+export type ProductVariant = "purchase" | "cash_out" | "rate_term";
+
 // Loan Applications table
 export const loanApplications = pgTable("loan_applications", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id),
   loanType: text("loan_type").notNull(),
+  productVariant: productVariantEnum("product_variant"), // purchase, cash_out, rate_term (for DSCR)
   propertyAddress: text("property_address"),
   propertyCity: text("property_city"),
   propertyState: text("property_state"),
@@ -142,6 +151,8 @@ export const loanApplicationsRelations = relations(loanApplications, ({ one, man
   }),
   documents: many(documents),
   applicationScopeItems: many(applicationScopeItems),
+  stageHistory: many(applicationStageHistory),
+  assignments: many(loanAssignments),
 }));
 
 export type LoanApplication = typeof loanApplications.$inferSelect;
@@ -151,6 +162,116 @@ export const insertLoanApplicationSchema = createInsertSchema(loanApplications).
   id: true,
   createdAt: true,
   updatedAt: true,
+});
+
+// ============================================
+// APPLICATION STAGE HISTORY (Timeline Audit Trail)
+// ============================================
+export const applicationStageHistory = pgTable("application_stage_history", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  loanApplicationId: varchar("loan_application_id").notNull().references(() => loanApplications.id),
+  
+  // What changed
+  fromStatus: loanApplicationStatusEnum("from_status"),
+  toStatus: loanApplicationStatusEnum("to_status").notNull(),
+  fromStage: processingStageEnum("from_stage"),
+  toStage: processingStageEnum("to_stage"),
+  
+  // Who made the change
+  changedByUserId: varchar("changed_by_user_id").references(() => users.id),
+  changedByName: text("changed_by_name"),
+  
+  // Details
+  notes: text("notes"),
+  reason: text("reason"), // Reason for denial/withdrawal/etc.
+  isAutomated: boolean("is_automated").default(false).notNull(),
+  
+  // Timing
+  durationMinutes: integer("duration_minutes"), // Time spent in previous stage
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_stage_history_app").on(table.loanApplicationId),
+  index("idx_stage_history_status").on(table.toStatus),
+  index("idx_stage_history_created").on(table.createdAt),
+]);
+
+export const applicationStageHistoryRelations = relations(applicationStageHistory, ({ one }) => ({
+  loanApplication: one(loanApplications, {
+    fields: [applicationStageHistory.loanApplicationId],
+    references: [loanApplications.id],
+  }),
+  changedBy: one(users, {
+    fields: [applicationStageHistory.changedByUserId],
+    references: [users.id],
+  }),
+}));
+
+export type ApplicationStageHistory = typeof applicationStageHistory.$inferSelect;
+export type InsertApplicationStageHistory = typeof applicationStageHistory.$inferInsert;
+
+export const insertApplicationStageHistorySchema = createInsertSchema(applicationStageHistory).omit({
+  id: true,
+  createdAt: true,
+});
+
+// ============================================
+// LOAN ASSIGNMENTS (Staff Ownership)
+// ============================================
+export const loanAssignmentRoleEnum = pgEnum("loan_assignment_role", [
+  "account_executive",
+  "processor",
+  "underwriter",
+  "closer",
+  "servicer"
+]);
+export type LoanAssignmentRole = "account_executive" | "processor" | "underwriter" | "closer" | "servicer";
+
+export const loanAssignments = pgTable("loan_assignments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  loanApplicationId: varchar("loan_application_id").notNull().references(() => loanApplications.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  role: loanAssignmentRoleEnum("role").notNull(),
+  
+  // Is this the primary assignee for this role?
+  isPrimary: boolean("is_primary").default(true).notNull(),
+  
+  // Assignment tracking
+  assignedByUserId: varchar("assigned_by_user_id").references(() => users.id),
+  assignedAt: timestamp("assigned_at").defaultNow().notNull(),
+  unassignedAt: timestamp("unassigned_at"),
+  
+  // Status
+  isActive: boolean("is_active").default(true).notNull(),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_loan_assignments_app").on(table.loanApplicationId),
+  index("idx_loan_assignments_user").on(table.userId),
+  index("idx_loan_assignments_role").on(table.role),
+  index("idx_loan_assignments_active").on(table.isActive),
+]);
+
+export const loanAssignmentsRelations = relations(loanAssignments, ({ one }) => ({
+  loanApplication: one(loanApplications, {
+    fields: [loanAssignments.loanApplicationId],
+    references: [loanApplications.id],
+  }),
+  user: one(users, {
+    fields: [loanAssignments.userId],
+    references: [users.id],
+  }),
+  assignedBy: one(users, {
+    fields: [loanAssignments.assignedByUserId],
+    references: [users.id],
+  }),
+}));
+
+export type LoanAssignment = typeof loanAssignments.$inferSelect;
+export type InsertLoanAssignment = typeof loanAssignments.$inferInsert;
+
+export const insertLoanAssignmentSchema = createInsertSchema(loanAssignments).omit({
+  id: true,
+  createdAt: true,
 });
 
 // Document types - static list of required documents per loan type
