@@ -258,7 +258,7 @@ export function CurrencySliderInput({
   }, [onChange]);
   
   return (
-    <div className="bg-card/80 rounded-xl p-4 border border-border space-y-2">
+    <div className="bg-gray-900/90 rounded-xl p-4 border border-gray-700 space-y-2">
       <div className="flex items-center justify-between">
         <label className="text-amber-500 text-xs font-medium uppercase tracking-wide">{label}</label>
         <div className="flex items-center">
@@ -328,7 +328,7 @@ export function PercentageSlider({
   }, [onChange, min, max]);
   
   return (
-    <div className="bg-card/80 rounded-xl p-4 border border-border space-y-2">
+    <div className="bg-gray-900/90 rounded-xl p-4 border border-gray-700 space-y-2">
       <div className="flex items-center justify-between">
         <label className="text-amber-500 text-xs font-medium uppercase tracking-wide">{label}</label>
         <div className="flex items-center gap-1">
