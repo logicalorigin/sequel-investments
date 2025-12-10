@@ -25,6 +25,7 @@ import {
   insertWhiteLabelSettingsSchema,
   insertAppointmentSchema,
   insertScopeOfWorkItemSchema,
+  insertApplicationScopeItemSchema,
   insertDrawLineItemSchema,
   getStateBySlug,
   type UserRole,
@@ -1007,6 +1008,122 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting scope of work item:", error);
       return res.status(500).json({ error: "Failed to delete scope of work item" });
+    }
+  });
+
+  // ============================================
+  // APPLICATION SCOPE OF WORK ROUTES (For Fix & Flip / New Construction Applications)
+  // ============================================
+  app.get("/api/loan-applications/:applicationId/scope-items", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const application = await storage.getLoanApplication(req.params.applicationId);
+      
+      if (!application) {
+        return res.status(404).json({ error: "Application not found" });
+      }
+      
+      if (application.userId !== userId && user?.role === "borrower") {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const items = await storage.getApplicationScopeItems(application.id);
+      return res.json(items);
+    } catch (error) {
+      console.error("Error fetching application scope items:", error);
+      return res.status(500).json({ error: "Failed to fetch application scope items" });
+    }
+  });
+
+  app.post("/api/loan-applications/:applicationId/scope-items", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const application = await storage.getLoanApplication(req.params.applicationId);
+      
+      if (!application) {
+        return res.status(404).json({ error: "Application not found" });
+      }
+      
+      if (application.userId !== userId && user?.role === "borrower") {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const validationResult = insertApplicationScopeItemSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        const validationError = fromZodError(validationResult.error);
+        return res.status(400).json({ error: "Validation failed", message: validationError.message });
+      }
+      
+      const item = await storage.createApplicationScopeItem({
+        ...validationResult.data,
+        loanApplicationId: application.id,
+      });
+      return res.status(201).json(item);
+    } catch (error) {
+      console.error("Error creating application scope item:", error);
+      return res.status(500).json({ error: "Failed to create application scope item" });
+    }
+  });
+
+  app.patch("/api/application-scope-items/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      const item = await storage.getApplicationScopeItem(req.params.id);
+      if (!item) {
+        return res.status(404).json({ error: "Scope item not found" });
+      }
+      
+      const application = await storage.getLoanApplication(item.loanApplicationId);
+      if (!application) {
+        return res.status(404).json({ error: "Application not found" });
+      }
+      
+      if (application.userId !== userId && user?.role === "borrower") {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const validationResult = insertApplicationScopeItemSchema.partial().safeParse(req.body);
+      if (!validationResult.success) {
+        const validationError = fromZodError(validationResult.error);
+        return res.status(400).json({ error: "Validation failed", message: validationError.message });
+      }
+      
+      const updated = await storage.updateApplicationScopeItem(req.params.id, validationResult.data);
+      return res.json(updated);
+    } catch (error) {
+      console.error("Error updating application scope item:", error);
+      return res.status(500).json({ error: "Failed to update application scope item" });
+    }
+  });
+
+  app.delete("/api/application-scope-items/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      const item = await storage.getApplicationScopeItem(req.params.id);
+      if (!item) {
+        return res.status(404).json({ error: "Scope item not found" });
+      }
+      
+      const application = await storage.getLoanApplication(item.loanApplicationId);
+      if (!application) {
+        return res.status(404).json({ error: "Application not found" });
+      }
+      
+      if (application.userId !== userId && user?.role === "borrower") {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      await storage.deleteApplicationScopeItem(req.params.id);
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting application scope item:", error);
+      return res.status(500).json({ error: "Failed to delete application scope item" });
     }
   });
 
@@ -3610,7 +3727,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           const nextPaymentDate = new Date(firstPaymentDate);
           
-          await storage.createServicedLoan({
+          const servicedLoan = await storage.createServicedLoan({
             userId: application.userId,
             loanApplicationId: application.id,
             loanNumber,
@@ -3659,6 +3776,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
           
           console.log(`Created serviced loan ${loanNumber} for application ${id}`);
+          
+          // Copy application scope of work items to serviced loan (for Fix & Flip and New Construction)
+          if (isHardMoney) {
+            try {
+              const copiedItems = await storage.copyApplicationScopeToServicedLoan(application.id, servicedLoan.id);
+              if (copiedItems.length > 0) {
+                console.log(`Copied ${copiedItems.length} scope of work items to serviced loan ${loanNumber}`);
+              }
+            } catch (scopeCopyError) {
+              console.error("Error copying application scope to serviced loan:", scopeCopyError);
+              // Don't fail loan creation, just log the error
+            }
+          }
           
           // Add timeline event for loan creation
           await storage.createTimelineEvent({
