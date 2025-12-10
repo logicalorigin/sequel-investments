@@ -87,8 +87,8 @@ export default function PortalPage() {
         variant: "destructive",
       });
       setTimeout(() => {
-        window.location.href = "/api/login";
-      }, 500);
+        window.location.href = "/login";
+      }, 100);
     }
   }, [authLoading, isAuthenticated, toast]);
 
