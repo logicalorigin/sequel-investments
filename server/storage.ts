@@ -11,6 +11,7 @@ import {
   loanDocuments,
   loanMilestones,
   scopeOfWorkItems,
+  applicationScopeItems,
   drawLineItems,
   notifications,
   savedScenarios,
@@ -62,6 +63,8 @@ import {
   type InsertLoanMilestone,
   type ScopeOfWorkItem,
   type InsertScopeOfWorkItem,
+  type ApplicationScopeItem,
+  type InsertApplicationScopeItem,
   type DrawLineItem,
   type InsertDrawLineItem,
   DEFAULT_SCOPE_OF_WORK_ITEMS,
@@ -212,6 +215,14 @@ export interface IStorage {
   updateScopeOfWorkItem(id: string, data: Partial<InsertScopeOfWorkItem>): Promise<ScopeOfWorkItem | undefined>;
   deleteScopeOfWorkItem(id: string): Promise<boolean>;
   initializeScopeOfWork(servicedLoanId: string): Promise<ScopeOfWorkItem[]>;
+  
+  // Application scope of work operations (for Fix & Flip / New Construction applications)
+  getApplicationScopeItems(loanApplicationId: string): Promise<ApplicationScopeItem[]>;
+  getApplicationScopeItem(id: string): Promise<ApplicationScopeItem | undefined>;
+  createApplicationScopeItem(item: InsertApplicationScopeItem): Promise<ApplicationScopeItem>;
+  updateApplicationScopeItem(id: string, data: Partial<InsertApplicationScopeItem>): Promise<ApplicationScopeItem | undefined>;
+  deleteApplicationScopeItem(id: string): Promise<boolean>;
+  copyApplicationScopeToServicedLoan(applicationId: string, servicedLoanId: string): Promise<ScopeOfWorkItem[]>;
   
   // Draw line items operations
   getDrawLineItems(loanDrawId: string): Promise<DrawLineItem[]>;
@@ -891,6 +902,67 @@ export class DatabaseStorage implements IStorage {
       items.push(created);
     }
     return items;
+  }
+
+  // Application scope of work operations (for Fix & Flip / New Construction applications)
+  async getApplicationScopeItems(loanApplicationId: string): Promise<ApplicationScopeItem[]> {
+    return await db
+      .select()
+      .from(applicationScopeItems)
+      .where(eq(applicationScopeItems.loanApplicationId, loanApplicationId))
+      .orderBy(applicationScopeItems.sortOrder);
+  }
+
+  async getApplicationScopeItem(id: string): Promise<ApplicationScopeItem | undefined> {
+    const [item] = await db.select().from(applicationScopeItems).where(eq(applicationScopeItems.id, id));
+    return item;
+  }
+
+  async createApplicationScopeItem(item: InsertApplicationScopeItem): Promise<ApplicationScopeItem> {
+    const [created] = await db.insert(applicationScopeItems).values(item).returning();
+    return created;
+  }
+
+  async updateApplicationScopeItem(id: string, data: Partial<InsertApplicationScopeItem>): Promise<ApplicationScopeItem | undefined> {
+    const [updated] = await db
+      .update(applicationScopeItems)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(applicationScopeItems.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteApplicationScopeItem(id: string): Promise<boolean> {
+    const result = await db.delete(applicationScopeItems).where(eq(applicationScopeItems.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async copyApplicationScopeToServicedLoan(applicationId: string, servicedLoanId: string): Promise<ScopeOfWorkItem[]> {
+    // Get all scope items from the application
+    const appScopeItems = await this.getApplicationScopeItems(applicationId);
+    
+    if (appScopeItems.length === 0) {
+      // No application scope items, initialize with defaults
+      return await this.initializeScopeOfWork(servicedLoanId);
+    }
+    
+    // Copy each application scope item to the serviced loan
+    const createdItems: ScopeOfWorkItem[] = [];
+    for (const appItem of appScopeItems) {
+      const scopeItem = await this.createScopeOfWorkItem({
+        servicedLoanId,
+        category: appItem.category,
+        itemName: appItem.itemName,
+        details: appItem.details,
+        sortOrder: appItem.sortOrder,
+        budgetAmount: appItem.budgetAmount,
+        notes: appItem.notes,
+        sourceApplicationScopeItemId: appItem.id,
+      });
+      createdItems.push(scopeItem);
+    }
+    
+    return createdItems;
   }
 
   // Draw line items operations

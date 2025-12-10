@@ -13,6 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AmortizationChart } from "@/components/AmortizationChart";
 import { PropertyValueChart } from "@/components/PropertyValueChart";
 import { DocumentCommentsDialog } from "@/components/DocumentCommentsDialog";
+import { ApplicationScopeBuilder } from "@/components/ApplicationScopeBuilder";
 import { 
   ArrowLeft,
   Building2,
@@ -946,6 +947,16 @@ export default function ApplicationDetailPage() {
                 })()}
               </CardContent>
             </Card>
+
+            {(application.analyzerType === "fixflip" || 
+              application.analyzerType === "construction" ||
+              application.loanType?.toLowerCase().includes("flip") || 
+              application.loanType?.toLowerCase().includes("construction")) && (
+              <ApplicationScopeBuilder 
+                applicationId={applicationId!} 
+                readOnly={application.status !== "draft" && application.status !== "submitted"}
+              />
+            )}
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between gap-2">
