@@ -2409,14 +2409,121 @@ export const VERIFICATION_PHOTO_CONFIG: Record<VerificationPhotoType, {
   other: { name: "Other", description: "Additional photos", instructions: "Any additional photos that help document the property condition.", required: false },
 };
 
+// ============================================
+// VERIFICATION WORKFLOWS
+// ============================================
+
+// Workflow type enum: property (underwriting) vs renovation (draws/servicing)
+export const verificationWorkflowTypeEnum = pgEnum("verification_workflow_type", [
+  "property",    // Property verification during underwriting (before funding)
+  "renovation"   // Renovation verification during servicing (tied to draw requests)
+]);
+export type VerificationWorkflowType = "property" | "renovation";
+
+// Workflow status enum
+export const verificationWorkflowStatusEnum = pgEnum("verification_workflow_status", [
+  "pending",           // Workflow created, awaiting photos
+  "in_progress",       // Some photos submitted
+  "submitted",         // All required photos submitted, awaiting review
+  "approved",          // All photos verified/approved
+  "rejected",          // Workflow rejected, requires re-submission
+  "expired"            // Workflow expired (deadline passed)
+]);
+export type VerificationWorkflowStatus = "pending" | "in_progress" | "submitted" | "approved" | "rejected" | "expired";
+
+// Verification workflows table - groups verification photos into logical workflows
+export const verificationWorkflows = pgTable("verification_workflows", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  
+  // Type of verification
+  workflowType: verificationWorkflowTypeEnum("workflow_type").notNull(),
+  
+  // For PROPERTY verification (underwriting): links to loan application
+  loanApplicationId: varchar("loan_application_id").references(() => loanApplications.id),
+  
+  // For RENOVATION verification (servicing): links to serviced loan and draw request
+  servicedLoanId: varchar("serviced_loan_id").references(() => servicedLoans.id),
+  loanDrawId: varchar("loan_draw_id").references(() => loanDraws.id),
+  
+  // Status tracking
+  status: verificationWorkflowStatusEnum("status").default("pending").notNull(),
+  
+  // Required categories for this workflow (subset of all categories)
+  requiredCategories: text("required_categories").array(),
+  
+  // Progress tracking
+  totalRequiredPhotos: integer("total_required_photos"),
+  completedPhotos: integer("completed_photos").default(0).notNull(),
+  
+  // Review information
+  reviewedByUserId: varchar("reviewed_by_user_id").references(() => users.id),
+  reviewedAt: timestamp("reviewed_at"),
+  reviewNotes: text("review_notes"),
+  
+  // Deadlines
+  dueDate: timestamp("due_date"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_verification_workflows_app").on(table.loanApplicationId),
+  index("idx_verification_workflows_serviced").on(table.servicedLoanId),
+  index("idx_verification_workflows_draw").on(table.loanDrawId),
+  index("idx_verification_workflows_status").on(table.status),
+  index("idx_verification_workflows_type").on(table.workflowType),
+]);
+
+export const verificationWorkflowsRelations = relations(verificationWorkflows, ({ one, many }) => ({
+  loanApplication: one(loanApplications, {
+    fields: [verificationWorkflows.loanApplicationId],
+    references: [loanApplications.id],
+  }),
+  servicedLoan: one(servicedLoans, {
+    fields: [verificationWorkflows.servicedLoanId],
+    references: [servicedLoans.id],
+  }),
+  loanDraw: one(loanDraws, {
+    fields: [verificationWorkflows.loanDrawId],
+    references: [loanDraws.id],
+  }),
+  reviewedBy: one(users, {
+    fields: [verificationWorkflows.reviewedByUserId],
+    references: [users.id],
+  }),
+  photos: many(verificationPhotos),
+}));
+
+export type VerificationWorkflow = typeof verificationWorkflows.$inferSelect;
+export type InsertVerificationWorkflow = typeof verificationWorkflows.$inferInsert;
+
+export const insertVerificationWorkflowSchema = createInsertSchema(verificationWorkflows).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// ============================================
+// VERIFICATION PHOTOS
+// ============================================
+
 // Verification photos table - stores photos submitted during verification walkthrough
 export const verificationPhotos = pgTable("verification_photos", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  loanApplicationId: varchar("loan_application_id").notNull().references(() => loanApplications.id),
+  
+  // Link to workflow (new - for organized verification flows)
+  verificationWorkflowId: varchar("verification_workflow_id").references(() => verificationWorkflows.id),
+  
+  // Legacy: direct link to loan application (for backward compatibility)
+  loanApplicationId: varchar("loan_application_id").references(() => loanApplications.id),
+  
   uploadedByUserId: varchar("uploaded_by_user_id").notNull().references(() => users.id),
   
   // Photo type and categorization
   photoType: verificationPhotoTypeEnum("photo_type").notNull(),
+  
+  // For RENOVATION verification: optional link to specific scope item being verified
+  scopeOfWorkItemId: varchar("scope_of_work_item_id").references(() => scopeOfWorkItems.id),
+  drawLineItemId: varchar("draw_line_item_id").references(() => drawLineItems.id),
   
   // File storage
   fileKey: text("file_key").notNull(),
@@ -2446,12 +2553,18 @@ export const verificationPhotos = pgTable("verification_photos", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
+  index("idx_verification_photos_workflow").on(table.verificationWorkflowId),
   index("idx_verification_photos_app").on(table.loanApplicationId),
   index("idx_verification_photos_type").on(table.photoType),
   index("idx_verification_photos_status").on(table.verificationStatus),
+  index("idx_verification_photos_scope").on(table.scopeOfWorkItemId),
 ]);
 
 export const verificationPhotosRelations = relations(verificationPhotos, ({ one }) => ({
+  verificationWorkflow: one(verificationWorkflows, {
+    fields: [verificationPhotos.verificationWorkflowId],
+    references: [verificationWorkflows.id],
+  }),
   loanApplication: one(loanApplications, {
     fields: [verificationPhotos.loanApplicationId],
     references: [loanApplications.id],
@@ -2459,6 +2572,14 @@ export const verificationPhotosRelations = relations(verificationPhotos, ({ one 
   uploadedBy: one(users, {
     fields: [verificationPhotos.uploadedByUserId],
     references: [users.id],
+  }),
+  scopeOfWorkItem: one(scopeOfWorkItems, {
+    fields: [verificationPhotos.scopeOfWorkItemId],
+    references: [scopeOfWorkItems.id],
+  }),
+  drawLineItem: one(drawLineItems, {
+    fields: [verificationPhotos.drawLineItemId],
+    references: [drawLineItems.id],
   }),
 }));
 

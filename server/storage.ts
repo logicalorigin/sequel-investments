@@ -40,6 +40,7 @@ import {
   drawPhotos,
   photoVerificationAudits,
   verificationPhotos,
+  verificationWorkflows,
   type User, 
   type UpsertUser,
   type Lead, 
@@ -126,6 +127,8 @@ import {
   type InsertPhotoVerificationAudit,
   type VerificationPhoto,
   type InsertVerificationPhoto,
+  type VerificationWorkflow,
+  type InsertVerificationWorkflow,
   DEFAULT_DOCUMENT_TYPES,
   DEFAULT_BUSINESS_HOURS,
 } from "@shared/schema";
@@ -408,10 +411,20 @@ export interface IStorage {
   
   // Verification photo operations (property & renovation verification)
   getVerificationPhotos(loanApplicationId: string): Promise<VerificationPhoto[]>;
+  getVerificationPhotosByWorkflow(workflowId: string): Promise<VerificationPhoto[]>;
   getVerificationPhoto(id: string): Promise<VerificationPhoto | undefined>;
   createVerificationPhoto(data: InsertVerificationPhoto): Promise<VerificationPhoto>;
   updateVerificationPhoto(id: string, data: Partial<InsertVerificationPhoto>): Promise<VerificationPhoto | undefined>;
   deleteVerificationPhoto(id: string): Promise<boolean>;
+  
+  // Verification workflow operations
+  getVerificationWorkflow(id: string): Promise<VerificationWorkflow | undefined>;
+  getVerificationWorkflowByApplication(loanApplicationId: string, workflowType: 'property' | 'renovation'): Promise<VerificationWorkflow | undefined>;
+  getVerificationWorkflowByDraw(loanDrawId: string): Promise<VerificationWorkflow | undefined>;
+  getVerificationWorkflowsByServicedLoan(servicedLoanId: string): Promise<VerificationWorkflow[]>;
+  createVerificationWorkflow(data: InsertVerificationWorkflow): Promise<VerificationWorkflow>;
+  updateVerificationWorkflow(id: string, data: Partial<InsertVerificationWorkflow>): Promise<VerificationWorkflow | undefined>;
+  deleteVerificationWorkflow(id: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2430,6 +2443,74 @@ export class DatabaseStorage implements IStorage {
     await db
       .delete(verificationPhotos)
       .where(eq(verificationPhotos.id, id));
+    return true;
+  }
+  
+  async getVerificationPhotosByWorkflow(workflowId: string): Promise<VerificationPhoto[]> {
+    return await db
+      .select()
+      .from(verificationPhotos)
+      .where(eq(verificationPhotos.verificationWorkflowId, workflowId))
+      .orderBy(verificationPhotos.createdAt);
+  }
+  
+  // Verification workflow operations
+  async getVerificationWorkflow(id: string): Promise<VerificationWorkflow | undefined> {
+    const [workflow] = await db
+      .select()
+      .from(verificationWorkflows)
+      .where(eq(verificationWorkflows.id, id));
+    return workflow;
+  }
+  
+  async getVerificationWorkflowByApplication(loanApplicationId: string, workflowType: 'property' | 'renovation'): Promise<VerificationWorkflow | undefined> {
+    const [workflow] = await db
+      .select()
+      .from(verificationWorkflows)
+      .where(and(
+        eq(verificationWorkflows.loanApplicationId, loanApplicationId),
+        eq(verificationWorkflows.workflowType, workflowType)
+      ));
+    return workflow;
+  }
+  
+  async getVerificationWorkflowByDraw(loanDrawId: string): Promise<VerificationWorkflow | undefined> {
+    const [workflow] = await db
+      .select()
+      .from(verificationWorkflows)
+      .where(eq(verificationWorkflows.loanDrawId, loanDrawId));
+    return workflow;
+  }
+  
+  async getVerificationWorkflowsByServicedLoan(servicedLoanId: string): Promise<VerificationWorkflow[]> {
+    return await db
+      .select()
+      .from(verificationWorkflows)
+      .where(eq(verificationWorkflows.servicedLoanId, servicedLoanId))
+      .orderBy(desc(verificationWorkflows.createdAt));
+  }
+  
+  async createVerificationWorkflow(data: InsertVerificationWorkflow): Promise<VerificationWorkflow> {
+    const [workflow] = await db
+      .insert(verificationWorkflows)
+      .values(data)
+      .returning();
+    return workflow;
+  }
+  
+  async updateVerificationWorkflow(id: string, data: Partial<InsertVerificationWorkflow>): Promise<VerificationWorkflow | undefined> {
+    const [updated] = await db
+      .update(verificationWorkflows)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(verificationWorkflows.id, id))
+      .returning();
+    return updated;
+  }
+  
+  async deleteVerificationWorkflow(id: string): Promise<boolean> {
+    await db
+      .delete(verificationWorkflows)
+      .where(eq(verificationWorkflows.id, id));
     return true;
   }
 }
