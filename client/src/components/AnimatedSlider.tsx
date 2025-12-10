@@ -106,7 +106,7 @@ export function AnimatedSlider({
       {(label || showValue) && (
         <div className="flex items-center justify-between">
           {label && (
-            <label className="text-white/50 text-xs uppercase tracking-wide">{label}</label>
+            <label className="text-muted-foreground text-xs uppercase tracking-wide">{label}</label>
           )}
           {showValue && (
             <motion.div 
@@ -114,9 +114,9 @@ export function AnimatedSlider({
               animate={{ scale: isDragging ? 1.05 : 1 }}
               transition={{ duration: 0.15 }}
             >
-              {prefix && <span className="text-white/60 text-lg">{prefix}</span>}
+              {prefix && <span className="text-muted-foreground text-lg">{prefix}</span>}
               <AnimatedNumber value={localValue} formatValue={formatValue} />
-              {suffix && <span className="text-white/60 text-lg">{suffix}</span>}
+              {suffix && <span className="text-muted-foreground text-lg">{suffix}</span>}
             </motion.div>
           )}
         </div>
@@ -124,35 +124,34 @@ export function AnimatedSlider({
       
       <div
         ref={trackRef}
-        className={`relative h-3 rounded-full cursor-pointer touch-none ${trackClassName}`}
+        className={`relative h-2 rounded-full cursor-pointer touch-none ${trackClassName}`}
         onPointerDown={handleTrackClick}
         data-testid={testId}
       >
-        <div className="absolute inset-0 rounded-full bg-white/10 overflow-hidden">
-          <motion.div
-            className="h-full bg-gradient-to-r from-primary/80 to-primary rounded-full"
-            style={{ width: `${percentage}%` }}
-            layoutId="slider-fill"
-          />
-        </div>
+        {/* Background track - gray */}
+        <div className="absolute inset-0 rounded-full bg-gray-300 dark:bg-gray-600" />
         
+        {/* Filled portion - orange/amber gradient */}
         <motion.div
-          className="absolute inset-y-0 rounded-full bg-primary/20 blur-lg"
-          style={{ width: `${percentage}%` }}
-          animate={{ opacity: isDragging ? 0.8 : 0.4 }}
+          className="absolute inset-y-0 left-0 rounded-full"
+          style={{ 
+            width: `${percentage}%`,
+            background: "linear-gradient(to right, #f59e0b, #fbbf24)"
+          }}
         />
         
+        {/* Thumb - white circle with orange center */}
         <motion.div
-          className={`absolute top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-primary border-2 border-white shadow-lg cursor-grab active:cursor-grabbing touch-none ${thumbClassName}`}
+          className={`absolute top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white shadow-md cursor-grab active:cursor-grabbing touch-none flex items-center justify-center ${thumbClassName}`}
           style={{ left: `calc(${percentage}% - 12px)` }}
           animate={{ 
-            scale: isDragging ? 1.2 : 1,
+            scale: isDragging ? 1.15 : 1,
             boxShadow: isDragging 
-              ? "0 0 20px rgba(var(--primary-rgb), 0.5)" 
-              : "0 4px 12px rgba(0,0,0,0.3)"
+              ? "0 2px 8px rgba(0,0,0,0.25)" 
+              : "0 1px 4px rgba(0,0,0,0.15)"
           }}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 1.15 }}
+          whileHover={{ scale: 1.08 }}
+          whileTap={{ scale: 1.12 }}
           onPointerDown={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -161,15 +160,16 @@ export function AnimatedSlider({
           }}
           transition={{ type: "spring", stiffness: 400, damping: 25 }}
         >
+          {/* Inner orange circle */}
           <motion.div
-            className="absolute inset-0 rounded-full bg-white/30"
-            animate={{ scale: isDragging ? [1, 1.5, 1] : 1, opacity: isDragging ? [0.5, 0, 0.5] : 0 }}
-            transition={{ repeat: isDragging ? Infinity : 0, duration: 0.8 }}
+            className="w-3.5 h-3.5 rounded-full"
+            style={{ background: "linear-gradient(135deg, #f59e0b, #fbbf24)" }}
+            animate={{ scale: isDragging ? 1.1 : 1 }}
           />
         </motion.div>
       </div>
       
-      <div className="flex justify-between text-xs text-white/30">
+      <div className="flex justify-between text-xs text-muted-foreground/60">
         <span>{prefix}{formatValue(min)}{suffix}</span>
         <span>{prefix}{formatValue(max)}{suffix}</span>
       </div>
@@ -208,7 +208,7 @@ function AnimatedNumber({ value, formatValue }: { value: number; formatValue: (v
   
   return (
     <motion.span 
-      className="text-2xl font-bold text-white tabular-nums"
+      className="text-2xl font-bold text-foreground tabular-nums"
       key={displayValue}
     >
       {formatValue(displayValue)}
@@ -250,17 +250,17 @@ export function CurrencySliderInput({
   }, [onChange]);
   
   return (
-    <div className="bg-white/5 rounded-xl p-4 border border-white/10 space-y-4">
+    <div className="bg-muted/30 rounded-xl p-4 border border-border/50 space-y-4">
       <div className="flex items-center justify-between">
-        <label className="text-white/50 text-xs uppercase tracking-wide">{label}</label>
+        <label className="text-muted-foreground text-xs uppercase tracking-wide">{label}</label>
         <div className="flex items-center">
-          <DollarSign className="w-4 h-4 text-white/40 mr-1" />
+          <DollarSign className="w-4 h-4 text-muted-foreground/60 mr-1" />
           <input
             type="text"
             value={value}
             onChange={handleInputChange}
             placeholder="0"
-            className="w-32 bg-transparent text-xl font-bold text-white text-right focus:outline-none"
+            className="w-32 bg-transparent text-xl font-bold text-foreground text-right focus:outline-none"
             data-testid={testId ? `${testId}-input` : undefined}
           />
         </div>
@@ -278,7 +278,7 @@ export function CurrencySliderInput({
       />
       
       {helperText && (
-        <p className="text-white/40 text-xs">{helperText}</p>
+        <p className="text-muted-foreground/60 text-xs">{helperText}</p>
       )}
     </div>
   );
@@ -320,18 +320,18 @@ export function PercentageSlider({
   }, [onChange, min, max]);
   
   return (
-    <div className="bg-white/5 rounded-xl p-4 border border-white/10 space-y-4">
+    <div className="bg-muted/30 rounded-xl p-4 border border-border/50 space-y-4">
       <div className="flex items-center justify-between">
-        <label className="text-white/50 text-xs uppercase tracking-wide">{label}</label>
+        <label className="text-muted-foreground text-xs uppercase tracking-wide">{label}</label>
         <div className="flex items-center gap-1">
           <input
             type="text"
             value={numericValue}
             onChange={handleInputChange}
-            className="w-12 bg-transparent text-2xl font-bold text-white text-right focus:outline-none"
+            className="w-12 bg-transparent text-2xl font-bold text-foreground text-right focus:outline-none"
             data-testid={testId ? `${testId}-input` : undefined}
           />
-          <span className="text-white/60 text-lg">%</span>
+          <span className="text-muted-foreground text-lg">%</span>
         </div>
       </div>
       
@@ -347,10 +347,10 @@ export function PercentageSlider({
       />
       
       <div className="flex items-center justify-between">
-        <span className="text-white/30 text-xs">{min}%</span>
+        <span className="text-muted-foreground/50 text-xs">{min}%</span>
         {calculatedAmount !== undefined && (
           <motion.span 
-            className="text-primary text-sm font-medium"
+            className="text-amber-500 text-sm font-medium"
             key={calculatedAmount}
             initial={{ y: -5, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -358,11 +358,11 @@ export function PercentageSlider({
             = ${formatCurrencyDisplay(calculatedAmount)} down
           </motion.span>
         )}
-        <span className="text-white/30 text-xs">{max}%</span>
+        <span className="text-muted-foreground/50 text-xs">{max}%</span>
       </div>
       
       {helperText && (
-        <p className="text-white/40 text-xs text-center">{helperText}</p>
+        <p className="text-muted-foreground/60 text-xs text-center">{helperText}</p>
       )}
     </div>
   );
