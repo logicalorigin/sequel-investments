@@ -106,7 +106,7 @@ export function AnimatedSlider({
       {(label || showValue) && (
         <div className="flex items-center justify-between">
           {label && (
-            <label className="text-muted-foreground text-xs uppercase tracking-wide">{label}</label>
+            <label className="text-foreground/80 text-xs font-medium uppercase tracking-wide">{label}</label>
           )}
           {showValue && (
             <motion.div 
@@ -114,9 +114,9 @@ export function AnimatedSlider({
               animate={{ scale: isDragging ? 1.05 : 1 }}
               transition={{ duration: 0.15 }}
             >
-              {prefix && <span className="text-muted-foreground text-lg">{prefix}</span>}
+              {prefix && <span className="text-foreground/60 text-lg">{prefix}</span>}
               <AnimatedNumber value={localValue} formatValue={formatValue} />
-              {suffix && <span className="text-muted-foreground text-lg">{suffix}</span>}
+              {suffix && <span className="text-foreground/60 text-lg">{suffix}</span>}
             </motion.div>
           )}
         </div>
@@ -124,26 +124,33 @@ export function AnimatedSlider({
       
       <div
         ref={trackRef}
-        className={`relative h-2 rounded-full cursor-pointer touch-none ${trackClassName}`}
+        className={`relative h-8 cursor-pointer touch-none flex items-center ${trackClassName}`}
         onPointerDown={handleTrackClick}
         data-testid={testId}
       >
-        {/* Background track - gray */}
-        <div className="absolute inset-0 rounded-full bg-gray-300 dark:bg-gray-600" />
+        {/* Track container - centered vertically */}
+        <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-2 rounded-full">
+          {/* Background track - gray */}
+          <div className="absolute inset-0 rounded-full bg-gray-300 dark:bg-gray-600" />
+          
+          {/* Filled portion - amber/gold gradient */}
+          <motion.div
+            className="absolute inset-y-0 left-0 rounded-full"
+            style={{ 
+              width: `${percentage}%`,
+              background: "linear-gradient(to right, #f59e0b, #fbbf24)"
+            }}
+          />
+        </div>
         
-        {/* Filled portion - orange/amber gradient */}
+        {/* Thumb - positioned relative to container */}
         <motion.div
-          className="absolute inset-y-0 left-0 rounded-full"
+          className={`absolute w-6 h-6 rounded-full bg-white shadow-md cursor-grab active:cursor-grabbing touch-none flex items-center justify-center z-10 ${thumbClassName}`}
           style={{ 
-            width: `${percentage}%`,
-            background: "linear-gradient(to right, #f59e0b, #fbbf24)"
+            left: `calc(${percentage}% - 12px)`,
+            top: '50%',
+            transform: 'translateY(-50%)'
           }}
-        />
-        
-        {/* Thumb - white circle with orange center */}
-        <motion.div
-          className={`absolute top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white shadow-md cursor-grab active:cursor-grabbing touch-none flex items-center justify-center ${thumbClassName}`}
-          style={{ left: `calc(${percentage}% - 12px)` }}
           animate={{ 
             scale: isDragging ? 1.15 : 1,
             boxShadow: isDragging 
@@ -160,7 +167,7 @@ export function AnimatedSlider({
           }}
           transition={{ type: "spring", stiffness: 400, damping: 25 }}
         >
-          {/* Inner orange circle */}
+          {/* Inner amber circle */}
           <motion.div
             className="w-3.5 h-3.5 rounded-full"
             style={{ background: "linear-gradient(135deg, #f59e0b, #fbbf24)" }}
@@ -169,7 +176,7 @@ export function AnimatedSlider({
         </motion.div>
       </div>
       
-      <div className="flex justify-between text-xs text-muted-foreground/60">
+      <div className="flex justify-between text-xs text-foreground/40">
         <span>{prefix}{formatValue(min)}{suffix}</span>
         <span>{prefix}{formatValue(max)}{suffix}</span>
       </div>
@@ -250,11 +257,11 @@ export function CurrencySliderInput({
   }, [onChange]);
   
   return (
-    <div className="bg-muted/30 rounded-xl p-4 border border-border/50 space-y-4">
+    <div className="bg-card/80 rounded-xl p-4 border border-border space-y-4">
       <div className="flex items-center justify-between">
-        <label className="text-muted-foreground text-xs uppercase tracking-wide">{label}</label>
+        <label className="text-foreground/80 text-xs font-medium uppercase tracking-wide">{label}</label>
         <div className="flex items-center">
-          <DollarSign className="w-4 h-4 text-muted-foreground/60 mr-1" />
+          <DollarSign className="w-4 h-4 text-foreground/60 mr-1" />
           <input
             type="text"
             value={value}
@@ -278,7 +285,7 @@ export function CurrencySliderInput({
       />
       
       {helperText && (
-        <p className="text-muted-foreground/60 text-xs">{helperText}</p>
+        <p className="text-foreground/50 text-xs">{helperText}</p>
       )}
     </div>
   );
@@ -320,9 +327,9 @@ export function PercentageSlider({
   }, [onChange, min, max]);
   
   return (
-    <div className="bg-muted/30 rounded-xl p-4 border border-border/50 space-y-4">
+    <div className="bg-card/80 rounded-xl p-4 border border-border space-y-4">
       <div className="flex items-center justify-between">
-        <label className="text-muted-foreground text-xs uppercase tracking-wide">{label}</label>
+        <label className="text-foreground/80 text-xs font-medium uppercase tracking-wide">{label}</label>
         <div className="flex items-center gap-1">
           <input
             type="text"
@@ -331,7 +338,7 @@ export function PercentageSlider({
             className="w-12 bg-transparent text-2xl font-bold text-foreground text-right focus:outline-none"
             data-testid={testId ? `${testId}-input` : undefined}
           />
-          <span className="text-muted-foreground text-lg">%</span>
+          <span className="text-foreground/60 text-lg">%</span>
         </div>
       </div>
       
@@ -347,7 +354,7 @@ export function PercentageSlider({
       />
       
       <div className="flex items-center justify-between">
-        <span className="text-muted-foreground/50 text-xs">{min}%</span>
+        <span className="text-foreground/40 text-xs">{min}%</span>
         {calculatedAmount !== undefined && (
           <motion.span 
             className="text-amber-500 text-sm font-medium"
@@ -358,11 +365,11 @@ export function PercentageSlider({
             = ${formatCurrencyDisplay(calculatedAmount)} down
           </motion.span>
         )}
-        <span className="text-muted-foreground/50 text-xs">{max}%</span>
+        <span className="text-foreground/40 text-xs">{max}%</span>
       </div>
       
       {helperText && (
-        <p className="text-muted-foreground/60 text-xs text-center">{helperText}</p>
+        <p className="text-foreground/50 text-xs text-center">{helperText}</p>
       )}
     </div>
   );
