@@ -221,15 +221,15 @@ export default function HomePage() {
               <div className="flex flex-wrap items-center gap-2 sm:gap-4 md:gap-6 pt-1 sm:pt-2 md:pt-4">
                 <div className="flex items-center gap-1 sm:gap-2">
                   <CheckCircle2 className="h-3 w-3 sm:h-5 sm:w-5 text-primary" />
-                  <span className="text-[10px] sm:text-sm font-medium">$500M+ Funded</span>
+                  <span className="text-[10px] sm:text-sm font-medium">No Tax Returns</span>
                 </div>
                 <div className="flex items-center gap-1 sm:gap-2">
                   <CheckCircle2 className="h-3 w-3 sm:h-5 sm:w-5 text-primary" />
-                  <span className="text-[10px] sm:text-sm font-medium">48 States + DC</span>
+                  <span className="text-[10px] sm:text-sm font-medium">No Income Verification</span>
                 </div>
                 <div className="flex items-center gap-1 sm:gap-2">
                   <CheckCircle2 className="h-3 w-3 sm:h-5 sm:w-5 text-primary" />
-                  <span className="text-[10px] sm:text-sm font-medium">48hr Closings</span>
+                  <span className="text-[10px] sm:text-sm font-medium">Same-Day Approvals</span>
                 </div>
               </div>
             </div>

@@ -82,42 +82,42 @@ export default function AboutPage() {
       <section className="py-16 bg-card">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Our Track Record</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Why Investors Choose Us</h2>
             <p className="text-xl text-muted-foreground">
-              Trusted by investors nationwide
+              Built by investors, for investors
             </p>
           </div>
 
           <div className="grid md:grid-cols-4 gap-8">
-            <Card className="text-center" data-testid="card-stat-funded">
-              <CardContent className="pt-8">
-                <TrendingUp className="h-12 w-12 text-primary mx-auto mb-4" />
-                <div className="text-4xl font-bold mb-2">$500M+</div>
-                <p className="text-muted-foreground">Total Funded</p>
-              </CardContent>
-            </Card>
-
-            <Card className="text-center" data-testid="card-stat-investors">
-              <CardContent className="pt-8">
-                <Users className="h-12 w-12 text-primary mx-auto mb-4" />
-                <div className="text-4xl font-bold mb-2">1,500+</div>
-                <p className="text-muted-foreground">Investors Served</p>
-              </CardContent>
-            </Card>
-
-            <Card className="text-center" data-testid="card-stat-states">
-              <CardContent className="pt-8">
-                <Award className="h-12 w-12 text-primary mx-auto mb-4" />
-                <div className="text-4xl font-bold mb-2">48</div>
-                <p className="text-muted-foreground">States + DC</p>
-              </CardContent>
-            </Card>
-
             <Card className="text-center" data-testid="card-stat-experience">
               <CardContent className="pt-8">
+                <TrendingUp className="h-12 w-12 text-primary mx-auto mb-4" />
+                <div className="text-4xl font-bold mb-2">25+</div>
+                <p className="text-muted-foreground">Years Combined Experience</p>
+              </CardContent>
+            </Card>
+
+            <Card className="text-center" data-testid="card-stat-repeat">
+              <CardContent className="pt-8">
+                <Users className="h-12 w-12 text-primary mx-auto mb-4" />
+                <div className="text-4xl font-bold mb-2">78%</div>
+                <p className="text-muted-foreground">Repeat Borrowers</p>
+              </CardContent>
+            </Card>
+
+            <Card className="text-center" data-testid="card-stat-avg-loan">
+              <CardContent className="pt-8">
+                <Award className="h-12 w-12 text-primary mx-auto mb-4" />
+                <div className="text-4xl font-bold mb-2">$340K</div>
+                <p className="text-muted-foreground">Average Loan Size</p>
+              </CardContent>
+            </Card>
+
+            <Card className="text-center" data-testid="card-stat-approval">
+              <CardContent className="pt-8">
                 <Shield className="h-12 w-12 text-primary mx-auto mb-4" />
-                <div className="text-4xl font-bold mb-2">48hrs</div>
-                <p className="text-muted-foreground">Fastest Closing</p>
+                <div className="text-4xl font-bold mb-2">24hr</div>
+                <p className="text-muted-foreground">Pre-Approval Time</p>
               </CardContent>
             </Card>
           </div>
