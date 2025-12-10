@@ -4530,6 +4530,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============================================
+  // SIMULATION ENDPOINTS (Admin only)
+  // ============================================
+  
+  // Start loan simulation (creates 100 loans over ~1 hour)
+  app.post("/api/admin/simulation/start", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { startSimulation } = await import("./simulation/loanSimulator");
+      const result = await startSimulation();
+      return res.json(result);
+    } catch (error) {
+      console.error("Error starting simulation:", error);
+      return res.status(500).json({ error: "Failed to start simulation" });
+    }
+  });
+  
+  // Get simulation status
+  app.get("/api/admin/simulation/status", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { getSimulationStatus } = await import("./simulation/loanSimulator");
+      const status = getSimulationStatus();
+      return res.json(status);
+    } catch (error) {
+      console.error("Error getting simulation status:", error);
+      return res.status(500).json({ error: "Failed to get simulation status" });
+    }
+  });
+  
+  // Stop simulation
+  app.post("/api/admin/simulation/stop", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { stopSimulation } = await import("./simulation/loanSimulator");
+      const result = await stopSimulation();
+      return res.json(result);
+    } catch (error) {
+      console.error("Error stopping simulation:", error);
+      return res.status(500).json({ error: "Failed to stop simulation" });
+    }
+  });
+
   // Validate invite token (public route for invite page)
   app.get("/api/invites/:token", async (req, res) => {
     try {
