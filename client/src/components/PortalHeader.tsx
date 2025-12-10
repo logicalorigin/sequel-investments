@@ -323,7 +323,23 @@ export function PortalHeader({ user, title, titleExtra, backHref }: PortalHeader
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem 
-                onClick={() => logoutMutation.mutate()}
+                onSelect={(e) => {
+                  e.preventDefault();
+                  // Force redirect after logout - use setTimeout to ensure it runs after dropdown closes
+                  fetch("/api/borrower/logout", { method: "POST", credentials: "include" })
+                    .then(() => {
+                      queryClient.clear();
+                      setTimeout(() => {
+                        window.location.replace("/login");
+                      }, 100);
+                    })
+                    .catch(() => {
+                      queryClient.clear();
+                      setTimeout(() => {
+                        window.location.replace("/login");
+                      }, 100);
+                    });
+                }}
                 className="flex items-center gap-2 cursor-pointer text-destructive"
                 data-testid="button-logout"
               >
