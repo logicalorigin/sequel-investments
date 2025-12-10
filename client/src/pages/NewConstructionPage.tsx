@@ -147,11 +147,11 @@ export default function NewConstructionPage() {
       />
 
       {/* Where We Lend Section - Above Recently Funded */}
-      <section className="py-12 sm:py-16 md:py-24 bg-card" data-testid="section-where-we-lend">
+      <section className="py-6 sm:py-16 md:py-24 bg-card" data-testid="section-where-we-lend">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-            {/* Map on left - as large as possible */}
-            <div className="order-2 lg:order-1 overflow-visible">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8 lg:gap-12 items-center">
+            {/* Map on left - hidden on mobile, show state chips instead */}
+            <div className="hidden sm:block order-2 lg:order-1 overflow-visible">
               <div className="w-full overflow-visible">
                 <USMap onStateClick={handleStateClick} />
               </div>
@@ -159,20 +159,20 @@ export default function NewConstructionPage() {
 
             {/* Text on right */}
             <div className="order-1 lg:order-2 text-center lg:text-left">
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 sm:mb-6">
+              <h2 className="text-xl sm:text-3xl md:text-4xl font-bold mb-2 sm:mb-6">
                 <span className="text-foreground">Where Are You </span>
                 <span className="text-primary">Building?</span>
               </h2>
-              <p className="text-base sm:text-lg md:text-xl text-muted-foreground mb-6 sm:mb-8 max-w-lg mx-auto lg:mx-0">
-                We offer New Construction loans in 48 states + DC. Click on a state to explore our ground-up financing in your area.
+              <p className="text-sm sm:text-lg md:text-xl text-muted-foreground mb-3 sm:mb-8 max-w-lg mx-auto lg:mx-0">
+                We offer New Construction loans in 48 states + DC.
               </p>
 
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 sm:gap-3 mb-6">
+              <div className="grid grid-cols-4 sm:grid-cols-4 gap-1.5 sm:gap-3 mb-3 sm:mb-6">
                 {eligibleStates.slice(0, 8).map((state) => (
                   <Link key={state.slug} href={`/states/${state.slug}`}>
-                    <div className="text-center p-2 sm:p-3 rounded-lg border bg-background hover-elevate transition-all cursor-pointer" data-testid={`state-link-${state.slug}`}>
-                      <p className="font-semibold text-primary text-sm sm:text-base">{state.abbreviation}</p>
-                      <p className="text-[10px] sm:text-xs text-muted-foreground">{state.name}</p>
+                    <div className="text-center p-1.5 sm:p-3 rounded-lg border bg-background hover-elevate transition-all cursor-pointer" data-testid={`state-link-${state.slug}`}>
+                      <p className="font-semibold text-primary text-xs sm:text-base">{state.abbreviation}</p>
+                      <p className="text-[8px] sm:text-xs text-muted-foreground truncate">{state.name}</p>
                     </div>
                   </Link>
                 ))}
@@ -180,8 +180,8 @@ export default function NewConstructionPage() {
 
               <div className="text-center lg:text-left">
                 <Link href="/where-we-lend">
-                  <Button variant="outline" size="default" className="sm:text-base" data-testid="button-view-all-states">
-                    <MapPin className="mr-2 h-4 w-4" />
+                  <Button variant="outline" size="sm" className="sm:h-10 sm:px-4 sm:text-base" data-testid="button-view-all-states">
+                    <MapPin className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                     View All States
                   </Button>
                 </Link>
@@ -199,7 +199,7 @@ export default function NewConstructionPage() {
       />
 
       {/* Main Content Section */}
-      <section className="py-12 sm:py-20 bg-background">
+      <section className="py-6 sm:py-20 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
             <div className="lg:col-span-2 space-y-8 sm:space-y-12">

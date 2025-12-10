@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -6,6 +5,11 @@ import { MapPin, DollarSign, Percent, Clock, Loader2 } from "lucide-react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import type { FundedDeal as DbFundedDeal } from "@shared/schema";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+} from "@/components/ui/carousel";
 
 import luxuryHome from "@assets/stock_images/luxury_modern_single_2639d1bd.jpg";
 import renovationHome from "@assets/stock_images/house_renovation_con_aaeb0f05.jpg";
@@ -177,8 +181,6 @@ export function RecentlyFundedCarousel({
   title = "Recently Funded Deals",
   subtitle = "See what we've funded for investors like you"
 }: RecentlyFundedCarouselProps) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-
   const queryParams = new URLSearchParams();
   if (loanType !== "all") {
     queryParams.set("loanType", loanType);
@@ -186,8 +188,6 @@ export function RecentlyFundedCarousel({
   if (state) {
     queryParams.set("state", state);
   }
-  const queryString = queryParams.toString();
-  const apiUrl = `/api/funded-deals${queryString ? `?${queryString}` : ''}`;
 
   const { data: apiDeals, isLoading } = useQuery<DbFundedDeal[]>({
     queryKey: ["/api/funded-deals", loanType, state],
@@ -204,16 +204,8 @@ export function RecentlyFundedCarousel({
     ? baseDeals 
     : baseDeals.filter(deal => deal.loanType === loanType);
 
-  const extendedDeals = deals.length >= 3 ? deals : 
+  const displayDeals = deals.length >= 3 ? deals : 
     deals.length > 0 ? Array.from({ length: 3 }, (_, i) => deals[i % deals.length]) : sampleDeals.slice(0, 3);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % extendedDeals.length);
-    }, 5000);
-    
-    return () => clearInterval(interval);
-  }, [extendedDeals.length]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -237,15 +229,6 @@ export function RecentlyFundedCarousel({
     }
   };
 
-  const getVisibleDeals = () => {
-    const visible = [];
-    for (let i = 0; i < 3; i++) {
-      const index = (currentIndex + i) % extendedDeals.length;
-      visible.push(extendedDeals[index]);
-    }
-    return visible;
-  };
-
   if (isLoading) {
     return (
       <section className="py-10 sm:py-16 bg-muted/30">
@@ -262,120 +245,146 @@ export function RecentlyFundedCarousel({
     );
   }
 
-  return (
-    <section className="py-10 sm:py-16 bg-muted/30">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6">
-        <div className="text-center mb-6 sm:mb-10">
-          <h2 className="text-2xl sm:text-3xl font-bold mb-2">{title}</h2>
-          <p className="text-sm sm:text-base text-muted-foreground">{subtitle}</p>
-        </div>
-
-        <div className="relative">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {getVisibleDeals().map((deal, index) => {
-              const cardContent = (
-                <Card 
-                  className={`overflow-hidden transition-all duration-300 h-full ${deal.isFromApi ? 'hover-elevate cursor-pointer' : ''}`}
-                  data-testid={`card-funded-deal-${deal.id}`}
-                >
-                  <div className="relative h-40 sm:h-48 overflow-hidden">
-                    <img 
-                      src={deal.image} 
-                      alt={`${deal.location}, ${deal.state}`}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute top-2 sm:top-3 left-2 sm:left-3 flex flex-col gap-1">
-                      <Badge 
-                        className={`text-[10px] sm:text-xs ${getLoanTypeBadgeColor(deal.loanType)}`}
-                      >
-                        {deal.loanType}
-                      </Badge>
-                      {deal.loanSubtype && (
-                        <Badge variant="secondary" className="text-[9px] sm:text-[10px] bg-background/80 backdrop-blur-sm">
-                          {deal.loanSubtype}
-                        </Badge>
-                      )}
-                    </div>
-                    <Badge 
-                      variant="secondary"
-                      className="absolute top-2 sm:top-3 right-2 sm:right-3 text-[10px] sm:text-xs bg-background/90 backdrop-blur-sm"
-                    >
-                      {deal.propertyType}
-                    </Badge>
-                  </div>
-                  <CardContent className="p-3 sm:p-4">
-                    <div className="flex items-center gap-1 text-muted-foreground mb-2">
-                      <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
-                      <span className="text-xs sm:text-sm font-medium">{deal.location}, {deal.state}</span>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
-                      <div className="flex items-center gap-1 sm:gap-1.5">
-                        <DollarSign className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary shrink-0" />
-                        <div className="min-w-0">
-                          <p className="text-[10px] sm:text-xs text-muted-foreground">Loan Amount</p>
-                          <p className="font-semibold truncate">{formatCurrency(deal.loanAmount)}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1 sm:gap-1.5">
-                        <Percent className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-600 shrink-0" />
-                        <div>
-                          <p className="text-[10px] sm:text-xs text-muted-foreground">Rate</p>
-                          <p className="font-semibold">{deal.rate.toFixed(3)}%</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1 sm:gap-1.5">
-                        {deal.ltv ? (
-                          <>
-                            <Percent className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600 shrink-0" />
-                            <div>
-                              <p className="text-[10px] sm:text-xs text-muted-foreground">LTV</p>
-                              <p className="font-semibold">{deal.ltv}%</p>
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            <Percent className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-orange-600 shrink-0" />
-                            <div>
-                              <p className="text-[10px] sm:text-xs text-muted-foreground">LTC</p>
-                              <p className="font-semibold">{deal.ltc}%</p>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1 sm:gap-1.5">
-                        <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-purple-600 shrink-0" />
-                        <div>
-                          <p className="text-[10px] sm:text-xs text-muted-foreground">Closed In</p>
-                          <p className="font-semibold">{deal.closeTime}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-
-              return deal.isFromApi ? (
-                <Link 
-                  key={`${deal.id}-${currentIndex}-${index}`}
-                  href={`/funded-deals/${deal.id}`}
-                  data-testid={`link-funded-deal-${deal.id}`}
-                >
-                  {cardContent}
-                </Link>
-              ) : (
-                <div key={`${deal.id}-${currentIndex}-${index}`}>
-                  {cardContent}
-                </div>
-              );
-            })}
+  const renderDealCard = (deal: FundedDeal, index: number, isMobile: boolean = false) => {
+    const cardContent = (
+      <Card 
+        className={`overflow-hidden transition-all duration-300 h-full ${deal.isFromApi ? 'hover-elevate cursor-pointer' : ''}`}
+        data-testid={`card-funded-deal-${deal.id}${isMobile ? '-mobile' : ''}`}
+      >
+        <div className={`relative ${isMobile ? 'h-28' : 'h-40 sm:h-48'} overflow-hidden`}>
+          <img 
+            src={deal.image} 
+            alt={`${deal.location}, ${deal.state}`}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute top-2 left-2 flex flex-col gap-1">
+            <Badge 
+              className={`text-[9px] ${isMobile ? '' : 'sm:text-xs'} ${getLoanTypeBadgeColor(deal.loanType)}`}
+            >
+              {deal.loanType}
+            </Badge>
           </div>
+          <Badge 
+            variant="secondary"
+            className={`absolute top-2 right-2 text-[9px] ${isMobile ? '' : 'sm:text-xs'} bg-background/90 backdrop-blur-sm`}
+          >
+            {deal.propertyType}
+          </Badge>
+        </div>
+        <CardContent className={isMobile ? 'p-2' : 'p-3 sm:p-4'}>
+          <div className="flex items-center gap-1 text-muted-foreground mb-1.5">
+            <MapPin className={`${isMobile ? 'h-3 w-3' : 'h-3.5 w-3.5 sm:h-4 sm:w-4'} shrink-0`} />
+            <span className={`${isMobile ? 'text-[11px]' : 'text-xs sm:text-sm'} font-medium`}>{deal.location}, {deal.state}</span>
+          </div>
+          
+          {isMobile ? (
+            <div className="flex justify-between text-[10px]">
+              <div>
+                <span className="text-muted-foreground">Loan: </span>
+                <span className="font-semibold">{formatCurrency(deal.loanAmount)}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Rate: </span>
+                <span className="font-semibold text-primary">{deal.rate.toFixed(2)}%</span>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
+              <div className="flex items-center gap-1 sm:gap-1.5">
+                <DollarSign className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Loan Amount</p>
+                  <p className="font-semibold truncate">{formatCurrency(deal.loanAmount)}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1 sm:gap-1.5">
+                <Percent className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-600 shrink-0" />
+                <div>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Rate</p>
+                  <p className="font-semibold">{deal.rate.toFixed(3)}%</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1 sm:gap-1.5">
+                {deal.ltv ? (
+                  <>
+                    <Percent className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600 shrink-0" />
+                    <div>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">LTV</p>
+                      <p className="font-semibold">{deal.ltv}%</p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <Percent className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-orange-600 shrink-0" />
+                    <div>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">LTC</p>
+                      <p className="font-semibold">{deal.ltc}%</p>
+                    </div>
+                  </>
+                )}
+              </div>
+              <div className="flex items-center gap-1 sm:gap-1.5">
+                <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-purple-600 shrink-0" />
+                <div>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Closed In</p>
+                  <p className="font-semibold">{deal.closeTime}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
 
+    return deal.isFromApi ? (
+      <Link 
+        key={`${deal.id}-${index}${isMobile ? '-mobile' : ''}`}
+        href={`/funded-deals/${deal.id}`}
+        data-testid={`link-funded-deal-${deal.id}`}
+      >
+        {cardContent}
+      </Link>
+    ) : (
+      <div key={`${deal.id}-${index}${isMobile ? '-mobile' : ''}`}>
+        {cardContent}
+      </div>
+    );
+  };
+
+  return (
+    <section className="py-6 sm:py-16 bg-muted/30">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6">
+        <div className="text-center mb-4 sm:mb-10">
+          <h2 className="text-xl sm:text-3xl font-bold mb-1 sm:mb-2">{title}</h2>
+          <p className="text-xs sm:text-base text-muted-foreground">{subtitle}</p>
         </div>
 
-        <div className="text-center mt-6 sm:mt-8">
+        {/* Mobile: Horizontal carousel */}
+        <div className="sm:hidden">
+          <Carousel opts={{ align: "start", loop: true }} className="w-full">
+            <CarouselContent className="-ml-2">
+              {displayDeals.map((deal, index) => (
+                <CarouselItem key={`mobile-${deal.id}-${index}`} className="pl-2 basis-[70%]">
+                  {renderDealCard(deal, index, true)}
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+          </Carousel>
+          <p className="text-center text-[10px] text-muted-foreground mt-2">Swipe for more</p>
+        </div>
+
+        {/* Desktop: Static Grid - show first 3 deals */}
+        <div className="hidden sm:block">
+          <div className="relative">
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              {displayDeals.slice(0, 3).map((deal, index) => renderDealCard(deal, index))}
+            </div>
+          </div>
+        </div>
+
+        <div className="text-center mt-4 sm:mt-8">
           <Link href="/fundings">
-            <Button variant="outline" data-testid="button-view-all-fundings">
+            <Button variant="outline" size="sm" className="sm:h-10 sm:px-4 sm:text-base" data-testid="button-view-all-fundings">
               View All Funded Deals
             </Button>
           </Link>
