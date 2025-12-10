@@ -874,3 +874,329 @@ export async function stopSimulation(): Promise<{ success: boolean; message: str
     message: `Simulation stopped. Created ${simulationState.loansCreated} of ${simulationState.totalLoans} loans` 
   };
 }
+
+// ============================================================
+// LIFECYCLE PROGRESSION ENGINE
+// ============================================================
+
+const LIFECYCLE_CONFIG = {
+  checkIntervalMs: 2 * 60 * 1000, // Check every 2 minutes
+  stageMinMinutes: {
+    account_review: 30,    // Min 30 mins in account review
+    underwriting: 60,      // Min 1 hour in underwriting
+    term_sheet: 45,        // Min 45 mins for term sheet
+    processing: 90,        // Min 1.5 hours in processing
+    docs_out: 60,          // Min 1 hour for docs out
+    closed: 0              // Final stage
+  },
+  advanceProbability: 0.3, // 30% chance to advance each check
+  denialProbability: 0.02, // 2% chance of denial at each stage
+};
+
+const STAGE_ORDER = ["account_review", "underwriting", "term_sheet", "processing", "docs_out", "closed"];
+
+interface LifecycleState {
+  isRunning: boolean;
+  isProcessing: boolean; // Reentrancy guard to prevent overlapping runs
+  sessionToken: number;  // Unique token for each engine session to prevent stale cycles
+  loansAdvanced: number;
+  loansDenied: number;
+  startedAt: Date | null;
+  intervalId: NodeJS.Timeout | null;
+  currentCyclePromise: Promise<void> | null; // Track current cycle for graceful shutdown
+}
+
+const lifecycleState: LifecycleState = {
+  isRunning: false,
+  isProcessing: false,
+  sessionToken: 0,
+  loansAdvanced: 0,
+  loansDenied: 0,
+  startedAt: null,
+  intervalId: null,
+  currentCyclePromise: null
+};
+
+export function getLifecycleStatus(): {
+  isRunning: boolean;
+  loansAdvanced: number;
+  loansDenied: number;
+  startedAt: string | null;
+} {
+  return {
+    isRunning: lifecycleState.isRunning,
+    loansAdvanced: lifecycleState.loansAdvanced,
+    loansDenied: lifecycleState.loansDenied,
+    startedAt: lifecycleState.startedAt?.toISOString() ?? null
+  };
+}
+
+export async function startLifecycleEngine(): Promise<{ success: boolean; message: string }> {
+  if (lifecycleState.isRunning) {
+    return { success: false, message: "Lifecycle engine is already running" };
+  }
+  
+  // Increment session token to invalidate any stale cycles from previous runs
+  lifecycleState.sessionToken++;
+  const currentToken = lifecycleState.sessionToken;
+  
+  lifecycleState.isRunning = true;
+  lifecycleState.startedAt = new Date();
+  lifecycleState.loansAdvanced = 0;
+  lifecycleState.loansDenied = 0;
+  
+  console.log(`[Lifecycle] Starting lifecycle progression engine (session ${currentToken})`);
+  
+  // Use recursive setTimeout for guaranteed serialization
+  // This ensures the next run only starts after the previous one completes
+  async function runCycle(): Promise<void> {
+    // Check if this cycle belongs to the current session
+    if (!lifecycleState.isRunning || lifecycleState.sessionToken !== currentToken) {
+      console.log(`[Lifecycle] Cycle from session ${currentToken} stopped (current: ${lifecycleState.sessionToken})`);
+      lifecycleState.currentCyclePromise = null;
+      return;
+    }
+    
+    await progressLoans(currentToken);
+    
+    // Schedule next run only after this one completes and session is still valid
+    if (lifecycleState.isRunning && lifecycleState.sessionToken === currentToken) {
+      lifecycleState.intervalId = setTimeout(() => {
+        lifecycleState.currentCyclePromise = runCycle();
+      }, LIFECYCLE_CONFIG.checkIntervalMs) as unknown as NodeJS.Timeout;
+    } else {
+      lifecycleState.currentCyclePromise = null;
+    }
+  }
+  
+  // Start the first cycle immediately and track the promise
+  lifecycleState.currentCyclePromise = runCycle();
+  
+  return { 
+    success: true, 
+    message: `Lifecycle engine started. Checking loans every ${LIFECYCLE_CONFIG.checkIntervalMs / 60000} minutes` 
+  };
+}
+
+export async function stopLifecycleEngine(): Promise<{ success: boolean; message: string }> {
+  if (!lifecycleState.isRunning) {
+    return { success: false, message: "Lifecycle engine is not running" };
+  }
+  
+  // Invalidate the current session to stop future cycles
+  lifecycleState.isRunning = false;
+  
+  // Clear any pending scheduled cycle
+  if (lifecycleState.intervalId) {
+    clearTimeout(lifecycleState.intervalId);
+    lifecycleState.intervalId = null;
+  }
+  
+  // Wait for current cycle to complete if one is running
+  if (lifecycleState.currentCyclePromise) {
+    console.log("[Lifecycle] Waiting for current cycle to complete...");
+    try {
+      await lifecycleState.currentCyclePromise;
+    } catch (error) {
+      console.error("[Lifecycle] Error waiting for cycle:", error);
+    }
+    lifecycleState.currentCyclePromise = null;
+  }
+  
+  console.log("[Lifecycle] Engine fully stopped");
+  
+  return { 
+    success: true, 
+    message: `Lifecycle engine stopped. Advanced ${lifecycleState.loansAdvanced} loans, denied ${lifecycleState.loansDenied}` 
+  };
+}
+
+async function progressLoans(sessionToken: number): Promise<void> {
+  // Reentrancy guard: skip if already processing
+  if (lifecycleState.isProcessing) {
+    console.log("[Lifecycle] Skipping cycle - previous run still in progress");
+    return;
+  }
+  
+  // Validate session token before starting
+  if (lifecycleState.sessionToken !== sessionToken) {
+    console.log(`[Lifecycle] Skipping stale session ${sessionToken} (current: ${lifecycleState.sessionToken})`);
+    return;
+  }
+  
+  lifecycleState.isProcessing = true;
+  
+  try {
+    // Get all loans that are in_review and not at the final stage
+    const eligibleLoans = await db
+      .select()
+      .from(loanApplications)
+      .where(
+        sql`${loanApplications.status} = 'in_review' AND ${loanApplications.processingStage} != 'closed'`
+      );
+    
+    console.log(`[Lifecycle] Checking ${eligibleLoans.length} eligible loans for progression`);
+    
+    // Get staff for assignments
+    const staffMap = await getOrCreateStaffUsers();
+    
+    for (const loan of eligibleLoans) {
+      // Check session validity before each loan operation
+      if (lifecycleState.sessionToken !== sessionToken || !lifecycleState.isRunning) {
+        console.log(`[Lifecycle] Session ${sessionToken} invalidated during processing, aborting`);
+        break;
+      }
+      
+      // Check if loan should advance
+      if (Math.random() > LIFECYCLE_CONFIG.advanceProbability) {
+        continue; // Skip this loan this cycle
+      }
+      
+      // Get latest stage history to check time in current stage
+      const history = await db
+        .select()
+        .from(applicationStageHistory)
+        .where(eq(applicationStageHistory.loanApplicationId, loan.id))
+        .orderBy(sql`created_at DESC`)
+        .limit(1);
+      
+      if (history.length > 0) {
+        const lastChange = history[0].createdAt;
+        const minutesInStage = (Date.now() - new Date(lastChange).getTime()) / 60000;
+        const minTime = LIFECYCLE_CONFIG.stageMinMinutes[loan.processingStage as keyof typeof LIFECYCLE_CONFIG.stageMinMinutes] || 0;
+        
+        if (minutesInStage < minTime) {
+          continue; // Not enough time in current stage
+        }
+      }
+      
+      // Small chance of denial
+      if (Math.random() < LIFECYCLE_CONFIG.denialProbability) {
+        await denyLoan(loan, staffMap);
+        lifecycleState.loansDenied++;
+        continue;
+      }
+      
+      // Advance to next stage
+      await advanceLoan(loan, staffMap);
+      lifecycleState.loansAdvanced++;
+    }
+  } catch (error) {
+    console.error("[Lifecycle] Error during progression check:", error);
+  } finally {
+    // Always release the reentrancy guard
+    lifecycleState.isProcessing = false;
+  }
+}
+
+async function advanceLoan(
+  loan: typeof loanApplications.$inferSelect,
+  staffMap: Record<string, string>
+): Promise<void> {
+  const currentStageIndex = STAGE_ORDER.indexOf(loan.processingStage as string);
+  if (currentStageIndex === -1 || currentStageIndex >= STAGE_ORDER.length - 1) {
+    return; // Invalid stage or already at final stage
+  }
+  
+  const nextStage = STAGE_ORDER[currentStageIndex + 1];
+  const nextStatus = nextStage === "closed" ? "funded" : "in_review";
+  
+  // Update the loan
+  await db
+    .update(loanApplications)
+    .set({ 
+      processingStage: nextStage as any,
+      status: nextStatus as any,
+      updatedAt: new Date()
+    })
+    .where(eq(loanApplications.id, loan.id));
+  
+  // Get staff for this stage
+  const staffForStage = 
+    currentStageIndex <= 1 ? "account_executive" :
+    currentStageIndex === 2 ? "underwriter" :
+    currentStageIndex <= 4 ? "processor" : "closer";
+  
+  const staffNames: Record<string, string> = {
+    account_executive: "Alex Morrison",
+    processor: "Jordan Chen",
+    underwriter: "Taylor Williams",
+    closer: "Morgan Davis"
+  };
+  
+  // Create stage history
+  await db.insert(applicationStageHistory).values({
+    loanApplicationId: loan.id,
+    fromStatus: loan.status as any,
+    toStatus: nextStatus as any,
+    fromStage: loan.processingStage as any,
+    toStage: nextStage as any,
+    changedByUserId: staffMap[staffForStage],
+    changedByName: staffNames[staffForStage],
+    notes: `Moved to ${nextStage.replace(/_/g, " ")} stage`,
+    isAutomated: true,
+    durationMinutes: null
+  });
+  
+  // Create new assignment if needed for processor/closer
+  if (nextStage === "processing" && currentStageIndex < 3) {
+    await db.insert(loanAssignments).values({
+      loanApplicationId: loan.id,
+      userId: staffMap.processor,
+      role: "processor" as const,
+      isPrimary: true,
+      assignedByUserId: staffMap.underwriter
+    });
+  } else if (nextStage === "closed") {
+    await db.insert(loanAssignments).values({
+      loanApplicationId: loan.id,
+      userId: staffMap.closer,
+      role: "closer" as const,
+      isPrimary: true,
+      assignedByUserId: staffMap.processor
+    });
+  }
+  
+  console.log(`[Lifecycle] Advanced loan ${loan.id.substring(0, 8)} from ${loan.processingStage} to ${nextStage}`);
+}
+
+async function denyLoan(
+  loan: typeof loanApplications.$inferSelect,
+  staffMap: Record<string, string>
+): Promise<void> {
+  const reasons = [
+    "DSCR ratio below minimum threshold",
+    "Property valuation concerns",
+    "Borrower credit history issues",
+    "Insufficient documentation",
+    "Property condition concerns",
+    "Title issues identified",
+    "Environmental concerns"
+  ];
+  
+  // Update the loan
+  await db
+    .update(loanApplications)
+    .set({ 
+      status: "denied" as any,
+      updatedAt: new Date()
+    })
+    .where(eq(loanApplications.id, loan.id));
+  
+  // Create stage history
+  await db.insert(applicationStageHistory).values({
+    loanApplicationId: loan.id,
+    fromStatus: loan.status as any,
+    toStatus: "denied" as const,
+    fromStage: loan.processingStage as any,
+    toStage: loan.processingStage as any,
+    changedByUserId: staffMap.underwriter,
+    changedByName: "Taylor Williams",
+    notes: "Application denied",
+    reason: randomElement(reasons),
+    isAutomated: true,
+    durationMinutes: null
+  });
+  
+  console.log(`[Lifecycle] Denied loan ${loan.id.substring(0, 8)} at ${loan.processingStage} stage`);
+}
