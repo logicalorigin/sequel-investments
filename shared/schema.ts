@@ -141,6 +141,7 @@ export const loanApplicationsRelations = relations(loanApplications, ({ one, man
     references: [users.id],
   }),
   documents: many(documents),
+  applicationScopeItems: many(applicationScopeItems),
 }));
 
 export type LoanApplication = typeof loanApplications.$inferSelect;
@@ -705,6 +706,9 @@ export const scopeOfWorkItems = pgTable("scope_of_work_items", {
   // Notes
   notes: text("notes"),
   
+  // Source tracking - links to the original application scope item when copied during funding
+  sourceApplicationScopeItemId: varchar("source_application_scope_item_id"),
+  
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -843,6 +847,46 @@ export const SCOPE_OF_WORK_CATEGORY_NAMES: Record<ScopeOfWorkCategory, string> =
   interior: "Interior",
   exterior: "Exterior",
 };
+
+// ============================================
+// APPLICATION SCOPE OF WORK (For Fix & Flip / New Construction Applications)
+// ============================================
+
+// Application scope of work items - entered during application phase before funding
+export const applicationScopeItems = pgTable("application_scope_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  loanApplicationId: varchar("loan_application_id").notNull().references(() => loanApplications.id),
+  
+  category: scopeOfWorkCategoryEnum("category").notNull(),
+  itemName: text("item_name").notNull(),
+  details: text("details"),
+  sortOrder: integer("sort_order").default(0).notNull(),
+  
+  // Budget
+  budgetAmount: integer("budget_amount").default(0).notNull(),
+  
+  // Notes
+  notes: text("notes"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const applicationScopeItemsRelations = relations(applicationScopeItems, ({ one }) => ({
+  loanApplication: one(loanApplications, {
+    fields: [applicationScopeItems.loanApplicationId],
+    references: [loanApplications.id],
+  }),
+}));
+
+export type ApplicationScopeItem = typeof applicationScopeItems.$inferSelect;
+export type InsertApplicationScopeItem = typeof applicationScopeItems.$inferInsert;
+
+export const insertApplicationScopeItemSchema = createInsertSchema(applicationScopeItems).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
 
 // ============================================
 // HELPER FUNCTIONS FOR LOAN CALCULATIONS
