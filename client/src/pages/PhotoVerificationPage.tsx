@@ -130,7 +130,7 @@ export default function PhotoVerificationPage() {
   const streamRef = useRef<MediaStream | null>(null);
   
   const { data: application, isLoading: loadingApp } = useQuery<LoanApplication>({
-    queryKey: ["/api/loan-applications", applicationId],
+    queryKey: ["/api/applications", applicationId],
   });
   
   const { data: photos = [], isLoading: loadingPhotos } = useQuery<VerificationPhoto[]>({
