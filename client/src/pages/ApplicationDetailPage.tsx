@@ -4,7 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useParams } from "wouter";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -43,6 +43,7 @@ import {
   Send,
   CreditCard,
   ExternalLink,
+  Camera,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import {
@@ -1054,17 +1055,44 @@ export default function ApplicationDetailPage() {
               application.analyzerType === "construction" ||
               application.loanType?.toLowerCase().includes("flip") || 
               application.loanType?.toLowerCase().includes("construction")) && (
-              <ApplicationScopeBuilder 
-                applicationId={applicationId!} 
-                readOnly={application.status !== "draft" && application.status !== "submitted"}
-                desiredRehabBudget={application.rehabBudget}
-                onUpdateRehabBudget={async (newBudget: number) => {
-                  await apiRequest("PATCH", `/api/applications/${applicationId}`, { 
-                    rehabBudget: newBudget 
-                  });
-                  queryClient.invalidateQueries({ queryKey: ["/api/applications", applicationId] });
-                }}
-              />
+              <>
+                <ApplicationScopeBuilder 
+                  applicationId={applicationId!} 
+                  readOnly={application.status !== "draft" && application.status !== "submitted"}
+                  desiredRehabBudget={application.rehabBudget}
+                  onUpdateRehabBudget={async (newBudget: number) => {
+                    await apiRequest("PATCH", `/api/applications/${applicationId}`, { 
+                      rehabBudget: newBudget 
+                    });
+                    queryClient.invalidateQueries({ queryKey: ["/api/applications", applicationId] });
+                  }}
+                />
+
+                <Card className="border-primary/20 bg-primary/5">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Camera className="h-5 w-5 text-primary" />
+                      Property Verification Photos
+                    </CardTitle>
+                    <CardDescription>
+                      Take and submit required photos of the property to verify its condition
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Photo verification is required for Fix & Flip and Construction loans to move your application forward. 
+                      Use your phone's camera to capture photos of the property exterior, interior, and any renovation areas.
+                    </p>
+                    <Button 
+                      onClick={() => navigate(`/portal/application/${applicationId}/verification`)}
+                      data-testid="button-start-photo-verification"
+                    >
+                      <Camera className="h-4 w-4 mr-2" />
+                      Start Photo Verification
+                    </Button>
+                  </CardContent>
+                </Card>
+              </>
             )}
 
             {application.status === "funded" && application.loanType?.toLowerCase().includes("dscr") && (

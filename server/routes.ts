@@ -1636,6 +1636,170 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ============================================
+  // VERIFICATION PHOTOS ROUTES (Property & Renovation Verification)
+  // ============================================
+  
+  // Get verification photos for an application
+  app.get("/api/applications/:applicationId/verification-photos", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const application = await storage.getLoanApplication(req.params.applicationId);
+      
+      if (!application) {
+        return res.status(404).json({ error: "Application not found" });
+      }
+      
+      if (application.userId !== userId && user?.role === "borrower") {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const photos = await storage.getVerificationPhotos(application.id);
+      return res.json(photos);
+    } catch (error) {
+      console.error("Error fetching verification photos:", error);
+      return res.status(500).json({ error: "Failed to fetch photos" });
+    }
+  });
+  
+  // Get upload URL for verification photo
+  app.post("/api/applications/:applicationId/verification-photos/upload-url", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { fileName, photoType } = req.body;
+      
+      if (!fileName) {
+        return res.status(400).json({ error: "fileName is required" });
+      }
+      
+      const application = await storage.getLoanApplication(req.params.applicationId);
+      if (!application) {
+        return res.status(404).json({ error: "Application not found" });
+      }
+      
+      if (application.userId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const objectStorageService = new ObjectStorageService();
+      const dealName = [application.propertyAddress, application.propertyCity, application.propertyState]
+        .filter(Boolean)
+        .join(", ") || `Application ${application.id.slice(0, 8)}`;
+      
+      const photoPath = `verification-photos/${photoType || 'other'}/${fileName}`;
+      const uploadURL = await objectStorageService.getApplicationDocumentUploadURL(dealName, photoPath);
+      
+      res.json({ uploadURL });
+    } catch (error: any) {
+      console.error("Error getting verification photo upload URL:", error);
+      if (error.message?.includes("PRIVATE_OBJECT_DIR")) {
+        res.status(503).json({ error: "File storage not configured" });
+      } else {
+        res.status(500).json({ error: "Failed to get upload URL" });
+      }
+    }
+  });
+  
+  // Create verification photo
+  app.post("/api/applications/:applicationId/verification-photos", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const application = await storage.getLoanApplication(req.params.applicationId);
+      
+      if (!application) {
+        return res.status(404).json({ error: "Application not found" });
+      }
+      
+      if (application.userId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const {
+        photoType,
+        fileKey,
+        fileName,
+        fileSizeBytes,
+        mimeType,
+        browserLatitude,
+        browserLongitude,
+        notes,
+      } = req.body;
+      
+      if (!fileKey || !fileName || !photoType) {
+        return res.status(400).json({ error: "fileKey, fileName, and photoType are required" });
+      }
+      
+      // Parse EXIF from the uploaded image
+      const { parseExifFromUrl } = await import("./services/exifService");
+      const { PHOTO_VERIFICATION_CONFIG } = await import("@shared/schema");
+      
+      const baseUrl = process.env.REPLIT_DEV_DOMAIN 
+        ? `https://${process.env.REPLIT_DEV_DOMAIN}`
+        : `http://localhost:${process.env.PORT || 5000}`;
+      const imageUrl = `${baseUrl}${fileKey.startsWith('/') ? fileKey : '/objects/' + fileKey}`;
+      
+      const exifData = await parseExifFromUrl(imageUrl);
+      
+      // For verification photos, we set initial status to pending (manual review)
+      const verificationStatus = "pending";
+      
+      const photo = await storage.createVerificationPhoto({
+        loanApplicationId: application.id,
+        uploadedByUserId: userId,
+        photoType,
+        fileKey,
+        fileName,
+        fileSizeBytes,
+        mimeType,
+        exifLatitude: exifData.latitude?.toString(),
+        exifLongitude: exifData.longitude?.toString(),
+        exifTimestamp: exifData.timestamp || undefined,
+        exifCameraModel: exifData.cameraModel,
+        browserLatitude,
+        browserLongitude,
+        notes,
+        verificationStatus,
+      });
+      
+      return res.status(201).json(photo);
+    } catch (error) {
+      console.error("Error creating verification photo:", error);
+      return res.status(500).json({ error: "Failed to create photo" });
+    }
+  });
+  
+  // Delete verification photo
+  app.delete("/api/verification-photos/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const photo = await storage.getVerificationPhoto(req.params.id);
+      
+      if (!photo) {
+        return res.status(404).json({ error: "Photo not found" });
+      }
+      
+      const application = await storage.getLoanApplication(photo.loanApplicationId);
+      
+      if (!application) {
+        return res.status(404).json({ error: "Application not found" });
+      }
+      
+      const user = await storage.getUser(userId);
+      
+      // Owner can delete their own photos, staff can delete any
+      if (photo.uploadedByUserId !== userId && user?.role === "borrower") {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      await storage.deleteVerificationPhoto(photo.id);
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting verification photo:", error);
+      return res.status(500).json({ error: "Failed to delete photo" });
+    }
+  });
+
+  // ============================================
   // LOAN ESCROW ROUTES (For DSCR Loans)
   // ============================================
   app.get("/api/serviced-loans/:loanId/escrow", isAuthenticated, async (req: any, res) => {

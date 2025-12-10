@@ -2280,3 +2280,193 @@ export const PHOTO_VERIFICATION_CONFIG = {
   MAX_PHOTO_SIZE_MB: 10, // Maximum file size
   ALLOWED_MIME_TYPES: ["image/jpeg", "image/png", "image/heic", "image/heif"],
 };
+
+// ============================================================================
+// PROPERTY & RENOVATION VERIFICATION PHOTOS
+// ============================================================================
+
+// Verification photo type enum - defines all required photos for property/renovation verification
+export const verificationPhotoTypeEnum = pgEnum("verification_photo_type", [
+  // Property Exterior (required for all Fix & Flip)
+  "exterior_front",
+  "exterior_back", 
+  "exterior_left",
+  "exterior_right",
+  "street_view",
+  "property_signage",
+  
+  // Property Interior (required rooms)
+  "kitchen",
+  "kitchen_appliances",
+  "bathroom_1",
+  "bathroom_2",
+  "living_room",
+  "master_bedroom",
+  "bedroom_2",
+  "bedroom_3",
+  
+  // Systems & Mechanicals
+  "hvac_unit",
+  "electrical_panel",
+  "water_heater",
+  "plumbing_main",
+  
+  // Renovation Areas
+  "renovation_area_1",
+  "renovation_area_2",
+  "renovation_area_3",
+  "renovation_area_4",
+  
+  // Condition Documentation
+  "damage_area_1",
+  "damage_area_2",
+  "damage_area_3",
+  
+  // Other
+  "other"
+]);
+
+export type VerificationPhotoType = 
+  | "exterior_front" | "exterior_back" | "exterior_left" | "exterior_right" | "street_view" | "property_signage"
+  | "kitchen" | "kitchen_appliances" | "bathroom_1" | "bathroom_2" | "living_room" | "master_bedroom" | "bedroom_2" | "bedroom_3"
+  | "hvac_unit" | "electrical_panel" | "water_heater" | "plumbing_main"
+  | "renovation_area_1" | "renovation_area_2" | "renovation_area_3" | "renovation_area_4"
+  | "damage_area_1" | "damage_area_2" | "damage_area_3"
+  | "other";
+
+// Verification category for grouping photo types
+export const VERIFICATION_PHOTO_CATEGORIES = {
+  property_exterior: {
+    name: "Property Exterior",
+    description: "Photos showing all sides of the property from the outside",
+    photoTypes: ["exterior_front", "exterior_back", "exterior_left", "exterior_right", "street_view", "property_signage"] as VerificationPhotoType[],
+  },
+  property_interior: {
+    name: "Property Interior",
+    description: "Photos of key rooms inside the property",
+    photoTypes: ["kitchen", "kitchen_appliances", "bathroom_1", "bathroom_2", "living_room", "master_bedroom", "bedroom_2", "bedroom_3"] as VerificationPhotoType[],
+  },
+  systems_mechanicals: {
+    name: "Systems & Mechanicals",
+    description: "Photos of HVAC, electrical, plumbing systems",
+    photoTypes: ["hvac_unit", "electrical_panel", "water_heater", "plumbing_main"] as VerificationPhotoType[],
+  },
+  renovation_areas: {
+    name: "Renovation Areas",
+    description: "Photos of areas planned for renovation work",
+    photoTypes: ["renovation_area_1", "renovation_area_2", "renovation_area_3", "renovation_area_4"] as VerificationPhotoType[],
+  },
+  condition_documentation: {
+    name: "Condition Documentation",
+    description: "Photos documenting any damage or issues",
+    photoTypes: ["damage_area_1", "damage_area_2", "damage_area_3"] as VerificationPhotoType[],
+  },
+} as const;
+
+// Photo type display names and instructions
+export const VERIFICATION_PHOTO_CONFIG: Record<VerificationPhotoType, { 
+  name: string; 
+  description: string; 
+  instructions: string;
+  required: boolean;
+}> = {
+  // Exterior
+  exterior_front: { name: "Front of Property", description: "Front facade including entrance", instructions: "Stand at street level facing the front of the property. Include the entire front facade, entrance door, and any visible landscaping.", required: true },
+  exterior_back: { name: "Back of Property", description: "Rear view of property", instructions: "Photograph the entire back of the property including any patio, deck, or backyard area.", required: true },
+  exterior_left: { name: "Left Side", description: "Left side of property", instructions: "Stand facing the property and photograph the entire left side from front to back.", required: true },
+  exterior_right: { name: "Right Side", description: "Right side of property", instructions: "Stand facing the property and photograph the entire right side from front to back.", required: true },
+  street_view: { name: "Street View", description: "Property from street", instructions: "Stand across the street to capture the property in context with neighboring properties.", required: true },
+  property_signage: { name: "Property Signage", description: "Address or property sign", instructions: "Photograph any visible property address numbers, signs, or markers.", required: false },
+  
+  // Interior
+  kitchen: { name: "Kitchen Overview", description: "Full kitchen view", instructions: "Stand in doorway or corner to capture the entire kitchen including cabinets, counters, and appliances.", required: true },
+  kitchen_appliances: { name: "Kitchen Appliances", description: "Stove, fridge, dishwasher", instructions: "Close-up photo showing all major kitchen appliances - stove, refrigerator, dishwasher.", required: true },
+  bathroom_1: { name: "Primary Bathroom", description: "Main bathroom", instructions: "Capture the entire bathroom including toilet, sink/vanity, and shower/tub.", required: true },
+  bathroom_2: { name: "Secondary Bathroom", description: "Additional bathroom", instructions: "Full view of additional bathroom if property has more than one.", required: false },
+  living_room: { name: "Living Room", description: "Main living area", instructions: "Wide shot capturing the entire living room or main gathering space.", required: true },
+  master_bedroom: { name: "Master Bedroom", description: "Primary bedroom", instructions: "Full view of the master/primary bedroom.", required: true },
+  bedroom_2: { name: "Bedroom 2", description: "Second bedroom", instructions: "Full view of the second bedroom.", required: false },
+  bedroom_3: { name: "Bedroom 3", description: "Third bedroom", instructions: "Full view of the third bedroom if applicable.", required: false },
+  
+  // Systems
+  hvac_unit: { name: "HVAC Unit", description: "Heating/cooling system", instructions: "Photo of the HVAC unit (indoor and/or outdoor) showing condition and model info if visible.", required: true },
+  electrical_panel: { name: "Electrical Panel", description: "Main breaker box", instructions: "Photo of the electrical panel. Include the panel cover and inside breakers if accessible.", required: true },
+  water_heater: { name: "Water Heater", description: "Hot water tank", instructions: "Photo of the water heater showing condition and any visible labels.", required: true },
+  plumbing_main: { name: "Main Plumbing", description: "Main shutoff or pipes", instructions: "Photo of main water shutoff or visible plumbing lines.", required: false },
+  
+  // Renovation
+  renovation_area_1: { name: "Renovation Area 1", description: "First area needing work", instructions: "Photo of first renovation area showing current condition.", required: false },
+  renovation_area_2: { name: "Renovation Area 2", description: "Second area needing work", instructions: "Photo of second renovation area showing current condition.", required: false },
+  renovation_area_3: { name: "Renovation Area 3", description: "Third area needing work", instructions: "Photo of third renovation area showing current condition.", required: false },
+  renovation_area_4: { name: "Renovation Area 4", description: "Fourth area needing work", instructions: "Photo of fourth renovation area showing current condition.", required: false },
+  
+  // Damage
+  damage_area_1: { name: "Damage Area 1", description: "First area with damage", instructions: "Close-up photo documenting any damage found.", required: false },
+  damage_area_2: { name: "Damage Area 2", description: "Second area with damage", instructions: "Close-up photo documenting any damage found.", required: false },
+  damage_area_3: { name: "Damage Area 3", description: "Third area with damage", instructions: "Close-up photo documenting any damage found.", required: false },
+  
+  // Other
+  other: { name: "Other", description: "Additional photos", instructions: "Any additional photos that help document the property condition.", required: false },
+};
+
+// Verification photos table - stores photos submitted during verification walkthrough
+export const verificationPhotos = pgTable("verification_photos", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  loanApplicationId: varchar("loan_application_id").notNull().references(() => loanApplications.id),
+  uploadedByUserId: varchar("uploaded_by_user_id").notNull().references(() => users.id),
+  
+  // Photo type and categorization
+  photoType: verificationPhotoTypeEnum("photo_type").notNull(),
+  
+  // File storage
+  fileKey: text("file_key").notNull(),
+  fileName: text("file_name").notNull(),
+  fileSizeBytes: integer("file_size_bytes"),
+  mimeType: text("mime_type"),
+  
+  // EXIF metadata extracted from photo
+  exifLatitude: text("exif_latitude"),
+  exifLongitude: text("exif_longitude"),
+  exifTimestamp: timestamp("exif_timestamp"),
+  exifCameraModel: text("exif_camera_model"),
+  
+  // Browser-reported location
+  browserLatitude: text("browser_latitude"),
+  browserLongitude: text("browser_longitude"),
+  
+  // Verification results
+  verificationStatus: photoVerificationStatusEnum("verification_status").default("pending").notNull(),
+  distanceFromPropertyMeters: integer("distance_from_property_meters"),
+  verificationDetails: text("verification_details"),
+  verifiedAt: timestamp("verified_at"),
+  
+  // Notes from borrower
+  notes: text("notes"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_verification_photos_app").on(table.loanApplicationId),
+  index("idx_verification_photos_type").on(table.photoType),
+  index("idx_verification_photos_status").on(table.verificationStatus),
+]);
+
+export const verificationPhotosRelations = relations(verificationPhotos, ({ one }) => ({
+  loanApplication: one(loanApplications, {
+    fields: [verificationPhotos.loanApplicationId],
+    references: [loanApplications.id],
+  }),
+  uploadedBy: one(users, {
+    fields: [verificationPhotos.uploadedByUserId],
+    references: [users.id],
+  }),
+}));
+
+export type VerificationPhoto = typeof verificationPhotos.$inferSelect;
+export type InsertVerificationPhoto = typeof verificationPhotos.$inferInsert;
+
+export const insertVerificationPhotoSchema = createInsertSchema(verificationPhotos).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
