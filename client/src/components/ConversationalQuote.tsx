@@ -37,6 +37,7 @@ import logoIcon from "@assets/generated_images/sequel_investments_s_logo_icon.pn
 import AddressAutocomplete from "@/components/AddressAutocomplete";
 import { CurrencySliderInput, PercentageSlider } from "@/components/AnimatedSlider";
 import { Map, Marker } from "@vis.gl/react-google-maps";
+import { darkMapStyles } from "@/lib/mapStyles";
 
 // US Metro fallback locations for when geolocation fails
 const US_METROS = [
@@ -56,44 +57,6 @@ const US_METROS = [
 
 // Get a random US metro location
 const getRandomMetro = () => US_METROS[Math.floor(Math.random() * US_METROS.length)];
-
-// Dark theme map styles with amber/gold accents for roads
-const darkMapStyles = [
-  { elementType: "geometry", stylers: [{ color: "#0f172a" }] },
-  { elementType: "labels.text.fill", stylers: [{ color: "#d4a574" }] },
-  { elementType: "labels.text.stroke", stylers: [{ color: "#0f172a" }] },
-  { featureType: "administrative.country", elementType: "geometry.stroke", stylers: [{ color: "#78716c" }] },
-  { featureType: "administrative.land_parcel", elementType: "labels.text.fill", stylers: [{ color: "#92400e" }] },
-  { featureType: "administrative.province", elementType: "geometry.stroke", stylers: [{ color: "#78716c" }] },
-  { featureType: "landscape.man_made", elementType: "geometry.stroke", stylers: [{ color: "#44403c" }] },
-  { featureType: "landscape.natural", elementType: "geometry", stylers: [{ color: "#1c1917" }] },
-  { featureType: "poi", elementType: "geometry", stylers: [{ color: "#292524" }] },
-  { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#a8a29e" }] },
-  { featureType: "poi", elementType: "labels.text.stroke", stylers: [{ color: "#0f172a" }] },
-  { featureType: "poi.park", elementType: "geometry.fill", stylers: [{ color: "#1c1917" }] },
-  { featureType: "poi.park", elementType: "labels.text.fill", stylers: [{ color: "#6b7280" }] },
-  // Roads with amber/gold accent
-  { featureType: "road", elementType: "geometry", stylers: [{ color: "#78350f" }] },
-  { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#fbbf24" }] },
-  { featureType: "road", elementType: "labels.text.stroke", stylers: [{ color: "#0f172a" }] },
-  // Highways with brighter amber
-  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#92400e" }] },
-  { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#78350f" }] },
-  { featureType: "road.highway", elementType: "labels.text.fill", stylers: [{ color: "#f59e0b" }] },
-  { featureType: "road.highway", elementType: "labels.text.stroke", stylers: [{ color: "#0f172a" }] },
-  // Arterial roads
-  { featureType: "road.arterial", elementType: "geometry", stylers: [{ color: "#713f12" }] },
-  { featureType: "road.arterial", elementType: "labels.text.fill", stylers: [{ color: "#d97706" }] },
-  // Local roads
-  { featureType: "road.local", elementType: "geometry", stylers: [{ color: "#57534e" }] },
-  { featureType: "road.local", elementType: "labels.text.fill", stylers: [{ color: "#a8a29e" }] },
-  { featureType: "transit", elementType: "labels.text.fill", stylers: [{ color: "#a8a29e" }] },
-  { featureType: "transit", elementType: "labels.text.stroke", stylers: [{ color: "#0f172a" }] },
-  { featureType: "transit.line", elementType: "geometry.fill", stylers: [{ color: "#44403c" }] },
-  { featureType: "transit.station", elementType: "geometry", stylers: [{ color: "#292524" }] },
-  { featureType: "water", elementType: "geometry", stylers: [{ color: "#0c0a09" }] },
-  { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#57534e" }] },
-];
 
 type LoanType = "dscr" | "fix-flip" | "construction" | "";
 type TransactionType = "purchase" | "refinance" | "";
