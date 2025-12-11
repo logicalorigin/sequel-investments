@@ -1501,76 +1501,109 @@ export async function registerRoutes(app: Express): Promise<Server> {
         mimeType,
         browserLatitude,
         browserLongitude,
+        browserAccuracyMeters,
+        browserCapturedAt,
         scopeOfWorkItemId,
         caption,
+        mediaType = "photo",
+        category,
+        durationSeconds,
+        thumbnailUrl,
       } = req.body;
       
       if (!fileKey || !fileName) {
         return res.status(400).json({ error: "fileKey and fileName are required" });
       }
       
-      // Parse EXIF from the uploaded image server-side (never trust client data)
-      const { parseExifFromUrl } = await import("./services/exifService");
-      const { getOrCreatePropertyLocation, verifyPhotoLocation } = await import("./services/geocodingService");
+      // Validate video constraints
       const { PHOTO_VERIFICATION_CONFIG } = await import("@shared/schema");
+      if (mediaType === "video") {
+        if (fileSizeBytes && fileSizeBytes > PHOTO_VERIFICATION_CONFIG.MAX_VIDEO_SIZE_MB * 1024 * 1024) {
+          return res.status(400).json({ 
+            error: `Video file too large. Maximum size is ${PHOTO_VERIFICATION_CONFIG.MAX_VIDEO_SIZE_MB}MB` 
+          });
+        }
+        if (durationSeconds && durationSeconds > PHOTO_VERIFICATION_CONFIG.MAX_VIDEO_DURATION_SECONDS) {
+          return res.status(400).json({ 
+            error: `Video too long. Maximum duration is ${PHOTO_VERIFICATION_CONFIG.MAX_VIDEO_DURATION_SECONDS} seconds` 
+          });
+        }
+      }
       
-      // Construct the full URL to fetch the uploaded image
-      const baseUrl = process.env.REPLIT_DEV_DOMAIN 
-        ? `https://${process.env.REPLIT_DEV_DOMAIN}`
-        : `http://localhost:${process.env.PORT || 5000}`;
-      const imageUrl = `${baseUrl}${fileKey.startsWith('/') ? fileKey : '/objects/' + fileKey}`;
-      
-      // Parse EXIF from the actual uploaded image
-      const exifData = await parseExifFromUrl(imageUrl);
-      
-      const fullAddress = [loan.propertyAddress, loan.propertyCity, loan.propertyState, loan.propertyZip]
-        .filter(Boolean)
-        .join(", ");
-      
+      let exifData: { latitude?: number; longitude?: number; timestamp?: Date; cameraModel?: string } = {};
       let verificationStatus: "pending" | "verified" | "outside_geofence" | "stale_timestamp" | "metadata_missing" = "pending";
       let distanceFromPropertyMeters: number | undefined;
       let verificationDetails: string | undefined;
       
-      if (fullAddress) {
-        const propertyLocation = await getOrCreatePropertyLocation(loan.id, fullAddress);
+      // Only parse EXIF and verify location for photos (not videos)
+      if (mediaType === "photo") {
+        const { parseExifFromUrl } = await import("./services/exifService");
+        const { getOrCreatePropertyLocation, verifyPhotoLocation } = await import("./services/geocodingService");
         
-        if (propertyLocation) {
-          const verification = verifyPhotoLocation(
-            exifData.latitude,
-            exifData.longitude,
-            exifData.timestamp,
-            parseFloat(propertyLocation.latitude),
-            parseFloat(propertyLocation.longitude),
-            propertyLocation.geofenceRadiusMeters,
-            PHOTO_VERIFICATION_CONFIG.MAX_PHOTO_AGE_HOURS
-          );
+        // Construct the full URL to fetch the uploaded image
+        const baseUrl = process.env.REPLIT_DEV_DOMAIN 
+          ? `https://${process.env.REPLIT_DEV_DOMAIN}`
+          : `http://localhost:${process.env.PORT || 5000}`;
+        const imageUrl = `${baseUrl}${fileKey.startsWith('/') ? fileKey : '/objects/' + fileKey}`;
+        
+        // Parse EXIF from the actual uploaded image
+        exifData = await parseExifFromUrl(imageUrl);
+        
+        const fullAddress = [loan.propertyAddress, loan.propertyCity, loan.propertyState, loan.propertyZip]
+          .filter(Boolean)
+          .join(", ");
+        
+        if (fullAddress) {
+          const propertyLocation = await getOrCreatePropertyLocation(loan.id, fullAddress);
           
-          verificationStatus = verification.status;
-          distanceFromPropertyMeters = verification.distanceMeters;
-          verificationDetails = verification.details;
+          if (propertyLocation) {
+            const verification = verifyPhotoLocation(
+              exifData.latitude,
+              exifData.longitude,
+              exifData.timestamp,
+              parseFloat(propertyLocation.latitude),
+              parseFloat(propertyLocation.longitude),
+              propertyLocation.geofenceRadiusMeters,
+              PHOTO_VERIFICATION_CONFIG.MAX_PHOTO_AGE_HOURS
+            );
+            
+            verificationStatus = verification.status;
+            distanceFromPropertyMeters = verification.distanceMeters;
+            verificationDetails = verification.details;
+          } else {
+            verificationStatus = "pending";
+            verificationDetails = "Property location could not be determined - manual review required";
+          }
         } else {
-          // Property location could not be geocoded
           verificationStatus = "pending";
-          verificationDetails = "Property location could not be determined - manual review required";
+          verificationDetails = "No property address available - manual review required";
         }
       } else {
+        // For videos, use browser location for verification if available
         verificationStatus = "pending";
-        verificationDetails = "No property address available - manual review required";
+        verificationDetails = "Video upload - manual review required";
       }
       
       const photo = await storage.createDrawPhoto({
         loanDrawId: draw.id,
         uploadedByUserId: userId,
+        mediaType,
+        category,
         fileKey,
         fileName,
         fileSizeBytes,
         mimeType,
-        exifLatitude: exifData.latitude?.toString(),
-        exifLongitude: exifData.longitude?.toString(),
-        exifTimestamp: exifData.timestamp || undefined,
-        exifCameraModel: exifData.cameraModel,
+        durationSeconds: mediaType === "video" ? durationSeconds : undefined,
+        thumbnailUrl: mediaType === "video" ? thumbnailUrl : undefined,
+        // Only set EXIF fields for photos (videos don't have EXIF data)
+        exifLatitude: mediaType === "photo" && exifData.latitude ? exifData.latitude.toString() : undefined,
+        exifLongitude: mediaType === "photo" && exifData.longitude ? exifData.longitude.toString() : undefined,
+        exifTimestamp: mediaType === "photo" && exifData.timestamp ? exifData.timestamp : undefined,
+        exifCameraModel: mediaType === "photo" ? exifData.cameraModel : undefined,
         browserLatitude,
         browserLongitude,
+        browserAccuracyMeters: browserAccuracyMeters ? Number(browserAccuracyMeters) : undefined,
+        browserCapturedAt: browserCapturedAt ? new Date(browserCapturedAt) : undefined,
         scopeOfWorkItemId,
         caption,
         verificationStatus,

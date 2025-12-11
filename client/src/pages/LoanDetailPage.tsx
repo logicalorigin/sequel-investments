@@ -39,8 +39,10 @@ import {
   Eye,
   ShieldCheck,
   ShieldX,
-  ShieldAlert
+  ShieldAlert,
+  Film
 } from "lucide-react";
+import { Link } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { PortalHeader } from "@/components/PortalHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -237,8 +239,8 @@ function DrawPhotoUpload({ draw, loanId, scopeOfWorkItems }: { draw: LoanDraw; l
       // Get upload URL
       const uploadUrlRes = await apiRequest("POST", `/api/loan-draws/${draw.id}/photos/upload-url`, {
         fileName: file.name,
-      });
-      const { uploadURL } = uploadUrlRes as { uploadURL: string };
+      }) as unknown as { uploadURL: string };
+      const { uploadURL } = uploadUrlRes;
       setUploadProgress(30);
 
       // Upload file to storage
@@ -444,15 +446,28 @@ function DrawPhotoUpload({ draw, loanId, scopeOfWorkItems }: { draw: LoanDraw; l
         </Dialog>
       )}
 
-      {/* Upload button - only for draft draws */}
+      {/* Upload buttons - only for draft draws */}
       {draw.status === "draft" && (
-        <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
-          <DialogTrigger asChild>
-            <Button size="sm" variant="outline" data-testid={`button-upload-photo-${draw.id}`}>
-              <Camera className="h-4 w-4 mr-1" />
-              Add Photo
-            </Button>
-          </DialogTrigger>
+        <>
+          <Button 
+            size="sm" 
+            variant="default"
+            className="gap-1"
+            asChild
+            data-testid={`button-capture-media-${draw.id}`}
+          >
+            <Link href={`/portal/loans/${loanId}/draws/${draw.id}/capture`}>
+              <Film className="h-4 w-4" />
+              Capture
+            </Link>
+          </Button>
+          <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
+            <DialogTrigger asChild>
+              <Button size="sm" variant="outline" data-testid={`button-upload-photo-${draw.id}`}>
+                <Camera className="h-4 w-4 mr-1" />
+                Quick Upload
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>Upload Progress Photo</DialogTitle>
@@ -582,6 +597,7 @@ function DrawPhotoUpload({ draw, loanId, scopeOfWorkItems }: { draw: LoanDraw; l
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </>
       )}
     </div>
   );

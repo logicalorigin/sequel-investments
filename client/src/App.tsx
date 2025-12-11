@@ -39,6 +39,7 @@ import ConstructionAnalyzerPage from "@/pages/ConstructionAnalyzerPage";
 import ProfilePage from "@/pages/ProfilePage";
 import ActiveLoansPage from "@/pages/ActiveLoansPage";
 import LoanDetailPage from "@/pages/LoanDetailPage";
+import DrawMediaCapturePage from "@/pages/DrawMediaCapturePage";
 import STRCalculatorPage from "@/pages/STRCalculatorPage";
 import RecentFundingsPage from "@/pages/RecentFundingsPage";
 import PropertyDetailPage from "@/pages/PropertyDetailPage";
@@ -95,6 +96,7 @@ function Router() {
       <Route path="/portal/profile" component={ProfilePage} />
       <Route path="/portal/loans" component={ActiveLoansPage} />
       <Route path="/portal/loans/:id" component={LoanDetailPage} />
+      <Route path="/portal/loans/:loanId/draws/:drawId/capture" component={DrawMediaCapturePage} />
       <Route path="/str-calculator" component={STRCalculatorPage} />
       <Route path="/fundings" component={RecentFundingsPage} />
       <Route path="/fundings/:propertyId" component={PropertyDetailPage} />

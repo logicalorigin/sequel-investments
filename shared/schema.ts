@@ -2235,6 +2235,39 @@ export const DEFAULT_BUSINESS_HOURS = [
 // PHOTO VERIFICATION SYSTEM (Pruvan-style)
 // ============================================
 
+// Draw media type enum (photo or video)
+export const drawMediaTypeEnum = pgEnum("draw_media_type", [
+  "photo",
+  "video",
+]);
+export type DrawMediaType = "photo" | "video";
+
+// Draw media category enum - categories for organizing construction progress media
+export const drawMediaCategoryEnum = pgEnum("draw_media_category", [
+  "site_overview",        // Overall site/property view
+  "exterior_progress",    // Exterior work progress
+  "interior_progress",    // Interior work progress  
+  "foundation",           // Foundation work
+  "framing",              // Framing/structural
+  "roofing",              // Roof work
+  "plumbing",             // Plumbing rough-in/finish
+  "electrical",           // Electrical rough-in/finish
+  "hvac",                 // HVAC installation
+  "drywall",              // Drywall/interior walls
+  "flooring",             // Flooring installation
+  "cabinets_counters",    // Cabinets and countertops
+  "fixtures",             // Fixtures and appliances
+  "paint_finish",         // Paint and finishing
+  "landscaping",          // Exterior landscaping
+  "safety_compliance",    // Safety/code compliance shots
+  "materials_delivery",   // Materials on site
+  "before",               // Before condition
+  "during",               // Work in progress
+  "after",                // Completed work
+  "other",                // Other/miscellaneous
+]);
+export type DrawMediaCategory = "site_overview" | "exterior_progress" | "interior_progress" | "foundation" | "framing" | "roofing" | "plumbing" | "electrical" | "hvac" | "drywall" | "flooring" | "cabinets_counters" | "fixtures" | "paint_finish" | "landscaping" | "safety_compliance" | "materials_delivery" | "before" | "during" | "after" | "other";
+
 // Photo verification status enum
 export const photoVerificationStatusEnum = pgEnum("photo_verification_status", [
   "pending",           // Just uploaded, not verified yet
@@ -2291,18 +2324,26 @@ export const insertPropertyLocationSchema = createInsertSchema(propertyLocations
   updatedAt: true,
 });
 
-// Draw photos table - stores photos with EXIF data and verification status
+// Draw photos/videos table - stores media with EXIF data and verification status
 export const drawPhotos = pgTable("draw_photos", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   loanDrawId: varchar("loan_draw_id").notNull().references(() => loanDraws.id),
   scopeOfWorkItemId: varchar("scope_of_work_item_id").references(() => scopeOfWorkItems.id),
   uploadedByUserId: varchar("uploaded_by_user_id").notNull().references(() => users.id),
   
+  // Media type and category
+  mediaType: drawMediaTypeEnum("media_type").default("photo").notNull(),
+  category: drawMediaCategoryEnum("category").default("other"),
+  
   // File storage
   fileKey: text("file_key").notNull(), // Key in object storage / file path
   fileName: text("file_name").notNull(),
   fileSizeBytes: integer("file_size_bytes"),
   mimeType: text("mime_type"),
+  
+  // Video-specific fields
+  durationSeconds: integer("duration_seconds"), // Video duration in seconds
+  thumbnailUrl: text("thumbnail_url"), // Generated thumbnail for videos
   
   // EXIF metadata extracted from photo
   exifLatitude: text("exif_latitude"),
@@ -2314,6 +2355,8 @@ export const drawPhotos = pgTable("draw_photos", {
   // Browser-reported location (for comparison/fallback)
   browserLatitude: text("browser_latitude"),
   browserLongitude: text("browser_longitude"),
+  browserAccuracyMeters: integer("browser_accuracy_meters"), // GPS accuracy
+  browserCapturedAt: timestamp("browser_captured_at"), // When browser GPS was captured
   
   // Verification results
   verificationStatus: photoVerificationStatusEnum("verification_status").default("pending").notNull(),
@@ -2333,6 +2376,8 @@ export const drawPhotos = pgTable("draw_photos", {
   index("idx_draw_photos_draw").on(table.loanDrawId),
   index("idx_draw_photos_scope_item").on(table.scopeOfWorkItemId),
   index("idx_draw_photos_status").on(table.verificationStatus),
+  index("idx_draw_photos_category").on(table.category),
+  index("idx_draw_photos_media_type").on(table.mediaType),
 ]);
 
 export const drawPhotosRelations = relations(drawPhotos, ({ one, many }) => ({
@@ -2398,13 +2443,42 @@ export const insertPhotoVerificationAuditSchema = createInsertSchema(photoVerifi
   createdAt: true,
 });
 
-// Helper constants for photo verification
+// Helper constants for photo/video verification
 export const PHOTO_VERIFICATION_CONFIG = {
   DEFAULT_GEOFENCE_RADIUS_METERS: 100, // 100 meter radius around property
   MAX_PHOTO_AGE_HOURS: 72, // Photos must be taken within 72 hours
   MIN_PHOTOS_PER_DRAW: 1, // Minimum photos required per draw request
-  MAX_PHOTO_SIZE_MB: 10, // Maximum file size
-  ALLOWED_MIME_TYPES: ["image/jpeg", "image/png", "image/heic", "image/heif"],
+  MAX_PHOTO_SIZE_MB: 20, // Maximum photo file size
+  MAX_VIDEO_SIZE_MB: 200, // Maximum video file size
+  MAX_VIDEO_DURATION_SECONDS: 120, // Maximum video duration (2 minutes)
+  ALLOWED_PHOTO_MIME_TYPES: ["image/jpeg", "image/png", "image/heic", "image/heif", "image/webp"],
+  ALLOWED_VIDEO_MIME_TYPES: ["video/mp4", "video/quicktime", "video/webm", "video/x-m4v"],
+  ALLOWED_MIME_TYPES: ["image/jpeg", "image/png", "image/heic", "image/heif", "image/webp", "video/mp4", "video/quicktime", "video/webm", "video/x-m4v"],
+};
+
+// Category labels for display
+export const DRAW_MEDIA_CATEGORY_LABELS: Record<DrawMediaCategory, string> = {
+  site_overview: "Site Overview",
+  exterior_progress: "Exterior Progress",
+  interior_progress: "Interior Progress",
+  foundation: "Foundation",
+  framing: "Framing",
+  roofing: "Roofing",
+  plumbing: "Plumbing",
+  electrical: "Electrical",
+  hvac: "HVAC",
+  drywall: "Drywall",
+  flooring: "Flooring",
+  cabinets_counters: "Cabinets & Counters",
+  fixtures: "Fixtures",
+  paint_finish: "Paint & Finish",
+  landscaping: "Landscaping",
+  safety_compliance: "Safety/Compliance",
+  materials_delivery: "Materials",
+  before: "Before",
+  during: "During",
+  after: "After",
+  other: "Other",
 };
 
 // ============================================================================
