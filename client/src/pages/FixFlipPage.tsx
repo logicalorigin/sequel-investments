@@ -28,6 +28,7 @@ import {
   ArrowRight,
   MapPin
 } from "lucide-react";
+import { Timer, CreditCard01 } from "react-coolicons";
 import fixFlipImage from "@assets/stock_images/house_renovation_con_aaeb0f05.jpg";
 import { useToast } from "@/hooks/use-toast";
 import { GeometricPattern } from "@/components/GeometricPattern";
@@ -209,7 +210,7 @@ export default function FixFlipPage() {
                   <Card>
                     <CardHeader className="pb-3">
                       <CardTitle className="flex items-center gap-2 text-lg">
-                        <Clock className="h-5 w-5 text-primary" />
+                        <Timer className="h-5 w-5 text-primary" />
                         Lightning Fast Closings
                       </CardTitle>
                     </CardHeader>
@@ -237,7 +238,7 @@ export default function FixFlipPage() {
                   <Card>
                     <CardHeader className="pb-3">
                       <CardTitle className="flex items-center gap-2 text-lg">
-                        <DollarSign className="h-5 w-5 text-primary" />
+                        <CreditCard01 className="h-5 w-5 text-primary" />
                         48-Hour Draws
                       </CardTitle>
                     </CardHeader>

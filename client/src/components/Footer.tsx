@@ -2,6 +2,7 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Facebook, Twitter, Linkedin, Mail } from "lucide-react";
+import { Phone, MailOpen } from "react-coolicons";
 import { GeometricPattern } from "@/components/GeometricPattern";
 import { useWhiteLabel } from "@/context/WhiteLabelContext";
 
@@ -79,9 +80,15 @@ export function Footer() {
             </div>
           </div>
           
-          <div className="text-xs text-muted-foreground space-y-0.5" data-testid="footer-contact-info">
-            <p data-testid="text-footer-phone">{contactPhone}</p>
-            <p data-testid="text-footer-email">{contactEmail}</p>
+          <div className="text-xs text-muted-foreground space-y-1" data-testid="footer-contact-info">
+            <p className="flex items-center gap-1.5" data-testid="text-footer-phone">
+              <Phone className="h-3 w-3 text-primary" />
+              {contactPhone}
+            </p>
+            <p className="flex items-center gap-1.5" data-testid="text-footer-email">
+              <MailOpen className="h-3 w-3 text-primary" />
+              {contactEmail}
+            </p>
           </div>
         </div>
 
@@ -106,9 +113,15 @@ export function Footer() {
             <p className="text-sm sm:text-base text-muted-foreground mb-3 sm:mb-4">
               Private financing solutions for real estate investors. DSCR, Fix & Flip, and New Construction loans nationwide.
             </p>
-            <div className="text-xs sm:text-sm text-muted-foreground space-y-1 mb-3 sm:mb-4">
-              <p>{contactPhone}</p>
-              <p>{contactEmail}</p>
+            <div className="text-xs sm:text-sm text-muted-foreground space-y-1.5 mb-3 sm:mb-4">
+              <p className="flex items-center gap-2">
+                <Phone className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
+                {contactPhone}
+              </p>
+              <p className="flex items-center gap-2">
+                <MailOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
+                {contactEmail}
+              </p>
               <p>{addressLine1}</p>
               {addressLine2 && <p>{addressLine2}</p>}
             </div>
