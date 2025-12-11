@@ -401,6 +401,7 @@ export interface IStorage {
   
   // Property location operations (for photo verification)
   getPropertyLocation(servicedLoanId: string): Promise<PropertyLocation | undefined>;
+  getPropertyLocationByAddress(address: string, city: string, state: string): Promise<PropertyLocation | undefined>;
   createPropertyLocation(data: InsertPropertyLocation): Promise<PropertyLocation>;
   updatePropertyLocation(id: string, data: Partial<InsertPropertyLocation>): Promise<PropertyLocation | undefined>;
   
@@ -2359,6 +2360,24 @@ export class DatabaseStorage implements IStorage {
       .where(eq(propertyLocations.id, id))
       .returning();
     return updated;
+  }
+
+  async getPropertyLocationByAddress(
+    address: string,
+    city: string,
+    state: string
+  ): Promise<PropertyLocation | undefined> {
+    const [location] = await db
+      .select()
+      .from(propertyLocations)
+      .where(
+        and(
+          eq(propertyLocations.address, address),
+          eq(propertyLocations.city, city),
+          eq(propertyLocations.state, state)
+        )
+      );
+    return location;
   }
 
   // Draw photo operations

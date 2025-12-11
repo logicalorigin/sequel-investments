@@ -46,6 +46,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { DocumentReviewPanel } from "@/components/DocumentReviewPanel";
 import { SignatureRequestsSection } from "@/components/SignatureRequestsSection";
+import { PhotoVerificationReview } from "@/components/PhotoVerificationReview";
 import type { LoanApplication, Document, ApplicationTimelineEvent, User as UserType } from "@shared/schema";
 
 type BrokerInfo = {
@@ -125,6 +126,11 @@ export default function AdminApplicationDetail() {
 
   const { data: application, isLoading } = useQuery<EnrichedApplication>({
     queryKey: ["/api/admin/applications", id],
+    enabled: !!id && (currentUser?.role === "staff" || currentUser?.role === "admin"),
+  });
+  
+  const { data: verificationPhotos = [] } = useQuery<any[]>({
+    queryKey: ["/api/applications", id, "verification-photos"],
     enabled: !!id && (currentUser?.role === "staff" || currentUser?.role === "admin"),
   });
 
@@ -430,6 +436,17 @@ export default function AdminApplicationDetail() {
               borrowerName={application.borrowerName}
               borrowerEmail={application.borrowerEmail}
             />
+            
+            {/* Photo Verification (only for Fix & Flip and Construction loans) */}
+            {(application.loanType?.toLowerCase().includes("fix") || 
+              application.loanType?.toLowerCase().includes("flip") || 
+              application.loanType?.toLowerCase().includes("construction")) && (
+              <PhotoVerificationReview
+                photos={verificationPhotos}
+                applicationId={id!}
+                propertyAddress={[application.propertyAddress, application.propertyCity, application.propertyState].filter(Boolean).join(", ")}
+              />
+            )}
 
             {/* Timeline */}
             <Card>

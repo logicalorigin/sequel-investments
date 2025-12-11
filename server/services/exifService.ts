@@ -3,6 +3,7 @@ import exifr from "exifr";
 export interface ParsedExifData {
   latitude: number | null;
   longitude: number | null;
+  altitude: number | null;
   timestamp: Date | null;
   cameraModel: string | null;
 }
@@ -12,13 +13,14 @@ export async function parseExifFromBuffer(buffer: Buffer): Promise<ParsedExifDat
     const exifData = await exifr.parse(buffer, {
       gps: true,
       xmp: true,
-      pick: ["GPSLatitude", "GPSLongitude", "DateTimeOriginal", "CreateDate", "Model", "Make"],
+      pick: ["GPSLatitude", "GPSLongitude", "GPSAltitude", "DateTimeOriginal", "CreateDate", "Model", "Make"],
     });
 
     if (!exifData) {
       return {
         latitude: null,
         longitude: null,
+        altitude: null,
         timestamp: null,
         cameraModel: null,
       };
@@ -26,10 +28,15 @@ export async function parseExifFromBuffer(buffer: Buffer): Promise<ParsedExifDat
 
     let latitude: number | null = null;
     let longitude: number | null = null;
+    let altitude: number | null = null;
 
     if (exifData.latitude !== undefined && exifData.longitude !== undefined) {
       latitude = exifData.latitude;
       longitude = exifData.longitude;
+    }
+    
+    if (exifData.GPSAltitude !== undefined) {
+      altitude = exifData.GPSAltitude;
     }
 
     let timestamp: Date | null = null;
@@ -47,6 +54,7 @@ export async function parseExifFromBuffer(buffer: Buffer): Promise<ParsedExifDat
     return {
       latitude,
       longitude,
+      altitude,
       timestamp,
       cameraModel,
     };
@@ -55,6 +63,7 @@ export async function parseExifFromBuffer(buffer: Buffer): Promise<ParsedExifDat
     return {
       latitude: null,
       longitude: null,
+      altitude: null,
       timestamp: null,
       cameraModel: null,
     };
@@ -69,6 +78,7 @@ export async function parseExifFromUrl(imageUrl: string): Promise<ParsedExifData
       return {
         latitude: null,
         longitude: null,
+        altitude: null,
         timestamp: null,
         cameraModel: null,
       };
@@ -83,6 +93,7 @@ export async function parseExifFromUrl(imageUrl: string): Promise<ParsedExifData
     return {
       latitude: null,
       longitude: null,
+      altitude: null,
       timestamp: null,
       cameraModel: null,
     };

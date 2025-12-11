@@ -1769,7 +1769,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Create verification photo
+  // Create verification photo with GPS double-verification
   app.post("/api/applications/:applicationId/verification-photos", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
@@ -1791,6 +1791,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         mimeType,
         browserLatitude,
         browserLongitude,
+        browserAccuracyMeters,
+        browserCapturedAt,
+        gpsPermissionDenied,
         notes,
       } = req.body;
       
@@ -1800,7 +1803,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Parse EXIF from the uploaded image
       const { parseExifFromUrl } = await import("./services/exifService");
-      const { PHOTO_VERIFICATION_CONFIG } = await import("@shared/schema");
+      const { verifyPhotoLocation, parseGPSCoordinate } = await import("./services/locationVerification");
       
       const baseUrl = process.env.REPLIT_DEV_DOMAIN 
         ? `https://${process.env.REPLIT_DEV_DOMAIN}`
@@ -1809,8 +1812,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const exifData = await parseExifFromUrl(imageUrl);
       
-      // For verification photos, we set initial status to pending (manual review)
-      const verificationStatus = "pending";
+      // Build GPS data objects for verification
+      const browserGPS = browserLatitude && browserLongitude ? {
+        latitude: parseFloat(browserLatitude),
+        longitude: parseFloat(browserLongitude),
+        accuracy: browserAccuracyMeters,
+        timestamp: browserCapturedAt ? new Date(browserCapturedAt) : undefined,
+      } : null;
+      
+      const exifGPS = exifData.latitude && exifData.longitude ? {
+        latitude: exifData.latitude,
+        longitude: exifData.longitude,
+        altitude: exifData.altitude,
+        timestamp: exifData.timestamp,
+      } : null;
+      
+      // Try to get property location for geofence checking
+      let propertyGPS = null;
+      if (application.propertyAddress && application.propertyCity && application.propertyState) {
+        // Check if we have a cached property location
+        const propertyLocation = await storage.getPropertyLocationByAddress(
+          application.propertyAddress,
+          application.propertyCity,
+          application.propertyState
+        );
+        if (propertyLocation) {
+          propertyGPS = {
+            latitude: parseFloat(propertyLocation.latitude),
+            longitude: parseFloat(propertyLocation.longitude),
+          };
+        }
+      }
+      
+      // Perform GPS double-verification
+      const verificationResult = verifyPhotoLocation(
+        browserGPS,
+        exifGPS,
+        propertyGPS,
+        exifData.timestamp
+      );
       
       const photo = await storage.createVerificationPhoto({
         loanApplicationId: application.id,
@@ -1824,10 +1864,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         exifLongitude: exifData.longitude?.toString(),
         exifTimestamp: exifData.timestamp || undefined,
         exifCameraModel: exifData.cameraModel,
+        exifAltitude: exifData.altitude?.toString(),
         browserLatitude,
         browserLongitude,
+        browserAccuracyMeters: browserAccuracyMeters ? parseInt(browserAccuracyMeters) : undefined,
+        browserCapturedAt: browserCapturedAt ? new Date(browserCapturedAt) : undefined,
+        gpsPermissionDenied: gpsPermissionDenied || false,
+        exifGpsMissing: !exifGPS,
+        distanceExifToBrowserMeters: verificationResult.distanceExifToBrowserMeters,
+        distanceExifToPropertyMeters: verificationResult.distanceExifToPropertyMeters,
+        distanceBrowserToPropertyMeters: verificationResult.distanceBrowserToPropertyMeters,
         notes,
-        verificationStatus,
+        verificationStatus: verificationResult.status,
+        verificationDetails: verificationResult.verificationDetails,
+        verifiedAt: verificationResult.status === "verified" ? new Date() : undefined,
       });
       
       return res.status(201).json(photo);
@@ -4596,6 +4646,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching user assignments:", error);
       return res.status(500).json({ error: "Failed to fetch assignments" });
+    }
+  });
+  
+  // ============================================
+  // ADMIN VERIFICATION PHOTO ROUTES
+  // ============================================
+  
+  // Staff endpoint to update verification photo status (manual override)
+  app.patch("/api/admin/verification-photos/:id", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const photo = await storage.getVerificationPhoto(req.params.id);
+      
+      if (!photo) {
+        return res.status(404).json({ error: "Photo not found" });
+      }
+      
+      const { verificationStatus, verificationNotes } = req.body;
+      
+      if (!verificationStatus) {
+        return res.status(400).json({ error: "verificationStatus is required" });
+      }
+      
+      const validStatuses = [
+        "pending", "verified", "gps_match", "gps_mismatch", "outside_geofence",
+        "stale_timestamp", "metadata_missing", "browser_gps_only", "exif_gps_only",
+        "no_gps_data", "manual_approved", "manual_rejected"
+      ];
+      
+      if (!validStatuses.includes(verificationStatus)) {
+        return res.status(400).json({ error: "Invalid verification status" });
+      }
+      
+      const isManualOverride = verificationStatus === "manual_approved" || verificationStatus === "manual_rejected";
+      
+      const updatedPhoto = await storage.updateVerificationPhoto(photo.id, {
+        verificationStatus,
+        verificationDetails: isManualOverride 
+          ? `${verificationStatus === "manual_approved" ? "Manually approved" : "Manually rejected"} by ${user?.firstName || user?.email || userId}${verificationNotes ? ': ' + verificationNotes : ''}`
+          : photo.verificationDetails,
+        verifiedAt: isManualOverride ? new Date() : photo.verifiedAt,
+        verifiedByUserId: isManualOverride ? userId : photo.verifiedByUserId,
+      });
+      
+      return res.json(updatedPhoto);
+    } catch (error) {
+      console.error("Error updating verification photo:", error);
+      return res.status(500).json({ error: "Failed to update photo" });
     }
   });
 

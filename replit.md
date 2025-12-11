@@ -29,6 +29,14 @@ I prefer simple language. I want iterative development. Ask before making major 
 - **Interactive Maps**: US map showing loan volume by state, and state-specific interactive Google Maps with market data, property search, and amenity layers.
 - **Borrower Portal**: Features portfolio management, investment analysis tools, application detail pages, document upload with automated organization, and user profile management. Analyzers save scenario data to draft applications.
 - **Photo Verification Walkthrough**: Interactive camera-based photo capture for property and renovation verification. Borrowers upload required photos (exterior, interior, renovation areas) with EXIF metadata extraction and browser location tracking. Progress tracking guides users through required photo categories. Available for Fix & Flip and Construction loan applications via `/portal/application/:id/verification`. **100% mobile-optimized** with single-column layout, horizontal scrolling category tabs, bottom action bar, touch-friendly 44px+ tap targets, and portrait-oriented camera preview.
+    - **GPS Double-Verification System**: Three-way coordinate comparison ensures photos are taken at the actual property:
+        - **Browser GPS**: Captured at photo time with accuracy metrics (±Xm) and timestamp
+        - **EXIF GPS**: Extracted from photo metadata (camera location, altitude, timestamp)
+        - **Property Location**: Geocoded address coordinates for geofence verification
+        - **Haversine Distance Calculation**: Computes great-circle distance between GPS sources
+        - **Verification Statuses**: pending, verified, gps_match, gps_mismatch, outside_geofence, stale_timestamp, metadata_missing, browser_gps_only, exif_gps_only, no_gps_data, manual_approved, manual_rejected
+        - **Staff Review UI**: Admin can view GPS comparison details, distance metrics, and manually approve/reject photos with audit logging
+        - **Distance Thresholds**: 50m for outdoor photos, 75m for indoor (configurable per photo type)
 - **Company Backend (Staff Portal)**: Role-Based Access Control (borrower, staff, admin), pipeline view of applications, application status management, user management, and staff invitations.
 - **Loan Pipeline Infrastructure** (Phase 1 Complete):
     - **Application Stage History**: Timeline audit trail tracking all status/stage changes with timestamps, user attribution, duration tracking, and notes. Supports automated vs manual transition logging.
