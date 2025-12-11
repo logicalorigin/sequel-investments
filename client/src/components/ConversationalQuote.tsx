@@ -35,6 +35,37 @@ import { Link } from "wouter";
 import logoIcon from "@assets/generated_images/sequel_investments_s_logo_icon.png";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
 import { CurrencySliderInput, PercentageSlider } from "@/components/AnimatedSlider";
+import { Map, Marker } from "@vis.gl/react-google-maps";
+
+// Dark theme map styles
+const darkMapStyles = [
+  { elementType: "geometry", stylers: [{ color: "#1d2c4d" }] },
+  { elementType: "labels.text.fill", stylers: [{ color: "#8ec3b9" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#1a3646" }] },
+  { featureType: "administrative.country", elementType: "geometry.stroke", stylers: [{ color: "#4b6878" }] },
+  { featureType: "administrative.land_parcel", elementType: "labels.text.fill", stylers: [{ color: "#64779e" }] },
+  { featureType: "administrative.province", elementType: "geometry.stroke", stylers: [{ color: "#4b6878" }] },
+  { featureType: "landscape.man_made", elementType: "geometry.stroke", stylers: [{ color: "#334e87" }] },
+  { featureType: "landscape.natural", elementType: "geometry", stylers: [{ color: "#023e58" }] },
+  { featureType: "poi", elementType: "geometry", stylers: [{ color: "#283d6a" }] },
+  { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#6f9ba5" }] },
+  { featureType: "poi", elementType: "labels.text.stroke", stylers: [{ color: "#1d2c4d" }] },
+  { featureType: "poi.park", elementType: "geometry.fill", stylers: [{ color: "#023e58" }] },
+  { featureType: "poi.park", elementType: "labels.text.fill", stylers: [{ color: "#3C7680" }] },
+  { featureType: "road", elementType: "geometry", stylers: [{ color: "#304a7d" }] },
+  { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#98a5be" }] },
+  { featureType: "road", elementType: "labels.text.stroke", stylers: [{ color: "#1d2c4d" }] },
+  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#2c6675" }] },
+  { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#255763" }] },
+  { featureType: "road.highway", elementType: "labels.text.fill", stylers: [{ color: "#b0d5ce" }] },
+  { featureType: "road.highway", elementType: "labels.text.stroke", stylers: [{ color: "#023e58" }] },
+  { featureType: "transit", elementType: "labels.text.fill", stylers: [{ color: "#98a5be" }] },
+  { featureType: "transit", elementType: "labels.text.stroke", stylers: [{ color: "#1d2c4d" }] },
+  { featureType: "transit.line", elementType: "geometry.fill", stylers: [{ color: "#283d6a" }] },
+  { featureType: "transit.station", elementType: "geometry", stylers: [{ color: "#3a4762" }] },
+  { featureType: "water", elementType: "geometry", stylers: [{ color: "#0e1626" }] },
+  { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#4e6d70" }] },
+];
 
 type LoanType = "dscr" | "fix-flip" | "construction" | "";
 type TransactionType = "purchase" | "refinance" | "";
@@ -54,6 +85,8 @@ interface FormData {
   propertyCity: string;
   propertyState: string;
   propertyZip: string;
+  propertyLat: number | null;
+  propertyLng: number | null;
   purchasePrice: string;
   rehabBudget: string;
   afterRepairValue: string;
@@ -327,6 +360,8 @@ export default function ConversationalQuote() {
     propertyCity: "",
     propertyState: "",
     propertyZip: "",
+    propertyLat: null,
+    propertyLng: null,
     purchasePrice: "",
     rehabBudget: "",
     afterRepairValue: "",
@@ -469,6 +504,8 @@ export default function ConversationalQuote() {
           propertyCity: "",
           propertyState: "",
           propertyZip: "",
+          propertyLat: null,
+          propertyLng: null,
           // Keep borrower profile fields (don't reset them)
         };
       }
@@ -559,6 +596,8 @@ export default function ConversationalQuote() {
     let state = "";
     let zip = "";
     let streetAddress = place.formatted_address || "";
+    let lat: number | null = null;
+    let lng: number | null = null;
 
     if (place.address_components) {
       for (const component of place.address_components) {
@@ -570,6 +609,16 @@ export default function ConversationalQuote() {
           zip = component.long_name;
         }
       }
+    }
+
+    // Extract coordinates from place geometry
+    if (place.geometry?.location) {
+      lat = typeof place.geometry.location.lat === 'function' 
+        ? place.geometry.location.lat() 
+        : place.geometry.location.lat;
+      lng = typeof place.geometry.location.lng === 'function' 
+        ? place.geometry.location.lng() 
+        : place.geometry.location.lng;
     }
 
     setFormData(prev => {
@@ -585,6 +634,8 @@ export default function ConversationalQuote() {
         propertyCity: city,
         propertyState: state,
         propertyZip: zip,
+        propertyLat: lat,
+        propertyLng: lng,
       };
     });
   };
@@ -694,6 +745,8 @@ export default function ConversationalQuote() {
                           propertyCity: "",
                           propertyState: "",
                           propertyZip: "",
+                          propertyLat: null,
+                          propertyLng: null,
                         }));
                       }
                       
@@ -752,44 +805,77 @@ export default function ConversationalQuote() {
 
       case "address":
         const hasVerifiedAddress = !!(formData.propertyAddress && formData.propertyCity && formData.propertyState);
+        const hasMapCoordinates = formData.propertyLat !== null && formData.propertyLng !== null;
         return (
           <div className="flex flex-col h-full max-w-xl mx-auto px-3 sm:px-0">
-            {/* Map-like Background Area */}
-            <div className="flex-1 relative rounded-xl sm:rounded-2xl overflow-hidden mb-4 bg-slate-800/50 border border-white/10">
-              {/* Simulated Map Grid Pattern */}
-              <div className="absolute inset-0 opacity-20">
-                <div className="w-full h-full" style={{
-                  backgroundImage: `
-                    linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-                    linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)
-                  `,
-                  backgroundSize: '40px 40px'
-                }} />
-              </div>
-              
-              {/* Location Pin Indicator */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <motion.div
-                  animate={{ y: [0, -8, 0] }}
-                  transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-                  className="relative"
-                >
-                  <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-emerald-500/20 border-2 border-emerald-500/40 flex items-center justify-center">
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/30">
-                      <span className="text-white text-xs sm:text-sm font-bold">Me</span>
-                    </div>
+            {/* Map Background Area */}
+            <div className="flex-1 relative rounded-xl sm:rounded-2xl overflow-hidden mb-4 border border-white/10">
+              {/* Show real Google Map when address is verified with coordinates */}
+              {hasVerifiedAddress && hasMapCoordinates ? (
+                <div className="absolute inset-0">
+                  <Map
+                    defaultCenter={{ lat: formData.propertyLat!, lng: formData.propertyLng! }}
+                    defaultZoom={16}
+                    gestureHandling="cooperative"
+                    disableDefaultUI={true}
+                    styles={darkMapStyles}
+                    className="w-full h-full"
+                  >
+                    {/* Custom "Me" marker */}
+                    <Marker
+                      position={{ lat: formData.propertyLat!, lng: formData.propertyLng! }}
+                      title={formData.propertyAddress}
+                    />
+                  </Map>
+                  {/* Overlay for "Me" label */}
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="relative -mt-10"
+                    >
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/50 border-2 border-white">
+                        <span className="text-white text-xs sm:text-sm font-bold">Me</span>
+                      </div>
+                    </motion.div>
                   </div>
-                  {/* Pin shadow */}
-                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-6 h-1.5 bg-black/30 rounded-full blur-sm" />
-                </motion.div>
-              </div>
+                </div>
+              ) : (
+                /* Placeholder grid pattern when no address verified */
+                <>
+                  <div className="absolute inset-0 bg-slate-800/50">
+                    <div className="w-full h-full opacity-20" style={{
+                      backgroundImage: `
+                        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)
+                      `,
+                      backgroundSize: '40px 40px'
+                    }} />
+                  </div>
+                  {/* Animated placeholder pin */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <motion.div
+                      animate={{ y: [0, -8, 0] }}
+                      transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                      className="relative"
+                    >
+                      <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-emerald-500/20 border-2 border-emerald-500/40 flex items-center justify-center">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/30">
+                          <span className="text-white text-xs sm:text-sm font-bold">Me</span>
+                        </div>
+                      </div>
+                      <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-6 h-1.5 bg-black/30 rounded-full blur-sm" />
+                    </motion.div>
+                  </div>
+                </>
+              )}
               
               {/* Address Display Bar at Top */}
               {hasVerifiedAddress && (
                 <motion.div
                   initial={{ y: -20, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
-                  className="absolute top-3 left-3 right-3"
+                  className="absolute top-3 left-3 right-3 z-10"
                 >
                   <div className="bg-slate-900/90 backdrop-blur-sm rounded-lg border border-white/10 p-2.5 sm:p-3">
                     <div className="flex items-center gap-2">
@@ -861,20 +947,10 @@ export default function ConversationalQuote() {
                 )}
               </AnimatePresence>
               
-              {/* Primary CTA */}
-              <Button
-                onClick={handleNext}
-                disabled={!hasVerifiedAddress}
-                className="w-full h-12 sm:h-14 text-base sm:text-lg font-semibold rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/30 disabled:opacity-40 disabled:shadow-none transition-all"
-                data-testid="button-save-address"
-              >
-                Save Place
-              </Button>
-              
-              {/* Secondary Skip */}
+              {/* Secondary Skip - "I'm Still Looking" */}
               <button
                 onClick={handleNext}
-                className="w-full py-2 text-white/60 hover:text-white text-sm font-medium transition-colors"
+                className="w-full py-3 text-white/60 hover:text-white text-sm font-medium transition-colors"
                 data-testid="button-skip-address"
               >
                 I'm Still Looking
