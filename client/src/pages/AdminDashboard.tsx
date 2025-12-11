@@ -871,6 +871,17 @@ export default function AdminDashboard() {
               Recently Funded
               <Badge variant="secondary" className="ml-1.5 text-[10px] h-4 px-1">{stats.totalDeals}</Badge>
             </Button>
+            <Link href="/admin/portfolio">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 text-xs shrink-0"
+                data-testid="link-portfolio"
+              >
+                <Building2 className="h-3.5 w-3.5 mr-1.5" />
+                Loan Portfolio
+              </Button>
+            </Link>
             <Link href="/admin/servicing">
               <Button
                 variant="ghost"
