@@ -230,32 +230,7 @@ function GoogleMapsAutocomplete({
   );
 
   return (
-    <div className="relative">
-      {/* Left icon - MapPin or animated checkmark */}
-      <AnimatePresence mode="wait">
-        {isValidated ? (
-          <motion.div 
-            key="checkmark"
-            initial={{ scale: 0, rotate: -180 }}
-            animate={{ scale: 1, rotate: 0 }}
-            exit={{ scale: 0, rotate: 180 }}
-            transition={{ type: "spring", stiffness: 500, damping: 25 }}
-            className="absolute left-3 top-1/2 transform -translate-y-1/2 z-10 pointer-events-none"
-          >
-            <CheckCircle2 className="h-4 w-4 text-green-500" />
-          </motion.div>
-        ) : (
-          <motion.div
-            key="mappin"
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            exit={{ scale: 0 }}
-            className="absolute left-3 top-1/2 transform -translate-y-1/2 z-10 pointer-events-none"
-          >
-            <MapPin className="h-4 w-4 text-white/50" />
-          </motion.div>
-        )}
-      </AnimatePresence>
+    <div className="relative flex items-center">
       <Input
         ref={inputRef}
         value={inputValue}
@@ -266,26 +241,54 @@ function GoogleMapsAutocomplete({
         className={`pl-10 pr-10 ${className}`}
         data-testid={testId}
       />
-      {inputValue && (
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="absolute right-2 top-1/2 transform -translate-y-1/2 h-7 w-7 hover:bg-white/10"
-          onClick={handleClear}
-          data-testid="button-clear-address"
-        >
-          <X className="h-4 w-4 text-white/60" />
-        </Button>
-      )}
-      {isLoading && (
-        <Loader2 className="absolute right-10 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin text-white/50" />
-      )}
+      {/* Left icon - MapPin or animated checkmark - positioned inside input */}
+      <div className="absolute left-3 flex items-center pointer-events-none">
+        <AnimatePresence mode="wait">
+          {isValidated ? (
+            <motion.div 
+              key="checkmark"
+              initial={{ scale: 0, rotate: -180 }}
+              animate={{ scale: 1, rotate: 0 }}
+              exit={{ scale: 0, rotate: 180 }}
+              transition={{ type: "spring", stiffness: 500, damping: 25 }}
+            >
+              <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="mappin"
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0 }}
+            >
+              <MapPin className="h-4 w-4 sm:h-5 sm:w-5 text-white/50" />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+      {/* Right side controls - X button and loading spinner */}
+      <div className="absolute right-3 flex items-center gap-1">
+        {isLoading && (
+          <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin text-white/50" />
+        )}
+        {inputValue && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 sm:h-7 sm:w-7 hover:bg-white/10 p-0"
+            onClick={handleClear}
+            data-testid="button-clear-address"
+          >
+            <X className="h-4 w-4 sm:h-5 sm:w-5 text-white/60" />
+          </Button>
+        )}
+      </div>
 
       {showDropdown && predictions.length > 0 && (
         <div
           ref={dropdownRef}
-          className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-lg overflow-hidden"
+          className="absolute left-0 right-0 top-full z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-lg overflow-hidden"
         >
           {predictions.map((prediction) => (
             <button
