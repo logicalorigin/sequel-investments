@@ -154,7 +154,7 @@ export default function PhotoVerificationPage() {
   }, []);
   
   const uploadMutation = useMutation({
-    mutationFn: async (data: { file: File; photoType: string; notes: string }) => {
+    mutationFn: async (data: { file: File; photoType: string; notes: string }): Promise<VerificationPhoto> => {
       const urlResponse = await apiRequest("POST", `/api/applications/${applicationId}/verification-photos/upload-url`, {
         fileName: data.file.name,
         photoType: data.photoType,
@@ -184,14 +184,48 @@ export default function PhotoVerificationPage() {
         browserCapturedAt: browserLocation?.capturedAt?.toISOString(),
         gpsPermissionDenied,
         notes: data.notes,
-      });
+      }) as unknown as Promise<VerificationPhoto>;
     },
-    onSuccess: () => {
+    onSuccess: (photo: VerificationPhoto) => {
       queryClient.invalidateQueries({ queryKey: ["/api/applications", applicationId, "verification-photos"] });
       setCapturedImage(null);
       setCapturedFile(null);
       setNotes("");
-      toast({ title: "Photo uploaded successfully" });
+      
+      // Show verification result to user immediately
+      const status = photo.verificationStatus;
+      const isSuccess = status === "verified" || status === "gps_match";
+      const isWarning = status === "browser_gps_only" || status === "exif_gps_only" || status === "pending";
+      const isError = status === "gps_mismatch" || status === "outside_geofence" || status === "stale_timestamp" || status === "no_gps_data";
+      
+      // Parse verification details for user-friendly message
+      let detailMessage = "";
+      try {
+        const details = photo.verificationDetails ? JSON.parse(photo.verificationDetails) : null;
+        detailMessage = details?.message || "";
+      } catch {
+        detailMessage = "";
+      }
+      
+      if (isSuccess) {
+        toast({ 
+          title: "Photo verified successfully",
+          description: detailMessage || "GPS location verified - photo taken at property location",
+        });
+      } else if (isError) {
+        toast({ 
+          title: "GPS verification issue detected",
+          description: detailMessage || getVerificationStatusLabel(status),
+          variant: "destructive",
+        });
+      } else if (isWarning) {
+        toast({ 
+          title: "Photo uploaded - limited verification",
+          description: detailMessage || getVerificationStatusLabel(status),
+        });
+      } else {
+        toast({ title: "Photo uploaded successfully" });
+      }
       
       const currentCategory = PROPERTY_PHOTO_CATEGORIES[activeCategory];
       if (activePhotoIndex < currentCategory.photos.length - 1) {
