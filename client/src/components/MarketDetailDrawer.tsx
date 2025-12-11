@@ -6,7 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import {
-  X,
+  ArrowLeft,
   Home,
   DollarSign,
   TrendingUp,
@@ -579,8 +579,17 @@ export function MarketDetailDrawer({ market, stateName, onClose, isOpen, isMobil
       className={`bg-card flex flex-col h-full ${isMobile ? 'rounded-t-xl' : 'border-l shadow-xl animate-in slide-in-from-right duration-300'}`}
       data-testid="market-detail-drawer"
     >
-      <div className={`flex items-center justify-between border-b bg-muted/30 ${isMobile ? 'p-3' : 'p-4'}`}>
-        <div className="flex items-center gap-3 min-w-0">
+      <div className={`flex items-center gap-3 border-b bg-muted/30 ${isMobile ? 'p-3' : 'p-4'}`}>
+        <Button 
+          size="icon" 
+          variant="ghost" 
+          onClick={onClose}
+          className="shrink-0"
+          data-testid="button-close-drawer"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <div className="flex items-center gap-3 min-w-0 flex-1">
           <Badge variant="outline" className="h-8 w-8 p-0 justify-center text-sm font-bold shrink-0">
             {market.rank}
           </Badge>
@@ -592,15 +601,6 @@ export function MarketDetailDrawer({ market, stateName, onClose, isOpen, isMobil
             </p>
           </div>
         </div>
-        <Button 
-          size="icon" 
-          variant="ghost" 
-          onClick={onClose}
-          className="shrink-0"
-          data-testid="button-close-drawer"
-        >
-          <X className="h-5 w-5" />
-        </Button>
       </div>
 
       <div className="flex items-center gap-1 p-2 border-b bg-muted/10 overflow-x-auto">
