@@ -15,6 +15,20 @@ export interface Article {
 
 export const articles: Article[] = [
   {
+    slug: "american-migration-2025",
+    title: "Where Americans Are Moving in 2025: Investment Hotspots for Smart Investors",
+    metaDescription: "Discover where Americans are relocating in 2025 and what it means for real estate investors. Analysis of top growth markets, population trends, and investment opportunities.",
+    category: "Article",
+    author: "Sequel Investments",
+    publishDate: "2025-12-05",
+    readTime: "8 min read",
+    heroImage: "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=1200&h=600&fit=crop&auto=format",
+    excerpt: "Population growth is one of the strongest predictors of real estate performance. Discover which markets are attracting new residents and how to position your investment portfolio.",
+    tags: ["Market Analysis", "Investment Strategy", "Population Trends"],
+    relatedArticles: ["complete-guide-to-dscr-loans", "what-investors-should-know-about-adus"],
+    content: `This article features interactive charts. Please visit the full article page for the complete experience.`
+  },
+  {
     slug: "complete-guide-to-dscr-loans",
     title: "The Complete Guide to DSCR Rental Property Loans",
     metaDescription: "Learn everything about DSCR loans for rental property investors. Discover how debt service coverage ratio works, qualification requirements, and how to scale your portfolio without income verification.",

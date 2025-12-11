@@ -1,9 +1,11 @@
 import { useEffect } from "react";
 import { Link } from "wouter";
-import { ArrowLeft, Calendar, User, Linkedin, TrendingDown, Users, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Calendar, User, TrendingUp, MapPin, DollarSign, Home } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Navigation } from "@/components/Navigation";
+import { Footer } from "@/components/Footer";
 import {
   LineChart,
   Line,
@@ -14,12 +16,11 @@ import {
   ResponsiveContainer,
   BarChart,
   Bar,
-  Legend,
   Cell,
   ReferenceLine,
 } from "recharts";
 
-const outOfStateMortgageData = [
+const relocationTrendData = [
   { year: "2019", percentage: 18.2 },
   { year: "2020", percentage: 19.8 },
   { year: "2021", percentage: 21.5 },
@@ -29,23 +30,23 @@ const outOfStateMortgageData = [
   { year: "2025", percentage: 20.3 },
 ];
 
-const stateMigrationData = [
-  { state: "South Carolina", inbound: 1.85, outbound: 1.0, net: 0.85 },
-  { state: "Texas", inbound: 1.65, outbound: 1.0, net: 0.65 },
-  { state: "Florida", inbound: 1.45, outbound: 1.0, net: 0.45 },
-  { state: "North Carolina", inbound: 1.40, outbound: 1.0, net: 0.40 },
-  { state: "Tennessee", inbound: 1.35, outbound: 1.0, net: 0.35 },
-  { state: "Georgia", inbound: 1.25, outbound: 1.0, net: 0.25 },
-  { state: "Nevada", inbound: 1.20, outbound: 1.0, net: 0.20 },
-  { state: "Arizona", inbound: 1.15, outbound: 1.0, net: 0.15 },
+const investorHotspotData = [
+  { state: "South Carolina", growth: 1.85, color: "hsl(var(--primary))" },
+  { state: "Texas", growth: 1.65, color: "hsl(var(--primary))" },
+  { state: "Florida", growth: 1.45, color: "hsl(142 76% 36%)" },
+  { state: "North Carolina", growth: 1.40, color: "hsl(142 76% 36%)" },
+  { state: "Tennessee", growth: 1.35, color: "hsl(217 91% 60%)" },
+  { state: "Georgia", growth: 1.25, color: "hsl(217 91% 60%)" },
+  { state: "Nevada", growth: 1.20, color: "hsl(217 91% 60%)" },
+  { state: "Arizona", growth: 1.15, color: "hsl(217 91% 60%)" },
 ];
 
 export default function AmericanMigration2025Page() {
   useEffect(() => {
-    document.title = "The Great American Reshuffle | Sequel Investments";
+    document.title = "Where Americans Are Moving in 2025: Investment Hotspots | Sequel Investments";
     
     const metaDescription = document.querySelector('meta[name="description"]');
-    const descriptionContent = "High mortgage rates and the lock-in effect have slowed interstate migration. Discover how generational shifts and rising insurance costs are reshaping American migration patterns in 2025.";
+    const descriptionContent = "Discover where Americans are relocating in 2025 and what it means for real estate investors. Analysis of top growth markets, population trends, and investment opportunities.";
     if (metaDescription) {
       metaDescription.setAttribute("content", descriptionContent);
     } else {
@@ -60,44 +61,38 @@ export default function AmericanMigration2025Page() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Navigation */}
-      <div className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-3">
-          <Link href="/resources">
-            <Button variant="ghost" size="sm" className="gap-2" data-testid="link-back-resources">
-              <ArrowLeft className="h-4 w-4" />
-              Back to Resources
-            </Button>
-          </Link>
-        </div>
-      </div>
-
+      <Navigation />
+      
       {/* Hero Section */}
       <div className="relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=1920&q=80')] bg-cover bg-center opacity-20" />
+        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=1920&q=80')] bg-cover bg-center opacity-20" />
         <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/60 to-transparent" />
         
         <div className="relative container mx-auto px-4 py-16 md:py-24">
           <div className="max-w-4xl">
+            <Link href="/resources">
+              <Button variant="ghost" size="sm" className="gap-2 mb-6 text-white/70 hover:text-white hover:bg-white/10" data-testid="link-back-resources">
+                <ArrowLeft className="h-4 w-4" />
+                Back to Resources
+              </Button>
+            </Link>
+            
             <Badge variant="secondary" className="mb-4 bg-primary/20 text-primary border-primary/30">
-              Property Market Economics
+              Market Analysis
             </Badge>
             
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight" data-testid="text-article-title">
-              The Great American Reshuffle
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6 leading-tight" data-testid="text-article-title">
+              Where Americans Are Moving in 2025: Investment Hotspots for Smart Investors
             </h1>
             
             <div className="flex flex-wrap items-center gap-4 text-sm text-white/70 mb-8">
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
-                <span>December 5, 2025</span>
+                <span>December 2025</span>
               </div>
               <div className="flex items-center gap-2">
                 <User className="h-4 w-4" />
-                <span>By Archana Pradhan</span>
-                <a href="https://www.linkedin.com/in/archana-pradhan-59816354/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80">
-                  <Linkedin className="h-4 w-4" />
-                </a>
+                <span>Sequel Investments Research</span>
               </div>
             </div>
 
@@ -106,12 +101,12 @@ export default function AmericanMigration2025Page() {
               <Card className="bg-white/10 border-white/20 backdrop-blur-sm">
                 <CardContent className="p-4">
                   <div className="flex items-start gap-3">
-                    <div className="p-2 rounded-lg bg-red-500/20">
-                      <TrendingDown className="h-5 w-5 text-red-400" />
+                    <div className="p-2 rounded-lg bg-primary/20">
+                      <TrendingUp className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-white mb-1">Migration Stalls</h3>
-                      <p className="text-sm text-white/70">High mortgage rates and the "lock-in effect" have slowed interstate moves, creating a stagnant market despite rising inventory.</p>
+                      <h3 className="font-semibold text-white mb-1">Sun Belt Surge</h3>
+                      <p className="text-sm text-white/70">Southern states continue attracting relocators with lower taxes and affordable housing prices.</p>
                     </div>
                   </div>
                 </CardContent>
@@ -121,11 +116,11 @@ export default function AmericanMigration2025Page() {
                 <CardContent className="p-4">
                   <div className="flex items-start gap-3">
                     <div className="p-2 rounded-lg bg-blue-500/20">
-                      <Users className="h-5 w-5 text-blue-400" />
+                      <MapPin className="h-5 w-5 text-blue-400" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-white mb-1">Generational Shifts</h3>
-                      <p className="text-sm text-white/70">Young buyers are now flocking to Texas and South Carolina for jobs. Rising insurance costs are forcing residents across generations out of Florida.</p>
+                      <h3 className="font-semibold text-white mb-1">New Leader Emerges</h3>
+                      <p className="text-sm text-white/70">South Carolina has overtaken Florida and Texas as the top destination for new residents.</p>
                     </div>
                   </div>
                 </CardContent>
@@ -134,12 +129,12 @@ export default function AmericanMigration2025Page() {
               <Card className="bg-white/10 border-white/20 backdrop-blur-sm">
                 <CardContent className="p-4">
                   <div className="flex items-start gap-3">
-                    <div className="p-2 rounded-lg bg-amber-500/20">
-                      <AlertTriangle className="h-5 w-5 text-amber-400" />
+                    <div className="p-2 rounded-lg bg-green-500/20">
+                      <DollarSign className="h-5 w-5 text-green-400" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-white mb-1">Hidden Costs</h3>
-                      <p className="text-sm text-white/70">Americans are chasing affordability in disaster-prone areas, trading lower sale prices for spiking insurance premiums and long-term risk.</p>
+                      <h3 className="font-semibold text-white mb-1">Investor Opportunity</h3>
+                      <p className="text-sm text-white/70">Population growth creates strong rental demand and appreciation potential in key markets.</p>
                     </div>
                   </div>
                 </CardContent>
@@ -153,21 +148,21 @@ export default function AmericanMigration2025Page() {
       <article className="container mx-auto px-4 py-12 max-w-4xl">
         <div className="prose prose-lg dark:prose-invert max-w-none">
           <p className="text-xl text-muted-foreground leading-relaxed mb-8">
-            Although trends in the American housing market are cyclical there is one constant: a search for affordability. At the beginning of the millennium, affordability came in the form of suburban sprawl. During the pandemic, remote work transformed affordability to look like Sunbelt markets far from traditional job centers. Now, it's increasingly looking like staying in place.
+            For real estate investors, understanding where Americans are moving isn't just interesting—it's essential for building a profitable portfolio. Population growth drives rental demand, supports property values, and creates opportunities for savvy investors who position themselves ahead of the trend.
           </p>
 
           <p className="mb-6">
-            A combination of economic uncertainty, tighter lending criteria, and a persistent gap between buyer and seller expectations is stagnating the market. Since the height of interstate migration in 2022, loan applications for out-of-state moves dropped 2.5 percentage points.
+            After years of pandemic-driven migration, the dust has settled enough to reveal clear patterns. While overall interstate moves have moderated from their 2022 peak, certain markets continue to attract a steady stream of new residents—and that's exactly where investors should be looking.
           </p>
 
-          {/* Chart 1: Out-of-State Mortgage Applications */}
+          {/* Chart 1: Relocation Trends */}
           <Card className="my-10 overflow-hidden">
             <CardContent className="p-6">
-              <h3 className="text-lg font-semibold mb-2">Share of Out-of-State Mortgage Applications by Year</h3>
-              <p className="text-sm text-muted-foreground mb-6">Data source: Cotality, 2025</p>
-              <div className="h-[350px]" data-testid="chart-mortgage-applications">
+              <h3 className="text-lg font-semibold mb-2">Interstate Relocation Trends (2019-2025)</h3>
+              <p className="text-sm text-muted-foreground mb-6">Percentage of home purchases involving interstate moves</p>
+              <div className="h-[350px]" data-testid="chart-relocation-trends">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={outOfStateMortgageData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                  <LineChart data={relocationTrendData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis 
                       dataKey="year" 
@@ -186,7 +181,7 @@ export default function AmericanMigration2025Page() {
                         border: '1px solid hsl(var(--border))',
                         borderRadius: '8px'
                       }}
-                      formatter={(value: number) => [`${value}%`, 'Out-of-State Applications']}
+                      formatter={(value: number) => [`${value}%`, 'Interstate Moves']}
                     />
                     <ReferenceLine y={22.8} stroke="hsl(var(--primary))" strokeDasharray="5 5" label={{ value: '2022 Peak', fill: 'hsl(var(--primary))', fontSize: 12 }} />
                     <Line 
@@ -203,51 +198,25 @@ export default function AmericanMigration2025Page() {
             </CardContent>
           </Card>
 
-          <h2 className="text-2xl font-bold mt-12 mb-6">The Price of Certainty</h2>
+          <h2 className="text-2xl font-bold mt-12 mb-6">The Top Markets Drawing New Residents</h2>
 
           <p className="mb-6">
-            People will always move out of state, but they are doing so about 15% less frequently than they did five years ago. That trend is at odds with the increasing number of homes coming up for sale.
+            While Florida and Texas dominated headlines during the pandemic migration boom, the landscape has shifted. South Carolina has emerged as the new front-runner, attracting nearly twice as many inbound movers as outbound residents.
           </p>
 
           <p className="mb-6">
-            A glance at the market reveals that there is more choice than there's been in years, yet buyers aren't biting. The problem is price.
+            For investors, this matters because population growth is one of the strongest predictors of real estate performance. More residents mean more renters, more buyers, and more competition for limited housing stock—all factors that support both rental rates and property values.
           </p>
 
-          <p className="mb-6">
-            In September, the national median list price held at just above $400,000, while mortgage rates hovered near 7%. Those figures have swollen the number of cost-burdened households to a third of those with mortgages. Add in the overall increase in the cost of living, and taking on a new, high-rate mortgage is something many families choose to forego. Data shows closed sales were down 15% year-over-year, despite a 10% rise in pending deals.
-          </p>
-
-          <p className="mb-6">
-            Home prices aren't the only reason that migration between states is slowing. Experts point to the continued lock-in effect as a major deterrent for interstate moves. Established homeowners with paid off homes or low mortgage interest rates are now hesitant to take on current rates and prices. Plus, an aging population and less opportunity for remote work is also leading to people staying put.
-          </p>
-
-          <p className="mb-6">
-            Data shows that more seniors are aging in place, which is eroding traditional retirement migration patterns of downsizing and moving to warmer climes. However, the north to south pipeline hasn't completely dried up.
-          </p>
-
-          <h2 className="text-2xl font-bold mt-12 mb-6">Changes in Latitude, Changes in Attitude</h2>
-
-          <p className="mb-6">
-            The South remains a desirable place to relocate, with Florida, Texas, and the Carolinas welcoming the largest number of newcomers. But American tastes are changing, and it largely depends on age.
-          </p>
-
-          <p className="mb-6">
-            Data shows that while Florida and Texas dominated in-migration between 2019 and 2023, South Carolina has taken the top spot since 2024. Still, Texas does remain a top destination for younger homebuyers, many of whom come from California and Florida.
-          </p>
-
-          <p className="mb-6">
-            In 2025, the Lone Star State welcomed the largest number of buyers between the ages of 20 and 35. Many of these buyers were motivated by the state's lower taxes, more affordable housing, and employment opportunities. Similarly, younger homebuyers seeking fewer taxes and more affordable lifestyles are drifting to Nevada from California, and New Yorkers from this age group are applying for mortgages in the neighboring states of New Jersey and Connecticut.
-          </p>
-
-          {/* Chart 2: State Migration Ratios */}
+          {/* Chart 2: Investment Hotspots */}
           <Card className="my-10 overflow-hidden">
             <CardContent className="p-6">
-              <h3 className="text-lg font-semibold mb-2">Ratios of People Moving In and Out of States with High Migration</h3>
-              <p className="text-sm text-muted-foreground mb-6">Data source: Cotality, 2025</p>
-              <div className="h-[400px]" data-testid="chart-state-migration">
+              <h3 className="text-lg font-semibold mb-2">Top States for Population Growth</h3>
+              <p className="text-sm text-muted-foreground mb-6">Inbound-to-outbound migration ratio (higher = more net growth)</p>
+              <div className="h-[400px]" data-testid="chart-growth-markets">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart 
-                    data={stateMigrationData} 
+                    data={investorHotspotData} 
                     layout="vertical"
                     margin={{ top: 20, right: 30, left: 100, bottom: 20 }}
                   >
@@ -272,22 +241,18 @@ export default function AmericanMigration2025Page() {
                         border: '1px solid hsl(var(--border))',
                         borderRadius: '8px'
                       }}
-                      formatter={(value: number, name: string) => {
-                        if (name === 'inbound') return [`${value}x`, 'Inbound Ratio'];
-                        return [`${value}x`, 'Baseline (Outbound)'];
-                      }}
+                      formatter={(value: number) => [`${value}x baseline`, 'Growth Ratio']}
                     />
-                    <Legend />
                     <ReferenceLine x={1} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
                     <Bar 
-                      dataKey="inbound" 
-                      name="Inbound Migration Ratio"
+                      dataKey="growth" 
+                      name="Growth Ratio"
                       radius={[0, 4, 4, 0]}
                     >
-                      {stateMigrationData.map((entry, index) => (
+                      {investorHotspotData.map((entry, index) => (
                         <Cell 
                           key={`cell-${index}`} 
-                          fill={entry.net > 0.5 ? 'hsl(var(--primary))' : entry.net > 0.3 ? 'hsl(142 76% 36%)' : 'hsl(217 91% 60%)'}
+                          fill={entry.growth > 1.5 ? 'hsl(var(--primary))' : entry.growth > 1.3 ? 'hsl(142 76% 36%)' : 'hsl(217 91% 60%)'}
                         />
                       ))}
                     </Bar>
@@ -295,66 +260,119 @@ export default function AmericanMigration2025Page() {
                 </ResponsiveContainer>
               </div>
               <p className="text-sm text-muted-foreground mt-4 text-center">
-                Ratio shows inbound migration relative to outbound (1.0 = baseline). Higher values indicate net positive migration.
+                A ratio of 1.85x means 85% more people moving in than leaving
               </p>
             </CardContent>
           </Card>
 
+          <h2 className="text-2xl font-bold mt-12 mb-6">What's Driving the Migration?</h2>
+
           <p className="mb-6">
-            High prices, large tax burdens, and quality of life concerns are usually attributed to people moving out of state, but there is increasingly a generational divide as to where these lifestyle considerations are pushing people.
+            Several factors are pushing Americans toward these high-growth markets:
           </p>
 
+          <div className="grid gap-4 md:grid-cols-2 mb-8">
+            <Card>
+              <CardContent className="p-4">
+                <h4 className="font-semibold mb-2 flex items-center gap-2">
+                  <DollarSign className="h-4 w-4 text-primary" />
+                  Lower Cost of Living
+                </h4>
+                <p className="text-sm text-muted-foreground">Residents from high-cost states like California and New York can sell their homes and buy comparable properties with cash left over.</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <h4 className="font-semibold mb-2 flex items-center gap-2">
+                  <Home className="h-4 w-4 text-primary" />
+                  Tax Advantages
+                </h4>
+                <p className="text-sm text-muted-foreground">States like Texas, Florida, and Tennessee have no state income tax, letting residents keep more of their earnings.</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <h4 className="font-semibold mb-2 flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-primary" />
+                  Job Growth
+                </h4>
+                <p className="text-sm text-muted-foreground">Major employers are relocating headquarters and operations to business-friendly Sun Belt states.</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <h4 className="font-semibold mb-2 flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-primary" />
+                  Remote Work Flexibility
+                </h4>
+                <p className="text-sm text-muted-foreground">Workers who can work from anywhere are choosing locations based on lifestyle preferences rather than office proximity.</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <h2 className="text-2xl font-bold mt-12 mb-6">Investment Implications</h2>
+
           <p className="mb-6">
-            Pricey states like California, New York, and Massachusetts are all losing more homebuyers than they're gaining, but different age groups are picking different arrival destinations. Younger generations tend to stay close to their original locations, with Northeasterners staying in the general region and West Coast inhabitants remaining in the Southwest. Those over 55 are more likely to make Florida their new home.
+            For real estate investors, these migration patterns create clear opportunities:
           </p>
 
+          <h3 className="text-xl font-semibold mt-8 mb-4">Rental Properties in Growth Markets</h3>
           <p className="mb-6">
-            While Florida continues to be the third most popular destination for newcomers, data found that migration patterns are shifting along generational lines. Escalating property insurance costs and home prices have pushed younger Floridians to nearby states like South Carolina and Georgia while the older buyers continue to arrive from colder, pricier states.
+            New residents need places to live, and many prefer to rent while they get established in a new area. DSCR loans are ideal for acquiring rental properties in these markets because they qualify based on the property's income potential rather than your personal income.
           </p>
 
-          <h2 className="text-2xl font-bold mt-12 mb-6">A Recipe for Disaster</h2>
-
+          <h3 className="text-xl font-semibold mt-8 mb-4">Fix and Flip Opportunities</h3>
           <p className="mb-6">
-            Regardless of which generation a homebuyer comes from, they all have one thing in common: they are searching for affordability in areas that are prone to natural disasters.
+            Population growth puts pressure on existing housing stock, supporting prices and creating opportunities for value-add investors. Properties that might sit on the market in stagnant areas sell quickly in high-growth markets.
+          </p>
+
+          <h3 className="text-xl font-semibold mt-8 mb-4">New Construction</h3>
+          <p className="mb-6">
+            In markets where population growth outpaces housing supply, new construction loans can help you meet demand with modern inventory that commands premium prices.
           </p>
 
           <Card className="my-8 bg-primary/5 border-primary/20">
             <CardContent className="p-6">
               <blockquote className="text-lg italic text-foreground">
-                "Affordability tends to be associated with sales price. But lower monthly payments don't always translate to long-term stability, especially in the areas where we see people moving. Insurance costs are likely to make homeowners' futures costly despite the cheap homes that are available today."
+                "Smart investors follow population growth. When you invest in markets where people want to live, you're not just buying property—you're buying into demand that supports your investment for years to come."
               </blockquote>
-              <p className="text-sm text-muted-foreground mt-4">— Archana Pradhan, Principal Economist</p>
+              <p className="text-sm text-muted-foreground mt-4">— Sequel Investments</p>
             </CardContent>
           </Card>
 
-          <p className="mb-6">
-            States all along the Gulf Coast and Mid-Atlantic region have seen the cost of homeowners insurance climb over the last several years. Nationwide, costs have increased 74% in the past fifteen years. In some storm-prone states, insurers are withdrawing altogether. In those cases where insurance is unavailable, the costs fall to the homeowner.
-          </p>
+          <h2 className="text-2xl font-bold mt-12 mb-6">Due Diligence Considerations</h2>
 
           <p className="mb-6">
-            While home prices may look like a bargain in the states attracting the most Americans, the cost of keeping a home may become too much to bear. Risk is becoming another barrier to homeownership.
+            While population growth is a positive indicator, investors should also consider:
           </p>
+
+          <ul className="list-disc pl-6 space-y-2 mb-6">
+            <li><strong>Insurance costs:</strong> Some high-growth states, particularly in hurricane-prone areas, have seen significant increases in property insurance premiums.</li>
+            <li><strong>Property taxes:</strong> States without income tax often have higher property taxes to fund government services.</li>
+            <li><strong>Market-specific dynamics:</strong> Even within high-growth states, some neighborhoods and property types perform better than others.</li>
+            <li><strong>Competition:</strong> Popular markets attract more investors, which can compress cap rates and make deals harder to find.</li>
+          </ul>
 
           <p className="mb-8">
-            Florida has already revealed what happens when risk outpaces resilience. Insurers exit. Premiums spike. Properties lose value. Markets freeze. These same patterns may evolve in other states where natural disaster risk is growing unless resilience becomes a cornerstone of homeownership. Left unchecked, the strain created by market unaffordability and escalating natural disaster risk could further stymie Americans ability to move and prevent people from entering homeownership altogether.
+            Working with a lender who understands these markets—and can help you analyze deals quickly—gives you an edge when competing for properties.
           </p>
 
           {/* Call to Action */}
           <Card className="mt-12 bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
             <CardContent className="p-8 text-center">
-              <h3 className="text-xl font-bold mb-3">Planning Your Investment Strategy?</h3>
+              <h3 className="text-xl font-bold mb-3">Ready to Invest in High-Growth Markets?</h3>
               <p className="text-muted-foreground mb-6">
-                Understanding migration trends is crucial for real estate investors. Let our team help you identify opportunities in growing markets with sustainable long-term value.
+                Our team specializes in financing investment properties across the country. Whether you're targeting South Carolina, Texas, or any of the other high-growth markets, we can help you move quickly on opportunities.
               </p>
               <div className="flex flex-wrap justify-center gap-4">
                 <Link href="/get-quote">
                   <Button size="lg" data-testid="button-get-quote">
-                    Get a Quote
+                    Get Pre-Qualified
                   </Button>
                 </Link>
-                <Link href="/resources">
-                  <Button variant="outline" size="lg" data-testid="button-more-resources">
-                    More Resources
+                <Link href="/where-we-lend">
+                  <Button variant="outline" size="lg" data-testid="button-where-we-lend">
+                    See Where We Lend
                   </Button>
                 </Link>
               </div>
@@ -363,12 +381,7 @@ export default function AmericanMigration2025Page() {
         </div>
       </article>
 
-      {/* Footer */}
-      <footer className="border-t bg-muted/30 py-8">
-        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>Data and analysis adapted from Cotality research. For educational purposes only.</p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
