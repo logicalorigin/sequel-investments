@@ -1,44 +1,72 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import { Map, Marker, useApiIsLoaded, useMap } from "@vis.gl/react-google-maps";
+import { useState, useEffect, useCallback } from "react";
+import { Map, Marker, useApiIsLoaded } from "@vis.gl/react-google-maps";
 import { darkMapStyles, STATE_CENTERS } from "@/lib/mapStyles";
-import { getStateBoundary } from "@/lib/stateBoundaries";
+import { statePaths } from "./USMap";
 import type { MarketDetail } from "@/data/marketDetails";
 import { Home, TrendingUp, DollarSign, Sparkles } from "lucide-react";
 
-// Component to draw state boundary polygon
-function StateBoundaryPolygon({ stateSlug }: { stateSlug: string }) {
-  const map = useMap();
-  const polygonRef = useRef<google.maps.Polygon | null>(null);
+// Map state slugs to abbreviations
+const SLUG_TO_ABBR: Record<string, string> = {
+  "california": "CA", "texas": "TX", "florida": "FL", "new-york": "NY",
+  "arizona": "AZ", "colorado": "CO", "georgia": "GA", "nevada": "NV",
+  "north-carolina": "NC", "tennessee": "TN", "washington": "WA",
+  "south-carolina": "SC", "idaho": "ID", "utah": "UT", "oregon": "OR",
+  "alabama": "AL", "kentucky": "KY", "louisiana": "LA", "ohio": "OH",
+  "indiana": "IN", "michigan": "MI", "missouri": "MO", "maryland": "MD",
+  "virginia": "VA", "pennsylvania": "PA", "new-jersey": "NJ",
+  "massachusetts": "MA", "illinois": "IL", "minnesota": "MN",
+  "wisconsin": "WI", "iowa": "IA", "kansas": "KS", "nebraska": "NE",
+  "oklahoma": "OK", "arkansas": "AR", "mississippi": "MS",
+  "new-mexico": "NM", "montana": "MT", "wyoming": "WY",
+  "north-dakota": "ND", "south-dakota": "SD", "west-virginia": "WV",
+  "connecticut": "CT", "new-hampshire": "NH", "maine": "ME",
+  "vermont": "VT", "rhode-island": "RI", "delaware": "DE",
+  "district-of-columbia": "DC", "hawaii": "HI", "alaska": "AK",
+};
 
-  useEffect(() => {
-    if (!map) return;
-
-    const boundary = getStateBoundary(stateSlug);
-    if (!boundary) return;
-
-    // Create the polygon
-    const polygon = new google.maps.Polygon({
-      paths: boundary.coordinates,
-      strokeColor: "#b45309",
-      strokeOpacity: 0.9,
-      strokeWeight: 2,
-      fillColor: "#b45309",
-      fillOpacity: 0.6,
-      map: map,
-    });
-
-    polygonRef.current = polygon;
-
-    // Cleanup
-    return () => {
-      if (polygonRef.current) {
-        polygonRef.current.setMap(null);
-        polygonRef.current = null;
-      }
-    };
-  }, [map, stateSlug]);
-
-  return null;
+// SVG overlay component that masks surrounding states
+function StateOverlay({ stateSlug, focusAbbr }: { stateSlug: string; focusAbbr: string }) {
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden">
+      <svg
+        viewBox="0 0 959 593"
+        className="w-full h-full"
+        preserveAspectRatio="xMidYMid slice"
+      >
+        <defs>
+          {/* Mask: white = visible, black = hidden */}
+          <mask id={`state-mask-${stateSlug}`}>
+            {/* Start with everything visible (white) */}
+            <rect x="0" y="0" width="959" height="593" fill="white" />
+            {/* Cut out the focus state (make it transparent so map shows through) */}
+            {statePaths[focusAbbr] && (
+              <path d={statePaths[focusAbbr]} fill="black" />
+            )}
+          </mask>
+        </defs>
+        
+        {/* Gray overlay that covers everything except the focus state */}
+        <rect
+          x="0"
+          y="0"
+          width="959"
+          height="593"
+          fill="#4b5563"
+          mask={`url(#state-mask-${stateSlug})`}
+        />
+        
+        {/* Focus state border highlight */}
+        {statePaths[focusAbbr] && (
+          <path
+            d={statePaths[focusAbbr]}
+            fill="none"
+            stroke="#b45309"
+            strokeWidth={2}
+          />
+        )}
+      </svg>
+    </div>
+  );
 }
 
 interface StateMapDarkProps {
@@ -126,9 +154,6 @@ export function StateMapDark({
         gestureHandling="cooperative"
         onTilesLoaded={() => setMapLoaded(true)}
       >
-        {/* State boundary polygon filled with amber/gold theme color */}
-        {apiIsLoaded && <StateBoundaryPolygon stateSlug={stateSlug} />}
-        
         {apiIsLoaded && markets.map((market, index) => {
           const isSelected = selectedMarket?.id === market.id;
           const isHovered = hoveredMarket?.id === market.id;
@@ -167,6 +192,11 @@ export function StateMapDark({
           );
         })}
       </Map>
+
+      {/* SVG overlay to mask surrounding states - shows only focus state details */}
+      {SLUG_TO_ABBR[stateSlug] && (
+        <StateOverlay stateSlug={stateSlug} focusAbbr={SLUG_TO_ABBR[stateSlug]} />
+      )}
 
       {/* Floating info card when market is active */}
       {activeMarket && (
