@@ -37,7 +37,7 @@ import logoIcon from "@assets/generated_images/sequel_investments_s_logo_icon.pn
 import AddressAutocomplete from "@/components/AddressAutocomplete";
 import { CurrencySliderInput, PercentageSlider } from "@/components/AnimatedSlider";
 import { Map, Marker } from "@vis.gl/react-google-maps";
-import { darkMapStyles } from "@/lib/mapStyles";
+import { darkMapStylesWithAmberRoads } from "@/lib/mapStyles";
 
 // US Metro fallback locations for when geolocation fails
 const US_METROS = [
@@ -879,7 +879,7 @@ export default function ConversationalQuote() {
                 zoomControl={false}
                 scrollwheel={false}
                 disableDoubleClickZoom={true}
-                styles={darkMapStyles}
+                styles={darkMapStylesWithAmberRoads}
                 className="w-full h-full"
               />
               
