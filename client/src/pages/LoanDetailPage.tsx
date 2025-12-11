@@ -709,11 +709,37 @@ interface ScopeOfWorkWithFunding extends ScopeOfWorkItem {
   totalFunded: number;
 }
 
+interface ScopeOfWorkWithDraws extends ScopeOfWorkItem {
+  drawAmounts: Record<number, number>;
+  totalFunded: number;
+  remaining: number;
+}
+
+interface DrawSummary {
+  drawNumber: number;
+  status: string;
+  fundedDate: string | null;
+  fundedAmount: number | null;
+}
+
+interface ScopeOfWorkWithDrawsResponse {
+  items: ScopeOfWorkWithDraws[];
+  draws: DrawSummary[];
+}
+
 interface CategorySummary {
   category: ScopeOfWorkCategory;
   totalBudget: number;
   totalFunded: number;
   items: ScopeOfWorkWithFunding[];
+}
+
+interface CategorySummaryWithDraws {
+  category: ScopeOfWorkCategory;
+  totalBudget: number;
+  totalFunded: number;
+  drawTotals: Record<number, number>;
+  items: ScopeOfWorkWithDraws[];
 }
 
 function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[] }) {
@@ -828,6 +854,10 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
     queryKey: ["/api/serviced-loans", loan.id, "scope-of-work"],
   });
 
+  const { data: scopeWithDrawsData, isLoading: scopeWithDrawsLoading } = useQuery<ScopeOfWorkWithDrawsResponse>({
+    queryKey: ["/api/serviced-loans", loan.id, "scope-of-work-with-draws"],
+  });
+
   const { data: allDrawLineItems = [] } = useQuery<DrawLineItem[]>({
     queryKey: ["/api/serviced-loans", loan.id, "all-draw-line-items"],
     enabled: draws.length > 0,
@@ -839,6 +869,7 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/serviced-loans", loan.id, "scope-of-work"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/serviced-loans", loan.id, "scope-of-work-with-draws"] });
       toast({ title: "Scope of work initialized with default line items" });
     },
     onError: () => {
@@ -852,6 +883,7 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/serviced-loans", loan.id, "scope-of-work"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/serviced-loans", loan.id, "scope-of-work-with-draws"] });
       setEditingBudget(null);
       setEditBudgetValue("");
       toast({ title: "Budget updated" });
@@ -877,6 +909,7 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
       await Promise.all(lineItemPromises);
       queryClient.invalidateQueries({ queryKey: ["/api/serviced-loans", loan.id, "details"] });
       queryClient.invalidateQueries({ queryKey: ["/api/serviced-loans", loan.id, "scope-of-work"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/serviced-loans", loan.id, "scope-of-work-with-draws"] });
       queryClient.invalidateQueries({ queryKey: ["/api/serviced-loans", loan.id, "all-draw-line-items"] });
       clearDraft();
       setNewDrawOpen(false);
@@ -926,6 +959,24 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
       category,
       totalBudget: items.reduce((sum, i) => sum + i.budgetAmount, 0),
       totalFunded: items.reduce((sum, i) => sum + i.totalFunded, 0),
+      items,
+    };
+  }).filter(cs => cs.items.length > 0);
+
+  const fundedDrawNumbers = scopeWithDrawsData?.draws?.map(d => d.drawNumber) || [];
+  const categorySummariesWithDraws: CategorySummaryWithDraws[] = categoryOrder.map(category => {
+    const items = (scopeWithDrawsData?.items || [])
+      .filter(i => i.category === category)
+      .sort((a, b) => a.sortOrder - b.sortOrder);
+    const drawTotals: Record<number, number> = {};
+    for (const drawNum of fundedDrawNumbers) {
+      drawTotals[drawNum] = items.reduce((sum, item) => sum + (item.drawAmounts[drawNum] || 0), 0);
+    }
+    return {
+      category,
+      totalBudget: items.reduce((sum, i) => sum + i.budgetAmount, 0),
+      totalFunded: items.reduce((sum, i) => sum + i.totalFunded, 0),
+      drawTotals,
       items,
     };
   }).filter(cs => cs.items.length > 0);
@@ -1141,8 +1192,9 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
                 </div>
 
                 <Accordion type="multiple" defaultValue={categoryOrder} className="space-y-2">
-                  {categorySummaries.map((cs) => {
+                  {(fundedDrawNumbers.length > 0 ? categorySummariesWithDraws : categorySummaries).map((cs) => {
                     const categoryPercent = cs.totalBudget > 0 ? (cs.totalFunded / cs.totalBudget) * 100 : 0;
+                    const hasDrawData = fundedDrawNumbers.length > 0 && 'drawTotals' in cs;
                     return (
                       <AccordionItem key={cs.category} value={cs.category} className="border rounded-lg">
                         <AccordionTrigger className="px-3 sm:px-4 hover:no-underline" data-testid={`accordion-category-${cs.category}`}>
@@ -1160,19 +1212,27 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
                         </AccordionTrigger>
                         <AccordionContent className="px-0 pb-0">
                           <div className="overflow-x-auto">
-                          <Table className="min-w-[400px]">
+                          <Table className={hasDrawData ? "min-w-[600px]" : "min-w-[400px]"}>
                             <TableHeader>
                               <TableRow>
-                                <TableHead className="pl-4">Item</TableHead>
-                                <TableHead className="text-right">Budget</TableHead>
-                                <TableHead className="text-right">Funded</TableHead>
-                                <TableHead className="text-right pr-4">Remaining</TableHead>
+                                <TableHead className="pl-4 sticky left-0 bg-background">Item</TableHead>
+                                <TableHead className="text-right whitespace-nowrap">Budget</TableHead>
+                                {hasDrawData && fundedDrawNumbers.map(drawNum => (
+                                  <TableHead key={drawNum} className="text-right whitespace-nowrap text-amber-500">
+                                    Draw {drawNum}
+                                  </TableHead>
+                                ))}
+                                <TableHead className="text-right whitespace-nowrap text-emerald-500">Funded</TableHead>
+                                <TableHead className="text-right pr-4 whitespace-nowrap">Remaining</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
-                              {cs.items.map((item) => (
+                              {cs.items.map((item) => {
+                                const itemWithDraws = hasDrawData ? (item as ScopeOfWorkWithDraws) : null;
+                                const itemFunding = hasDrawData ? item as ScopeOfWorkWithDraws : item as ScopeOfWorkWithFunding;
+                                return (
                                 <TableRow key={item.id} data-testid={`row-scope-item-${item.id}`}>
-                                  <TableCell className="pl-4 font-medium">{item.itemName}</TableCell>
+                                  <TableCell className="pl-4 font-medium sticky left-0 bg-background">{item.itemName}</TableCell>
                                   <TableCell className="text-right">
                                     {editingBudget === item.id ? (
                                       <div className="flex items-center justify-end gap-1">
@@ -1215,17 +1275,27 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
                                       </span>
                                     )}
                                   </TableCell>
+                                  {hasDrawData && fundedDrawNumbers.map(drawNum => (
+                                    <TableCell key={drawNum} className="text-right text-amber-400/80" data-testid={`text-draw-${drawNum}-${item.id}`}>
+                                      {itemWithDraws?.drawAmounts[drawNum] ? formatCurrency(itemWithDraws.drawAmounts[drawNum]) : "-"}
+                                    </TableCell>
+                                  ))}
                                   <TableCell className="text-right text-emerald-500" data-testid={`text-funded-${item.id}`}>
-                                    {formatCurrency(item.totalFunded)}
+                                    {formatCurrency(itemFunding.totalFunded)}
                                   </TableCell>
                                   <TableCell className="text-right pr-4" data-testid={`text-remaining-${item.id}`}>
-                                    {formatCurrency(item.budgetAmount - item.totalFunded)}
+                                    {formatCurrency(item.budgetAmount - itemFunding.totalFunded)}
                                   </TableCell>
                                 </TableRow>
-                              ))}
+                              )})}
                               <TableRow className="bg-muted/30 font-medium">
-                                <TableCell className="pl-4">Category Total</TableCell>
+                                <TableCell className="pl-4 sticky left-0 bg-muted/30">Category Total</TableCell>
                                 <TableCell className="text-right">{formatCurrency(cs.totalBudget)}</TableCell>
+                                {hasDrawData && fundedDrawNumbers.map(drawNum => (
+                                  <TableCell key={drawNum} className="text-right text-amber-400">
+                                    {formatCurrency((cs as CategorySummaryWithDraws).drawTotals[drawNum] || 0)}
+                                  </TableCell>
+                                ))}
                                 <TableCell className="text-right text-emerald-500">{formatCurrency(cs.totalFunded)}</TableCell>
                                 <TableCell className="text-right pr-4">{formatCurrency(cs.totalBudget - cs.totalFunded)}</TableCell>
                               </TableRow>
