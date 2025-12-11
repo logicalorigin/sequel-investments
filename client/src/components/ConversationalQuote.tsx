@@ -670,12 +670,38 @@ export default function ConversationalQuote() {
                   <motion.button
                     key={product.id}
                     onClick={() => {
-                      // Only auto-advance if not already selected (prevents double-advance on re-click)
-                      const shouldAutoAdvance = formData.loanType !== product.id;
-                      updateField("loanType", product.id);
-                      if (shouldAutoAdvance) {
-                        setTimeout(() => handleNext(), 300);
+                      const isNewSelection = formData.loanType !== product.id;
+                      
+                      if (isNewSelection) {
+                        // Only reset fields when actually changing loan type
+                        setFormData(prev => ({
+                          ...prev,
+                          loanType: product.id as LoanType,
+                          purchasePrice: "",
+                          rehabBudget: "",
+                          afterRepairValue: "",
+                          monthlyRent: "",
+                          transactionType: "" as TransactionType,
+                          propertyDetails: { beds: "", baths: "", sqft: "", yearBuilt: "", estimatedValue: "" },
+                          downPaymentPercent: "20",
+                          propertyValue: "",
+                          currentLoanBalance: "",
+                          desiredCashOut: "",
+                          annualTaxes: "",
+                          annualInsurance: "",
+                          annualHoa: "",
+                          propertyAddress: "",
+                          propertyCity: "",
+                          propertyState: "",
+                          propertyZip: "",
+                        }));
                       }
+                      
+                      // Always advance to next step after selection
+                      setTimeout(() => {
+                        setDirection(1);
+                        setCurrentQuestionIndex(1);
+                      }, 300);
                     }}
                     className={`
                       relative p-4 sm:p-8 rounded-xl sm:rounded-2xl border-2 transition-all
@@ -725,33 +751,80 @@ export default function ConversationalQuote() {
         );
 
       case "address":
+        const hasVerifiedAddress = !!(formData.propertyAddress && formData.propertyCity && formData.propertyState);
         return (
-          <div className="space-y-4 sm:space-y-8 text-center max-w-xl mx-auto">
-            <h2 className="text-xl sm:text-3xl md:text-4xl font-bold text-white leading-tight">
+          <div className="space-y-4 sm:space-y-6 text-center max-w-xl mx-auto px-2 sm:px-0">
+            <h2 className="text-xl sm:text-3xl font-bold text-white leading-tight">
               <TypewriterText text={currentQuestion.prompt} />
             </h2>
-            <div className="relative">
-              <motion.div
-                className="absolute -inset-2 rounded-xl bg-primary/20 blur-xl opacity-50"
-                animate={{ opacity: [0.3, 0.6, 0.3] }}
-                transition={{ repeat: Infinity, duration: 2 }}
-              />
-              <div className="relative z-10">
-                <AddressAutocomplete
-                  value={formData.propertyAddress}
-                  onChange={(val) => updateField("propertyAddress", val)}
-                  onPlaceSelect={handleAddressSelect}
-                  placeholder="Enter property address..."
-                  className="w-full text-base sm:text-lg p-3 sm:p-4 rounded-xl border-2 border-white/20 bg-white/5 text-white placeholder:text-white/40 focus:border-primary focus:outline-none transition-all"
-                />
+            
+            {/* Address Verification Card */}
+            <div className="bg-white/5 rounded-xl sm:rounded-2xl border border-white/10 overflow-hidden">
+              {/* Search Input Section */}
+              <div className="p-3 sm:p-4">
+                <div className="relative">
+                  <AddressAutocomplete
+                    value={formData.propertyAddress}
+                    onChange={(val) => updateField("propertyAddress", val)}
+                    onPlaceSelect={handleAddressSelect}
+                    placeholder="Enter property address..."
+                    className="w-full text-sm sm:text-base p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 border-white/20 bg-white/5 text-white placeholder:text-white/40 focus:border-primary focus:outline-none transition-all"
+                  />
+                </div>
               </div>
+              
+              {/* Verification Status Bar */}
+              <AnimatePresence mode="wait">
+                {hasVerifiedAddress && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="border-t border-white/10"
+                  >
+                    <div className="p-3 sm:p-4 bg-green-500/10">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                            <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
+                          </div>
+                          <div className="text-left min-w-0">
+                            <p className="text-green-400 text-xs sm:text-sm font-medium">Address Verified</p>
+                            <p className="text-white/60 text-[10px] sm:text-xs truncate">
+                              {formData.propertyCity}, {formData.propertyState} {formData.propertyZip}
+                            </p>
+                          </div>
+                        </div>
+                        {isLoadingPropertyDetails && (
+                          <div className="flex items-center gap-1.5 text-amber-400 text-[10px] sm:text-xs">
+                            <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
+                            <span className="hidden sm:inline">Fetching details...</span>
+                          </div>
+                        )}
+                        {!isLoadingPropertyDetails && formData.propertyDetails?.estimatedValue && (
+                          <div className="text-right flex-shrink-0">
+                            <p className="text-white/50 text-[10px] sm:text-xs">Est. Value</p>
+                            <p className="text-primary font-bold text-sm sm:text-base">
+                              ${parseInt(formData.propertyDetails.estimatedValue).toLocaleString()}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              
+              {/* Helper Text */}
+              {!hasVerifiedAddress && (
+                <div className="px-3 sm:px-4 pb-3 sm:pb-4">
+                  <p className="text-white/40 text-xs sm:text-sm flex items-center justify-center gap-1">
+                    <MapPin className="w-3 h-3 sm:w-4 sm:h-4" />
+                    Start typing to search US addresses
+                  </p>
+                </div>
+              )}
             </div>
-            <p className="text-white/50 text-xs sm:text-sm">
-              <MapPin className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1" />
-              {formData.propertyCity && formData.propertyState 
-                ? `${formData.propertyCity}, ${formData.propertyState}`
-                : "Start typing to search..."}
-            </p>
           </div>
         );
 
@@ -1446,12 +1519,12 @@ export default function ConversationalQuote() {
               </div>
             </div>
             
-            {/* Investment Experience */}
+            {/* Investment Experience - 2x2 grid */}
             <div className="space-y-2">
               <label className="text-amber-500 text-[10px] sm:text-xs font-medium uppercase tracking-wide block">
                 Investment Experience
               </label>
-              <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 {experienceLevels.map((level) => {
                   const isSelected = formData.experience === level.id;
                   const IconComponent = level.icon === "seedling" ? Sprout 
@@ -1463,7 +1536,7 @@ export default function ConversationalQuote() {
                       key={level.id}
                       onClick={() => updateField("experience", level.id)}
                       className={`
-                        p-1.5 sm:p-2 rounded-lg border transition-all
+                        p-2 sm:p-3 rounded-lg border transition-all flex items-center gap-2
                         ${isSelected 
                           ? "border-primary bg-primary/20" 
                           : "border-white/10 bg-white/5 hover:border-white/30"}
@@ -1471,20 +1544,20 @@ export default function ConversationalQuote() {
                       whileTap={{ scale: 0.95 }}
                       data-testid={`option-experience-${level.id}`}
                     >
-                      <IconComponent className={`w-4 h-4 sm:w-5 sm:h-5 mx-auto mb-0.5 ${isSelected ? "text-primary" : "text-white/60"}`} />
-                      <span className="text-[8px] sm:text-[10px] text-white font-medium block leading-tight">{level.label}</span>
+                      <IconComponent className={`w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0 ${isSelected ? "text-primary" : "text-white/60"}`} />
+                      <span className="text-xs sm:text-sm text-white font-medium text-left">{level.label}</span>
                     </motion.button>
                   );
                 })}
               </div>
             </div>
             
-            {/* Entity Type */}
+            {/* Entity Type - 2x2 grid */}
             <div className="space-y-2">
               <label className="text-amber-500 text-[10px] sm:text-xs font-medium uppercase tracking-wide block">
                 Entity Type
               </label>
-              <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 {entityTypes.map((entity) => {
                   const isSelected = formData.entityType === entity.id;
                   return (
@@ -1492,7 +1565,7 @@ export default function ConversationalQuote() {
                       key={entity.id}
                       onClick={() => updateField("entityType", entity.id)}
                       className={`
-                        py-2 px-1 rounded-lg border transition-all text-[10px] sm:text-xs font-medium
+                        py-2.5 px-3 rounded-lg border transition-all text-xs sm:text-sm font-medium
                         ${isSelected 
                           ? "border-primary bg-primary/20 text-white" 
                           : "border-white/10 bg-white/5 text-white/70 hover:border-white/30"}
@@ -1582,26 +1655,55 @@ export default function ConversationalQuote() {
 
   if (isSubmitted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-6">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4 sm:p-6">
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          className="text-center max-w-md"
+          className="text-center max-w-md w-full"
         >
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.2, type: "spring" }}
-            className="w-20 h-20 mx-auto mb-6 rounded-full bg-green-500/20 flex items-center justify-center"
+            className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 sm:mb-6 rounded-full bg-green-500/20 flex items-center justify-center"
           >
-            <CheckCircle2 className="w-10 h-10 text-green-500" />
+            <CheckCircle2 className="w-8 h-8 sm:w-10 sm:h-10 text-green-500" />
           </motion.div>
-          <h1 className="text-3xl font-bold text-white mb-3">Application Received!</h1>
-          <p className="text-white/70 text-lg mb-8">
-            We'll review your information and reach out within 24 hours with your custom quote.
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2 sm:mb-3">Application Received!</h1>
+          <p className="text-white/70 text-sm sm:text-lg mb-4 sm:mb-6">
+            Your borrower portal is ready. Track your application, upload documents, and communicate with our team.
           </p>
+          
+          {/* Portal CTA Card */}
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            className="bg-white/5 rounded-xl border border-white/10 p-4 sm:p-6 mb-4 sm:mb-6"
+          >
+            <div className="flex items-center justify-center gap-3 mb-3">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/20 flex items-center justify-center">
+                <User className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+              </div>
+              <div className="text-left">
+                <p className="text-white font-medium text-sm sm:text-base">{formData.firstName} {formData.lastName}</p>
+                <p className="text-white/50 text-xs sm:text-sm">{formData.email}</p>
+              </div>
+            </div>
+            <Link href="/portal">
+              <Button size="lg" className="w-full text-base sm:text-lg shadow-lg shadow-primary/30" data-testid="button-go-to-portal">
+                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                Go to My Portal
+              </Button>
+            </Link>
+          </motion.div>
+          
+          <p className="text-white/50 text-xs sm:text-sm mb-3">
+            We'll review your application and reach out within 24 hours.
+          </p>
+          
           <Link href="/">
-            <Button size="lg" className="text-lg px-8" data-testid="button-back-home">
+            <Button variant="ghost" className="text-white/60 hover:text-white text-sm" data-testid="button-back-home">
               Back to Home
             </Button>
           </Link>
