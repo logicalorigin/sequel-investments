@@ -102,7 +102,7 @@ export function AnimatedSlider({
   }, [isDragging, handleDrag, handleDragEnd]);
 
   return (
-    <div className={`space-y-2 sm:space-y-3 ${className}`}>
+    <div className={`space-y-1 sm:space-y-2 ${className}`}>
       {(label || showValue) && (
         <div className="flex items-center justify-between">
           {label && (
@@ -258,7 +258,7 @@ export function CurrencySliderInput({
   }, [onChange]);
   
   return (
-    <div className="bg-gray-900/90 rounded-lg sm:rounded-xl p-3 sm:p-5 border border-gray-700 space-y-2 sm:space-y-3">
+    <div className="bg-gray-900/90 rounded-lg sm:rounded-xl p-2 sm:p-4 border border-gray-700 space-y-1 sm:space-y-2">
       {/* Label at top */}
       <label className="text-amber-500 text-[10px] sm:text-xs font-medium uppercase tracking-wide block">{label}</label>
       
@@ -270,13 +270,13 @@ export function CurrencySliderInput({
           value={value}
           onChange={handleInputChange}
           placeholder="0"
-          className="bg-transparent text-2xl sm:text-3xl font-bold text-amber-500 text-center focus:outline-none w-full max-w-[200px]"
+          className="bg-transparent text-xl sm:text-2xl font-bold text-amber-500 text-center focus:outline-none w-full max-w-[180px]"
           data-testid={testId ? `${testId}-input` : undefined}
         />
       </div>
       
       {/* Slider below */}
-      <div className="px-3 sm:px-6">
+      <div className="px-2 sm:px-4">
         <AnimatedSlider
           value={numericValue}
           onChange={handleSliderChange}
@@ -332,7 +332,7 @@ export function PercentageSlider({
   }, [onChange, min, max]);
   
   return (
-    <div className="bg-gray-900/90 rounded-lg sm:rounded-xl p-3 sm:p-5 border border-gray-700 space-y-2 sm:space-y-3">
+    <div className="bg-gray-900/90 rounded-lg sm:rounded-xl p-2 sm:p-4 border border-gray-700 space-y-1 sm:space-y-2">
       {/* Label at top */}
       <label className="text-amber-500 text-[10px] sm:text-xs font-medium uppercase tracking-wide block">{label}</label>
       
@@ -342,14 +342,14 @@ export function PercentageSlider({
           type="text"
           value={numericValue}
           onChange={handleInputChange}
-          className="w-16 sm:w-20 bg-transparent text-2xl sm:text-3xl font-bold text-amber-500 text-center focus:outline-none"
+          className="w-14 sm:w-16 bg-transparent text-xl sm:text-2xl font-bold text-amber-500 text-center focus:outline-none"
           data-testid={testId ? `${testId}-input` : undefined}
         />
-        <span className="text-amber-400 text-lg sm:text-2xl font-bold">%</span>
+        <span className="text-amber-400 text-lg sm:text-xl font-bold">%</span>
       </div>
       
       {/* Slider below */}
-      <div className="px-3 sm:px-6">
+      <div className="px-2 sm:px-4">
         <AnimatedSlider
           value={numericValue}
           onChange={handleSliderChange}
@@ -365,7 +365,7 @@ export function PercentageSlider({
       {calculatedAmount !== undefined && (
         <div className="flex items-center justify-center">
           <motion.span 
-            className="text-amber-500 text-xs sm:text-sm font-medium"
+            className="text-amber-500 text-[10px] sm:text-xs font-medium"
             key={calculatedAmount}
             initial={{ y: -5, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
