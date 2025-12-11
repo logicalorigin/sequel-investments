@@ -8,6 +8,10 @@ Sequel Investments is a professional marketing and lead generation website for a
 
 I prefer simple language. I want iterative development. Ask before making major changes. I prefer detailed explanations. Do not make changes to the folder `Z`. Do not make changes to the file `Y`.
 
+## Content Guidelines
+
+- **No quotes from other lenders or mortgage brokers** in articles or resources. Acceptable sources include: industry publications (Zonda, Remodeling Magazine), research organizations (CBRE), investor communities (BiggerPockets), government data, and the company's own insights.
+
 ## System Architecture
 
 ### Frontend
