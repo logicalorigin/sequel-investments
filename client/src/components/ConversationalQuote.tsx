@@ -895,30 +895,25 @@ export default function ConversationalQuote() {
         const hasMapCoordinates = formData.propertyLat !== null && formData.propertyLng !== null;
         return (
           <div className="relative w-full h-[calc(100vh-220px)] sm:h-[calc(100vh-280px)] -mt-3 sm:-mt-12 -mx-3 sm:-mx-12 rounded-xl overflow-hidden" style={{ width: 'calc(100% + 1.5rem)', marginLeft: '-0.75rem' }}>
-            {/* Map Background - fills container */}
-            <div className="absolute inset-0">
+            {/* Map Background - view only, no interaction */}
+            <div className="absolute inset-0 pointer-events-none">
               <Map
                 id="address-verification-map"
                 center={mapCenter}
                 zoom={mapZoom}
-                gestureHandling="cooperative"
+                gestureHandling="none"
                 disableDefaultUI={true}
+                draggable={false}
+                zoomControl={false}
+                scrollwheel={false}
+                disableDoubleClickZoom={true}
                 styles={darkMapStyles}
                 className="w-full h-full"
-              >
-                {/* Hidden default marker - we use custom overlay instead */}
-                {hasVerifiedAddress && hasMapCoordinates && (
-                  <Marker
-                    position={{ lat: formData.propertyLat!, lng: formData.propertyLng! }}
-                    title={formData.propertyAddress}
-                    visible={false}
-                  />
-                )}
-              </Map>
+              />
               
-              {/* Custom green "Me" marker overlay - centered on map with pop animation */}
+              {/* Theme-colored marker with pop animation - no text */}
               {hasVerifiedAddress && hasMapCoordinates && (
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="absolute inset-0 flex items-center justify-center">
                   <motion.div
                     initial={{ scale: 0, y: -50, opacity: 0 }}
                     animate={{ scale: 1, y: 0, opacity: 1 }}
@@ -941,7 +936,7 @@ export default function ConversationalQuote() {
                           repeat: Infinity,
                           ease: "easeOut"
                         }}
-                        className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-emerald-500"
+                        className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-amber-500"
                       />
                     </div>
                     {/* Second pulse ring (delayed) */}
@@ -955,10 +950,10 @@ export default function ConversationalQuote() {
                           ease: "easeOut",
                           delay: 0.5
                         }}
-                        className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-emerald-400"
+                        className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-amber-400"
                       />
                     </div>
-                    {/* Main marker with bounce */}
+                    {/* Main marker with bounce - no text, just pin icon style */}
                     <motion.div
                       animate={{ 
                         y: [0, -8, 0],
@@ -971,12 +966,12 @@ export default function ConversationalQuote() {
                       }}
                       className="relative"
                     >
-                      <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/50 border-[3px] border-white">
-                        <span className="text-white text-xs sm:text-sm font-bold">Me</span>
+                      <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-amber-500 flex items-center justify-center shadow-lg shadow-amber-500/50 border-[3px] border-white">
+                        <MapPin className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                       </div>
                       {/* Pin tail/pointer */}
                       <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1">
-                        <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-t-[10px] border-l-transparent border-r-transparent border-t-emerald-500" />
+                        <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-t-[10px] border-l-transparent border-r-transparent border-t-amber-500" />
                       </div>
                     </motion.div>
                     {/* Ground shadow */}
@@ -1021,7 +1016,7 @@ export default function ConversationalQuote() {
                     />
                   </div>
                   
-                  {/* Verification Status */}
+                  {/* Verification Status - theme colored */}
                   <AnimatePresence mode="wait">
                     {hasVerifiedAddress && (
                       <motion.div
@@ -1032,11 +1027,11 @@ export default function ConversationalQuote() {
                       >
                         <div className="flex items-center justify-between gap-3 py-2">
                           <div className="flex items-center gap-2 min-w-0">
-                            <div className="w-7 h-7 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                            <div className="w-7 h-7 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-amber-500" />
                             </div>
                             <div className="text-left min-w-0">
-                              <p className="text-emerald-400 text-xs font-medium">Address Verified</p>
+                              <p className="text-amber-400 text-xs font-medium">Address Verified</p>
                               <p className="text-white/50 text-[10px] truncate">
                                 {formData.propertyCity}, {formData.propertyState} {formData.propertyZip}
                               </p>
