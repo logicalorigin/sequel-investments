@@ -239,34 +239,9 @@ function GoogleMapsAutocomplete({
         onKeyDown={handleKeyDown}
         onFocus={() => predictions.length > 0 && setShowDropdown(true)}
         placeholder={placeholder}
-        className={`pl-12 pr-12 ${className}`}
+        className={`pr-12 ${className}`}
         data-testid={testId}
       />
-      {/* Left icon - MapPin or animated checkmark - positioned inside input */}
-      <div className="absolute left-3 flex items-center pointer-events-none">
-        <AnimatePresence mode="wait">
-          {isValidated ? (
-            <motion.div 
-              key="checkmark"
-              initial={{ scale: 0, rotate: -180 }}
-              animate={{ scale: 1, rotate: 0 }}
-              exit={{ scale: 0, rotate: 180 }}
-              transition={{ type: "spring", stiffness: 500, damping: 25 }}
-            >
-              <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" />
-            </motion.div>
-          ) : (
-            <motion.div
-              key="mappin"
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0 }}
-            >
-              <MapPin className="h-4 w-4 sm:h-5 sm:w-5 text-white/50" />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
       {/* Right side controls - X button and loading spinner */}
       <div className="absolute right-3 flex items-center gap-1">
         {isLoading && (
