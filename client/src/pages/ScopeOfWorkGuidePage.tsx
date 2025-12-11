@@ -55,8 +55,8 @@ export default function ScopeOfWorkGuidePage() {
   useEffect(() => {
     document.title = "The Ins and Outs of Your Scope of Work | Sequel Investments";
     
-    const metaDescription = document.querySelector('meta[name="description"]');
     const descriptionContent = "Learn how to create a professional Scope of Work (SOW) for your fix and flip project. A detailed SOW ensures accurate budgeting, contractor accountability, and lender confidence.";
+    const metaDescription = document.querySelector('meta[name="description"]');
     if (metaDescription) {
       metaDescription.setAttribute("content", descriptionContent);
     } else {
@@ -65,6 +65,22 @@ export default function ScopeOfWorkGuidePage() {
       meta.content = descriptionContent;
       document.head.appendChild(meta);
     }
+
+    const setOgTag = (property: string, content: string) => {
+      let tag = document.querySelector(`meta[property="${property}"]`);
+      if (tag) {
+        tag.setAttribute("content", content);
+      } else {
+        tag = document.createElement("meta");
+        tag.setAttribute("property", property);
+        tag.setAttribute("content", content);
+        document.head.appendChild(tag);
+      }
+    };
+
+    setOgTag("og:title", "The Ins and Outs of Your Scope of Work | Sequel Investments");
+    setOgTag("og:description", descriptionContent);
+    setOgTag("og:type", "article");
     
     window.scrollTo(0, 0);
   }, []);

@@ -37,7 +37,7 @@ export default function ContactPage() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2">
-              <Card>
+              <Card data-testid="card-contact-form">
                 <CardHeader>
                   <CardTitle className="text-2xl">Send Us a Message</CardTitle>
                   <CardDescription>
@@ -53,7 +53,7 @@ export default function ContactPage() {
             <div className="lg:col-span-1 space-y-6">
               <Card data-testid="card-contact-phone">
                 <CardHeader>
-                  <Phone className="h-10 w-10 text-primary mb-3" />
+                  <Phone className="h-10 w-10 text-primary mb-3" aria-hidden="true" />
                   <CardTitle>Call Us</CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -61,6 +61,7 @@ export default function ContactPage() {
                     href="tel:+13023888860" 
                     className="text-lg font-semibold text-primary hover:underline"
                     data-testid="link-phone"
+                    aria-label="Call us at 302-388-8860"
                   >
                     302.388.8860
                   </a>
@@ -73,7 +74,7 @@ export default function ContactPage() {
 
               <Card data-testid="card-contact-email">
                 <CardHeader>
-                  <Mail className="h-10 w-10 text-primary mb-3" />
+                  <Mail className="h-10 w-10 text-primary mb-3" aria-hidden="true" />
                   <CardTitle>Email Us</CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -81,6 +82,7 @@ export default function ContactPage() {
                     href="mailto:josh@fundwithsequel.com" 
                     className="text-lg font-semibold text-primary hover:underline"
                     data-testid="link-email"
+                    aria-label="Email us at josh@fundwithsequel.com"
                   >
                     josh@fundwithsequel.com
                   </a>
@@ -92,7 +94,7 @@ export default function ContactPage() {
 
               <Card data-testid="card-contact-office">
                 <CardHeader>
-                  <MapPin className="h-10 w-10 text-primary mb-3" />
+                  <MapPin className="h-10 w-10 text-primary mb-3" aria-hidden="true" />
                   <CardTitle>Main Office</CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -109,7 +111,7 @@ export default function ContactPage() {
 
               <Card data-testid="card-contact-hours">
                 <CardHeader>
-                  <Clock className="h-10 w-10 text-primary mb-3" />
+                  <Clock className="h-10 w-10 text-primary mb-3" aria-hidden="true" />
                   <CardTitle>Business Hours</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">

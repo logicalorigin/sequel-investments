@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -124,6 +124,37 @@ export default function STRCalculatorPage() {
   const [downPayment, setDownPayment] = useState(25);
   const [customOccupancy, setCustomOccupancy] = useState<number | null>(null);
   const [customNightlyRate, setCustomNightlyRate] = useState<string>("");
+
+  useEffect(() => {
+    document.title = "STR Income Calculator - Short-Term Rental Analysis | Sequel Investments";
+    
+    const descriptionContent = "Calculate potential rental income for your Airbnb or vacation rental property. Estimate occupancy rates, nightly rates, and DSCR for short-term rental investments.";
+    const metaDescription = document.querySelector('meta[name="description"]');
+    if (metaDescription) {
+      metaDescription.setAttribute("content", descriptionContent);
+    } else {
+      const meta = document.createElement("meta");
+      meta.name = "description";
+      meta.content = descriptionContent;
+      document.head.appendChild(meta);
+    }
+
+    const setOgTag = (property: string, content: string) => {
+      let tag = document.querySelector(`meta[property="${property}"]`);
+      if (tag) {
+        tag.setAttribute("content", content);
+      } else {
+        tag = document.createElement("meta");
+        tag.setAttribute("property", property);
+        tag.setAttribute("content", content);
+        document.head.appendChild(tag);
+      }
+    };
+
+    setOgTag("og:title", "STR Income Calculator - Short-Term Rental Analysis | Sequel Investments");
+    setOgTag("og:description", descriptionContent);
+    setOgTag("og:type", "website");
+  }, []);
 
   const calculations = useMemo(() => {
     if (!state) return null;

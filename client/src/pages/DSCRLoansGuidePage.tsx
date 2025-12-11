@@ -54,8 +54,8 @@ export default function DSCRLoansGuidePage() {
   useEffect(() => {
     document.title = "The Complete Guide to DSCR Rental Property Loans | Sequel Investments";
     
-    const metaDescription = document.querySelector('meta[name="description"]');
     const descriptionContent = "Learn everything about DSCR loans for rental property investors. Discover how debt service coverage ratio works, qualification requirements, and how to scale your portfolio.";
+    const metaDescription = document.querySelector('meta[name="description"]');
     if (metaDescription) {
       metaDescription.setAttribute("content", descriptionContent);
     } else {
@@ -64,6 +64,22 @@ export default function DSCRLoansGuidePage() {
       meta.content = descriptionContent;
       document.head.appendChild(meta);
     }
+
+    const setOgTag = (property: string, content: string) => {
+      let tag = document.querySelector(`meta[property="${property}"]`);
+      if (tag) {
+        tag.setAttribute("content", content);
+      } else {
+        tag = document.createElement("meta");
+        tag.setAttribute("property", property);
+        tag.setAttribute("content", content);
+        document.head.appendChild(tag);
+      }
+    };
+
+    setOgTag("og:title", "The Complete Guide to DSCR Rental Property Loans | Sequel Investments");
+    setOgTag("og:description", descriptionContent);
+    setOgTag("og:type", "article");
     
     window.scrollTo(0, 0);
   }, []);

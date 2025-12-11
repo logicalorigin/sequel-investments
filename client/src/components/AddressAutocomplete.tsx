@@ -1,10 +1,44 @@
-import { useRef, useEffect, useState, useCallback } from "react";
+import { useRef, useEffect, useState, useCallback, useMemo } from "react";
 import { useMapsLibrary } from "@vis.gl/react-google-maps";
 import { Input } from "@/components/ui/input";
 import { MapPin, Loader2, X, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useGoogleMapsApiKey } from "@/components/GoogleMapsProvider";
 import { motion, AnimatePresence } from "framer-motion";
+
+function useDebouncedCallback<T extends (...args: any[]) => void>(
+  callback: T,
+  delay: number
+): T {
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const callbackRef = useRef(callback);
+  
+  useEffect(() => {
+    callbackRef.current = callback;
+  }, [callback]);
+  
+  const debouncedFn = useCallback(
+    (...args: Parameters<T>) => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      timeoutRef.current = setTimeout(() => {
+        callbackRef.current(...args);
+      }, delay);
+    },
+    [delay]
+  ) as T;
+  
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+  
+  return debouncedFn;
+}
 
 interface PlaceResult {
   formatted_address?: string;
@@ -158,15 +192,22 @@ function GoogleMapsAutocomplete({
     []
   );
 
+  const debouncedFetchPredictions = useDebouncedCallback(
+    (input: string) => {
+      fetchPredictions(input);
+    },
+    300
+  );
+
   const handleInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const newValue = e.target.value;
       setInputValue(newValue);
       onChange(newValue);
       setIsValidated(false);
-      fetchPredictions(newValue);
+      debouncedFetchPredictions(newValue);
     },
-    [onChange, fetchPredictions]
+    [onChange, debouncedFetchPredictions]
   );
 
   const handleSelectPlace = useCallback(

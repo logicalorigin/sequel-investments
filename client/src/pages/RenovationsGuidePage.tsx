@@ -49,8 +49,8 @@ export default function RenovationsGuidePage() {
   useEffect(() => {
     document.title = "Top Renovations to Maximize Profits for Real Estate Investors | Sequel Investments";
     
-    const metaDescription = document.querySelector('meta[name="description"]');
     const descriptionContent = "Discover which home renovations offer the best ROI for real estate investors. Learn budget-smart upgrade strategies for kitchens, bathrooms, curb appeal, and more.";
+    const metaDescription = document.querySelector('meta[name="description"]');
     if (metaDescription) {
       metaDescription.setAttribute("content", descriptionContent);
     } else {
@@ -59,6 +59,22 @@ export default function RenovationsGuidePage() {
       meta.content = descriptionContent;
       document.head.appendChild(meta);
     }
+
+    const setOgTag = (property: string, content: string) => {
+      let tag = document.querySelector(`meta[property="${property}"]`);
+      if (tag) {
+        tag.setAttribute("content", content);
+      } else {
+        tag = document.createElement("meta");
+        tag.setAttribute("property", property);
+        tag.setAttribute("content", content);
+        document.head.appendChild(tag);
+      }
+    };
+
+    setOgTag("og:title", "Top Renovations to Maximize Profits for Real Estate Investors | Sequel Investments");
+    setOgTag("og:description", descriptionContent);
+    setOgTag("og:type", "article");
     
     window.scrollTo(0, 0);
   }, []);

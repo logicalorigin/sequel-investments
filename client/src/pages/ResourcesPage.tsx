@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
@@ -21,6 +21,37 @@ const badgeColors: Record<Article["category"], string> = {
 export default function ResourcesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<Article["category"] | "All">("All");
+
+  useEffect(() => {
+    document.title = "Real Estate Investor Resources & Guides | Sequel Investments";
+    
+    const metaDescription = document.querySelector('meta[name="description"]');
+    const descriptionContent = "Expert guides, calculators, and resources for real estate investors. Learn about DSCR loans, fix & flip financing, new construction loans, and investment strategies.";
+    if (metaDescription) {
+      metaDescription.setAttribute("content", descriptionContent);
+    } else {
+      const meta = document.createElement("meta");
+      meta.name = "description";
+      meta.content = descriptionContent;
+      document.head.appendChild(meta);
+    }
+
+    const setOgTag = (property: string, content: string) => {
+      let tag = document.querySelector(`meta[property="${property}"]`);
+      if (tag) {
+        tag.setAttribute("content", content);
+      } else {
+        tag = document.createElement("meta");
+        tag.setAttribute("property", property);
+        tag.setAttribute("content", content);
+        document.head.appendChild(tag);
+      }
+    };
+
+    setOgTag("og:title", "Real Estate Investor Resources & Guides | Sequel Investments");
+    setOgTag("og:description", "Expert guides, calculators, and resources for real estate investors. Learn about DSCR loans, fix & flip financing, and investment strategies.");
+    setOgTag("og:type", "website");
+  }, []);
 
   const filteredArticles = articles.filter(article => {
     const matchesSearch = 
@@ -133,6 +164,7 @@ export default function ResourcesPage() {
                       <img
                         src={article.heroImage}
                         alt={article.title}
+                        loading="lazy"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                     </div>
