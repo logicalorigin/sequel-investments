@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -32,8 +32,9 @@ import {
   SLUG_TO_ABBR,
   type SVGBounds 
 } from "@/lib/mapUtils";
-import { useMarkerClustering } from "@/hooks/useMarkerClustering";
+import { useMarkerClustering, type MarkerCluster } from "@/hooks/useMarkerClustering";
 import { ClusterMarker } from "@/components/map/ClusterMarker";
+import { useScatterAnimation } from "@/hooks/useScatterAnimation";
 
 interface Metro {
   name: string;
@@ -268,8 +269,31 @@ export function TopMarketsSection({ stateSlug, stateName }: TopMarketsSectionPro
   const [selectedMarket, setSelectedMarket] = useState<MarketDetail | null>(null);
   const [zoomCenter, setZoomCenter] = useState<{ x: number; y: number } | null>(null);
   const [zoomLevel, setZoomLevel] = useState(1);
+  const [scatteringClusterId, setScatteringClusterId] = useState<number | null>(null);
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const containerRef = useRef<HTMLDivElement>(null);
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Scatter animation for cluster hover effect
+  const scatterAnimation = useScatterAnimation({
+    duration: 400,
+    onComplete: () => {
+      // Animation complete - markers are now scattered
+    },
+    onReverseComplete: () => {
+      // Reverse complete - clear the scattering cluster ID
+      setScatteringClusterId(null);
+    },
+  });
+  
+  // Cleanup hover timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const marketsWithDetails = useMemo(() => {
     const enrichedMarkets = getMarketDetails(stateSlug);
@@ -328,11 +352,26 @@ export function TopMarketsSection({ stateSlug, stateName }: TopMarketsSectionPro
   );
 
   const handleMarkerClick = (market: MarketDetail) => {
+    // Cancel any pending scatter animation
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+    scatterAnimation.reset();
+    setScatteringClusterId(null);
     setSelectedMarket(selectedMarket?.id === market.id ? null : market);
     setHoveredMarket(null);
   };
 
   const handleClusterClick = (cluster: typeof clusters[0]) => {
+    // Cancel scatter animation on click
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+    scatterAnimation.reset();
+    setScatteringClusterId(null);
+    
     if (cluster.markers.length > 1) {
       // Zoom into the cluster
       setZoomCenter(cluster.center);
@@ -347,6 +386,8 @@ export function TopMarketsSection({ stateSlug, stateName }: TopMarketsSectionPro
   const handleZoomOut = () => {
     setZoomLevel(1);
     setZoomCenter(null);
+    scatterAnimation.reset();
+    setScatteringClusterId(null);
   };
 
   const handleMarkerHover = (market: MarketDetail | null) => {
@@ -354,6 +395,41 @@ export function TopMarketsSection({ stateSlug, stateName }: TopMarketsSectionPro
       setHoveredMarket(market);
     }
   };
+  
+  // Debounced cluster hover handler for scatter animation
+  const handleClusterHoverStart = useCallback((cluster: MarkerCluster, clusterId: number) => {
+    if (!isDesktop || cluster.markers.length <= 1 || cluster.markers.length > 15) {
+      // Skip scatter animation for single markers or too many markers
+      return;
+    }
+    
+    // Clear any existing timeout
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+    }
+    
+    // Debounce to prevent accidental triggers (250ms delay)
+    hoverTimeoutRef.current = setTimeout(() => {
+      setScatteringClusterId(clusterId);
+      scatterAnimation.animate(cluster);
+    }, 250);
+  }, [isDesktop, scatterAnimation]);
+  
+  const handleClusterHoverEnd = useCallback(() => {
+    // Clear pending animation timeout
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+    
+    // Reverse the scatter animation if active
+    if (scatterAnimation.isActive) {
+      scatterAnimation.reverseAnimate();
+    } else {
+      // No animation active, just clear the cluster ID
+      setScatteringClusterId(null);
+    }
+  }, [scatterAnimation]);
 
   const handleCardClick = (market: MarketDetail) => {
     setSelectedMarket(selectedMarket?.id === market.id ? null : market);
@@ -474,6 +550,16 @@ export function TopMarketsSection({ stateSlug, stateName }: TopMarketsSectionPro
                       onMarkerClick={handleMarkerClick}
                       onClusterClick={handleClusterClick}
                       onMarkerHover={handleMarkerHover}
+                      onClusterHoverStart={(c) => handleClusterHoverStart(c, clusterIdx)}
+                      onClusterHoverEnd={handleClusterHoverEnd}
+                      scatterPositions={
+                        scatteringClusterId === clusterIdx 
+                          ? scatterAnimation.markerPositions 
+                          : undefined
+                      }
+                      isScattering={
+                        scatteringClusterId === clusterIdx && scatterAnimation.isActive
+                      }
                     />
                   ))}
                 </svg>
