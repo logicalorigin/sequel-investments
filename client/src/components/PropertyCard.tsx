@@ -43,8 +43,9 @@ function MapTypeToggle({ onToggle, mapType }: { onToggle: () => void; mapType: M
     <Button
       size="icon"
       variant="secondary"
-      className="absolute bottom-3 right-3 z-10 h-8 w-8 bg-white/90 hover:bg-white shadow-md"
+      className="absolute bottom-3 right-3 z-10 h-8 w-8 bg-white/90 hover:bg-white shadow-md focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
       onClick={onToggle}
+      aria-label={`Switch map type. Currently showing ${mapType}`}
       data-testid="button-toggle-map-type"
     >
       <Globe className="h-4 w-4" />
@@ -140,8 +141,9 @@ function PropertyCardContent({
           <Button 
             size="icon" 
             variant="ghost" 
-            className="h-8 w-8"
+            className="h-8 w-8 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
             onClick={onFavorite}
+            aria-label="Add to favorites"
             data-testid="button-favorite-property"
           >
             <Heart className="h-4 w-4" />
@@ -149,7 +151,8 @@ function PropertyCardContent({
           <Button 
             size="icon" 
             variant="ghost" 
-            className="h-8 w-8"
+            className="h-8 w-8 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            aria-label="Share property"
             data-testid="button-share-property"
           >
             <Share2 className="h-4 w-4" />
@@ -208,7 +211,7 @@ function PropertyCardContent({
 
       <div className="flex gap-2 pt-2">
         <Button 
-          className="flex-1" 
+          className="flex-1 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2" 
           onClick={onAnalyze}
           data-testid="button-analyze-property"
         >
@@ -218,6 +221,8 @@ function PropertyCardContent({
         <Button 
           variant="outline" 
           size="icon"
+          aria-label="View property details"
+          className="focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
           data-testid="button-view-details"
         >
           <ExternalLink className="h-4 w-4" />
@@ -279,7 +284,7 @@ export function PropertyCard({
   const cardTestId = `card-property-${address.replace(/\s+/g, "-").toLowerCase()}`;
 
   return (
-    <Card className="overflow-hidden hover-elevate" data-testid={cardTestId}>
+    <Card className="overflow-hidden hover-elevate focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2" tabIndex={0} data-testid={cardTestId}>
       {apiKey ? (
         <PropertyMapView
           latitude={latitude}

@@ -1798,7 +1798,7 @@ export default function ConversationalQuote() {
             <div className="space-y-2 sm:space-y-4">
               <div className="grid grid-cols-2 gap-2 sm:gap-3">
                 <div className="relative">
-                  <User className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-white/40" />
+                  <User className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-white/40" aria-hidden="true" />
                   <input
                     type="text"
                     value={formData.firstName}
@@ -1806,10 +1806,12 @@ export default function ConversationalQuote() {
                     placeholder="First name"
                     className="w-full pl-9 sm:pl-12 pr-3 sm:pr-4 py-3 sm:py-4 rounded-lg sm:rounded-xl border-2 border-white/20 bg-white/5 text-white placeholder:text-white/40 focus:border-primary focus:outline-none transition-all text-sm sm:text-lg"
                     data-testid="input-firstName"
+                    aria-label="First name"
+                    aria-required="true"
                   />
                 </div>
                 <div className="relative">
-                  <User className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-white/40" />
+                  <User className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-white/40" aria-hidden="true" />
                   <input
                     type="text"
                     value={formData.lastName}
@@ -1817,11 +1819,13 @@ export default function ConversationalQuote() {
                     placeholder="Last name"
                     className="w-full pl-9 sm:pl-12 pr-3 sm:pr-4 py-3 sm:py-4 rounded-lg sm:rounded-xl border-2 border-white/20 bg-white/5 text-white placeholder:text-white/40 focus:border-primary focus:outline-none transition-all text-sm sm:text-lg"
                     data-testid="input-lastName"
+                    aria-label="Last name"
+                    aria-required="true"
                   />
                 </div>
               </div>
               <div className="relative">
-                <Mail className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-white/40" />
+                <Mail className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-white/40" aria-hidden="true" />
                 <input
                   type="email"
                   value={formData.email}
@@ -1829,10 +1833,12 @@ export default function ConversationalQuote() {
                   placeholder="Email address"
                   className="w-full pl-9 sm:pl-12 pr-3 sm:pr-4 py-3 sm:py-4 rounded-lg sm:rounded-xl border-2 border-white/20 bg-white/5 text-white placeholder:text-white/40 focus:border-primary focus:outline-none transition-all text-sm sm:text-lg"
                   data-testid="input-email"
+                  aria-label="Email address"
+                  aria-required="true"
                 />
               </div>
               <div className="relative">
-                <Phone className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-white/40" />
+                <Phone className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-white/40" aria-hidden="true" />
                 <input
                   type="tel"
                   value={formData.phone}
@@ -1840,6 +1846,8 @@ export default function ConversationalQuote() {
                   placeholder="Phone number"
                   className="w-full pl-9 sm:pl-12 pr-3 sm:pr-4 py-3 sm:py-4 rounded-lg sm:rounded-xl border-2 border-white/20 bg-white/5 text-white placeholder:text-white/40 focus:border-primary focus:outline-none transition-all text-sm sm:text-lg"
                   data-testid="input-phone"
+                  aria-label="Phone number"
+                  aria-required="true"
                 />
               </div>
             </div>
@@ -2024,8 +2032,9 @@ export default function ConversationalQuote() {
               onClick={handleBack}
               className="text-white/70 hover:text-white"
               data-testid="button-back"
+              aria-label="Go back to previous step"
             >
-              <ArrowLeft className="w-4 h-4 mr-2" />
+              <ArrowLeft className="w-4 h-4 mr-2" aria-hidden="true" />
               Back
             </Button>
           ) : (
@@ -2049,16 +2058,17 @@ export default function ConversationalQuote() {
                     disabled={createLeadMutation.isPending}
                     className="text-lg px-8 shadow-lg shadow-primary/30"
                     data-testid="button-continue"
+                    aria-label={currentQuestionIndex === filteredQuestions.length - 1 ? "Submit quote request" : "Continue to next step"}
                   >
                     {currentQuestionIndex === filteredQuestions.length - 1 ? (
                       <>
                         {createLeadMutation.isPending ? "Submitting..." : "Get My Quote"}
-                        <Send className="w-5 h-5 ml-2" />
+                        <Send className="w-5 h-5 ml-2" aria-hidden="true" />
                       </>
                     ) : (
                       <>
                         Continue
-                        <ArrowRight className="w-5 h-5 ml-2" />
+                        <ArrowRight className="w-5 h-5 ml-2" aria-hidden="true" />
                       </>
                     )}
                   </Button>

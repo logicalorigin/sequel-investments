@@ -414,12 +414,15 @@ export default function BookConsultationPage() {
 
               {applications.length > 0 && (
                 <div className="space-y-2">
-                  <Label>Link to Application (Optional)</Label>
+                  <Label id="application-label">Link to Application (Optional)</Label>
                   <Select
                     value={selectedApplicationId}
                     onValueChange={setSelectedApplicationId}
                   >
-                    <SelectTrigger data-testid="select-application">
+                    <SelectTrigger 
+                      data-testid="select-application"
+                      aria-labelledby="application-label"
+                    >
                       <SelectValue placeholder="Select an application to discuss" />
                     </SelectTrigger>
                     <SelectContent>
@@ -435,13 +438,14 @@ export default function BookConsultationPage() {
               )}
 
               <div className="space-y-2">
-                <Label>Notes or Questions (Optional)</Label>
+                <Label id="consultation-notes-label">Notes or Questions (Optional)</Label>
                 <Textarea
                   placeholder="Add any notes or specific questions you'd like to discuss..."
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   rows={4}
                   data-testid="input-notes"
+                  aria-labelledby="consultation-notes-label"
                 />
               </div>
 

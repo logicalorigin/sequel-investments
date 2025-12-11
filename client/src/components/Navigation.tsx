@@ -39,11 +39,12 @@ export function Navigation() {
   return (
     <nav
       className="bg-background border-b sticky top-0 z-50"
+      data-testid="nav-main"
     >
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex items-center justify-between h-14 lg:h-20">
-          <Link href="/" data-testid="link-home">
-            <div className="flex items-center cursor-pointer hover-elevate active-elevate-2 px-2 py-1 rounded-md -ml-2">
+          <Link href="/" data-testid="link-logo">
+            <div className="flex items-center cursor-pointer hover-elevate active-elevate-2 px-2 py-1 rounded-md -ml-2" data-testid="nav-brand">
               {logoUrl ? (
                 <img 
                   src={logoUrl} 
@@ -83,7 +84,7 @@ export function Navigation() {
                   <ChevronDown className="h-4 w-4" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-48">
+              <DropdownMenuContent align="start" className="w-48" data-testid="dropdown-loan-products-menu">
                 {loanProducts.map((product) => (
                   <Link key={product.href} href={product.href}>
                     <DropdownMenuItem 
@@ -123,6 +124,7 @@ export function Navigation() {
               <Button 
                 size="default"
                 className="bg-primary text-primary-foreground hover:bg-primary/90"
+                data-testid="button-client-portal"
               >
                 Client Portal
               </Button>
@@ -167,7 +169,7 @@ export function Navigation() {
                 <ChevronDown className={`h-4 w-4 transition-transform ${isMobileLoanProductsOpen ? "rotate-180" : ""}`} />
               </button>
               {isMobileLoanProductsOpen && (
-                <div className="pl-4 space-y-2 mt-2">
+                <div className="pl-4 space-y-2 mt-2" data-testid="mobile-loan-products-menu">
                   {loanProducts.map((product) => (
                     <Link key={product.href} href={product.href} data-testid={`link-mobile-${product.label.toLowerCase().replace(/ & /g, "-").replace(/ /g, "-")}`}>
                       <div
@@ -208,7 +210,7 @@ export function Navigation() {
 
             <div className="flex flex-col gap-3 pt-2">
               <Link href="/portal" data-testid="link-mobile-portal">
-                <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => setIsMobileMenuOpen(false)}>
+                <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => setIsMobileMenuOpen(false)} data-testid="button-mobile-client-portal">
                   Client Portal
                 </Button>
               </Link>

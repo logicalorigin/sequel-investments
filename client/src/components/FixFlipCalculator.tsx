@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,7 +21,7 @@ export function FixFlipCalculator() {
     }).format(value);
   };
 
-  const calculateFixFlip = () => {
+  const results = useMemo(() => {
     const price = parseFloat(purchasePrice) || 0;
     const rehab = parseFloat(rehabCosts) || 0;
     const afterRepairValue = parseFloat(arv) || 0;
@@ -72,9 +72,7 @@ export function FixFlipCalculator() {
       annualizedROI: annualizedROI.toFixed(1),
       qualificationStatus,
     };
-  };
-
-  const results = calculateFixFlip();
+  }, [purchasePrice, rehabCosts, arv, holdingPeriod]);
 
   return (
     <Card className="w-full">

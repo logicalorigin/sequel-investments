@@ -36,11 +36,19 @@ export function DSCRCalculator() {
     }).format(value);
   };
 
-  const calculateInterestRate = (ltv: number, dscr: number) => {
+  const dscrResults = useMemo(() => {
     const BASE_RATE = 6.25;
+    const score = creditScore[0];
+    const price = parseFloat(purchasePrice) || 0;
+    const downPayment = price * (downPaymentPercent[0] / 100);
+    const loanAmount = price - downPayment;
+    const ltv = price > 0 ? (loanAmount / price) * 100 : 0;
+    const rent = parseFloat(monthlyRent) || 0;
+    const expenses = parseFloat(monthlyExpenses) || 0;
+    
+    const preliminaryDscr = rent > 0 && expenses >= 0 ? rent / (expenses + 1000) : 1.0;
     
     let creditAdjustment = 0;
-    const score = creditScore[0];
     if (score >= 760) creditAdjustment = 0;
     else if (score >= 740) creditAdjustment = 0.25;
     else if (score >= 720) creditAdjustment = 0.375;
@@ -58,30 +66,16 @@ export function DSCRCalculator() {
     else ltvAdjustment = 0.5;
     
     let dscrAdjustment = 0;
-    if (dscr >= 1.5) dscrAdjustment = -0.125;
-    else if (dscr >= 1.25) dscrAdjustment = 0;
-    else if (dscr >= 1.0) dscrAdjustment = 0.125;
-    else if (dscr >= 0.75) dscrAdjustment = 0.25;
+    if (preliminaryDscr >= 1.5) dscrAdjustment = -0.125;
+    else if (preliminaryDscr >= 1.25) dscrAdjustment = 0;
+    else if (preliminaryDscr >= 1.0) dscrAdjustment = 0.125;
+    else if (preliminaryDscr >= 0.75) dscrAdjustment = 0.25;
     else dscrAdjustment = 0.375;
     
     let propertyAdjustment = 0;
     if (propertyType === "2-4unit") propertyAdjustment = 0.25;
     
-    const finalRate = BASE_RATE + creditAdjustment + ltvAdjustment + dscrAdjustment + propertyAdjustment;
-    return Math.max(5.75, Math.min(9.0, finalRate));
-  };
-
-  const calculateDSCR = () => {
-    const price = parseFloat(purchasePrice) || 0;
-    const downPayment = price * (downPaymentPercent[0] / 100);
-    const loanAmount = price - downPayment;
-    const ltv = price > 0 ? (loanAmount / price) * 100 : 0;
-    const rent = parseFloat(monthlyRent) || 0;
-    const expenses = parseFloat(monthlyExpenses) || 0;
-    
-    const preliminaryDscr = rent > 0 && expenses >= 0 ? rent / (expenses + 1000) : 1.0;
-    
-    const calculatedRate = calculateInterestRate(ltv, preliminaryDscr);
+    const calculatedRate = Math.max(5.75, Math.min(9.0, BASE_RATE + creditAdjustment + ltvAdjustment + dscrAdjustment + propertyAdjustment));
     const rate = calculatedRate / 100 / 12;
     const term = 30 * 12;
     
@@ -119,9 +113,9 @@ export function DSCRCalculator() {
       ltv: ltv,
       interestRate: calculatedRate,
     };
-  };
+  }, [purchasePrice, downPaymentPercent, creditScore, propertyType, monthlyRent, monthlyExpenses]);
 
-  const calculateFixFlip = () => {
+  const flipResults = useMemo(() => {
     const price = parseFloat(purchasePrice) || 0;
     const rehab = parseFloat(rehabCosts) || 0;
     const afterRepairValue = parseFloat(arv) || 0;
@@ -172,10 +166,7 @@ export function DSCRCalculator() {
       annualizedROI: annualizedROI.toFixed(1),
       qualificationStatus,
     };
-  };
-
-  const dscrResults = calculateDSCR();
-  const flipResults = calculateFixFlip();
+  }, [purchasePrice, rehabCosts, arv, holdingPeriod]);
 
   const rateBreakdown = useMemo(() => {
     const BASE_RATE = 6.25;

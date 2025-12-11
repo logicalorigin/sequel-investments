@@ -25,7 +25,7 @@ export function Footer() {
   const addressLine2 = addressParts.slice(2).join(", ");
 
   return (
-    <footer className="bg-card border-t relative overflow-hidden">
+    <footer className="bg-card border-t relative overflow-hidden" data-testid="footer-main">
       <GeometricPattern 
         variant="dots" 
         className="text-muted-foreground" 
@@ -65,17 +65,17 @@ export function Footer() {
             <div>
               <h3 className="font-semibold text-xs mb-2">Products</h3>
               <ul className="space-y-1">
-                <li><Link href="/dscr-loans"><span className="text-xs text-muted-foreground">DSCR Loans</span></Link></li>
-                <li><Link href="/fix-flip"><span className="text-xs text-muted-foreground">Fix & Flip</span></Link></li>
-                <li><Link href="/new-construction"><span className="text-xs text-muted-foreground">Construction</span></Link></li>
+                <li><Link href="/dscr-loans" data-testid="link-footer-mobile-dscr"><span className="text-xs text-muted-foreground">DSCR Loans</span></Link></li>
+                <li><Link href="/fix-flip" data-testid="link-footer-mobile-fixflip"><span className="text-xs text-muted-foreground">Fix & Flip</span></Link></li>
+                <li><Link href="/new-construction" data-testid="link-footer-mobile-construction"><span className="text-xs text-muted-foreground">Construction</span></Link></li>
               </ul>
             </div>
             <div>
               <h3 className="font-semibold text-xs mb-2">Company</h3>
               <ul className="space-y-1">
-                <li><Link href="/about"><span className="text-xs text-muted-foreground">About</span></Link></li>
-                <li><Link href="/contact"><span className="text-xs text-muted-foreground">Contact</span></Link></li>
-                <li><Link href="/admin/login"><span className="text-xs text-muted-foreground">Staff Login</span></Link></li>
+                <li><Link href="/about" data-testid="link-footer-mobile-about"><span className="text-xs text-muted-foreground">About</span></Link></li>
+                <li><Link href="/contact" data-testid="link-footer-mobile-contact"><span className="text-xs text-muted-foreground">Contact</span></Link></li>
+                <li><Link href="/admin/login" data-testid="link-footer-mobile-staff-login"><span className="text-xs text-muted-foreground">Staff Login</span></Link></li>
               </ul>
             </div>
           </div>
@@ -113,26 +113,26 @@ export function Footer() {
             <p className="text-sm sm:text-base text-muted-foreground mb-3 sm:mb-4">
               Private financing solutions for real estate investors. DSCR, Fix & Flip, and New Construction loans nationwide.
             </p>
-            <div className="text-xs sm:text-sm text-muted-foreground space-y-1.5 mb-3 sm:mb-4">
-              <p className="flex items-center gap-2">
+            <div className="text-xs sm:text-sm text-muted-foreground space-y-1.5 mb-3 sm:mb-4" data-testid="footer-contact-info-desktop">
+              <p className="flex items-center gap-2" data-testid="text-footer-phone-desktop">
                 <Phone className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
                 {contactPhone}
               </p>
-              <p className="flex items-center gap-2">
+              <p className="flex items-center gap-2" data-testid="text-footer-email-desktop">
                 <MailOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
                 {contactEmail}
               </p>
-              <p>{addressLine1}</p>
+              <p data-testid="text-footer-address">{addressLine1}</p>
               {addressLine2 && <p>{addressLine2}</p>}
             </div>
-            <div className="flex gap-2 sm:gap-3">
-              <Button size="icon" variant="outline" className="h-8 w-8 sm:h-9 sm:w-9">
+            <div className="flex gap-2 sm:gap-3" data-testid="footer-social-links">
+              <Button size="icon" variant="outline" className="h-8 w-8 sm:h-9 sm:w-9" data-testid="button-social-facebook-desktop">
                 <Facebook className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </Button>
-              <Button size="icon" variant="outline" className="h-8 w-8 sm:h-9 sm:w-9">
+              <Button size="icon" variant="outline" className="h-8 w-8 sm:h-9 sm:w-9" data-testid="button-social-twitter-desktop">
                 <Twitter className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </Button>
-              <Button size="icon" variant="outline" className="h-8 w-8 sm:h-9 sm:w-9">
+              <Button size="icon" variant="outline" className="h-8 w-8 sm:h-9 sm:w-9" data-testid="button-social-linkedin-desktop">
                 <Linkedin className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </Button>
             </div>
@@ -197,7 +197,7 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <span className="text-xs sm:text-sm md:text-base text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
+                <span className="text-xs sm:text-sm md:text-base text-muted-foreground cursor-pointer hover:text-foreground transition-colors" data-testid="link-footer-privacy">
                   Privacy Policy
                 </span>
               </li>
@@ -245,7 +245,7 @@ export function Footer() {
                 </span>
               )}
             </p>
-            <p className="text-muted-foreground text-[10px] sm:text-sm">
+            <p className="text-muted-foreground text-[10px] sm:text-sm" data-testid="text-footer-licensed">
               Licensed in 48 states + DC
             </p>
           </div>

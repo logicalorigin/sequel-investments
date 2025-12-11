@@ -284,7 +284,7 @@ export default function RecentFundingsPage() {
         </div>
       </section>
 
-      <section className="py-16">
+      <section className="py-16" role="region" aria-label="Funded properties list">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {fundedProperties.map((property) => (
@@ -292,8 +292,9 @@ export default function RecentFundingsPage() {
                 key={property.id} 
                 href={`/fundings/${property.id}`}
                 data-testid={`link-property-${property.id}`}
+                className="focus-visible:outline-none"
               >
-                <Card className="overflow-hidden hover-elevate cursor-pointer group h-full">
+                <Card className="overflow-hidden hover-elevate cursor-pointer group h-full focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
                   <div className="relative h-48 overflow-hidden">
                     <img 
                       src={property.image} 

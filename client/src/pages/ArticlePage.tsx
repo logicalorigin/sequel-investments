@@ -34,6 +34,22 @@ export default function ArticlePage() {
         meta.content = article.metaDescription;
         document.head.appendChild(meta);
       }
+
+      const setOgTag = (property: string, content: string) => {
+        let tag = document.querySelector(`meta[property="${property}"]`);
+        if (tag) {
+          tag.setAttribute("content", content);
+        } else {
+          tag = document.createElement("meta");
+          tag.setAttribute("property", property);
+          tag.setAttribute("content", content);
+          document.head.appendChild(tag);
+        }
+      };
+
+      setOgTag("og:title", `${article.title} | Sequel Investments`);
+      setOgTag("og:description", article.metaDescription);
+      setOgTag("og:type", "article");
     }
   }, [article]);
 
@@ -66,6 +82,7 @@ export default function ArticlePage() {
           <img
             src={article.heroImage}
             alt={article.title}
+            loading="lazy"
             className="w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
@@ -166,6 +183,7 @@ export default function ArticlePage() {
                               <img
                                 src={related.heroImage}
                                 alt={related.title}
+                                loading="lazy"
                                 className="w-full h-full object-cover"
                               />
                             </div>

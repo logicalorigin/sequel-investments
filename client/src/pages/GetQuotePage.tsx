@@ -119,6 +119,10 @@ export default function GetQuotePage() {
       return await apiRequest("POST", "/api/leads", data);
     },
     onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Your quote request has been submitted. A loan specialist will contact you shortly.",
+      });
       setStep(6);
     },
     onError: (error: any) => {
@@ -421,12 +425,14 @@ export default function GetQuotePage() {
               </div>
 
               <div className="bg-white/5 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-8 space-y-4 sm:space-y-6">
-                <div className="space-y-2 sm:space-y-3">
-                  <Label className="text-white text-sm sm:text-base">What is the purpose of this loan? *</Label>
+                <div className="space-y-2 sm:space-y-3" role="group" aria-labelledby="loan-purpose-label">
+                  <Label id="loan-purpose-label" className="text-white text-sm sm:text-base">What is the purpose of this loan? *</Label>
                   <RadioGroup
                     value={formData.loanPurpose}
                     onValueChange={(value) => setFormData({ ...formData, loanPurpose: value })}
                     className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3"
+                    aria-required="true"
+                    data-testid="radio-loan-purpose"
                   >
                     {formData.loanType === "dscr" 
                       ? ["Purchase", "Cash-Out", "Rate & Term"].map((option) => (
@@ -461,12 +467,14 @@ export default function GetQuotePage() {
                   </RadioGroup>
                 </div>
 
-                <div className="space-y-2 sm:space-y-3">
-                  <Label className="text-white text-sm sm:text-base">Have you identified a property? *</Label>
+                <div className="space-y-2 sm:space-y-3" role="group" aria-labelledby="property-identified-label">
+                  <Label id="property-identified-label" className="text-white text-sm sm:text-base">Have you identified a property? *</Label>
                   <RadioGroup
                     value={formData.propertyIdentified}
                     onValueChange={(value) => setFormData({ ...formData, propertyIdentified: value })}
                     className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3"
+                    aria-required="true"
+                    data-testid="radio-property-identified"
                   >
                     {["Yes, I have a property", "No, still looking"].map((option) => (
                       <div
@@ -528,12 +536,17 @@ export default function GetQuotePage() {
 
               <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 space-y-6">
                 <div className="space-y-3">
-                  <Label className="text-white">Property Type *</Label>
+                  <Label id="property-type-label" className="text-white">Property Type *</Label>
                   <Select
                     value={formData.propertyType}
                     onValueChange={(value) => setFormData({ ...formData, propertyType: value })}
                   >
-                    <SelectTrigger className="bg-white/5 border-white/10 text-white" data-testid="select-property-type">
+                    <SelectTrigger 
+                      className="bg-white/5 border-white/10 text-white" 
+                      data-testid="select-property-type"
+                      aria-required="true"
+                      aria-labelledby="property-type-label"
+                    >
                       <SelectValue placeholder="Select property type" />
                     </SelectTrigger>
                     <SelectContent>
@@ -620,68 +633,78 @@ export default function GetQuotePage() {
 
                 <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-3">
-                    <Label className="text-white">City *</Label>
+                    <Label id="city-label" className="text-white">City *</Label>
                     <Input
                       placeholder="City"
                       value={formData.propertyCity}
                       onChange={(e) => setFormData({ ...formData, propertyCity: e.target.value })}
                       className="bg-white/5 border-white/10 text-white placeholder:text-white/40"
                       data-testid="input-city"
+                      aria-required="true"
+                      aria-labelledby="city-label"
                     />
                   </div>
                   <div className="space-y-3">
-                    <Label className="text-white">State *</Label>
+                    <Label id="state-label" className="text-white">State *</Label>
                     <Input
                       placeholder="TX"
                       value={formData.propertyState}
                       onChange={(e) => setFormData({ ...formData, propertyState: e.target.value })}
                       className="bg-white/5 border-white/10 text-white placeholder:text-white/40"
                       data-testid="input-state"
+                      aria-required="true"
+                      aria-labelledby="state-label"
                     />
                   </div>
                   <div className="space-y-3">
-                    <Label className="text-white">ZIP</Label>
+                    <Label id="zip-label" className="text-white">ZIP</Label>
                     <Input
                       placeholder="78701"
                       value={formData.propertyZip}
                       onChange={(e) => setFormData({ ...formData, propertyZip: e.target.value })}
                       className="bg-white/5 border-white/10 text-white placeholder:text-white/40"
                       data-testid="input-zip"
+                      aria-labelledby="zip-label"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-3">
-                    <Label className="text-white">Purchase Price / Value *</Label>
+                    <Label id="purchase-price-label" className="text-white">Purchase Price / Value *</Label>
                     <Input
                       placeholder="$500,000"
                       value={formData.purchasePrice}
                       onChange={(e) => setFormData({ ...formData, purchasePrice: e.target.value })}
                       className="bg-white/5 border-white/10 text-white placeholder:text-white/40"
                       data-testid="input-purchase-price"
+                      aria-required="true"
+                      aria-labelledby="purchase-price-label"
                     />
                   </div>
                   {formData.loanType === "dscr" && (
                     <>
                       <div className="space-y-3">
-                        <Label className="text-white">Annual Rents *</Label>
+                        <Label id="annual-rents-label" className="text-white">Annual Rents *</Label>
                         <Input
                           placeholder="$36,000"
                           value={formData.annualRents}
                           onChange={(e) => setFormData({ ...formData, annualRents: e.target.value })}
                           className="bg-white/5 border-white/10 text-white placeholder:text-white/40"
                           data-testid="input-annual-rents"
+                          aria-required="true"
+                          aria-labelledby="annual-rents-label"
                         />
                       </div>
                       <div className="space-y-3">
-                        <Label className="text-white">Annual Taxes</Label>
+                        <Label id="annual-taxes-label" className="text-white">Annual Taxes</Label>
                         <Input
                           placeholder="$6,000"
                           value={formData.annualTaxes}
                           onChange={(e) => setFormData({ ...formData, annualTaxes: e.target.value })}
                           className="bg-white/5 border-white/10 text-white placeholder:text-white/40"
                           data-testid="input-annual-taxes"
+                          aria-labelledby="annual-taxes-label"
                         />
                       </div>
                     </>
@@ -770,29 +793,33 @@ export default function GetQuotePage() {
               <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 space-y-6">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-3">
-                    <Label className="text-white">First Name *</Label>
+                    <Label id="firstname-label" className="text-white">First Name *</Label>
                     <Input
                       placeholder="John"
                       value={formData.firstName}
                       onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                       className="bg-white/5 border-white/10 text-white placeholder:text-white/40"
                       data-testid="input-first-name"
+                      aria-required="true"
+                      aria-labelledby="firstname-label"
                     />
                   </div>
                   <div className="space-y-3">
-                    <Label className="text-white">Last Name *</Label>
+                    <Label id="lastname-label" className="text-white">Last Name *</Label>
                     <Input
                       placeholder="Smith"
                       value={formData.lastName}
                       onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                       className="bg-white/5 border-white/10 text-white placeholder:text-white/40"
                       data-testid="input-last-name"
+                      aria-required="true"
+                      aria-labelledby="lastname-label"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-3">
-                  <Label className="text-white">Email Address *</Label>
+                  <Label id="email-label" className="text-white">Email Address *</Label>
                   <Input
                     type="email"
                     placeholder="john@example.com"
@@ -800,11 +827,13 @@ export default function GetQuotePage() {
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     className="bg-white/5 border-white/10 text-white placeholder:text-white/40"
                     data-testid="input-email"
+                    aria-required="true"
+                    aria-labelledby="email-label"
                   />
                 </div>
 
                 <div className="space-y-3">
-                  <Label className="text-white">Phone Number *</Label>
+                  <Label id="phone-label" className="text-white">Phone Number *</Label>
                   <Input
                     type="tel"
                     placeholder="(555) 123-4567"
@@ -812,17 +841,24 @@ export default function GetQuotePage() {
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     className="bg-white/5 border-white/10 text-white placeholder:text-white/40"
                     data-testid="input-phone"
+                    aria-required="true"
+                    aria-labelledby="phone-label"
                   />
                 </div>
 
                 {(formData.loanType === "fix-flip" || formData.loanType === "construction") && (
                   <div className="space-y-3">
-                    <Label className="text-white">Investment Experience *</Label>
+                    <Label id="experience-label" className="text-white">Investment Experience *</Label>
                     <Select
                       value={formData.investmentExperience}
                       onValueChange={(value) => setFormData({ ...formData, investmentExperience: value })}
                     >
-                      <SelectTrigger className="bg-white/5 border-white/10 text-white" data-testid="select-experience">
+                      <SelectTrigger 
+                        className="bg-white/5 border-white/10 text-white" 
+                        data-testid="select-experience"
+                        aria-required="true"
+                        aria-labelledby="experience-label"
+                      >
                         <SelectValue placeholder="Select your experience level" />
                       </SelectTrigger>
                       <SelectContent>
@@ -840,13 +876,14 @@ export default function GetQuotePage() {
                 )}
 
                 <div className="space-y-3">
-                  <Label className="text-white">Additional Notes</Label>
+                  <Label id="notes-label" className="text-white">Additional Notes</Label>
                   <Textarea
                     placeholder="Tell us anything else about your deal..."
                     value={formData.additionalNotes}
                     onChange={(e) => setFormData({ ...formData, additionalNotes: e.target.value })}
                     className="bg-white/5 border-white/10 text-white placeholder:text-white/40 min-h-[100px]"
                     data-testid="input-notes"
+                    aria-labelledby="notes-label"
                   />
                 </div>
               </div>

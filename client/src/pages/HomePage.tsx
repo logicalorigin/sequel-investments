@@ -263,7 +263,9 @@ export default function HomePage() {
                   <button
                     key={slide.id}
                     onClick={() => setCurrentSlide(index)}
-                    className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full transition-all ${
+                    aria-label={`Go to slide ${index + 1}: ${slide.loanType}`}
+                    aria-current={index === currentSlide ? "true" : undefined}
+                    className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full transition-all focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black/50 ${
                       index === currentSlide ? "bg-white w-4 sm:w-6" : "bg-white/50"
                     }`}
                     data-testid={`button-carousel-${slide.id}`}
@@ -908,7 +910,11 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="py-12 sm:py-16 md:py-24 bg-card">
+      <section 
+        className="py-12 sm:py-16 md:py-24 bg-card"
+        role="region"
+        aria-label="Investor testimonials"
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-8 sm:mb-12 md:mb-16">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">What Our Investors Say</h2>
@@ -922,21 +928,22 @@ export default function HomePage() {
             <Carousel opts={{ align: "start", loop: true }} className="w-full">
               <CarouselContent className="-ml-2">
                 <CarouselItem className="pl-2 basis-[85%]">
-                  <Card data-testid="card-testimonial-1-mobile">
+                  <Card data-testid="card-testimonial-1-mobile" tabIndex={0} className="focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
                     <CardContent className="pt-6">
-                      <div className="flex gap-1 mb-4">
+                      <div className="flex gap-1 mb-4" aria-label="5 out of 5 stars" role="img">
                         {[1, 2, 3, 4, 5].map((star) => (
-                          <Star key={star} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                          <Star key={star} className="h-4 w-4 fill-yellow-400 text-yellow-400" aria-hidden="true" />
                         ))}
                       </div>
-                      <p className="text-sm text-muted-foreground mb-4">
+                      <blockquote className="text-sm text-muted-foreground mb-4">
                         "Closed my hard money loan in 6 days. The team was incredibly responsive and made the process seamless. Already on my third property with them!"
-                      </p>
+                      </blockquote>
                       <div className="flex items-center gap-3">
                         <img 
                           src={testimonial1} 
-                          alt="Michael Chen" 
+                          alt="" 
                           className="w-10 h-10 rounded-full object-cover"
+                          aria-hidden="true"
                         />
                         <div>
                           <h4 className="font-semibold text-sm">Michael Chen</h4>
@@ -947,21 +954,22 @@ export default function HomePage() {
                   </Card>
                 </CarouselItem>
                 <CarouselItem className="pl-2 basis-[85%]">
-                  <Card data-testid="card-testimonial-2-mobile">
+                  <Card data-testid="card-testimonial-2-mobile" tabIndex={0} className="focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
                     <CardContent className="pt-6">
-                      <div className="flex gap-1 mb-4">
+                      <div className="flex gap-1 mb-4" aria-label="5 out of 5 stars" role="img">
                         {[1, 2, 3, 4, 5].map((star) => (
-                          <Star key={star} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                          <Star key={star} className="h-4 w-4 fill-yellow-400 text-yellow-400" aria-hidden="true" />
                         ))}
                       </div>
-                      <p className="text-sm text-muted-foreground mb-4">
+                      <blockquote className="text-sm text-muted-foreground mb-4">
                         "No tax returns, no W2s needed. Got approved for a DSCR loan based purely on my property's rental income. Game changer for my portfolio!"
-                      </p>
+                      </blockquote>
                       <div className="flex items-center gap-3">
                         <img 
                           src={testimonial2} 
-                          alt="Sarah Johnson" 
+                          alt="" 
                           className="w-10 h-10 rounded-full object-cover"
+                          aria-hidden="true"
                         />
                         <div>
                           <h4 className="font-semibold text-sm">Sarah Johnson</h4>
@@ -972,21 +980,22 @@ export default function HomePage() {
                   </Card>
                 </CarouselItem>
                 <CarouselItem className="pl-2 basis-[85%]">
-                  <Card data-testid="card-testimonial-3-mobile">
+                  <Card data-testid="card-testimonial-3-mobile" tabIndex={0} className="focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
                     <CardContent className="pt-6">
-                      <div className="flex gap-1 mb-4">
+                      <div className="flex gap-1 mb-4" aria-label="5 out of 5 stars" role="img">
                         {[1, 2, 3, 4, 5].map((star) => (
-                          <Star key={star} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                          <Star key={star} className="h-4 w-4 fill-yellow-400 text-yellow-400" aria-hidden="true" />
                         ))}
                       </div>
-                      <p className="text-sm text-muted-foreground mb-4">
+                      <blockquote className="text-sm text-muted-foreground mb-4">
                         "Financed 3 apartment buildings in 6 months. Their rates are competitive and the loan officers really understand the investment business."
-                      </p>
+                      </blockquote>
                       <div className="flex items-center gap-3">
                         <img 
                           src={testimonial3} 
-                          alt="David Rodriguez" 
+                          alt="" 
                           className="w-10 h-10 rounded-full object-cover"
+                          aria-hidden="true"
                         />
                         <div>
                           <h4 className="font-semibold text-sm">David Rodriguez</h4>
@@ -1003,21 +1012,22 @@ export default function HomePage() {
 
           {/* Desktop: Grid */}
           <div className="hidden sm:grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
-            <Card data-testid="card-testimonial-1">
+            <Card data-testid="card-testimonial-1" tabIndex={0} className="focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
               <CardContent className="pt-6">
-                <div className="flex gap-1 mb-4">
+                <div className="flex gap-1 mb-4" aria-label="5 out of 5 stars" role="img">
                   {[1, 2, 3, 4, 5].map((star) => (
-                    <Star key={star} className="h-5 w-5 fill-yellow-400 text-yellow-400" />
+                    <Star key={star} className="h-5 w-5 fill-yellow-400 text-yellow-400" aria-hidden="true" />
                   ))}
                 </div>
-                <p className="text-muted-foreground mb-6">
+                <blockquote className="text-muted-foreground mb-6">
                   "Closed my hard money loan in 6 days. The team was incredibly responsive and made the process seamless. Already on my third property with them!"
-                </p>
+                </blockquote>
                 <div className="flex items-center gap-4">
                   <img 
                     src={testimonial1} 
-                    alt="Michael Chen" 
+                    alt="" 
                     className="w-12 h-12 rounded-full object-cover"
+                    aria-hidden="true"
                   />
                   <div>
                     <h4 className="font-semibold">Michael Chen</h4>
@@ -1027,21 +1037,22 @@ export default function HomePage() {
               </CardContent>
             </Card>
 
-            <Card data-testid="card-testimonial-2">
+            <Card data-testid="card-testimonial-2" tabIndex={0} className="focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
               <CardContent className="pt-6">
-                <div className="flex gap-1 mb-4">
+                <div className="flex gap-1 mb-4" aria-label="5 out of 5 stars" role="img">
                   {[1, 2, 3, 4, 5].map((star) => (
-                    <Star key={star} className="h-5 w-5 fill-yellow-400 text-yellow-400" />
+                    <Star key={star} className="h-5 w-5 fill-yellow-400 text-yellow-400" aria-hidden="true" />
                   ))}
                 </div>
-                <p className="text-muted-foreground mb-6">
+                <blockquote className="text-muted-foreground mb-6">
                   "No tax returns, no W2s needed. Got approved for a DSCR loan based purely on my property's rental income. Game changer for my portfolio!"
-                </p>
+                </blockquote>
                 <div className="flex items-center gap-4">
                   <img 
                     src={testimonial2} 
-                    alt="Sarah Johnson" 
+                    alt="" 
                     className="w-12 h-12 rounded-full object-cover"
+                    aria-hidden="true"
                   />
                   <div>
                     <h4 className="font-semibold">Sarah Johnson</h4>
@@ -1051,21 +1062,22 @@ export default function HomePage() {
               </CardContent>
             </Card>
 
-            <Card data-testid="card-testimonial-3">
+            <Card data-testid="card-testimonial-3" tabIndex={0} className="focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
               <CardContent className="pt-6">
-                <div className="flex gap-1 mb-4">
+                <div className="flex gap-1 mb-4" aria-label="5 out of 5 stars" role="img">
                   {[1, 2, 3, 4, 5].map((star) => (
-                    <Star key={star} className="h-5 w-5 fill-yellow-400 text-yellow-400" />
+                    <Star key={star} className="h-5 w-5 fill-yellow-400 text-yellow-400" aria-hidden="true" />
                   ))}
                 </div>
-                <p className="text-muted-foreground mb-6">
+                <blockquote className="text-muted-foreground mb-6">
                   "Financed 3 apartment buildings in 6 months. Their rates are competitive and the loan officers really understand the investment business."
-                </p>
+                </blockquote>
                 <div className="flex items-center gap-4">
                   <img 
                     src={testimonial3} 
-                    alt="David Rodriguez" 
+                    alt="" 
                     className="w-12 h-12 rounded-full object-cover"
+                    aria-hidden="true"
                   />
                   <div>
                     <h4 className="font-semibold">David Rodriguez</h4>

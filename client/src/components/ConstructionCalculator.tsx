@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,7 +26,7 @@ export function ConstructionCalculator() {
     }).format(value);
   };
 
-  const calculateConstruction = () => {
+  const results = useMemo(() => {
     const land = parseFloat(landCost) || 0;
     const construction = parseFloat(constructionCost) || 0;
     const completed = parseFloat(completedValue) || 0;
@@ -107,9 +107,7 @@ export function ConstructionCalculator() {
       qualificationStatus,
       landEquityApplied,
     };
-  };
-
-  const results = calculateConstruction();
+  }, [landCost, constructionCost, completedValue, buildDuration, landIsOwned]);
 
   return (
     <Card className="w-full">

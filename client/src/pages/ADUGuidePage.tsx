@@ -57,8 +57,8 @@ export default function ADUGuidePage() {
   useEffect(() => {
     document.title = "What Every Real Estate Investor Should Know About ADUs | Sequel Investments";
     
-    const metaDescription = document.querySelector('meta[name="description"]');
     const descriptionContent = "Discover how Accessory Dwelling Units (ADUs) can boost your real estate investment returns. Learn about ADU types, financing options, zoning considerations, and ROI potential.";
+    const metaDescription = document.querySelector('meta[name="description"]');
     if (metaDescription) {
       metaDescription.setAttribute("content", descriptionContent);
     } else {
@@ -67,6 +67,22 @@ export default function ADUGuidePage() {
       meta.content = descriptionContent;
       document.head.appendChild(meta);
     }
+
+    const setOgTag = (property: string, content: string) => {
+      let tag = document.querySelector(`meta[property="${property}"]`);
+      if (tag) {
+        tag.setAttribute("content", content);
+      } else {
+        tag = document.createElement("meta");
+        tag.setAttribute("property", property);
+        tag.setAttribute("content", content);
+        document.head.appendChild(tag);
+      }
+    };
+
+    setOgTag("og:title", "What Every Real Estate Investor Should Know About ADUs | Sequel Investments");
+    setOgTag("og:description", descriptionContent);
+    setOgTag("og:type", "article");
     
     window.scrollTo(0, 0);
   }, []);

@@ -245,11 +245,22 @@ export function RecentlyFundedCarousel({
     );
   }
 
+  const handleKeyDown = (e: React.KeyboardEvent, deal: FundedDeal) => {
+    if (deal.isFromApi && (e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault();
+      window.location.href = `/funded-deals/${deal.id}`;
+    }
+  };
+
   const renderDealCard = (deal: FundedDeal, index: number, isMobile: boolean = false) => {
     const cardContent = (
       <Card 
-        className={`overflow-hidden transition-all duration-300 h-full ${deal.isFromApi ? 'hover-elevate cursor-pointer' : ''}`}
+        className={`overflow-hidden transition-all duration-300 h-full focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${deal.isFromApi ? 'hover-elevate cursor-pointer' : ''}`}
         data-testid={`card-funded-deal-${deal.id}${isMobile ? '-mobile' : ''}`}
+        tabIndex={deal.isFromApi ? 0 : undefined}
+        onKeyDown={(e) => handleKeyDown(e, deal)}
+        role={deal.isFromApi ? "button" : undefined}
+        aria-label={deal.isFromApi ? `View details for ${deal.location}, ${deal.state} - ${deal.loanType} loan for ${formatCurrency(deal.loanAmount)}` : undefined}
       >
         <div className={`relative ${isMobile ? 'h-28' : 'h-40 sm:h-48'} overflow-hidden`}>
           <img 
@@ -352,7 +363,7 @@ export function RecentlyFundedCarousel({
   };
 
   return (
-    <section className="py-6 sm:py-16 bg-muted/30">
+    <section className="py-6 sm:py-16 bg-muted/30" role="region" aria-label="Recently funded deals">
       <div className="max-w-7xl mx-auto px-3 sm:px-6">
         <div className="text-center mb-4 sm:mb-10">
           <h2 className="text-xl sm:text-3xl font-bold mb-1 sm:mb-2">{title}</h2>

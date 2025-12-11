@@ -118,17 +118,24 @@ export function LeadForm({ onSubmitSuccess, defaultLoanType, defaultLocation, co
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6" aria-label="Contact form" data-testid="form-lead-capture">
         <FormField
           control={form.control}
           name="name"
-          render={({ field }) => (
+          render={({ field, fieldState }) => (
             <FormItem>
               <FormLabel>Full Name</FormLabel>
               <FormControl>
-                <Input placeholder="John Smith" {...field} data-testid="input-lead-name" />
+                <Input 
+                  placeholder="John Smith" 
+                  {...field} 
+                  data-testid="input-lead-name"
+                  aria-required="true"
+                  aria-invalid={!!fieldState.error}
+                  aria-describedby={fieldState.error ? "name-error" : undefined}
+                />
               </FormControl>
-              <FormMessage />
+              <FormMessage id="name-error" />
             </FormItem>
           )}
         />
@@ -137,7 +144,7 @@ export function LeadForm({ onSubmitSuccess, defaultLoanType, defaultLocation, co
           <FormField
             control={form.control}
             name="email"
-            render={({ field }) => (
+            render={({ field, fieldState }) => (
               <FormItem>
                 <FormLabel>Email</FormLabel>
                 <FormControl>
@@ -146,9 +153,12 @@ export function LeadForm({ onSubmitSuccess, defaultLoanType, defaultLocation, co
                     placeholder="john@example.com"
                     {...field}
                     data-testid="input-lead-email"
+                    aria-required="true"
+                    aria-invalid={!!fieldState.error}
+                    aria-describedby={fieldState.error ? "email-error" : undefined}
                   />
                 </FormControl>
-                <FormMessage />
+                <FormMessage id="email-error" />
               </FormItem>
             )}
           />
@@ -156,7 +166,7 @@ export function LeadForm({ onSubmitSuccess, defaultLoanType, defaultLocation, co
           <FormField
             control={form.control}
             name="phone"
-            render={({ field }) => (
+            render={({ field, fieldState }) => (
               <FormItem>
                 <FormLabel>Phone</FormLabel>
                 <FormControl>
@@ -165,9 +175,12 @@ export function LeadForm({ onSubmitSuccess, defaultLoanType, defaultLocation, co
                     placeholder="(555) 123-4567"
                     {...field}
                     data-testid="input-lead-phone"
+                    aria-required="true"
+                    aria-invalid={!!fieldState.error}
+                    aria-describedby={fieldState.error ? "phone-error" : undefined}
                   />
                 </FormControl>
-                <FormMessage />
+                <FormMessage id="phone-error" />
               </FormItem>
             )}
           />
@@ -176,12 +189,17 @@ export function LeadForm({ onSubmitSuccess, defaultLoanType, defaultLocation, co
         <FormField
           control={form.control}
           name="loanType"
-          render={({ field }) => (
+          render={({ field, fieldState }) => (
             <FormItem>
               <FormLabel>Loan Type</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
-                  <SelectTrigger data-testid="select-lead-loantype">
+                  <SelectTrigger 
+                    data-testid="select-lead-loantype"
+                    aria-required="true"
+                    aria-invalid={!!fieldState.error}
+                    aria-describedby={fieldState.error ? "loantype-error" : undefined}
+                  >
                     <SelectValue placeholder="Select loan type" />
                   </SelectTrigger>
                 </FormControl>
@@ -194,7 +212,7 @@ export function LeadForm({ onSubmitSuccess, defaultLoanType, defaultLocation, co
                   <SelectItem value="Other">Other</SelectItem>
                 </SelectContent>
               </Select>
-              <FormMessage />
+              <FormMessage id="loantype-error" />
             </FormItem>
           )}
         />
@@ -204,7 +222,7 @@ export function LeadForm({ onSubmitSuccess, defaultLoanType, defaultLocation, co
             <FormField
               control={form.control}
               name="propertyLocation"
-              render={({ field }) => (
+              render={({ field, fieldState }) => (
                 <FormItem>
                   <FormLabel>Property Location (Optional)</FormLabel>
                   <FormControl>
@@ -212,9 +230,10 @@ export function LeadForm({ onSubmitSuccess, defaultLoanType, defaultLocation, co
                       placeholder="City, State"
                       {...field}
                       data-testid="input-lead-location"
+                      aria-describedby={fieldState.error ? "location-error" : undefined}
                     />
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage id="location-error" />
                 </FormItem>
               )}
             />
@@ -222,7 +241,7 @@ export function LeadForm({ onSubmitSuccess, defaultLoanType, defaultLocation, co
             <FormField
               control={form.control}
               name="message"
-              render={({ field }) => (
+              render={({ field, fieldState }) => (
                 <FormItem>
                   <FormLabel>Message (Optional)</FormLabel>
                   <FormControl>
@@ -231,9 +250,10 @@ export function LeadForm({ onSubmitSuccess, defaultLoanType, defaultLocation, co
                       className="resize-none min-h-24"
                       {...field}
                       data-testid="textarea-lead-message"
+                      aria-describedby={fieldState.error ? "message-error" : undefined}
                     />
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage id="message-error" />
                 </FormItem>
               )}
             />
@@ -241,12 +261,15 @@ export function LeadForm({ onSubmitSuccess, defaultLoanType, defaultLocation, co
             <FormField
               control={form.control}
               name="howHeardAboutUs"
-              render={({ field }) => (
+              render={({ field, fieldState }) => (
                 <FormItem>
                   <FormLabel>How did you hear about us? (Optional)</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
-                      <SelectTrigger data-testid="select-lead-source">
+                      <SelectTrigger 
+                        data-testid="select-lead-source"
+                        aria-describedby={fieldState.error ? "source-error" : undefined}
+                      >
                         <SelectValue placeholder="Select an option" />
                       </SelectTrigger>
                     </FormControl>
@@ -258,7 +281,7 @@ export function LeadForm({ onSubmitSuccess, defaultLoanType, defaultLocation, co
                       <SelectItem value="Other">Other</SelectItem>
                     </SelectContent>
                   </Select>
-                  <FormMessage />
+                  <FormMessage id="source-error" />
                 </FormItem>
               )}
             />
@@ -266,7 +289,7 @@ export function LeadForm({ onSubmitSuccess, defaultLoanType, defaultLocation, co
         )}
 
         {form.formState.errors.root && (
-          <div className="text-sm text-destructive">
+          <div className="text-sm text-destructive" role="alert" aria-live="polite" data-testid="text-form-error">
             {form.formState.errors.root.message}
           </div>
         )}
@@ -277,11 +300,12 @@ export function LeadForm({ onSubmitSuccess, defaultLoanType, defaultLocation, co
           size="lg" 
           disabled={createLeadMutation.isPending}
           data-testid="button-lead-submit"
+          aria-label="Submit contact form"
         >
           {createLeadMutation.isPending ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Submitting...
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+              <span>Submitting...</span>
             </>
           ) : (
             "Connect with a Loan Specialist"
