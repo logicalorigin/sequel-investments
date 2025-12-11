@@ -250,6 +250,21 @@ export const STATE_BOUNDARIES: Record<string, StateBoundary> = {
       { lat: 49.0, lng: -117.0 },
     ],
   },
+  "new-mexico": {
+    slug: "new-mexico",
+    name: "New Mexico",
+    coordinates: [
+      { lat: 37.0, lng: -109.0 },
+      { lat: 37.0, lng: -103.0 },
+      { lat: 36.5, lng: -103.0 },
+      { lat: 32.0, lng: -103.0 },
+      { lat: 32.0, lng: -106.6 },
+      { lat: 31.8, lng: -106.5 },
+      { lat: 31.3, lng: -106.5 },
+      { lat: 31.3, lng: -109.0 },
+      { lat: 37.0, lng: -109.0 },
+    ],
+  },
 };
 
 // Helper to get state boundary by slug

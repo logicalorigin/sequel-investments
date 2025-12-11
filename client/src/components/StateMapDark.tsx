@@ -125,7 +125,6 @@ export function StateMapDark({
         scrollwheel={true}
         gestureHandling="cooperative"
         onTilesLoaded={() => setMapLoaded(true)}
-        mapId="dark-state-map"
       >
         {/* State boundary polygon filled with amber/gold theme color */}
         {apiIsLoaded && <StateBoundaryPolygon stateSlug={stateSlug} />}
