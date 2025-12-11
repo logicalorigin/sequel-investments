@@ -266,6 +266,8 @@ export function TopMarketsSection({ stateSlug, stateName }: TopMarketsSectionPro
   const [isLoading, setIsLoading] = useState(true);
   const [hoveredMarket, setHoveredMarket] = useState<MarketDetail | null>(null);
   const [selectedMarket, setSelectedMarket] = useState<MarketDetail | null>(null);
+  const [zoomCenter, setZoomCenter] = useState<{ x: number; y: number } | null>(null);
+  const [zoomLevel, setZoomLevel] = useState(1);
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -313,17 +315,38 @@ export function TopMarketsSection({ stateSlug, stateName }: TopMarketsSectionPro
   const statePathD = stateAbbr ? statePaths[stateAbbr] : null;
   const bounds: SVGBounds | null = statePathD ? parsePathBounds(statePathD) : null;
 
+  // Clustering threshold decreases as zoom increases (less clustering when zoomed in)
+  const clusterThreshold = zoomLevel >= 2.5 ? 8 : zoomLevel >= 1.5 ? 15 : 25;
+  
   const { clusters } = useMarkerClustering(
     marketsWithDetails,
     stateAbbr,
     bounds,
     hoveredMarket,
-    selectedMarket
+    selectedMarket,
+    { threshold: clusterThreshold }
   );
 
   const handleMarkerClick = (market: MarketDetail) => {
     setSelectedMarket(selectedMarket?.id === market.id ? null : market);
     setHoveredMarket(null);
+  };
+
+  const handleClusterClick = (cluster: typeof clusters[0]) => {
+    if (cluster.markers.length > 1) {
+      // Zoom into the cluster
+      setZoomCenter(cluster.center);
+      setZoomLevel(prev => Math.min(prev * 2, 4)); // Max zoom 4x
+      setHoveredMarket(null);
+    } else {
+      // Single marker - open details
+      handleMarkerClick(cluster.markers[0].market);
+    }
+  };
+
+  const handleZoomOut = () => {
+    setZoomLevel(1);
+    setZoomCenter(null);
   };
 
   const handleMarkerHover = (market: MarketDetail | null) => {
@@ -347,10 +370,22 @@ export function TopMarketsSection({ stateSlug, stateName }: TopMarketsSectionPro
   }
 
   const padding = 30;
-  const viewBoxX = bounds ? bounds.minX - padding : 0;
-  const viewBoxY = bounds ? bounds.minY - padding : 0;
-  const viewBoxW = bounds ? (bounds.maxX - bounds.minX) + padding * 2 : 200;
-  const viewBoxH = bounds ? (bounds.maxY - bounds.minY) + padding * 2 : 200;
+  const baseViewBoxX = bounds ? bounds.minX - padding : 0;
+  const baseViewBoxY = bounds ? bounds.minY - padding : 0;
+  const baseViewBoxW = bounds ? (bounds.maxX - bounds.minX) + padding * 2 : 200;
+  const baseViewBoxH = bounds ? (bounds.maxY - bounds.minY) + padding * 2 : 200;
+  
+  // Calculate zoomed viewBox
+  const zoomedViewBoxW = baseViewBoxW / zoomLevel;
+  const zoomedViewBoxH = baseViewBoxH / zoomLevel;
+  const viewBoxX = zoomCenter 
+    ? zoomCenter.x - zoomedViewBoxW / 2 
+    : baseViewBoxX;
+  const viewBoxY = zoomCenter 
+    ? zoomCenter.y - zoomedViewBoxH / 2 
+    : baseViewBoxY;
+  const viewBoxW = zoomedViewBoxW;
+  const viewBoxH = zoomedViewBoxH;
 
   return (
     <section className="py-12 md:py-16">
@@ -375,9 +410,25 @@ export function TopMarketsSection({ stateSlug, stateName }: TopMarketsSectionPro
           <Card className="overflow-hidden border-primary/10 bg-card/50">
             <CardContent className="p-0">
               <div className="relative h-[400px] md:h-[500px] overflow-hidden bg-slate-900/50">
+                {/* Zoom controls */}
+                {zoomLevel > 1 && (
+                  <button
+                    onClick={handleZoomOut}
+                    className="absolute top-3 left-3 z-10 flex items-center gap-1.5 px-3 py-1.5 bg-background/90 hover:bg-background text-sm font-medium rounded-md border shadow-sm transition-colors"
+                    data-testid="button-zoom-out"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="11" cy="11" r="8"/>
+                      <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                      <line x1="8" y1="11" x2="14" y2="11"/>
+                    </svg>
+                    Zoom Out
+                  </button>
+                )}
+                
                 <svg
                   viewBox={`${viewBoxX} ${viewBoxY} ${viewBoxW} ${viewBoxH}`}
-                  className="w-full h-full"
+                  className="w-full h-full transition-all duration-300"
                   preserveAspectRatio="xMidYMid meet"
                 >
                   <defs>
@@ -421,6 +472,7 @@ export function TopMarketsSection({ stateSlug, stateName }: TopMarketsSectionPro
                       hoveredMarket={hoveredMarket}
                       selectedMarket={selectedMarket}
                       onMarkerClick={handleMarkerClick}
+                      onClusterClick={handleClusterClick}
                       onMarkerHover={handleMarkerHover}
                     />
                   ))}

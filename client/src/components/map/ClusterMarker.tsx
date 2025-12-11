@@ -8,6 +8,7 @@ export interface ClusterMarkerProps {
   hoveredMarket: MarketDetail | null;
   selectedMarket: MarketDetail | null;
   onMarkerClick: (market: MarketDetail) => void;
+  onClusterClick: (cluster: MarkerCluster) => void;
   onMarkerHover: (market: MarketDetail | null) => void;
 }
 
@@ -36,6 +37,7 @@ export function ClusterMarker({
   hoveredMarket,
   selectedMarket,
   onMarkerClick,
+  onClusterClick,
   onMarkerHover,
 }: ClusterMarkerProps) {
   const { stats, center, markers } = cluster;
@@ -47,7 +49,7 @@ export function ClusterMarker({
     hoveredMarket?.id === m.market.id || selectedMarket?.id === m.market.id
   );
 
-  // Single market - show informative pill
+  // Single market - show informative pill, click opens details
   if (isSingleMarket) {
     const market = markers[0].market;
     const isSTRExcellent = market.strFriendliness?.tier === "Excellent";
@@ -75,15 +77,15 @@ export function ClusterMarker({
     );
   }
 
-  // Multiple markets - Google Maps style cluster bubble
+  // Multiple markets - cluster bubble, click zooms in
   return (
     <g 
-      style={{ cursor: 'pointer' }}
+      style={{ cursor: 'zoom-in' }}
       onMouseEnter={() => onMarkerHover(topMarket)}
       onMouseLeave={() => onMarkerHover(null)}
       onClick={(e) => {
         e.stopPropagation();
-        onMarkerClick(topMarket);
+        onClusterClick(cluster);
       }}
       data-testid={`cluster-marker-${clusterIdx}`}
     >
