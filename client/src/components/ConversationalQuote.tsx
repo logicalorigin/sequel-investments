@@ -647,7 +647,11 @@ export default function ConversationalQuote() {
                 return (
                   <motion.button
                     key={product.id}
-                    onClick={() => updateField("loanType", product.id)}
+                    onClick={() => {
+                      updateField("loanType", product.id);
+                      // Auto-advance to next step after selecting loan type
+                      setTimeout(() => handleNext(), 300);
+                    }}
                     className={`
                       relative p-4 sm:p-8 rounded-xl sm:rounded-2xl border-2 transition-all
                       bg-gradient-to-br ${product.color}
@@ -877,36 +881,36 @@ export default function ConversationalQuote() {
                       
                       {/* Property Specs + Annual Costs in compact grid */}
                       <div className="grid grid-cols-4 gap-2">
-                        <div className="bg-white/5 rounded-lg p-2 border border-white/10">
-                          <label className="text-white/50 text-[9px] uppercase tracking-wide block mb-1">Beds</label>
-                          <input type="text" value={formData.propertyDetails.beds} onChange={(e) => updatePropertyDetail("beds", e.target.value)} placeholder="--" className="w-full bg-transparent text-sm font-bold text-white text-center focus:outline-none" data-testid="input-beds" />
+                        <div className="bg-gray-900/90 rounded-lg p-2 border border-gray-700">
+                          <label className="text-amber-500 text-[9px] uppercase tracking-wide block mb-1">Beds</label>
+                          <input type="text" value={formData.propertyDetails.beds} onChange={(e) => updatePropertyDetail("beds", e.target.value)} placeholder="--" className="w-full bg-transparent text-sm font-bold text-amber-400 text-center focus:outline-none" data-testid="input-beds" />
                         </div>
-                        <div className="bg-white/5 rounded-lg p-2 border border-white/10">
-                          <label className="text-white/50 text-[9px] uppercase tracking-wide block mb-1">Baths</label>
-                          <input type="text" value={formData.propertyDetails.baths} onChange={(e) => updatePropertyDetail("baths", e.target.value)} placeholder="--" className="w-full bg-transparent text-sm font-bold text-white text-center focus:outline-none" data-testid="input-baths" />
+                        <div className="bg-gray-900/90 rounded-lg p-2 border border-gray-700">
+                          <label className="text-amber-500 text-[9px] uppercase tracking-wide block mb-1">Baths</label>
+                          <input type="text" value={formData.propertyDetails.baths} onChange={(e) => updatePropertyDetail("baths", e.target.value)} placeholder="--" className="w-full bg-transparent text-sm font-bold text-amber-400 text-center focus:outline-none" data-testid="input-baths" />
                         </div>
-                        <div className="bg-white/5 rounded-lg p-2 border border-white/10">
-                          <label className="text-white/50 text-[9px] uppercase tracking-wide block mb-1">Sq Ft</label>
-                          <input type="text" value={formData.propertyDetails.sqft} onChange={(e) => updatePropertyDetail("sqft", e.target.value)} placeholder="--" className="w-full bg-transparent text-sm font-bold text-white text-center focus:outline-none" data-testid="input-sqft" />
+                        <div className="bg-gray-900/90 rounded-lg p-2 border border-gray-700">
+                          <label className="text-amber-500 text-[9px] uppercase tracking-wide block mb-1">Sq Ft</label>
+                          <input type="text" value={formData.propertyDetails.sqft} onChange={(e) => updatePropertyDetail("sqft", e.target.value)} placeholder="--" className="w-full bg-transparent text-sm font-bold text-amber-400 text-center focus:outline-none" data-testid="input-sqft" />
                         </div>
-                        <div className="bg-white/5 rounded-lg p-2 border border-white/10">
-                          <label className="text-white/50 text-[9px] uppercase tracking-wide block mb-1">Year</label>
-                          <input type="text" value={formData.propertyDetails.yearBuilt} onChange={(e) => updatePropertyDetail("yearBuilt", e.target.value)} placeholder="--" className="w-full bg-transparent text-sm font-bold text-white text-center focus:outline-none" data-testid="input-yearBuilt" />
+                        <div className="bg-gray-900/90 rounded-lg p-2 border border-gray-700">
+                          <label className="text-amber-500 text-[9px] uppercase tracking-wide block mb-1">Year</label>
+                          <input type="text" value={formData.propertyDetails.yearBuilt} onChange={(e) => updatePropertyDetail("yearBuilt", e.target.value)} placeholder="--" className="w-full bg-transparent text-sm font-bold text-amber-400 text-center focus:outline-none" data-testid="input-yearBuilt" />
                         </div>
                       </div>
                       
                       <div className="grid grid-cols-3 gap-2">
-                        <div className="bg-white/5 rounded-lg p-2 border border-white/10">
-                          <label className="text-white/50 text-[9px] uppercase tracking-wide block mb-1">Taxes/yr</label>
-                          <div className="flex items-center"><span className="text-white/40 mr-0.5 text-xs">$</span><input type="text" value={formData.annualTaxes} onChange={(e) => updateField("annualTaxes", formatCurrency(e.target.value))} placeholder="0" className="w-full bg-transparent text-sm font-bold text-white focus:outline-none" data-testid="input-annual-taxes" /></div>
+                        <div className="bg-gray-900/90 rounded-lg p-2 border border-gray-700">
+                          <label className="text-amber-500 text-[9px] uppercase tracking-wide block mb-1">Taxes/yr</label>
+                          <div className="flex items-center"><span className="text-amber-400/60 mr-0.5 text-xs">$</span><input type="text" value={formData.annualTaxes} onChange={(e) => updateField("annualTaxes", formatCurrency(e.target.value))} placeholder="0" className="w-full bg-transparent text-sm font-bold text-amber-400 focus:outline-none" data-testid="input-annual-taxes" /></div>
                         </div>
-                        <div className="bg-white/5 rounded-lg p-2 border border-white/10">
-                          <label className="text-white/50 text-[9px] uppercase tracking-wide block mb-1">Ins/yr</label>
-                          <div className="flex items-center"><span className="text-white/40 mr-0.5 text-xs">$</span><input type="text" value={formData.annualInsurance} onChange={(e) => updateField("annualInsurance", formatCurrency(e.target.value))} placeholder="0" className="w-full bg-transparent text-sm font-bold text-white focus:outline-none" data-testid="input-annual-insurance" /></div>
+                        <div className="bg-gray-900/90 rounded-lg p-2 border border-gray-700">
+                          <label className="text-amber-500 text-[9px] uppercase tracking-wide block mb-1">Ins/yr</label>
+                          <div className="flex items-center"><span className="text-amber-400/60 mr-0.5 text-xs">$</span><input type="text" value={formData.annualInsurance} onChange={(e) => updateField("annualInsurance", formatCurrency(e.target.value))} placeholder="0" className="w-full bg-transparent text-sm font-bold text-amber-400 focus:outline-none" data-testid="input-annual-insurance" /></div>
                         </div>
-                        <div className="bg-white/5 rounded-lg p-2 border border-white/10">
-                          <label className="text-white/50 text-[9px] uppercase tracking-wide block mb-1">HOA/yr</label>
-                          <div className="flex items-center"><span className="text-white/40 mr-0.5 text-xs">$</span><input type="text" value={formData.annualHoa} onChange={(e) => updateField("annualHoa", formatCurrency(e.target.value))} placeholder="0" className="w-full bg-transparent text-sm font-bold text-white focus:outline-none" data-testid="input-annual-hoa" /></div>
+                        <div className="bg-gray-900/90 rounded-lg p-2 border border-gray-700">
+                          <label className="text-amber-500 text-[9px] uppercase tracking-wide block mb-1">HOA/yr</label>
+                          <div className="flex items-center"><span className="text-amber-400/60 mr-0.5 text-xs">$</span><input type="text" value={formData.annualHoa} onChange={(e) => updateField("annualHoa", formatCurrency(e.target.value))} placeholder="0" className="w-full bg-transparent text-sm font-bold text-amber-400 focus:outline-none" data-testid="input-annual-hoa" /></div>
                         </div>
                       </div>
                     </>
@@ -984,36 +988,36 @@ export default function ConversationalQuote() {
                       
                       {/* Property Specs + Annual Costs in compact grid */}
                       <div className="grid grid-cols-4 gap-2">
-                        <div className="bg-white/5 rounded-lg p-2 border border-white/10">
-                          <label className="text-white/50 text-[9px] uppercase tracking-wide block mb-1">Beds</label>
-                          <input type="text" value={formData.propertyDetails.beds} onChange={(e) => updatePropertyDetail("beds", e.target.value)} placeholder="--" className="w-full bg-transparent text-sm font-bold text-white text-center focus:outline-none" data-testid="input-refi-beds" />
+                        <div className="bg-gray-900/90 rounded-lg p-2 border border-gray-700">
+                          <label className="text-amber-500 text-[9px] uppercase tracking-wide block mb-1">Beds</label>
+                          <input type="text" value={formData.propertyDetails.beds} onChange={(e) => updatePropertyDetail("beds", e.target.value)} placeholder="--" className="w-full bg-transparent text-sm font-bold text-amber-400 text-center focus:outline-none" data-testid="input-refi-beds" />
                         </div>
-                        <div className="bg-white/5 rounded-lg p-2 border border-white/10">
-                          <label className="text-white/50 text-[9px] uppercase tracking-wide block mb-1">Baths</label>
-                          <input type="text" value={formData.propertyDetails.baths} onChange={(e) => updatePropertyDetail("baths", e.target.value)} placeholder="--" className="w-full bg-transparent text-sm font-bold text-white text-center focus:outline-none" data-testid="input-refi-baths" />
+                        <div className="bg-gray-900/90 rounded-lg p-2 border border-gray-700">
+                          <label className="text-amber-500 text-[9px] uppercase tracking-wide block mb-1">Baths</label>
+                          <input type="text" value={formData.propertyDetails.baths} onChange={(e) => updatePropertyDetail("baths", e.target.value)} placeholder="--" className="w-full bg-transparent text-sm font-bold text-amber-400 text-center focus:outline-none" data-testid="input-refi-baths" />
                         </div>
-                        <div className="bg-white/5 rounded-lg p-2 border border-white/10">
-                          <label className="text-white/50 text-[9px] uppercase tracking-wide block mb-1">Sq Ft</label>
-                          <input type="text" value={formData.propertyDetails.sqft} onChange={(e) => updatePropertyDetail("sqft", e.target.value)} placeholder="--" className="w-full bg-transparent text-sm font-bold text-white text-center focus:outline-none" data-testid="input-refi-sqft" />
+                        <div className="bg-gray-900/90 rounded-lg p-2 border border-gray-700">
+                          <label className="text-amber-500 text-[9px] uppercase tracking-wide block mb-1">Sq Ft</label>
+                          <input type="text" value={formData.propertyDetails.sqft} onChange={(e) => updatePropertyDetail("sqft", e.target.value)} placeholder="--" className="w-full bg-transparent text-sm font-bold text-amber-400 text-center focus:outline-none" data-testid="input-refi-sqft" />
                         </div>
-                        <div className="bg-white/5 rounded-lg p-2 border border-white/10">
-                          <label className="text-white/50 text-[9px] uppercase tracking-wide block mb-1">Year</label>
-                          <input type="text" value={formData.propertyDetails.yearBuilt} onChange={(e) => updatePropertyDetail("yearBuilt", e.target.value)} placeholder="--" className="w-full bg-transparent text-sm font-bold text-white text-center focus:outline-none" data-testid="input-refi-yearBuilt" />
+                        <div className="bg-gray-900/90 rounded-lg p-2 border border-gray-700">
+                          <label className="text-amber-500 text-[9px] uppercase tracking-wide block mb-1">Year</label>
+                          <input type="text" value={formData.propertyDetails.yearBuilt} onChange={(e) => updatePropertyDetail("yearBuilt", e.target.value)} placeholder="--" className="w-full bg-transparent text-sm font-bold text-amber-400 text-center focus:outline-none" data-testid="input-refi-yearBuilt" />
                         </div>
                       </div>
                       
                       <div className="grid grid-cols-3 gap-2">
-                        <div className="bg-white/5 rounded-lg p-2 border border-white/10">
-                          <label className="text-white/50 text-[9px] uppercase tracking-wide block mb-1">Taxes/yr</label>
-                          <div className="flex items-center"><span className="text-white/40 mr-0.5 text-xs">$</span><input type="text" value={formData.annualTaxes} onChange={(e) => updateField("annualTaxes", formatCurrency(e.target.value))} placeholder="0" className="w-full bg-transparent text-sm font-bold text-white focus:outline-none" data-testid="input-refi-annual-taxes" /></div>
+                        <div className="bg-gray-900/90 rounded-lg p-2 border border-gray-700">
+                          <label className="text-amber-500 text-[9px] uppercase tracking-wide block mb-1">Taxes/yr</label>
+                          <div className="flex items-center"><span className="text-amber-400/60 mr-0.5 text-xs">$</span><input type="text" value={formData.annualTaxes} onChange={(e) => updateField("annualTaxes", formatCurrency(e.target.value))} placeholder="0" className="w-full bg-transparent text-sm font-bold text-amber-400 focus:outline-none" data-testid="input-refi-annual-taxes" /></div>
                         </div>
-                        <div className="bg-white/5 rounded-lg p-2 border border-white/10">
-                          <label className="text-white/50 text-[9px] uppercase tracking-wide block mb-1">Ins/yr</label>
-                          <div className="flex items-center"><span className="text-white/40 mr-0.5 text-xs">$</span><input type="text" value={formData.annualInsurance} onChange={(e) => updateField("annualInsurance", formatCurrency(e.target.value))} placeholder="0" className="w-full bg-transparent text-sm font-bold text-white focus:outline-none" data-testid="input-refi-annual-insurance" /></div>
+                        <div className="bg-gray-900/90 rounded-lg p-2 border border-gray-700">
+                          <label className="text-amber-500 text-[9px] uppercase tracking-wide block mb-1">Ins/yr</label>
+                          <div className="flex items-center"><span className="text-amber-400/60 mr-0.5 text-xs">$</span><input type="text" value={formData.annualInsurance} onChange={(e) => updateField("annualInsurance", formatCurrency(e.target.value))} placeholder="0" className="w-full bg-transparent text-sm font-bold text-amber-400 focus:outline-none" data-testid="input-refi-annual-insurance" /></div>
                         </div>
-                        <div className="bg-white/5 rounded-lg p-2 border border-white/10">
-                          <label className="text-white/50 text-[9px] uppercase tracking-wide block mb-1">HOA/yr</label>
-                          <div className="flex items-center"><span className="text-white/40 mr-0.5 text-xs">$</span><input type="text" value={formData.annualHoa} onChange={(e) => updateField("annualHoa", formatCurrency(e.target.value))} placeholder="0" className="w-full bg-transparent text-sm font-bold text-white focus:outline-none" data-testid="input-refi-annual-hoa" /></div>
+                        <div className="bg-gray-900/90 rounded-lg p-2 border border-gray-700">
+                          <label className="text-amber-500 text-[9px] uppercase tracking-wide block mb-1">HOA/yr</label>
+                          <div className="flex items-center"><span className="text-amber-400/60 mr-0.5 text-xs">$</span><input type="text" value={formData.annualHoa} onChange={(e) => updateField("annualHoa", formatCurrency(e.target.value))} placeholder="0" className="w-full bg-transparent text-sm font-bold text-amber-400 focus:outline-none" data-testid="input-refi-annual-hoa" /></div>
                         </div>
                       </div>
                     </>
@@ -1087,55 +1091,55 @@ export default function ConversationalQuote() {
                   data-testid="input-fixflip-arv"
                 />
                 
-                {/* 2x2 Grid for Property Details */}
+                {/* 4-column Grid for Property Details */}
                 <div className="grid grid-cols-4 gap-2 sm:gap-3">
-                  <div className="bg-white/5 rounded-lg sm:rounded-xl p-2 sm:p-3 border border-white/10">
-                    <label className="text-white/50 text-[9px] sm:text-[10px] uppercase tracking-wide block mb-1">Beds</label>
+                  <div className="bg-gray-900/90 rounded-lg sm:rounded-xl p-2 sm:p-3 border border-gray-700">
+                    <label className="text-amber-500 text-[9px] sm:text-[10px] uppercase tracking-wide block mb-1">Beds</label>
                     <input
                       type="text"
                       value={formData.propertyDetails.beds}
                       onChange={(e) => updatePropertyDetail("beds", e.target.value)}
                       placeholder="--"
-                      className="w-full bg-transparent text-lg sm:text-2xl font-bold text-white text-center focus:outline-none"
+                      className="w-full bg-transparent text-lg sm:text-2xl font-bold text-amber-400 text-center focus:outline-none"
                       data-testid="input-ff-beds"
                     />
                   </div>
-                  <div className="bg-white/5 rounded-lg sm:rounded-xl p-2 sm:p-3 border border-white/10">
-                    <label className="text-white/50 text-[9px] sm:text-[10px] uppercase tracking-wide block mb-1">Baths</label>
+                  <div className="bg-gray-900/90 rounded-lg sm:rounded-xl p-2 sm:p-3 border border-gray-700">
+                    <label className="text-amber-500 text-[9px] sm:text-[10px] uppercase tracking-wide block mb-1">Baths</label>
                     <input
                       type="text"
                       value={formData.propertyDetails.baths}
                       onChange={(e) => updatePropertyDetail("baths", e.target.value)}
                       placeholder="--"
-                      className="w-full bg-transparent text-lg sm:text-2xl font-bold text-white text-center focus:outline-none"
+                      className="w-full bg-transparent text-lg sm:text-2xl font-bold text-amber-400 text-center focus:outline-none"
                       data-testid="input-ff-baths"
                     />
                   </div>
-                  <div className="bg-white/5 rounded-lg sm:rounded-xl p-2 sm:p-3 border border-white/10">
-                    <label className="text-white/50 text-[9px] sm:text-[10px] uppercase tracking-wide block mb-1">Sq Ft</label>
+                  <div className="bg-gray-900/90 rounded-lg sm:rounded-xl p-2 sm:p-3 border border-gray-700">
+                    <label className="text-amber-500 text-[9px] sm:text-[10px] uppercase tracking-wide block mb-1">Sq Ft</label>
                     <input
                       type="text"
                       value={formData.propertyDetails.sqft}
                       onChange={(e) => updatePropertyDetail("sqft", e.target.value)}
                       placeholder="--"
-                      className="w-full bg-transparent text-lg sm:text-2xl font-bold text-white text-center focus:outline-none"
+                      className="w-full bg-transparent text-lg sm:text-2xl font-bold text-amber-400 text-center focus:outline-none"
                       data-testid="input-ff-sqft"
                     />
                   </div>
-                  <div className="bg-white/5 rounded-lg sm:rounded-xl p-2 sm:p-3 border border-white/10">
-                    <label className="text-white/50 text-[9px] sm:text-[10px] uppercase tracking-wide block mb-1">Year</label>
+                  <div className="bg-gray-900/90 rounded-lg sm:rounded-xl p-2 sm:p-3 border border-gray-700">
+                    <label className="text-amber-500 text-[9px] sm:text-[10px] uppercase tracking-wide block mb-1">Year</label>
                     <input
                       type="text"
                       value={formData.propertyDetails.yearBuilt}
                       onChange={(e) => updatePropertyDetail("yearBuilt", e.target.value)}
                       placeholder="--"
-                      className="w-full bg-transparent text-lg sm:text-2xl font-bold text-white text-center focus:outline-none"
+                      className="w-full bg-transparent text-lg sm:text-2xl font-bold text-amber-400 text-center focus:outline-none"
                       data-testid="input-ff-yearBuilt"
                     />
                   </div>
                 </div>
                 
-                <p className="text-white/40 text-[10px] sm:text-xs text-center">Auto-filled when available</p>
+                <p className="text-amber-400/60 text-[10px] sm:text-xs text-center">Auto-filled when available</p>
                 
                 {(ffPurchase > 0 || ffRehab > 0 || ffArv > 0) && (
                   <motion.div 
@@ -1243,49 +1247,49 @@ export default function ConversationalQuote() {
             
             {/* 4-column Grid for Project Specs */}
             <div className="grid grid-cols-4 gap-2 sm:gap-3">
-              <div className="bg-white/5 rounded-lg sm:rounded-xl p-2 sm:p-3 border border-white/10">
-                <label className="text-white/50 text-[9px] sm:text-[10px] uppercase tracking-wide block mb-1">Lot Size</label>
+              <div className="bg-gray-900/90 rounded-lg sm:rounded-xl p-2 sm:p-3 border border-gray-700">
+                <label className="text-amber-500 text-[9px] sm:text-[10px] uppercase tracking-wide block mb-1">Lot Size</label>
                 <div className="flex items-center justify-center">
                   <input
                     type="text"
                     value={formData.propertyDetails.sqft}
                     onChange={(e) => updatePropertyDetail("sqft", e.target.value)}
                     placeholder="--"
-                    className="w-full bg-transparent text-lg sm:text-2xl font-bold text-white text-center focus:outline-none"
+                    className="w-full bg-transparent text-lg sm:text-2xl font-bold text-amber-400 text-center focus:outline-none"
                     data-testid="input-nc-lot-size"
                   />
                 </div>
               </div>
-              <div className="bg-white/5 rounded-lg sm:rounded-xl p-2 sm:p-3 border border-white/10">
-                <label className="text-white/50 text-[9px] sm:text-[10px] uppercase tracking-wide block mb-1">Beds</label>
+              <div className="bg-gray-900/90 rounded-lg sm:rounded-xl p-2 sm:p-3 border border-gray-700">
+                <label className="text-amber-500 text-[9px] sm:text-[10px] uppercase tracking-wide block mb-1">Beds</label>
                 <input
                   type="text"
                   value={formData.propertyDetails.beds}
                   onChange={(e) => updatePropertyDetail("beds", e.target.value)}
                   placeholder="--"
-                  className="w-full bg-transparent text-lg sm:text-2xl font-bold text-white text-center focus:outline-none"
+                  className="w-full bg-transparent text-lg sm:text-2xl font-bold text-amber-400 text-center focus:outline-none"
                   data-testid="input-nc-beds"
                 />
               </div>
-              <div className="bg-white/5 rounded-lg sm:rounded-xl p-2 sm:p-3 border border-white/10">
-                <label className="text-white/50 text-[9px] sm:text-[10px] uppercase tracking-wide block mb-1">Baths</label>
+              <div className="bg-gray-900/90 rounded-lg sm:rounded-xl p-2 sm:p-3 border border-gray-700">
+                <label className="text-amber-500 text-[9px] sm:text-[10px] uppercase tracking-wide block mb-1">Baths</label>
                 <input
                   type="text"
                   value={formData.propertyDetails.baths}
                   onChange={(e) => updatePropertyDetail("baths", e.target.value)}
                   placeholder="--"
-                  className="w-full bg-transparent text-lg sm:text-2xl font-bold text-white text-center focus:outline-none"
+                  className="w-full bg-transparent text-lg sm:text-2xl font-bold text-amber-400 text-center focus:outline-none"
                   data-testid="input-nc-baths"
                 />
               </div>
-              <div className="bg-white/5 rounded-lg sm:rounded-xl p-2 sm:p-3 border border-white/10">
-                <label className="text-white/50 text-[9px] sm:text-[10px] uppercase tracking-wide block mb-1">Build SF</label>
+              <div className="bg-gray-900/90 rounded-lg sm:rounded-xl p-2 sm:p-3 border border-gray-700">
+                <label className="text-amber-500 text-[9px] sm:text-[10px] uppercase tracking-wide block mb-1">Build SF</label>
                 <input
                   type="text"
                   value={formData.propertyDetails.estimatedValue}
                   onChange={(e) => updatePropertyDetail("estimatedValue", e.target.value)}
                   placeholder="--"
-                  className="w-full bg-transparent text-lg sm:text-2xl font-bold text-white text-center focus:outline-none"
+                  className="w-full bg-transparent text-lg sm:text-2xl font-bold text-amber-400 text-center focus:outline-none"
                   data-testid="input-nc-build-sqft"
                 />
               </div>
