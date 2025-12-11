@@ -23,7 +23,8 @@ import {
   ClipboardCheck,
   Building,
   RefreshCw,
-  Loader2
+  Loader2,
+  Navigation
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -895,8 +896,8 @@ export default function ConversationalQuote() {
         const hasMapCoordinates = formData.propertyLat !== null && formData.propertyLng !== null;
         return (
           <div className="relative w-full h-[calc(100vh-220px)] sm:h-[calc(100vh-280px)] -mt-3 sm:-mt-12 -mx-3 sm:-mx-12 rounded-xl overflow-hidden" style={{ width: 'calc(100% + 1.5rem)', marginLeft: '-0.75rem' }}>
-            {/* Map Background - view only, no interaction */}
-            <div className="absolute inset-0 pointer-events-none">
+            {/* Map Background - view only, no interaction, hide attributions */}
+            <div className="absolute inset-0 pointer-events-none [&_.gm-style-cc]:!hidden [&_.gmnoprint]:!hidden [&_a[href*='google']]:!hidden [&_.gm-style>div:last-child]:!hidden">
               <Map
                 id="address-verification-map"
                 center={mapCenter}
@@ -911,7 +912,7 @@ export default function ConversationalQuote() {
                 className="w-full h-full"
               />
               
-              {/* Theme-colored marker with pop animation - no text */}
+              {/* Theme-colored marker with pop animation - Navigation icon */}
               {hasVerifiedAddress && hasMapCoordinates && (
                 <div className="absolute inset-0 flex items-center justify-center">
                   <motion.div
@@ -953,7 +954,7 @@ export default function ConversationalQuote() {
                         className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-amber-400"
                       />
                     </div>
-                    {/* Main marker with bounce - no text, just pin icon style */}
+                    {/* Main marker with bounce - Navigation icon */}
                     <motion.div
                       animate={{ 
                         y: [0, -8, 0],
@@ -967,7 +968,7 @@ export default function ConversationalQuote() {
                       className="relative"
                     >
                       <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-amber-500 flex items-center justify-center shadow-lg shadow-amber-500/50 border-[3px] border-white">
-                        <MapPin className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                        <Navigation className="w-5 h-5 sm:w-6 sm:h-6 text-white fill-white" />
                       </div>
                       {/* Pin tail/pointer */}
                       <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1">
@@ -1016,7 +1017,7 @@ export default function ConversationalQuote() {
                     />
                   </div>
                   
-                  {/* Verification Status - theme colored */}
+                  {/* Verification Status - green for verified */}
                   <AnimatePresence mode="wait">
                     {hasVerifiedAddress && (
                       <motion.div
@@ -1027,11 +1028,11 @@ export default function ConversationalQuote() {
                       >
                         <div className="flex items-center justify-between gap-3 py-2">
                           <div className="flex items-center gap-2 min-w-0">
-                            <div className="w-7 h-7 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0">
-                              <CheckCircle2 className="w-3.5 h-3.5 text-amber-500" />
+                            <div className="w-7 h-7 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
                             </div>
                             <div className="text-left min-w-0">
-                              <p className="text-amber-400 text-xs font-medium">Address Verified</p>
+                              <p className="text-emerald-400 text-xs font-medium">Address Verified</p>
                               <p className="text-white/50 text-[10px] truncate">
                                 {formData.propertyCity}, {formData.propertyState} {formData.propertyZip}
                               </p>
