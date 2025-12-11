@@ -1,6 +1,13 @@
 import type { MarketDetail } from "@/data/marketDetails";
 import type { MarkerCluster } from "@/hooks/useMarkerClustering";
 
+/** Animated position for scattered markers */
+export interface ScatteredMarkerPosition {
+  id: string;
+  x: number;
+  y: number;
+}
+
 /** Props for the ClusterMarker component */
 export interface ClusterMarkerProps {
   cluster: MarkerCluster;
@@ -10,6 +17,10 @@ export interface ClusterMarkerProps {
   onMarkerClick: (market: MarketDetail) => void;
   onClusterClick: (cluster: MarkerCluster) => void;
   onMarkerHover: (market: MarketDetail | null) => void;
+  onClusterHoverStart?: (cluster: MarkerCluster) => void;
+  onClusterHoverEnd?: () => void;
+  scatterPositions?: ScatteredMarkerPosition[];
+  isScattering?: boolean;
 }
 
 /** Get color based on CAP rate tier */
@@ -30,6 +41,7 @@ function truncateName(name: string, maxLength: number = 10): string {
  * Google Maps style cluster marker.
  * - Single market: Shows pill with name and CAP rate
  * - Multiple markets: Shows count bubble, click to open first market details
+ * - During scatter animation: Shows individual markers flying from cluster center
  */
 export function ClusterMarker({
   cluster,
@@ -39,6 +51,10 @@ export function ClusterMarker({
   onMarkerClick,
   onClusterClick,
   onMarkerHover,
+  onClusterHoverStart,
+  onClusterHoverEnd,
+  scatterPositions,
+  isScattering,
 }: ClusterMarkerProps) {
   const { stats, center, markers } = cluster;
   const isSingleMarket = markers.length === 1;
@@ -77,12 +93,73 @@ export function ClusterMarker({
     );
   }
 
-  // Multiple markets - cluster bubble, click zooms in
+  // If scattering, render individual animated markers instead of cluster bubble
+  if (isScattering && scatterPositions && scatterPositions.length > 0) {
+    return (
+      <g data-testid={`cluster-scatter-${clusterIdx}`}>
+        {/* Fading cluster bubble in background */}
+        <g style={{ opacity: 0.3 }}>
+          <ClusterBubble
+            x={center.x}
+            y={center.y}
+            count={markers.length}
+            colors={colors}
+            isActive={false}
+            hasSTRExcellent={false}
+          />
+        </g>
+        
+        {/* Animated scattered markers */}
+        {markers.map((m, i) => {
+          const pos = scatterPositions.find(p => p.id === m.market.id);
+          if (!pos) return null;
+          
+          const market = m.market;
+          const markerColors = getCapRateColor(market.realEstate.capRate);
+          const isSTRExcellent = market.strFriendliness?.tier === "Excellent";
+          
+          return (
+            <g 
+              key={market.id}
+              style={{ 
+                cursor: 'pointer',
+                transform: `translate(${pos.x - m.pos.x}px, ${pos.y - m.pos.y}px)`,
+              }}
+              onMouseEnter={() => onMarkerHover(market)}
+              onMouseLeave={() => onMarkerHover(null)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onMarkerClick(market);
+              }}
+              data-testid={`scatter-marker-${market.id}`}
+            >
+              <ScatterMarkerDot
+                x={m.pos.x}
+                y={m.pos.y}
+                market={market}
+                colors={markerColors}
+                isActive={hoveredMarket?.id === market.id}
+                isSTRExcellent={isSTRExcellent}
+              />
+            </g>
+          );
+        })}
+      </g>
+    );
+  }
+
+  // Multiple markets - cluster bubble, hover starts scatter animation
   return (
     <g 
       style={{ cursor: 'zoom-in' }}
-      onMouseEnter={() => onMarkerHover(topMarket)}
-      onMouseLeave={() => onMarkerHover(null)}
+      onMouseEnter={() => {
+        onMarkerHover(topMarket);
+        onClusterHoverStart?.(cluster);
+      }}
+      onMouseLeave={() => {
+        onMarkerHover(null);
+        onClusterHoverEnd?.();
+      }}
       onClick={(e) => {
         e.stopPropagation();
         onClusterClick(cluster);
@@ -262,6 +339,71 @@ function ClusterBubble({ x, y, count, colors, isActive, hasSTRExcellent }: Clust
           cx={x + radius - 2}
           cy={y - radius + 2}
           r={3}
+          fill="#10b981"
+          stroke="#047857"
+          strokeWidth={0.5}
+        />
+      )}
+    </g>
+  );
+}
+
+interface ScatterMarkerDotProps {
+  x: number;
+  y: number;
+  market: MarketDetail;
+  colors: { bg: string; border: string; text: string };
+  isActive: boolean;
+  isSTRExcellent: boolean;
+}
+
+/** Compact dot marker shown during scatter animation */
+function ScatterMarkerDot({ x, y, market, colors, isActive, isSTRExcellent }: ScatterMarkerDotProps) {
+  const radius = 8;
+  const capRate = market.realEstate.capRate.toFixed(1);
+  
+  return (
+    <g style={{ filter: isActive ? 'drop-shadow(0 3px 6px rgba(0,0,0,0.5))' : 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }}>
+      {/* Active glow */}
+      {isActive && (
+        <circle
+          cx={x}
+          cy={y}
+          r={radius + 2}
+          fill="rgba(255,255,255,0.4)"
+        />
+      )}
+      
+      {/* Main dot */}
+      <circle
+        cx={x}
+        cy={y}
+        r={radius}
+        fill={colors.bg}
+        stroke={colors.border}
+        strokeWidth={1.5}
+      />
+      
+      {/* CAP rate label */}
+      <text
+        x={x}
+        y={y + 2.5}
+        textAnchor="middle"
+        fill={colors.text}
+        fontSize={5}
+        fontWeight="bold"
+        fontFamily="system-ui, sans-serif"
+        style={{ pointerEvents: 'none' }}
+      >
+        {capRate}
+      </text>
+      
+      {/* STR indicator */}
+      {isSTRExcellent && (
+        <circle
+          cx={x + radius - 1}
+          cy={y - radius + 1}
+          r={2.5}
           fill="#10b981"
           stroke="#047857"
           strokeWidth={0.5}
