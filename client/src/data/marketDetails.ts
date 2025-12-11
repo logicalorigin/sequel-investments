@@ -48,6 +48,33 @@ export interface MarketDetail {
 
 export type MarketsByState = Record<string, MarketDetail[]>;
 
+/**
+ * Derives the STR tier from a numeric score.
+ * This ensures consistent tier assignment across all markets.
+ */
+export function getSTRTierFromScore(score: number): "Excellent" | "Good" | "Moderate" | "Restricted" | "Prohibited" {
+  if (score >= 80) return "Excellent";
+  if (score >= 65) return "Good";
+  if (score >= 50) return "Moderate";
+  if (score >= 30) return "Restricted";
+  return "Prohibited";
+}
+
+/**
+ * Sorts markets by investment quality: CAP rate (primary), then price growth (secondary).
+ * Higher CAP rate = better cash flow = ranked higher.
+ */
+export function sortMarketsByInvestmentQuality(markets: MarketDetail[]): MarketDetail[] {
+  return [...markets].sort((a, b) => {
+    // Primary: CAP rate (higher is better)
+    const capDiff = b.realEstate.capRate - a.realEstate.capRate;
+    // Only use secondary sort if CAP rates are essentially equal (within 0.05%)
+    if (Math.abs(capDiff) >= 0.05) return capDiff;
+    // Secondary: Price growth (higher is better)
+    return b.realEstate.priceGrowth - a.realEstate.priceGrowth;
+  });
+}
+
 const CALIFORNIA_MARKETS: MarketDetail[] = [
   {
     id: "los-angeles",
@@ -470,7 +497,7 @@ const TEXAS_MARKETS: MarketDetail[] = [
     ],
     strFriendliness: {
       score: 45,
-      tier: "Moderate",
+      tier: "Restricted",
       summary: "Austin has phased out most non-owner-occupied STR licenses over recent years.",
       regulations: [
         "Type 2 (non-owner occupied) licenses phased out",
@@ -888,7 +915,9 @@ export const MARKET_DETAILS: MarketsByState = {
 };
 
 export function getMarketDetails(stateSlug: string): MarketDetail[] {
-  return MARKET_DETAILS[stateSlug] || [];
+  const markets = MARKET_DETAILS[stateSlug] || [];
+  // Sort by CAP rate (primary) then price growth (secondary)
+  return sortMarketsByInvestmentQuality(markets);
 }
 
 export function getMarketById(stateSlug: string, marketId: string): MarketDetail | undefined {
@@ -940,17 +969,78 @@ export function generateMarketDetailFromBasicData(
       walkScore: 25 + (cityHash % 55),
     },
     universities: [],
-    strFriendliness: {
-      score: 50 + (cityHash % 40),
-      tier: cityHash % 3 === 0 ? "Excellent" : cityHash % 3 === 1 ? "Good" : "Moderate",
-      summary: `${name} has standard STR regulations. Check local ordinances for current rules.`,
-      regulations: [
-        "Local permits may be required",
-        "Occupancy taxes typically apply",
-        "HOA rules may restrict STR activity",
-      ],
-      permitRequired: true,
-    },
+    strFriendliness: (() => {
+      // Known STR-friendly markets with specific scores
+      const knownSTRFriendlyMarkets: Record<string, { score: number; summary: string; regulations: string[] }> = {
+        "scottsdale": { 
+          score: 88, 
+          summary: "Scottsdale is one of the most STR-friendly markets in Arizona with streamlined permitting and strong tourist demand.",
+          regulations: ["Annual registration required", "2.5% city STR tax", "No primary residence requirement", "Strong vacation rental market"]
+        },
+        "phoenix": { 
+          score: 82, 
+          summary: "Phoenix has favorable STR regulations with minimal restrictions and strong rental demand.",
+          regulations: ["Transaction Privilege Tax applies", "Business license required", "No day limits", "Property must meet safety codes"]
+        },
+        "orlando": { 
+          score: 85, 
+          summary: "Orlando is highly STR-friendly due to tourism industry, with streamlined vacation rental permits.",
+          regulations: ["Vacation rental license required", "6% state + 6% county tourist tax", "No night minimums in most areas", "Strong year-round demand"]
+        },
+        "tampa": { 
+          score: 80, 
+          summary: "Tampa has moderate STR regulations with good investment potential in tourist areas.",
+          regulations: ["Business tax receipt required", "Tourist development tax applies", "Some HOA restrictions", "Growing short-term rental market"]
+        },
+        "las vegas": { 
+          score: 75, 
+          summary: "Las Vegas allows STRs in specific zones with proper licensing.",
+          regulations: ["Business license required", "13% room tax", "Owner-occupied requirement in some areas", "Distance restrictions from schools"]
+        },
+        "denver": { 
+          score: 70, 
+          summary: "Denver requires primary residence for STR licensing.",
+          regulations: ["Primary residence requirement", "10.75% lodging tax", "Annual license renewal", "Occupancy limits apply"]
+        },
+        "austin": { 
+          score: 72, 
+          summary: "Austin has tiered STR regulations based on property type and location.",
+          regulations: ["Type 1/2/3 license system", "15% hotel occupancy tax", "Owner-occupied gets more flexibility", "Some neighborhoods restrict STRs"]
+        },
+        "nashville": { 
+          score: 65, 
+          summary: "Nashville has increased STR regulations in recent years with permit requirements.",
+          regulations: ["Owner-occupied permits easier to get", "Non-owner-occupied limited by zone", "5% local occupancy tax", "Annual permit renewal"]
+        },
+      };
+      
+      const marketKey = name.toLowerCase();
+      const knownMarket = knownSTRFriendlyMarkets[marketKey];
+      
+      if (knownMarket) {
+        return {
+          score: knownMarket.score,
+          tier: getSTRTierFromScore(knownMarket.score),
+          summary: knownMarket.summary,
+          regulations: knownMarket.regulations,
+          permitRequired: true,
+        };
+      }
+      
+      // Default: generate score based on city hash but use score-based tier
+      const score = 50 + (cityHash % 40);
+      return {
+        score,
+        tier: getSTRTierFromScore(score),
+        summary: `${name} has standard STR regulations. Check local ordinances for current rules.`,
+        regulations: [
+          "Local permits may be required",
+          "Occupancy taxes typically apply",
+          "HOA rules may restrict STR activity",
+        ],
+        permitRequired: true,
+      };
+    })(),
     highlights: [
       `Growing market in ${stateSlug.replace(/-/g, ' ')}`,
       "Diverse local economy",
