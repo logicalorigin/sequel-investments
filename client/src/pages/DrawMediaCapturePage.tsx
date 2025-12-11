@@ -2,19 +2,24 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { useRoute, Link, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Camera, Video, X, Check, ChevronLeft, Trash2, Play, Pause, RotateCcw, Image as ImageIcon, Film, Loader2 } from "lucide-react";
+import { Camera, Video, X, Check, ChevronLeft, ChevronRight, Trash2, Play, Pause, RotateCcw, Image as ImageIcon, Film, Loader2, Menu, DollarSign, CheckCircle2, Circle, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { 
   DRAW_MEDIA_CATEGORY_LABELS, 
   PHOTO_VERIFICATION_CONFIG,
+  SCOPE_OF_WORK_CATEGORY_NAMES,
   type DrawMediaCategory,
   type DrawPhoto,
-  type LoanDraw
+  type LoanDraw,
+  type DrawLineItem,
+  type ScopeOfWorkCategory
 } from "@shared/schema";
 
 interface CapturedMedia {
@@ -27,6 +32,7 @@ interface CapturedMedia {
   uploadProgress: number;
   uploadStatus: "pending" | "uploading" | "completed" | "error";
   durationSeconds?: number;
+  scopeItemId?: string;
   browserLocation?: {
     latitude: number;
     longitude: number;
@@ -35,22 +41,16 @@ interface CapturedMedia {
   };
 }
 
-const CATEGORIES: DrawMediaCategory[] = [
+interface EnrichedDrawLineItem extends DrawLineItem {
+  scopeItemName: string;
+  scopeItemCategory: ScopeOfWorkCategory;
+  scopeItemBudget: number;
+}
+
+const GENERIC_CATEGORIES: DrawMediaCategory[] = [
   "site_overview",
   "exterior_progress",
   "interior_progress",
-  "foundation",
-  "framing",
-  "roofing",
-  "plumbing",
-  "electrical",
-  "hvac",
-  "drywall",
-  "flooring",
-  "cabinets_counters",
-  "fixtures",
-  "paint_finish",
-  "landscaping",
   "safety_compliance",
   "materials_delivery",
   "before",
@@ -58,6 +58,26 @@ const CATEGORIES: DrawMediaCategory[] = [
   "after",
   "other",
 ];
+
+function formatCurrency(cents: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(cents / 100);
+}
+
+function scopeCategoryToMediaCategory(scopeCategory: ScopeOfWorkCategory): DrawMediaCategory {
+  const mapping: Record<ScopeOfWorkCategory, DrawMediaCategory> = {
+    soft_costs: "other",
+    demo_foundation: "foundation",
+    hvac_plumbing_electrical: "electrical",
+    interior: "interior_progress",
+    exterior: "exterior_progress",
+  };
+  return mapping[scopeCategory];
+}
 
 export default function DrawMediaCapturePage() {
   const [, params] = useRoute("/portal/loans/:loanId/draws/:drawId/capture");
@@ -67,6 +87,7 @@ export default function DrawMediaCapturePage() {
   const loanId = params?.loanId;
   const drawId = params?.drawId;
   
+  const [selectedLineItemId, setSelectedLineItemId] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<DrawMediaCategory>("site_overview");
   const [captureMode, setCaptureMode] = useState<"photo" | "video">("photo");
   const [capturedMedia, setCapturedMedia] = useState<CapturedMedia[]>([]);
@@ -75,6 +96,8 @@ export default function DrawMediaCapturePage() {
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [cameraFacing, setCameraFacing] = useState<"user" | "environment">("environment");
   const [cameraActive, setCameraActive] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [otherCategoriesOpen, setOtherCategoriesOpen] = useState(false);
   const [browserLocation, setBrowserLocation] = useState<{
     latitude: number;
     longitude: number;
@@ -91,6 +114,11 @@ export default function DrawMediaCapturePage() {
   
   const { data: draw, isLoading: drawLoading } = useQuery<LoanDraw>({
     queryKey: ["/api/loan-draws", drawId],
+    enabled: !!drawId,
+  });
+  
+  const { data: lineItems = [] } = useQuery<EnrichedDrawLineItem[]>({
+    queryKey: ["/api/loan-draws", drawId, "line-items"],
     enabled: !!drawId,
   });
   
@@ -118,9 +146,28 @@ export default function DrawMediaCapturePage() {
     }
   }, []);
   
+  useEffect(() => {
+    if (lineItems.length > 0 && !selectedLineItemId) {
+      setSelectedLineItemId(lineItems[0].id);
+      const category = scopeCategoryToMediaCategory(lineItems[0].scopeItemCategory);
+      setSelectedCategory(category);
+    }
+  }, [lineItems, selectedLineItemId]);
+  
+  const getPhotoCountForItem = (scopeOfWorkItemId: string) => {
+    return capturedMedia.filter(m => m.scopeItemId === scopeOfWorkItemId).length + 
+           existingPhotos.filter(p => p.scopeOfWorkItemId === scopeOfWorkItemId).length;
+  };
+  
+  const getPhotoCountForCategory = (category: DrawMediaCategory) => {
+    return capturedMedia.filter(m => m.category === category && !m.scopeItemId).length +
+           existingPhotos.filter(p => p.category === category && !p.scopeOfWorkItemId).length;
+  };
+  
+  const selectedLineItem = lineItems.find(li => li.id === selectedLineItemId);
+  
   const startCamera = useCallback(async () => {
     try {
-      // Stop any existing streams first to prevent multiple concurrent streams
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
         streamRef.current = null;
@@ -207,18 +254,20 @@ export default function DrawMediaCapturePage() {
             caption: "",
             uploadProgress: 0,
             uploadStatus: "pending",
+            scopeItemId: selectedLineItemId || undefined,
             browserLocation: browserLocation || undefined,
           }]);
           
+          const itemLabel = selectedLineItem?.scopeItemName || DRAW_MEDIA_CATEGORY_LABELS[selectedCategory];
           toast({
             title: "Photo captured",
-            description: `Added to ${DRAW_MEDIA_CATEGORY_LABELS[selectedCategory]} queue`,
+            description: `Added to ${itemLabel} queue`,
           });
         }
         setIsCapturing(false);
       }, "image/jpeg", 0.9);
     }
-  }, [selectedCategory, browserLocation, toast]);
+  }, [selectedCategory, selectedLineItemId, selectedLineItem, browserLocation, toast]);
   
   const startRecording = useCallback(() => {
     if (!streamRef.current) return;
@@ -258,12 +307,14 @@ export default function DrawMediaCapturePage() {
         uploadProgress: 0,
         uploadStatus: "pending",
         durationSeconds: recordingDuration,
+        scopeItemId: selectedLineItemId || undefined,
         browserLocation: browserLocation || undefined,
       }]);
       
+      const itemLabel = selectedLineItem?.scopeItemName || DRAW_MEDIA_CATEGORY_LABELS[selectedCategory];
       toast({
         title: "Video recorded",
-        description: `${recordingDuration}s video added to ${DRAW_MEDIA_CATEGORY_LABELS[selectedCategory]} queue`,
+        description: `${recordingDuration}s video added to ${itemLabel} queue`,
       });
       
       if (recordingIntervalRef.current) {
@@ -283,7 +334,7 @@ export default function DrawMediaCapturePage() {
         return next;
       });
     }, 1000);
-  }, [selectedCategory, browserLocation, recordingDuration, toast]);
+  }, [selectedCategory, selectedLineItemId, selectedLineItem, browserLocation, recordingDuration, toast]);
   
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && isRecording) {
@@ -356,6 +407,7 @@ export default function DrawMediaCapturePage() {
         category: media.category,
         caption: media.caption,
         durationSeconds: media.durationSeconds,
+        scopeItemId: media.scopeItemId,
         browserLatitude: media.browserLocation?.latitude?.toString(),
         browserLongitude: media.browserLocation?.longitude?.toString(),
         browserAccuracyMeters: media.browserLocation ? Math.round(media.browserLocation.accuracy) : undefined,
@@ -394,6 +446,7 @@ export default function DrawMediaCapturePage() {
   
   const pendingCount = capturedMedia.filter(m => m.uploadStatus === "pending").length;
   const uploadingCount = capturedMedia.filter(m => m.uploadStatus === "uploading").length;
+  const totalCaptured = capturedMedia.length + existingPhotos.length;
   
   if (!loanId || !drawId) {
     return (
@@ -416,44 +469,175 @@ export default function DrawMediaCapturePage() {
     );
   }
   
+  const LineItemPanel = () => (
+    <div className="flex flex-col h-full">
+      <div className="p-4 border-b">
+        <h2 className="font-semibold text-lg">Draw #{draw?.drawNumber} Items</h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          Select an item to capture photos
+        </p>
+      </div>
+      
+      <ScrollArea className="flex-1">
+        <div className="p-2 space-y-1">
+          {lineItems.map((item) => {
+            const photoCount = getPhotoCountForItem(item.scopeOfWorkItemId);
+            const isSelected = selectedLineItemId === item.id;
+            
+            return (
+              <button
+                key={item.id}
+                onClick={() => {
+                  setSelectedLineItemId(item.id);
+                  setSelectedCategory(scopeCategoryToMediaCategory(item.scopeItemCategory));
+                  setPanelOpen(false);
+                }}
+                className={`w-full text-left p-3 rounded-lg transition-colors ${
+                  isSelected 
+                    ? "bg-primary text-primary-foreground" 
+                    : "hover-elevate"
+                }`}
+                data-testid={`button-line-item-${item.id}`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      {photoCount > 0 ? (
+                        <CheckCircle2 className={`h-4 w-4 shrink-0 ${isSelected ? "text-primary-foreground" : "text-green-600"}`} />
+                      ) : (
+                        <Circle className={`h-4 w-4 shrink-0 ${isSelected ? "text-primary-foreground/60" : "text-muted-foreground"}`} />
+                      )}
+                      <span className="font-medium truncate">{item.scopeItemName}</span>
+                    </div>
+                    <div className={`text-xs mt-1 ${isSelected ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
+                      {SCOPE_OF_WORK_CATEGORY_NAMES[item.scopeItemCategory]}
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    <span className={`text-sm font-medium ${isSelected ? "text-primary-foreground" : "text-foreground"}`}>
+                      {formatCurrency(item.requestedAmount * 100)}
+                    </span>
+                    {photoCount > 0 && (
+                      <Badge 
+                        variant={isSelected ? "secondary" : "outline"} 
+                        className="text-[10px] px-1.5"
+                      >
+                        {photoCount} {photoCount === 1 ? "photo" : "photos"}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+        
+        <Collapsible open={otherCategoriesOpen} onOpenChange={setOtherCategoriesOpen}>
+          <CollapsibleTrigger asChild>
+            <button className="w-full flex items-center justify-between p-3 text-sm text-muted-foreground hover-elevate border-t mx-2" style={{ width: "calc(100% - 1rem)" }}>
+              <span>Other Categories</span>
+              {otherCategoriesOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="p-2 space-y-1">
+              {GENERIC_CATEGORIES.map((cat) => {
+                const photoCount = getPhotoCountForCategory(cat);
+                const isSelected = !selectedLineItemId && selectedCategory === cat;
+                
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => {
+                      setSelectedLineItemId(null);
+                      setSelectedCategory(cat);
+                      setPanelOpen(false);
+                    }}
+                    className={`w-full text-left p-3 rounded-lg transition-colors ${
+                      isSelected 
+                        ? "bg-primary text-primary-foreground" 
+                        : "hover-elevate"
+                    }`}
+                    data-testid={`button-category-${cat}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">{DRAW_MEDIA_CATEGORY_LABELS[cat]}</span>
+                      {photoCount > 0 && (
+                        <Badge 
+                          variant={isSelected ? "secondary" : "outline"} 
+                          className="text-[10px] px-1.5"
+                        >
+                          {photoCount}
+                        </Badge>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      </ScrollArea>
+      
+      <div className="p-4 border-t space-y-2">
+        <div className="text-center text-sm text-muted-foreground">
+          {totalCaptured} total {totalCaptured === 1 ? "photo" : "photos"} captured
+        </div>
+        <Button 
+          className="w-full gap-2" 
+          size="lg"
+          onClick={() => setLocation(`/portal/loans/${loanId}`)}
+          data-testid="button-done-capture"
+        >
+          <Check className="h-5 w-5" />
+          Done - Return to Loan
+        </Button>
+      </div>
+    </div>
+  );
+  
   return (
     <div className="flex flex-col h-screen bg-black">
       <header className="flex items-center justify-between p-3 bg-background/95 backdrop-blur border-b z-10">
-        <Button variant="ghost" size="icon" asChild data-testid="button-back">
-          <Link href={`/portal/loans/${loanId}`}>
-            <ChevronLeft className="h-5 w-5" />
-          </Link>
-        </Button>
-        <div className="text-center">
-          <h1 className="text-sm font-semibold">Draw #{draw?.drawNumber} Media</h1>
-          <p className="text-xs text-muted-foreground">{existingPhotos.length} uploaded</p>
+        <Sheet open={panelOpen} onOpenChange={setPanelOpen}>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon" data-testid="button-open-panel">
+              <Menu className="h-5 w-5" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-80 p-0">
+            <LineItemPanel />
+          </SheetContent>
+        </Sheet>
+        
+        <div className="text-center flex-1 mx-2">
+          <h1 className="text-sm font-semibold truncate">
+            {selectedLineItem?.scopeItemName || DRAW_MEDIA_CATEGORY_LABELS[selectedCategory]}
+          </h1>
+          <p className="text-xs text-muted-foreground">
+            {selectedLineItem 
+              ? formatCurrency(selectedLineItem.requestedAmount * 100)
+              : `Draw #${draw?.drawNumber}`
+            }
+          </p>
         </div>
+        
         <div className="flex items-center gap-2">
           {pendingCount > 0 && (
             <Badge variant="secondary" data-testid="badge-pending-count">{pendingCount}</Badge>
           )}
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            asChild 
+            data-testid="button-back"
+          >
+            <Link href={`/portal/loans/${loanId}`}>
+              <X className="h-5 w-5" />
+            </Link>
+          </Button>
         </div>
       </header>
-      
-      <div className="px-2 py-2 bg-background/95 backdrop-blur border-b">
-        <ScrollArea className="w-full whitespace-nowrap">
-          <div className="flex gap-2 pb-2">
-            {CATEGORIES.map((cat) => (
-              <Button
-                key={cat}
-                variant={selectedCategory === cat ? "default" : "outline"}
-                size="sm"
-                className="shrink-0 text-xs"
-                onClick={() => setSelectedCategory(cat)}
-                data-testid={`button-category-${cat}`}
-              >
-                {DRAW_MEDIA_CATEGORY_LABELS[cat]}
-              </Button>
-            ))}
-          </div>
-          <ScrollBar orientation="horizontal" />
-        </ScrollArea>
-      </div>
       
       <div className="flex-1 relative overflow-hidden bg-black">
         {cameraActive ? (
@@ -534,6 +718,17 @@ export default function DrawMediaCapturePage() {
           </>
         ) : (
           <div className="flex flex-col items-center justify-center h-full p-6 bg-muted/5">
+            <div className="text-center mb-6">
+              <h2 className="text-lg font-semibold text-foreground mb-1">
+                {selectedLineItem?.scopeItemName || DRAW_MEDIA_CATEGORY_LABELS[selectedCategory]}
+              </h2>
+              {selectedLineItem && (
+                <p className="text-sm text-muted-foreground">
+                  Requesting {formatCurrency(selectedLineItem.requestedAmount * 100)}
+                </p>
+              )}
+            </div>
+            
             <div className="flex gap-4 mb-6">
               <Button
                 variant={captureMode === "photo" ? "default" : "outline"}
@@ -565,14 +760,21 @@ export default function DrawMediaCapturePage() {
                 <Camera className="h-5 w-5" />
                 Open Camera
               </Button>
+              
+              <Button
+                variant="outline"
+                size="lg"
+                className="gap-2"
+                onClick={() => setPanelOpen(true)}
+                data-testid="button-switch-item"
+              >
+                <Menu className="h-5 w-5" />
+                Switch Item
+              </Button>
             </div>
             
-            <p className="mt-4 text-xs text-muted-foreground text-center">
-              Category: <span className="font-medium text-foreground">{DRAW_MEDIA_CATEGORY_LABELS[selectedCategory]}</span>
-            </p>
-            
             {browserLocation && (
-              <p className="mt-2 text-xs text-muted-foreground flex items-center gap-1">
+              <p className="mt-4 text-xs text-muted-foreground flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-green-500" />
                 GPS Active (±{Math.round(browserLocation.accuracy)}m)
               </p>
@@ -584,7 +786,7 @@ export default function DrawMediaCapturePage() {
       {capturedMedia.length > 0 && (
         <div className="bg-background border-t">
           <div className="p-3 border-b flex items-center justify-between">
-            <span className="text-sm font-medium">Upload Queue ({capturedMedia.length})</span>
+            <span className="text-sm font-medium">Capture Queue ({capturedMedia.length})</span>
             {pendingCount > 0 && (
               <Button
                 size="sm"
@@ -645,7 +847,7 @@ export default function DrawMediaCapturePage() {
                     <div className="flex items-center gap-2 mb-1">
                       <Badge variant="outline" className="text-[10px]">
                         {media.type === "video" ? <Film className="h-3 w-3 mr-1" /> : <ImageIcon className="h-3 w-3 mr-1" />}
-                        {DRAW_MEDIA_CATEGORY_LABELS[media.category]}
+                        {lineItems.find(li => li.id === media.scopeItemId)?.scopeItemName || DRAW_MEDIA_CATEGORY_LABELS[media.category]}
                       </Badge>
                       {media.durationSeconds && (
                         <span className="text-[10px] text-muted-foreground">{media.durationSeconds}s</span>

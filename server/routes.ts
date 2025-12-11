@@ -1295,7 +1295,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const lineItems = await storage.getDrawLineItems(draw.id);
-      return res.json(lineItems);
+      
+      // Enrich line items with scope of work item details
+      const scopeItems = await storage.getScopeOfWorkItems(draw.servicedLoanId);
+      const scopeItemMap = new Map(scopeItems.map(item => [item.id, item]));
+      
+      const enrichedLineItems = lineItems.map(li => {
+        const scopeItem = scopeItemMap.get(li.scopeOfWorkItemId);
+        return {
+          ...li,
+          scopeItemName: scopeItem?.itemName || "Unknown Item",
+          scopeItemCategory: scopeItem?.category || "other",
+          scopeItemBudget: scopeItem?.budgetAmount || 0,
+        };
+      });
+      
+      return res.json(enrichedLineItems);
     } catch (error) {
       console.error("Error fetching draw line items:", error);
       return res.status(500).json({ error: "Failed to fetch draw line items" });
