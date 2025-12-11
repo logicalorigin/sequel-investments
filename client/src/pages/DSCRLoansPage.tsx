@@ -29,6 +29,7 @@ import {
   ArrowRight,
   MapPin
 } from "lucide-react";
+import { Timer } from "react-coolicons";
 import dscrImage from "@assets/stock_images/luxury_modern_single_2639d1bd.jpg";
 import { useToast } from "@/hooks/use-toast";
 import { GeometricPattern } from "@/components/GeometricPattern";
@@ -250,7 +251,7 @@ export default function DSCRLoansPage() {
                   <Card>
                     <CardHeader className="pb-3">
                       <CardTitle className="flex items-center gap-2 text-lg">
-                        <Clock className="h-5 w-5 text-primary" />
+                        <Timer className="h-5 w-5 text-primary" />
                         No Seasoning Required
                       </CardTitle>
                     </CardHeader>

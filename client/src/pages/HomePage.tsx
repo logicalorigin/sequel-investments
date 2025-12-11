@@ -35,6 +35,14 @@ import {
   Star,
   MapPin
 } from "lucide-react";
+import { 
+  Timer, 
+  CheckAll, 
+  CreditCard01, 
+  LockOpen, 
+  UserVoice, 
+  UserCircle 
+} from "react-coolicons";
 import dscrCardImage from "@assets/stock_images/luxury_beach_house_v_60312048.jpg";
 import fixFlipCardImage from "@assets/image_1764095965996.png";
 import newConstructionCardImage from "@assets/image_1764097000811.png";
@@ -775,37 +783,37 @@ export default function HomePage() {
           <div className="grid grid-cols-2 sm:hidden gap-3">
             <div className="flex flex-col items-center text-center p-3 rounded-lg border bg-card" data-testid="benefit-speed-mobile">
               <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
-                <Zap className="h-5 w-5 text-primary" />
+                <Timer className="h-5 w-5 text-primary" />
               </div>
               <h3 className="font-semibold text-xs">48hr Closings</h3>
             </div>
             <div className="flex flex-col items-center text-center p-3 rounded-lg border bg-card" data-testid="benefit-platform-mobile">
               <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
-                <Target className="h-5 w-5 text-primary" />
+                <CheckAll className="h-5 w-5 text-primary" />
               </div>
               <h3 className="font-semibold text-xs">No W2 Required</h3>
             </div>
             <div className="flex flex-col items-center text-center p-3 rounded-lg border bg-card" data-testid="benefit-pricing-mobile">
               <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
-                <DollarSign className="h-5 w-5 text-primary" />
+                <CreditCard01 className="h-5 w-5 text-primary" />
               </div>
               <h3 className="font-semibold text-xs">Best Rates</h3>
             </div>
             <div className="flex flex-col items-center text-center p-3 rounded-lg border bg-card" data-testid="benefit-hassle-mobile">
               <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
-                <Shield className="h-5 w-5 text-primary" />
+                <LockOpen className="h-5 w-5 text-primary" />
               </div>
               <h3 className="font-semibold text-xs">In-House Servicing</h3>
             </div>
             <div className="flex flex-col items-center text-center p-3 rounded-lg border bg-card" data-testid="benefit-support-mobile">
               <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
-                <Headphones className="h-5 w-5 text-primary" />
+                <UserVoice className="h-5 w-5 text-primary" />
               </div>
               <h3 className="font-semibold text-xs">Dedicated Support</h3>
             </div>
             <div className="flex flex-col items-center text-center p-3 rounded-lg border bg-card" data-testid="benefit-trusted-mobile">
               <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
-                <Users className="h-5 w-5 text-primary" />
+                <UserCircle className="h-5 w-5 text-primary" />
               </div>
               <h3 className="font-semibold text-xs">1,500+ Investors</h3>
             </div>
@@ -816,7 +824,7 @@ export default function HomePage() {
             <div className="flex gap-3 sm:gap-4" data-testid="benefit-speed">
               <div className="flex-shrink-0">
                 <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Zap className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                  <Timer className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                 </div>
               </div>
               <div>
@@ -830,7 +838,7 @@ export default function HomePage() {
             <div className="flex gap-3 sm:gap-4" data-testid="benefit-platform">
               <div className="flex-shrink-0">
                 <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Target className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                  <CheckAll className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                 </div>
               </div>
               <div>
@@ -844,7 +852,7 @@ export default function HomePage() {
             <div className="flex gap-3 sm:gap-4" data-testid="benefit-pricing">
               <div className="flex-shrink-0">
                 <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <DollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                  <CreditCard01 className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                 </div>
               </div>
               <div>
@@ -858,7 +866,7 @@ export default function HomePage() {
             <div className="flex gap-3 sm:gap-4" data-testid="benefit-hassle">
               <div className="flex-shrink-0">
                 <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Shield className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                  <LockOpen className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                 </div>
               </div>
               <div>
@@ -872,7 +880,7 @@ export default function HomePage() {
             <div className="flex gap-3 sm:gap-4" data-testid="benefit-support">
               <div className="flex-shrink-0">
                 <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Headphones className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                  <UserVoice className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                 </div>
               </div>
               <div>
@@ -886,7 +894,7 @@ export default function HomePage() {
             <div className="flex gap-3 sm:gap-4" data-testid="benefit-trusted">
               <div className="flex-shrink-0">
                 <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Users className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                  <UserCircle className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                 </div>
               </div>
               <div>

@@ -28,6 +28,7 @@ import {
   ArrowRight,
   MapPin
 } from "lucide-react";
+import { Timer } from "react-coolicons";
 import constructionImage from "@assets/stock_images/new_construction_hom_ee055247.jpg";
 import { useToast } from "@/hooks/use-toast";
 import { GeometricPattern } from "@/components/GeometricPattern";
@@ -236,7 +237,7 @@ export default function NewConstructionPage() {
                   <Card>
                     <CardHeader className="pb-3">
                       <CardTitle className="flex items-center gap-2 text-lg">
-                        <Clock className="h-5 w-5 text-primary" />
+                        <Timer className="h-5 w-5 text-primary" />
                         48-Hour Draw Process
                       </CardTitle>
                     </CardHeader>
