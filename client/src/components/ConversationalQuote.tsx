@@ -37,6 +37,25 @@ import AddressAutocomplete from "@/components/AddressAutocomplete";
 import { CurrencySliderInput, PercentageSlider } from "@/components/AnimatedSlider";
 import { Map, Marker } from "@vis.gl/react-google-maps";
 
+// US Metro fallback locations for when geolocation fails
+const US_METROS = [
+  { lat: 40.7128, lng: -74.0060, name: "New York" },
+  { lat: 34.0522, lng: -118.2437, name: "Los Angeles" },
+  { lat: 41.8781, lng: -87.6298, name: "Chicago" },
+  { lat: 29.7604, lng: -95.3698, name: "Houston" },
+  { lat: 33.4484, lng: -112.0740, name: "Phoenix" },
+  { lat: 29.4241, lng: -98.4936, name: "San Antonio" },
+  { lat: 32.7767, lng: -96.7970, name: "Dallas" },
+  { lat: 37.7749, lng: -122.4194, name: "San Francisco" },
+  { lat: 47.6062, lng: -122.3321, name: "Seattle" },
+  { lat: 39.7392, lng: -104.9903, name: "Denver" },
+  { lat: 25.7617, lng: -80.1918, name: "Miami" },
+  { lat: 33.7490, lng: -84.3880, name: "Atlanta" },
+];
+
+// Get a random US metro location
+const getRandomMetro = () => US_METROS[Math.floor(Math.random() * US_METROS.length)];
+
 // Dark theme map styles
 const darkMapStyles = [
   { elementType: "geometry", stylers: [{ color: "#1d2c4d" }] },
@@ -389,6 +408,68 @@ export default function ConversationalQuote() {
     citizenship: "",
   });
   const [isLoadingPropertyDetails, setIsLoadingPropertyDetails] = useState(false);
+  
+  // Map state for geolocation
+  const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number }>(() => getRandomMetro());
+  const [mapZoom, setMapZoom] = useState(10); // Default zoom for city view
+  const [isGeolocationLoading, setIsGeolocationLoading] = useState(true);
+
+  // Initialize user location on mount
+  useEffect(() => {
+    const initializeLocation = async () => {
+      setIsGeolocationLoading(true);
+      
+      // Try browser geolocation first
+      if ("geolocation" in navigator) {
+        try {
+          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              enableHighAccuracy: false,
+              timeout: 5000,
+              maximumAge: 300000 // Cache for 5 minutes
+            });
+          });
+          
+          setMapCenter({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          });
+          setMapZoom(11);
+          setIsGeolocationLoading(false);
+          return;
+        } catch (error) {
+          console.log("Browser geolocation failed, trying IP-based fallback");
+        }
+      }
+      
+      // Try IP-based geolocation as fallback
+      try {
+        const response = await fetch("https://ipapi.co/json/");
+        if (response.ok) {
+          const data = await response.json();
+          if (data.latitude && data.longitude) {
+            setMapCenter({
+              lat: data.latitude,
+              lng: data.longitude
+            });
+            setMapZoom(11);
+            setIsGeolocationLoading(false);
+            return;
+          }
+        }
+      } catch (error) {
+        console.log("IP geolocation failed, using random metro fallback");
+      }
+      
+      // Final fallback: random US metro
+      const metro = getRandomMetro();
+      setMapCenter({ lat: metro.lat, lng: metro.lng });
+      setMapZoom(10);
+      setIsGeolocationLoading(false);
+    };
+    
+    initializeLocation();
+  }, []);
 
   useEffect(() => {
     if (isAuthenticated && user) {
@@ -621,6 +702,12 @@ export default function ConversationalQuote() {
         : place.geometry.location.lng;
     }
 
+    // Update map center to fly to property location
+    if (lat !== null && lng !== null) {
+      setMapCenter({ lat, lng });
+      setMapZoom(17); // Close zoom for verified property
+    }
+
     setFormData(prev => {
       // For DSCR and Fix & Flip loans (existing properties), fetch property details
       if ((prev.loanType === "dscr" || prev.loanType === "fix-flip") && streetAddress) {
@@ -808,67 +895,58 @@ export default function ConversationalQuote() {
         const hasMapCoordinates = formData.propertyLat !== null && formData.propertyLng !== null;
         return (
           <div className="flex flex-col h-full max-w-xl mx-auto px-3 sm:px-0">
-            {/* Map Background Area */}
-            <div className="flex-1 relative rounded-xl sm:rounded-2xl overflow-hidden mb-4 border border-white/10">
-              {/* Show real Google Map when address is verified with coordinates */}
-              {hasVerifiedAddress && hasMapCoordinates ? (
-                <div className="absolute inset-0">
-                  <Map
-                    defaultCenter={{ lat: formData.propertyLat!, lng: formData.propertyLng! }}
-                    defaultZoom={16}
-                    gestureHandling="cooperative"
-                    disableDefaultUI={true}
-                    styles={darkMapStyles}
-                    className="w-full h-full"
-                  >
-                    {/* Custom "Me" marker */}
+            {/* Map Background Area - Always show the map */}
+            <div className="flex-1 relative rounded-xl sm:rounded-2xl overflow-hidden mb-4 border border-white/10 min-h-[280px] sm:min-h-[320px]">
+              {/* Google Map - Always visible */}
+              <div className="absolute inset-0">
+                <Map
+                  id="address-verification-map"
+                  center={mapCenter}
+                  zoom={mapZoom}
+                  gestureHandling="cooperative"
+                  disableDefaultUI={true}
+                  styles={darkMapStyles}
+                  className="w-full h-full"
+                >
+                  {/* Gold marker for verified property */}
+                  {hasVerifiedAddress && hasMapCoordinates && (
                     <Marker
                       position={{ lat: formData.propertyLat!, lng: formData.propertyLng! }}
                       title={formData.propertyAddress}
                     />
-                  </Map>
-                  {/* Overlay for "Me" label */}
+                  )}
+                </Map>
+                
+                {/* Custom gold "Me" marker overlay when address is verified */}
+                {hasVerifiedAddress && hasMapCoordinates && (
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
+                      initial={{ scale: 0, y: -20 }}
+                      animate={{ scale: 1, y: 0 }}
+                      transition={{ type: "spring", damping: 15, stiffness: 300 }}
                       className="relative -mt-10"
                     >
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/50 border-2 border-white">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-amber-500 flex items-center justify-center shadow-lg shadow-amber-500/50 border-2 border-white">
                         <span className="text-white text-xs sm:text-sm font-bold">Me</span>
                       </div>
-                    </motion.div>
-                  </div>
-                </div>
-              ) : (
-                /* Placeholder grid pattern when no address verified */
-                <>
-                  <div className="absolute inset-0 bg-slate-800/50">
-                    <div className="w-full h-full opacity-20" style={{
-                      backgroundImage: `
-                        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-                        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)
-                      `,
-                      backgroundSize: '40px 40px'
-                    }} />
-                  </div>
-                  {/* Animated placeholder pin */}
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <motion.div
-                      animate={{ y: [0, -8, 0] }}
-                      transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-                      className="relative"
-                    >
-                      <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-emerald-500/20 border-2 border-emerald-500/40 flex items-center justify-center">
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/30">
-                          <span className="text-white text-xs sm:text-sm font-bold">Me</span>
-                        </div>
+                      {/* Pin tail */}
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1">
+                        <div className="w-0 h-0 border-l-[6px] border-r-[6px] border-t-[10px] border-l-transparent border-r-transparent border-t-amber-500" />
                       </div>
-                      <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-6 h-1.5 bg-black/30 rounded-full blur-sm" />
                     </motion.div>
                   </div>
-                </>
-              )}
+                )}
+                
+                {/* Loading indicator for geolocation */}
+                {isGeolocationLoading && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-slate-900/50">
+                    <div className="flex items-center gap-2 text-white/70">
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span className="text-sm">Finding your location...</span>
+                    </div>
+                  </div>
+                )}
+              </div>
               
               {/* Address Display Bar at Top */}
               {hasVerifiedAddress && (
@@ -879,7 +957,7 @@ export default function ConversationalQuote() {
                 >
                   <div className="bg-slate-900/90 backdrop-blur-sm rounded-lg border border-white/10 p-2.5 sm:p-3">
                     <div className="flex items-center gap-2">
-                      <div className="w-1.5 h-6 bg-primary rounded-full flex-shrink-0" />
+                      <div className="w-1.5 h-6 bg-amber-500 rounded-full flex-shrink-0" />
                       <div className="min-w-0 flex-1">
                         <p className="text-white/50 text-[10px] uppercase tracking-wider">Property Location</p>
                         <p className="text-white font-medium text-xs sm:text-sm truncate">
