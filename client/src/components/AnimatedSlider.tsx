@@ -274,7 +274,7 @@ export function CurrencySliderInput({
         </div>
       </div>
       
-      <div className="px-1 sm:px-3">
+      <div className="px-3 sm:px-6">
         <AnimatedSlider
           value={numericValue}
           onChange={handleSliderChange}
@@ -345,7 +345,7 @@ export function PercentageSlider({
         </div>
       </div>
       
-      <div className="px-1 sm:px-3">
+      <div className="px-3 sm:px-6">
         <AnimatedSlider
           value={numericValue}
           onChange={handleSliderChange}
