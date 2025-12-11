@@ -1,9 +1,10 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import { useMapsLibrary } from "@vis.gl/react-google-maps";
 import { Input } from "@/components/ui/input";
-import { MapPin, Loader2, X } from "lucide-react";
+import { MapPin, Loader2, X, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useGoogleMapsApiKey } from "@/components/GoogleMapsProvider";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface PlaceResult {
   formatted_address?: string;
@@ -85,6 +86,7 @@ function GoogleMapsAutocomplete({
   const [predictions, setPredictions] = useState<AutocompletePrediction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [isValidated, setIsValidated] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   
@@ -160,6 +162,7 @@ function GoogleMapsAutocomplete({
       const newValue = e.target.value;
       setInputValue(newValue);
       onChange(newValue);
+      setIsValidated(false);
       fetchPredictions(newValue);
     },
     [onChange, fetchPredictions]
@@ -183,6 +186,7 @@ function GoogleMapsAutocomplete({
             onChange(formattedAddress);
             setShowDropdown(false);
             setPredictions([]);
+            setIsValidated(true);
 
             if (onPlaceSelect) {
               const placeResult: PlaceResult = {
@@ -212,6 +216,7 @@ function GoogleMapsAutocomplete({
     onChange("");
     setPredictions([]);
     setShowDropdown(false);
+    setIsValidated(false);
     inputRef.current?.focus();
   }, [onChange]);
 
@@ -226,7 +231,31 @@ function GoogleMapsAutocomplete({
 
   return (
     <div className="relative">
-      <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/50 z-10 pointer-events-none" />
+      {/* Left icon - MapPin or animated checkmark */}
+      <AnimatePresence mode="wait">
+        {isValidated ? (
+          <motion.div 
+            key="checkmark"
+            initial={{ scale: 0, rotate: -180 }}
+            animate={{ scale: 1, rotate: 0 }}
+            exit={{ scale: 0, rotate: 180 }}
+            transition={{ type: "spring", stiffness: 500, damping: 25 }}
+            className="absolute left-3 top-1/2 transform -translate-y-1/2 z-10 pointer-events-none"
+          >
+            <CheckCircle2 className="h-4 w-4 text-green-500" />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="mappin"
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            exit={{ scale: 0 }}
+            className="absolute left-3 top-1/2 transform -translate-y-1/2 z-10 pointer-events-none"
+          >
+            <MapPin className="h-4 w-4 text-white/50" />
+          </motion.div>
+        )}
+      </AnimatePresence>
       <Input
         ref={inputRef}
         value={inputValue}
