@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
+import StylizedMapPreview from "@/components/StylizedMapPreview";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -41,6 +42,8 @@ interface FormData {
   propertyCity: string;
   propertyState: string;
   propertyZip: string;
+  propertyLatitude: number | null;
+  propertyLongitude: number | null;
   purchasePrice: string;
   rehabBudget: string;
   afterRepairValue: string;
@@ -81,6 +84,8 @@ export default function GetQuotePage() {
     propertyCity: "",
     propertyState: "",
     propertyZip: "",
+    propertyLatitude: null,
+    propertyLongitude: null,
     purchasePrice: "",
     rehabBudget: "",
     afterRepairValue: "",
@@ -528,7 +533,7 @@ export default function GetQuotePage() {
                     value={formData.propertyType}
                     onValueChange={(value) => setFormData({ ...formData, propertyType: value })}
                   >
-                    <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                    <SelectTrigger className="bg-white/5 border-white/10 text-white" data-testid="select-property-type">
                       <SelectValue placeholder="Select property type" />
                     </SelectTrigger>
                     <SelectContent>
@@ -570,12 +575,18 @@ export default function GetQuotePage() {
                         }
                         
                         const streetAddress = `${streetNumber} ${route}`.trim();
+                        
+                        const lat = place.geometry?.location?.lat?.() ?? null;
+                        const lng = place.geometry?.location?.lng?.() ?? null;
+                        
                         setFormData({
                           ...formData,
                           propertyAddress: streetAddress || place.formatted_address || "",
                           propertyCity: city,
                           propertyState: state,
                           propertyZip: zip,
+                          propertyLatitude: lat,
+                          propertyLongitude: lng,
                         });
                       }
                     }}
@@ -584,6 +595,28 @@ export default function GetQuotePage() {
                     data-testid="input-address"
                   />
                 </div>
+
+                {/* Stylized Map Preview */}
+                {formData.propertyLatitude && formData.propertyLongitude && (
+                  <div className="space-y-3">
+                    <Label className="text-white">Property Location</Label>
+                    <StylizedMapPreview
+                      latitude={formData.propertyLatitude}
+                      longitude={formData.propertyLongitude}
+                      address={[
+                        formData.propertyAddress,
+                        formData.propertyCity,
+                        formData.propertyState,
+                        formData.propertyZip
+                      ].filter(Boolean).join(", ")}
+                      zoom={15}
+                      style="dark"
+                      className="w-full h-[200px] md:h-[250px]"
+                      borderRadius="12px"
+                      data-testid="map-property-preview"
+                    />
+                  </div>
+                )}
 
                 <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-3">
