@@ -24,6 +24,7 @@ import { MarketDetailDrawer } from "@/components/MarketDetailDrawer";
 import { 
   getMarketDetails, 
   generateMarketDetailFromBasicData,
+  sortMarketsByInvestmentQuality,
   type MarketDetail 
 } from "@/data/marketDetails";
 import { 
@@ -276,7 +277,8 @@ export function TopMarketsSection({ stateSlug, stateName }: TopMarketsSectionPro
       return enrichedMarkets.slice(0, 5);
     }
 
-    return metros.slice(0, 5).map(metro => 
+    // Generate markets and sort by CAP rate for states without detailed data
+    const generatedMarkets = metros.slice(0, 5).map(metro => 
       generateMarketDetailFromBasicData(
         metro.name, 
         stateSlug, 
@@ -285,6 +287,8 @@ export function TopMarketsSection({ stateSlug, stateName }: TopMarketsSectionPro
         metro.rank
       )
     );
+    
+    return sortMarketsByInvestmentQuality(generatedMarkets);
   }, [metros, stateSlug]);
 
   useEffect(() => {
