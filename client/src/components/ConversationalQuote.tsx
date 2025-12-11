@@ -894,8 +894,8 @@ export default function ConversationalQuote() {
         const hasVerifiedAddress = !!(formData.propertyAddress && formData.propertyCity && formData.propertyState);
         const hasMapCoordinates = formData.propertyLat !== null && formData.propertyLng !== null;
         return (
-          <div className="absolute inset-0 overflow-hidden">
-            {/* Full-screen Map Background */}
+          <div className="relative w-full h-[calc(100vh-220px)] sm:h-[calc(100vh-280px)] -mt-3 sm:-mt-12 -mx-3 sm:-mx-12 rounded-xl overflow-hidden" style={{ width: 'calc(100% + 1.5rem)', marginLeft: '-0.75rem' }}>
+            {/* Map Background - fills container */}
             <div className="absolute inset-0">
               <Map
                 id="address-verification-map"
@@ -1003,66 +1003,62 @@ export default function ConversationalQuote() {
               )}
             </div>
             
-            {/* Floating UI Overlay */}
-            <div className="absolute inset-0 flex flex-col pointer-events-none">
-              {/* TOP: Address Input Card */}
-              <div className="p-4 pointer-events-auto">
-                <div className="max-w-md mx-auto bg-slate-900/95 backdrop-blur-md rounded-2xl border border-white/10 p-4 shadow-xl">
-                  <div className="space-y-3">
-                    <div>
-                      <label className="text-white/50 text-xs uppercase tracking-wider mb-2 block">
-                        Property Address
-                      </label>
-                      <AddressAutocomplete
-                        value={formData.propertyAddress}
-                        onChange={(val) => updateField("propertyAddress", val)}
-                        onPlaceSelect={handleAddressSelect}
-                        placeholder="Enter property address..."
-                        className="w-full text-sm sm:text-base p-3.5 rounded-xl border border-white/20 bg-slate-800/80 text-white placeholder:text-white/40 focus:border-amber-400 focus:outline-none transition-all"
-                        data-testid="input-property-address"
-                      />
-                    </div>
-                    
-                    {/* Verification Status */}
-                    <AnimatePresence mode="wait">
-                      {hasVerifiedAddress && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: "auto", opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          className="overflow-hidden"
-                        >
-                          <div className="flex items-center justify-between gap-3 py-2">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <div className="w-7 h-7 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
-                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                              </div>
-                              <div className="text-left min-w-0">
-                                <p className="text-emerald-400 text-xs font-medium">Address Verified</p>
-                                <p className="text-white/50 text-[10px] truncate">
-                                  {formData.propertyCity}, {formData.propertyState} {formData.propertyZip}
-                                </p>
-                              </div>
-                            </div>
-                            {isLoadingPropertyDetails && (
-                              <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
-                            )}
-                            {!isLoadingPropertyDetails && formData.propertyDetails?.estimatedValue && (
-                              <div className="text-right flex-shrink-0">
-                                <p className="text-white/40 text-[10px]">Est. Value</p>
-                                <p className="text-amber-400 font-bold text-sm">
-                                  ${parseInt(formData.propertyDetails.estimatedValue).toLocaleString()}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+            {/* Floating Address Input Card */}
+            <div className="absolute top-3 left-3 right-3 z-10">
+              <div className="max-w-md mx-auto bg-slate-900/95 backdrop-blur-md rounded-2xl border border-white/10 p-4 shadow-xl">
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-white/50 text-xs uppercase tracking-wider mb-2 block">
+                      Property Address
+                    </label>
+                    <AddressAutocomplete
+                      value={formData.propertyAddress}
+                      onChange={(val) => updateField("propertyAddress", val)}
+                      onPlaceSelect={handleAddressSelect}
+                      placeholder="Enter property address..."
+                      className="w-full text-sm sm:text-base p-3.5 rounded-xl border border-white/20 bg-slate-800/80 text-white placeholder:text-white/40 focus:border-amber-400 focus:outline-none transition-all"
+                      data-testid="input-property-address"
+                    />
                   </div>
+                  
+                  {/* Verification Status */}
+                  <AnimatePresence mode="wait">
+                    {hasVerifiedAddress && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="flex items-center justify-between gap-3 py-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="w-7 h-7 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                            </div>
+                            <div className="text-left min-w-0">
+                              <p className="text-emerald-400 text-xs font-medium">Address Verified</p>
+                              <p className="text-white/50 text-[10px] truncate">
+                                {formData.propertyCity}, {formData.propertyState} {formData.propertyZip}
+                              </p>
+                            </div>
+                          </div>
+                          {isLoadingPropertyDetails && (
+                            <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+                          )}
+                          {!isLoadingPropertyDetails && formData.propertyDetails?.estimatedValue && (
+                            <div className="text-right flex-shrink-0">
+                              <p className="text-white/40 text-[10px]">Est. Value</p>
+                              <p className="text-amber-400 font-bold text-sm">
+                                ${parseInt(formData.propertyDetails.estimatedValue).toLocaleString()}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               </div>
-              
             </div>
           </div>
         );
