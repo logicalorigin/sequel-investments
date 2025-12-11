@@ -587,12 +587,146 @@ function DrawPhotoUpload({ draw, loanId, scopeOfWorkItems }: { draw: LoanDraw; l
   );
 }
 
+// Extended document type with phase indicator from combined endpoint
+interface LoanDocumentWithPhase extends LoanDocument {
+  phase: "processing" | "servicing";
+  applicationDocumentId?: string;
+  documentStatus?: string;
+  documentCategory?: string;
+  documentDescription?: string;
+}
+
 interface LoanDetailsResponse extends ServicedLoan {
   payments: LoanPayment[];
   draws: LoanDraw[];
   escrowItems: LoanEscrowItem[];
-  documents: LoanDocument[];
+  documents: LoanDocumentWithPhase[];
   milestones: LoanMilestone[];
+}
+
+// Reusable component for displaying loan documents grouped by phase
+function LoanDocumentsPanel({ documents, loanType }: { documents: LoanDocumentWithPhase[]; loanType: string }) {
+  // Separate documents by phase
+  const processingDocs = documents.filter(doc => doc.phase === "processing");
+  const servicingDocs = documents.filter(doc => doc.phase === "servicing");
+  
+  const getPhaseLabel = (phase: "processing" | "servicing") => {
+    if (phase === "processing") {
+      return "Loan Processing & Closing";
+    }
+    return "Loan Servicing";
+  };
+  
+  const getPhaseDescription = (phase: "processing" | "servicing") => {
+    if (phase === "processing") {
+      return "Documents from application, underwriting, and closing";
+    }
+    return "Documents from loan servicing period";
+  };
+  
+  const renderDocumentList = (docs: LoanDocumentWithPhase[], phaseLabel: string) => (
+    <div className="space-y-2">
+      {docs.map((doc) => (
+        <div key={doc.id} className="flex items-center justify-between p-3 rounded-lg border" data-testid={`doc-row-${doc.id}`}>
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <FileText className="h-5 w-5 text-muted-foreground shrink-0" />
+            <div className="min-w-0">
+              <p className="font-medium truncate">{doc.title}</p>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+                <span>{doc.documentType}</span>
+                <span>•</span>
+                <span>{format(new Date(doc.createdAt), "MMM d, yyyy")}</span>
+                {doc.documentStatus && doc.phase === "processing" && (
+                  <>
+                    <span>•</span>
+                    <Badge 
+                      variant={doc.documentStatus === "approved" ? "default" : "secondary"}
+                      className="text-[10px] px-1.5 py-0"
+                    >
+                      {doc.documentStatus}
+                    </Badge>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+          <Button size="sm" variant="ghost" asChild data-testid={`button-download-${doc.id}`}>
+            <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer">
+              <Download className="h-4 w-4" />
+            </a>
+          </Button>
+        </div>
+      ))}
+    </div>
+  );
+
+  if (documents.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Loan Documents</CardTitle>
+          <CardDescription>
+            {loanType === "fix_flip" || loanType === "new_construction" 
+              ? "Closing docs, inspection reports, and correspondence"
+              : "Closing docs, statements, and correspondence"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8">
+            <FileText className="h-10 w-10 mx-auto text-muted-foreground/50 mb-2" />
+            <p className="text-muted-foreground">No documents uploaded</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Loan Documents</CardTitle>
+        <CardDescription>
+          {loanType === "fix_flip" || loanType === "new_construction" 
+            ? "Closing docs, inspection reports, and correspondence"
+            : "Closing docs, statements, and correspondence"}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Processing/Closing Documents */}
+        {processingDocs.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Badge variant="outline" className="bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400">
+                {getPhaseLabel("processing")}
+              </Badge>
+              <span className="text-xs text-muted-foreground">
+                {processingDocs.length} document{processingDocs.length !== 1 ? "s" : ""}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground mb-3">{getPhaseDescription("processing")}</p>
+            {renderDocumentList(processingDocs, "Processing")}
+          </div>
+        )}
+        
+        {/* Servicing Documents */}
+        {servicingDocs.length > 0 && (
+          <div>
+            {processingDocs.length > 0 && <div className="border-t my-4" />}
+            <div className="flex items-center gap-2 mb-3">
+              <Badge variant="outline" className="bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+                {getPhaseLabel("servicing")}
+              </Badge>
+              <span className="text-xs text-muted-foreground">
+                {servicingDocs.length} document{servicingDocs.length !== 1 ? "s" : ""}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground mb-3">{getPhaseDescription("servicing")}</p>
+            {renderDocumentList(servicingDocs, "Servicing")}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
 }
 
 function AmortizationCalculator({ loan }: { loan: ServicedLoan }) {
@@ -2016,41 +2150,7 @@ export default function LoanDetailPage() {
             </TabsContent>
             
             <TabsContent value="documents">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Loan Documents</CardTitle>
-                  <CardDescription>Closing docs, inspection reports, and correspondence</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {loanDetails.documents.length === 0 ? (
-                    <div className="text-center py-8">
-                      <FileText className="h-10 w-10 mx-auto text-muted-foreground/50 mb-2" />
-                      <p className="text-muted-foreground">No documents uploaded</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {loanDetails.documents.map((doc) => (
-                        <div key={doc.id} className="flex items-center justify-between p-3 rounded-lg border">
-                          <div className="flex items-center gap-3">
-                            <FileText className="h-5 w-5 text-muted-foreground" />
-                            <div>
-                              <p className="font-medium">{doc.title}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {doc.documentType} • {format(new Date(doc.createdAt), "MMM d, yyyy")}
-                              </p>
-                            </div>
-                          </div>
-                          <Button size="sm" variant="ghost" asChild>
-                            <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer">
-                              <Download className="h-4 w-4" />
-                            </a>
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+              <LoanDocumentsPanel documents={loanDetails.documents} loanType={loan.loanType} />
             </TabsContent>
           </Tabs>
         ) : (
@@ -2080,41 +2180,7 @@ export default function LoanDetailPage() {
             </TabsContent>
             
             <TabsContent value="documents">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Loan Documents</CardTitle>
-                  <CardDescription>Closing docs, statements, and correspondence</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {loanDetails.documents.length === 0 ? (
-                    <div className="text-center py-8">
-                      <FileText className="h-10 w-10 mx-auto text-muted-foreground/50 mb-2" />
-                      <p className="text-muted-foreground">No documents uploaded</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {loanDetails.documents.map((doc) => (
-                        <div key={doc.id} className="flex items-center justify-between p-3 rounded-lg border">
-                          <div className="flex items-center gap-3">
-                            <FileText className="h-5 w-5 text-muted-foreground" />
-                            <div>
-                              <p className="font-medium">{doc.title}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {doc.documentType} • {format(new Date(doc.createdAt), "MMM d, yyyy")}
-                              </p>
-                            </div>
-                          </div>
-                          <Button size="sm" variant="ghost" asChild>
-                            <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer">
-                              <Download className="h-4 w-4" />
-                            </a>
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+              <LoanDocumentsPanel documents={loanDetails.documents} loanType={loan.loanType} />
             </TabsContent>
           </Tabs>
         )}

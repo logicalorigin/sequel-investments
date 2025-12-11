@@ -661,8 +661,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Access denied" });
       }
       
+      const isBorrower = user?.role === "borrower";
+      
       // Fetch all related data
-      const [payments, draws, escrowItems, documents, milestones] = await Promise.all([
+      const [payments, draws, escrowItems, servicingDocuments, milestones] = await Promise.all([
         storage.getLoanPayments(loan.id),
         storage.getLoanDraws(loan.id),
         storage.getLoanEscrowItems(loan.id),
@@ -670,12 +672,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
         storage.getLoanMilestones(loan.id),
       ]);
       
+      // Get processing/closing-phase documents from the original application
+      let applicationDocuments: any[] = [];
+      if (loan.loanApplicationId) {
+        const appDocs = await storage.getDocumentsByApplication(loan.loanApplicationId);
+        const documentTypes = await storage.getDocumentTypes();
+        const docTypeMap = new Map(documentTypes.map(dt => [dt.id, dt]));
+        
+        // Transform application documents to match LoanDocument format with phase indicator
+        // For borrowers, only show documents that have been uploaded (have fileUrl)
+        // Staff can see all documents with status metadata
+        applicationDocuments = appDocs
+          .filter(doc => doc.fileUrl) // Only include uploaded documents
+          .map(doc => {
+            const docType = docTypeMap.get(doc.documentTypeId);
+            const baseDoc = {
+              id: `app-${doc.id}`, // Prefix to distinguish from servicing docs
+              servicedLoanId: loan.id,
+              documentType: docType?.name || "Unknown",
+              title: docType?.name || "Document",
+              fileName: doc.fileName || "Unknown",
+              fileUrl: doc.fileUrl,
+              fileSize: doc.fileSize,
+              mimeType: doc.mimeType,
+              uploadedBy: null,
+              notes: isBorrower ? null : doc.comment, // Hide internal comments from borrowers
+              createdAt: doc.createdAt,
+              updatedAt: doc.updatedAt,
+              phase: "processing" as const,
+            };
+            
+            // Staff see additional metadata for internal review
+            if (!isBorrower) {
+              return {
+                ...baseDoc,
+                applicationDocumentId: doc.id,
+                documentStatus: doc.status,
+                documentCategory: docType?.category,
+                documentDescription: docType?.description,
+              };
+            }
+            return baseDoc;
+          });
+      }
+      
+      // Add phase indicator to servicing documents
+      const servicingDocsWithPhase = servicingDocuments.map(doc => ({
+        ...doc,
+        phase: "servicing" as const,
+      }));
+      
+      // Combine both sets of documents, processing docs first (chronologically earlier)
+      const combinedDocuments = [...applicationDocuments, ...servicingDocsWithPhase];
+      
       return res.json({
         ...loan,
         payments,
         draws,
         escrowItems,
-        documents,
+        documents: combinedDocuments,
         milestones,
       });
     } catch (error) {
@@ -1960,8 +2015,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Access denied" });
       }
       
-      const documents = await storage.getLoanDocuments(loan.id);
-      return res.json(documents);
+      const isBorrower = user?.role === "borrower";
+      
+      // Get servicing-phase documents
+      const servicingDocuments = await storage.getLoanDocuments(loan.id);
+      
+      // Get processing/closing-phase documents from the original application
+      let applicationDocuments: any[] = [];
+      if (loan.loanApplicationId) {
+        const appDocs = await storage.getDocumentsByApplication(loan.loanApplicationId);
+        const documentTypes = await storage.getDocumentTypes();
+        const docTypeMap = new Map(documentTypes.map(dt => [dt.id, dt]));
+        
+        // Transform application documents to match LoanDocument format with phase indicator
+        // For borrowers, only show documents that have been uploaded (have fileUrl)
+        // Staff can see all documents with status metadata
+        applicationDocuments = appDocs
+          .filter(doc => doc.fileUrl) // Only include uploaded documents
+          .map(doc => {
+            const docType = docTypeMap.get(doc.documentTypeId);
+            const baseDoc = {
+              id: `app-${doc.id}`, // Prefix to distinguish from servicing docs
+              servicedLoanId: loan.id,
+              documentType: docType?.name || "Unknown",
+              title: docType?.name || "Document",
+              fileName: doc.fileName || "Unknown",
+              fileUrl: doc.fileUrl,
+              fileSize: doc.fileSize,
+              mimeType: doc.mimeType,
+              uploadedBy: null,
+              notes: isBorrower ? null : doc.comment, // Hide internal comments from borrowers
+              createdAt: doc.createdAt,
+              updatedAt: doc.updatedAt,
+              phase: "processing" as const,
+            };
+            
+            // Staff see additional metadata for internal review
+            if (!isBorrower) {
+              return {
+                ...baseDoc,
+                applicationDocumentId: doc.id,
+                documentStatus: doc.status,
+                documentCategory: docType?.category,
+                documentDescription: docType?.description,
+              };
+            }
+            return baseDoc;
+          });
+      }
+      
+      // Add phase indicator to servicing documents
+      const servicingDocsWithPhase = servicingDocuments.map(doc => ({
+        ...doc,
+        phase: "servicing" as const,
+      }));
+      
+      // Combine both sets of documents, processing docs first (chronologically earlier)
+      const allDocuments = [...applicationDocuments, ...servicingDocsWithPhase];
+      
+      return res.json(allDocuments);
     } catch (error) {
       console.error("Error fetching loan documents:", error);
       return res.status(500).json({ error: "Failed to fetch documents" });
