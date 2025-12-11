@@ -86,7 +86,7 @@ function STRTierBadge({ tier }: { tier: STRFriendliness["tier"] }) {
     "Good": CheckCircle,
     "Moderate": AlertCircle,
     "Restricted": AlertCircle,
-    "Prohibited": X,
+    "Prohibited": Shield,
   };
 
   const Icon = icons[tier];
