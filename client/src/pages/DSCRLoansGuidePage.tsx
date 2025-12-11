@@ -159,19 +159,16 @@ export default function DSCRLoansGuidePage() {
       <article className="container mx-auto px-4 py-12 max-w-4xl">
         <div className="prose prose-lg dark:prose-invert max-w-none">
           
-          {/* Expert Quote - Featured */}
+          {/* Key Insight - Featured */}
           <Card className="my-8 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-l-4 border-l-primary">
             <CardContent className="p-6">
               <blockquote className="text-lg font-medium text-foreground mb-3">
-                "DSCR loans revolutionize investment property financing by qualifying you based on rental income—not your personal income, tax returns, or W-2s."
+                DSCR loans qualify borrowers based on rental income—not personal income, tax returns, or W-2s. This structure works well for self-employed investors and those with complex tax situations.
               </blockquote>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <span className="font-semibold">Griffin Funding</span>
+                <span className="font-semibold">Key Advantage</span>
                 <span>|</span>
-                <span>#1 Direct-to-Consumer DSCR Lender</span>
-                <a href="https://griffinfunding.com/non-qm-mortgages/debt-service-coverage-ratio-investor-loans/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
-                  <ExternalLink className="h-3 w-3" />
-                </a>
+                <span>Property Performance Over Personal Income</span>
               </div>
             </CardContent>
           </Card>

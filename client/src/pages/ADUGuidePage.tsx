@@ -344,16 +344,16 @@ export default function ADUGuidePage() {
             </Card>
           </div>
 
-          {/* Expert Quote - Financing */}
+          {/* Market Insight - Financing */}
           <Card className="my-8 bg-blue-500/10 border-l-4 border-l-blue-500">
             <CardContent className="p-6">
               <blockquote className="text-lg font-medium text-foreground mb-3">
-                "Lenders and financial institutions are beginning to see the value ADUs bring to homeowners and the broader housing market. We're expecting innovative financing products, like ADU-specific mortgages and state-funded subsidies, to gain traction."
+                The ADU financing landscape continues evolving. Several states now offer ADU-specific programs, and the rental income from completed units can support loan qualification through DSCR calculations.
               </blockquote>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <span className="font-semibold">Mark Davis</span>
+                <span className="font-semibold">Financing Trend</span>
                 <span>|</span>
-                <span>Housing Finance Specialist</span>
+                <span>2025 Market Development</span>
               </div>
             </CardContent>
           </Card>
