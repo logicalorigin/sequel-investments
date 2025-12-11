@@ -643,7 +643,7 @@ export function TopMarketsSection({ stateSlug, stateName }: TopMarketsSectionPro
                         }));
                         
                         // Improved cluster detection: merges markers within threshold of ANY cluster member
-                        const clusterThreshold = 15; // SVG units - markers closer than this will cluster
+                        const clusterThreshold = 25; // SVG units - markers closer than this will cluster
                         const clusters: { center: { x: number; y: number }; markers: typeof markersWithPos }[] = [];
                         const processed = new Set<number>();
                         
@@ -737,8 +737,8 @@ export function TopMarketsSection({ stateSlug, stateName }: TopMarketsSectionPro
                           }
                           
                           // Clustered markers - show radial expansion on hover
-                          const expandRadius = 18; // Distance from center for expanded markers
-                          const hitboxRadius = expandRadius + 10; // Slightly larger for easier hover
+                          const expandRadius = 12; // Closer distance from center for expanded markers
+                          const hitboxRadius = expandRadius + 8; // Slightly larger for easier hover
                           
                           return (
                             <g 
@@ -746,7 +746,7 @@ export function TopMarketsSection({ stateSlug, stateName }: TopMarketsSectionPro
                               onMouseLeave={() => handleMarkerHover(null)}
                             >
                               {isExpanded ? (
-                                // Radial expansion - show all markers in a circle
+                                // Radial expansion - show all markers in a tight circle like reference image
                                 <>
                                   {/* Transparent hitbox to keep cluster expanded while hovering within area */}
                                   <circle
@@ -756,7 +756,7 @@ export function TopMarketsSection({ stateSlug, stateName }: TopMarketsSectionPro
                                     fill="transparent"
                                     style={{ pointerEvents: 'all' }}
                                   />
-                                  {/* Connection lines from center to expanded markers */}
+                                  {/* Subtle connection lines from center to expanded markers */}
                                   {cluster.markers.map((m, i) => {
                                     const angle = (i * 2 * Math.PI) / cluster.markers.length - Math.PI / 2;
                                     const expandedX = cluster.center.x + Math.cos(angle) * expandRadius;
@@ -768,22 +768,36 @@ export function TopMarketsSection({ stateSlug, stateName }: TopMarketsSectionPro
                                         y1={cluster.center.y}
                                         x2={expandedX}
                                         y2={expandedY}
-                                        stroke="hsl(var(--primary) / 0.4)"
+                                        stroke="hsl(var(--primary) / 0.3)"
                                         strokeWidth={1}
-                                        strokeDasharray="2,2"
+                                        strokeDasharray="1,1"
                                         style={{ pointerEvents: 'none' }}
                                       />
                                     );
                                   })}
-                                  {/* Small center dot showing cluster origin */}
+                                  {/* Center master bubble */}
                                   <circle
                                     cx={cluster.center.x}
                                     cy={cluster.center.y}
-                                    r={3}
-                                    fill="hsl(var(--primary) / 0.5)"
-                                    style={{ pointerEvents: 'none' }}
+                                    r={5}
+                                    fill="hsl(38 92% 50%)"
+                                    stroke="hsl(30 94% 35%)"
+                                    strokeWidth={1.5}
+                                    style={{ filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.3))', pointerEvents: 'none' }}
                                   />
-                                  {/* Expanded markers in radial pattern */}
+                                  <text
+                                    x={cluster.center.x}
+                                    y={cluster.center.y + 2}
+                                    textAnchor="middle"
+                                    fill="hsl(48 96% 95%)"
+                                    fontSize={5}
+                                    fontWeight="bold"
+                                    fontFamily="system-ui, sans-serif"
+                                    style={{ pointerEvents: 'none' }}
+                                  >
+                                    {cluster.markers.length}
+                                  </text>
+                                  {/* Expanded markers in radial pattern - closer and tighter */}
                                   {cluster.markers.map((m, i) => {
                                     const angle = (i * 2 * Math.PI) / cluster.markers.length - Math.PI / 2;
                                     const expandedX = cluster.center.x + Math.cos(angle) * expandRadius;
@@ -791,7 +805,19 @@ export function TopMarketsSection({ stateSlug, stateName }: TopMarketsSectionPro
                                     const isSelected = selectedMarket?.id === m.market.id;
                                     const isHovered = hoveredMarket?.id === m.market.id;
                                     const isActive = isSelected || isHovered;
-                                    const radius = isActive ? 7 : 5;
+                                    const radius = isActive ? 6 : 5;
+                                    // Gradient colors similar to reference (green, purple, blue tones)
+                                    const colors = [
+                                      { fill: "hsl(142 71% 45%)", stroke: "hsl(142 71% 35%)" }, // Green
+                                      { fill: "hsl(262 80% 55%)", stroke: "hsl(262 80% 40%)" }, // Purple  
+                                      { fill: "hsl(217 91% 60%)", stroke: "hsl(217 91% 45%)" }, // Blue
+                                      { fill: "hsl(38 92% 50%)", stroke: "hsl(38 92% 40%)" },   // Amber
+                                      { fill: "hsl(330 80% 55%)", stroke: "hsl(330 80% 40%)" }, // Pink
+                                    ];
+                                    const colorIndex = i % colors.length;
+                                    const markerColor = isActive 
+                                      ? { fill: "hsl(45 93% 58%)", stroke: "hsl(48 96% 89%)" }
+                                      : colors[colorIndex];
                                     
                                     return (
                                       <g 
@@ -801,23 +827,23 @@ export function TopMarketsSection({ stateSlug, stateName }: TopMarketsSectionPro
                                         onMouseEnter={() => handleMarkerHover(m.market)}
                                       >
                                         {isActive && (
-                                          <circle cx={expandedX} cy={expandedY} r={radius + 3} fill="hsl(var(--primary) / 0.4)" />
+                                          <circle cx={expandedX} cy={expandedY} r={radius + 3} fill="hsl(var(--primary) / 0.35)" />
                                         )}
                                         <circle
                                           cx={expandedX}
                                           cy={expandedY}
                                           r={radius}
-                                          fill={isActive ? "hsl(45 93% 58%)" : m.index === 0 ? "hsl(38 92% 50%)" : m.index === 1 ? "hsl(32 95% 44%)" : "hsl(28 94% 39%)"}
-                                          stroke={isActive ? "hsl(48 96% 89%)" : "hsl(30 94% 25%)"}
-                                          strokeWidth={isActive ? 2 : 1}
-                                          style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.4))' }}
+                                          fill={markerColor.fill}
+                                          stroke={markerColor.stroke}
+                                          strokeWidth={isActive ? 1.5 : 1}
+                                          style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.35))' }}
                                         />
                                         <text
                                           x={expandedX}
-                                          y={expandedY + 2}
+                                          y={expandedY + 1.5}
                                           textAnchor="middle"
-                                          fill={isActive ? "#0f172a" : "hsl(48 96% 89%)"}
-                                          fontSize={6}
+                                          fill="white"
+                                          fontSize={5}
                                           fontWeight="bold"
                                           fontFamily="system-ui, sans-serif"
                                           style={{ pointerEvents: 'none' }}
@@ -829,11 +855,25 @@ export function TopMarketsSection({ stateSlug, stateName }: TopMarketsSectionPro
                                   })}
                                 </>
                               ) : (
-                                // Collapsed cluster marker showing count
+                                // Collapsed cluster marker showing count - click or hover to expand
                                 <g 
                                   style={{ cursor: 'pointer' }}
                                   onMouseEnter={() => handleMarkerHover(cluster.markers[0].market)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    // On click, select the first market to force expansion
+                                    setHoveredMarket(cluster.markers[0].market);
+                                  }}
+                                  data-testid={`cluster-marker-${clusterIdx}`}
                                 >
+                                  {/* Larger invisible click target for easier interaction */}
+                                  <circle
+                                    cx={cluster.center.x}
+                                    cy={cluster.center.y}
+                                    r={15}
+                                    fill="transparent"
+                                    style={{ pointerEvents: 'all' }}
+                                  />
                                   <circle
                                     cx={cluster.center.x}
                                     cy={cluster.center.y}
@@ -841,7 +881,7 @@ export function TopMarketsSection({ stateSlug, stateName }: TopMarketsSectionPro
                                     fill="hsl(38 92% 50%)"
                                     stroke="hsl(30 94% 25%)"
                                     strokeWidth={2}
-                                    style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.4))' }}
+                                    style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.4))', pointerEvents: 'none' }}
                                   />
                                   <text
                                     x={cluster.center.x}
