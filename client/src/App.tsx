@@ -55,6 +55,8 @@ import StaffLoginPage from "@/pages/StaffLoginPage";
 import ResourcesPage from "@/pages/ResourcesPage";
 import ArticlePage from "@/pages/ArticlePage";
 import AmericanMigration2025Page from "@/pages/AmericanMigration2025Page";
+import DSCRLoansGuidePage from "@/pages/DSCRLoansGuidePage";
+import ADUGuidePage from "@/pages/ADUGuidePage";
 import AdminWhiteLabelPage from "@/pages/AdminWhiteLabelPage";
 import AdminEmailLogPage from "@/pages/AdminEmailLogPage";
 import AdminSmsLogPage from "@/pages/AdminSmsLogPage";
@@ -112,6 +114,8 @@ function Router() {
       <Route path="/sign/:token" component={SignDocumentPage} />
       <Route path="/resources" component={ResourcesPage} />
       <Route path="/resources/american-migration-2025" component={AmericanMigration2025Page} />
+      <Route path="/resources/complete-guide-to-dscr-loans" component={DSCRLoansGuidePage} />
+      <Route path="/resources/what-investors-should-know-about-adus" component={ADUGuidePage} />
       <Route path="/resources/:slug" component={ArticlePage} />
       <Route component={NotFound} />
     </Switch>

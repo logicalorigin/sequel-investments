@@ -37,10 +37,13 @@ export const articles: Article[] = [
     publishDate: "2024-11-15",
     readTime: "12 min read",
     heroImage: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=1200&h=600&fit=crop&auto=format",
-    excerpt: "DSCR loans are transforming how real estate investors finance rental properties. Learn the ins and outs of this powerful financing tool.",
+    excerpt: "Qualify using rental income instead of personal W-2s or tax returns. DSCR loans offer LLC protection and unlimited property financing.",
     tags: ["DSCR Loans", "Rental Properties", "Investment Financing"],
     relatedArticles: ["what-investors-should-know-about-adus", "top-renovations-to-maximize-profits"],
-    content: `
+    content: `This article features interactive charts and calculators. Please visit the full article page for the complete experience.
+
+## Original Content Below (for reference)
+
 ## What is a DSCR Loan?
 
 A Debt Service Coverage Ratio (DSCR) loan is a type of mortgage specifically designed for real estate investors that qualifies borrowers based on the property's rental income rather than personal income. This makes DSCR loans an ideal financing solution for investors who may have complex tax situations, multiple properties, or self-employment income that's difficult to document through traditional means.
@@ -210,10 +213,13 @@ Our team of investment property specialists is ready to help you analyze your de
     publishDate: "2024-10-22",
     readTime: "10 min read",
     heroImage: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200&h=600&fit=crop&auto=format",
-    excerpt: "ADUs offer investors a unique opportunity to increase property value and rental income. Here's what you need to know before adding one to your portfolio.",
+    excerpt: "ADUs add an average 35% premium to property values. A $19B+ market growing 9% annually offers investors compelling opportunities.",
     tags: ["ADUs", "Rental Properties", "Property Value"],
     relatedArticles: ["complete-guide-to-dscr-loans", "top-renovations-to-maximize-profits"],
-    content: `
+    content: `This article features interactive charts. Please visit the full article page for the complete experience.
+
+## Original Content Below (for reference)
+
 ## What Is an Accessory Dwelling Unit?
 
 An Accessory Dwelling Unit (ADU) is an additional housing unit built on a property that already has a primary residence. Sometimes called granny flats, in-law suites, or backyard cottages, ADUs typically range from 400 to 1,000 square feet and include all the amenities needed for independent living.
