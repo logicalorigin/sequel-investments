@@ -24,7 +24,7 @@ import {
   Building,
   RefreshCw,
   Loader2,
-  Navigation
+  Target
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,34 +57,42 @@ const US_METROS = [
 // Get a random US metro location
 const getRandomMetro = () => US_METROS[Math.floor(Math.random() * US_METROS.length)];
 
-// Dark theme map styles
+// Dark theme map styles with amber/gold accents for roads
 const darkMapStyles = [
-  { elementType: "geometry", stylers: [{ color: "#1d2c4d" }] },
-  { elementType: "labels.text.fill", stylers: [{ color: "#8ec3b9" }] },
-  { elementType: "labels.text.stroke", stylers: [{ color: "#1a3646" }] },
-  { featureType: "administrative.country", elementType: "geometry.stroke", stylers: [{ color: "#4b6878" }] },
-  { featureType: "administrative.land_parcel", elementType: "labels.text.fill", stylers: [{ color: "#64779e" }] },
-  { featureType: "administrative.province", elementType: "geometry.stroke", stylers: [{ color: "#4b6878" }] },
-  { featureType: "landscape.man_made", elementType: "geometry.stroke", stylers: [{ color: "#334e87" }] },
-  { featureType: "landscape.natural", elementType: "geometry", stylers: [{ color: "#023e58" }] },
-  { featureType: "poi", elementType: "geometry", stylers: [{ color: "#283d6a" }] },
-  { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#6f9ba5" }] },
-  { featureType: "poi", elementType: "labels.text.stroke", stylers: [{ color: "#1d2c4d" }] },
-  { featureType: "poi.park", elementType: "geometry.fill", stylers: [{ color: "#023e58" }] },
-  { featureType: "poi.park", elementType: "labels.text.fill", stylers: [{ color: "#3C7680" }] },
-  { featureType: "road", elementType: "geometry", stylers: [{ color: "#304a7d" }] },
-  { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#98a5be" }] },
-  { featureType: "road", elementType: "labels.text.stroke", stylers: [{ color: "#1d2c4d" }] },
-  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#2c6675" }] },
-  { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#255763" }] },
-  { featureType: "road.highway", elementType: "labels.text.fill", stylers: [{ color: "#b0d5ce" }] },
-  { featureType: "road.highway", elementType: "labels.text.stroke", stylers: [{ color: "#023e58" }] },
-  { featureType: "transit", elementType: "labels.text.fill", stylers: [{ color: "#98a5be" }] },
-  { featureType: "transit", elementType: "labels.text.stroke", stylers: [{ color: "#1d2c4d" }] },
-  { featureType: "transit.line", elementType: "geometry.fill", stylers: [{ color: "#283d6a" }] },
-  { featureType: "transit.station", elementType: "geometry", stylers: [{ color: "#3a4762" }] },
-  { featureType: "water", elementType: "geometry", stylers: [{ color: "#0e1626" }] },
-  { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#4e6d70" }] },
+  { elementType: "geometry", stylers: [{ color: "#0f172a" }] },
+  { elementType: "labels.text.fill", stylers: [{ color: "#d4a574" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#0f172a" }] },
+  { featureType: "administrative.country", elementType: "geometry.stroke", stylers: [{ color: "#78716c" }] },
+  { featureType: "administrative.land_parcel", elementType: "labels.text.fill", stylers: [{ color: "#92400e" }] },
+  { featureType: "administrative.province", elementType: "geometry.stroke", stylers: [{ color: "#78716c" }] },
+  { featureType: "landscape.man_made", elementType: "geometry.stroke", stylers: [{ color: "#44403c" }] },
+  { featureType: "landscape.natural", elementType: "geometry", stylers: [{ color: "#1c1917" }] },
+  { featureType: "poi", elementType: "geometry", stylers: [{ color: "#292524" }] },
+  { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#a8a29e" }] },
+  { featureType: "poi", elementType: "labels.text.stroke", stylers: [{ color: "#0f172a" }] },
+  { featureType: "poi.park", elementType: "geometry.fill", stylers: [{ color: "#1c1917" }] },
+  { featureType: "poi.park", elementType: "labels.text.fill", stylers: [{ color: "#6b7280" }] },
+  // Roads with amber/gold accent
+  { featureType: "road", elementType: "geometry", stylers: [{ color: "#78350f" }] },
+  { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#fbbf24" }] },
+  { featureType: "road", elementType: "labels.text.stroke", stylers: [{ color: "#0f172a" }] },
+  // Highways with brighter amber
+  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#92400e" }] },
+  { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#78350f" }] },
+  { featureType: "road.highway", elementType: "labels.text.fill", stylers: [{ color: "#f59e0b" }] },
+  { featureType: "road.highway", elementType: "labels.text.stroke", stylers: [{ color: "#0f172a" }] },
+  // Arterial roads
+  { featureType: "road.arterial", elementType: "geometry", stylers: [{ color: "#713f12" }] },
+  { featureType: "road.arterial", elementType: "labels.text.fill", stylers: [{ color: "#d97706" }] },
+  // Local roads
+  { featureType: "road.local", elementType: "geometry", stylers: [{ color: "#57534e" }] },
+  { featureType: "road.local", elementType: "labels.text.fill", stylers: [{ color: "#a8a29e" }] },
+  { featureType: "transit", elementType: "labels.text.fill", stylers: [{ color: "#a8a29e" }] },
+  { featureType: "transit", elementType: "labels.text.stroke", stylers: [{ color: "#0f172a" }] },
+  { featureType: "transit.line", elementType: "geometry.fill", stylers: [{ color: "#44403c" }] },
+  { featureType: "transit.station", elementType: "geometry", stylers: [{ color: "#292524" }] },
+  { featureType: "water", elementType: "geometry", stylers: [{ color: "#0c0a09" }] },
+  { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#57534e" }] },
 ];
 
 type LoanType = "dscr" | "fix-flip" | "construction" | "";
@@ -954,7 +962,7 @@ export default function ConversationalQuote() {
                         className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-amber-400"
                       />
                     </div>
-                    {/* Main marker with bounce - Navigation icon */}
+                    {/* Main marker with bounce - Target icon (crosshair style) */}
                     <motion.div
                       animate={{ 
                         y: [0, -8, 0],
@@ -967,12 +975,8 @@ export default function ConversationalQuote() {
                       }}
                       className="relative"
                     >
-                      <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-amber-500 flex items-center justify-center shadow-lg shadow-amber-500/50 border-[3px] border-white">
-                        <Navigation className="w-5 h-5 sm:w-6 sm:h-6 text-white fill-white" />
-                      </div>
-                      {/* Pin tail/pointer */}
-                      <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1">
-                        <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-t-[10px] border-l-transparent border-r-transparent border-t-amber-500" />
+                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-amber-500 flex items-center justify-center shadow-lg shadow-amber-500/50 border-[3px] border-white">
+                        <Target className="w-6 h-6 sm:w-7 sm:h-7 text-white" strokeWidth={2.5} />
                       </div>
                     </motion.div>
                     {/* Ground shadow */}
@@ -1004,7 +1008,7 @@ export default function ConversationalQuote() {
               <div className="max-w-md mx-auto bg-slate-900/95 backdrop-blur-md rounded-2xl border border-white/10 p-4 shadow-xl">
                 <div className="space-y-3">
                   <div>
-                    <label className="text-white/50 text-xs uppercase tracking-wider mb-2 block">
+                    <label className="text-amber-400/80 text-xs uppercase tracking-wider mb-2 block font-medium">
                       Property Address
                     </label>
                     <AddressAutocomplete
@@ -1012,7 +1016,7 @@ export default function ConversationalQuote() {
                       onChange={(val) => updateField("propertyAddress", val)}
                       onPlaceSelect={handleAddressSelect}
                       placeholder="Enter property address..."
-                      className="w-full text-sm sm:text-base p-3.5 rounded-xl border border-white/20 bg-slate-800/80 text-white placeholder:text-white/40 focus:border-amber-400 focus:outline-none transition-all"
+                      className="w-full text-sm sm:text-base p-3.5 rounded-xl border border-white/20 bg-slate-800/80 text-white placeholder:text-amber-400/50 focus:border-amber-400 focus:outline-none transition-all"
                       data-testid="input-property-address"
                     />
                   </div>
