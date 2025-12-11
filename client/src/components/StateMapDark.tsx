@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
-import { Map, Marker, InfoWindow } from "@vis.gl/react-google-maps";
+import { Map, Marker, useApiIsLoaded } from "@vis.gl/react-google-maps";
 import { darkMapStyles, STATE_CENTERS } from "@/lib/mapStyles";
 import type { MarketDetail } from "@/data/marketDetails";
-import { Badge } from "@/components/ui/badge";
 import { Home, TrendingUp, DollarSign, Sparkles } from "lucide-react";
 
 interface StateMapDarkProps {
@@ -38,35 +37,43 @@ export function StateMapDark({
   onMarkerHover,
   className = "",
 }: StateMapDarkProps) {
-  const [infoWindowMarket, setInfoWindowMarket] = useState<MarketDetail | null>(null);
+  const [activeMarket, setActiveMarket] = useState<MarketDetail | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
+  const apiIsLoaded = useApiIsLoaded();
 
   const stateCenter = STATE_CENTERS[stateSlug] || { lat: 39.8283, lng: -98.5795, zoom: 4 };
+  
+  // Use a slightly zoomed out view to show more US context (grey surrounding states)
+  const displayZoom = Math.max(stateCenter.zoom - 0.5, 4);
 
   const handleMarkerClick = useCallback((market: MarketDetail) => {
     if (onMarkerClick) {
       onMarkerClick(market);
     }
-    setInfoWindowMarket(market);
+    setActiveMarket(prev => prev?.id === market.id ? null : market);
   }, [onMarkerClick]);
 
   const handleMarkerMouseEnter = useCallback((market: MarketDetail) => {
     if (onMarkerHover) {
       onMarkerHover(market);
     }
-  }, [onMarkerHover]);
+    if (!selectedMarket) {
+      setActiveMarket(market);
+    }
+  }, [onMarkerHover, selectedMarket]);
 
   const handleMarkerMouseLeave = useCallback(() => {
     if (onMarkerHover) {
       onMarkerHover(null);
     }
-  }, [onMarkerHover]);
+    if (!selectedMarket) {
+      setActiveMarket(null);
+    }
+  }, [onMarkerHover, selectedMarket]);
 
   useEffect(() => {
     if (selectedMarket) {
-      setInfoWindowMarket(selectedMarket);
-    } else {
-      setInfoWindowMarket(null);
+      setActiveMarket(selectedMarket);
     }
   }, [selectedMarket]);
 
@@ -74,7 +81,7 @@ export function StateMapDark({
     <div className={`relative w-full h-[400px] md:h-[500px] lg:h-[550px] rounded-xl overflow-hidden ${className}`}>
       <Map
         defaultCenter={{ lat: stateCenter.lat, lng: stateCenter.lng }}
-        defaultZoom={stateCenter.zoom}
+        defaultZoom={displayZoom}
         styles={darkMapStyles}
         disableDefaultUI={true}
         zoomControl={true}
@@ -83,10 +90,12 @@ export function StateMapDark({
         onTilesLoaded={() => setMapLoaded(true)}
         mapId="dark-state-map"
       >
-        {markets.map((market, index) => {
+        {apiIsLoaded && markets.map((market, index) => {
           const isSelected = selectedMarket?.id === market.id;
           const isHovered = hoveredMarket?.id === market.id;
-          const isActive = isSelected || isHovered;
+          const isActive = isSelected || isHovered || activeMarket?.id === market.id;
+          const size = isActive ? 52 : 44;
+          const anchor = isActive ? 26 : 22;
 
           return (
             <Marker
@@ -97,69 +106,68 @@ export function StateMapDark({
               onMouseOut={handleMarkerMouseLeave}
               icon={{
                 url: `data:image/svg+xml,${encodeURIComponent(`
-                  <svg xmlns="http://www.w3.org/2000/svg" width="${isActive ? 48 : 40}" height="${isActive ? 48 : 40}" viewBox="0 0 48 48">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 52 52">
                     <defs>
-                      <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
-                        <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.4"/>
+                      <filter id="shadow${market.id}" x="-50%" y="-50%" width="200%" height="200%">
+                        <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.5"/>
                       </filter>
+                      <linearGradient id="grad${market.id}" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:${isActive ? '#fbbf24' : index === 0 ? '#f59e0b' : index === 1 ? '#d97706' : '#b45309'};stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:${isActive ? '#f59e0b' : index === 0 ? '#d97706' : index === 1 ? '#b45309' : '#92400e'};stop-opacity:1" />
+                      </linearGradient>
                     </defs>
-                    <circle cx="24" cy="24" r="${isActive ? 20 : 16}" fill="${isActive ? '#f59e0b' : index === 0 ? '#f59e0b' : index === 1 ? '#d97706' : '#92400e'}" filter="url(#shadow)" stroke="${isActive ? '#fbbf24' : 'transparent'}" stroke-width="${isActive ? 3 : 0}"/>
-                    <text x="24" y="28" text-anchor="middle" fill="${isActive || index < 2 ? '#0f172a' : '#fef3c7'}" font-size="14" font-weight="bold" font-family="system-ui, sans-serif">${index + 1}</text>
+                    <circle cx="26" cy="26" r="${isActive ? 22 : 18}" fill="url(#grad${market.id})" filter="url(#shadow${market.id})" stroke="${isActive ? '#fef3c7' : '#78350f'}" stroke-width="${isActive ? 3 : 2}"/>
+                    <text x="26" y="31" text-anchor="middle" fill="${isActive ? '#0f172a' : '#fef3c7'}" font-size="15" font-weight="bold" font-family="system-ui, sans-serif">${index + 1}</text>
                   </svg>
                 `)}`,
-                scaledSize: new google.maps.Size(isActive ? 48 : 40, isActive ? 48 : 40),
-                anchor: new google.maps.Point(isActive ? 24 : 20, isActive ? 24 : 20),
+                scaledSize: new google.maps.Size(size, size),
+                anchor: new google.maps.Point(anchor, anchor),
               }}
               zIndex={isActive ? 1000 : 100 - index}
-              data-testid={`marker-${market.name.toLowerCase().replace(/\s+/g, '-')}`}
             />
           );
         })}
-
-        {infoWindowMarket && (
-          <InfoWindow
-            position={{ lat: infoWindowMarket.lat, lng: infoWindowMarket.lng }}
-            onCloseClick={() => setInfoWindowMarket(null)}
-            pixelOffset={new google.maps.Size(0, -25)}
-          >
-            <div className="p-3 min-w-[200px] max-w-[280px] bg-slate-900 text-white rounded-lg">
-              <div className="flex items-center justify-between gap-2 mb-2">
-                <h4 className="font-bold text-amber-400 text-lg">{infoWindowMarket.name}</h4>
-                {infoWindowMarket.strFriendliness.tier === "Excellent" && (
-                  <span className="inline-flex items-center gap-1 text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full">
-                    <Sparkles className="w-3 h-3" />
-                    STR
-                  </span>
-                )}
-              </div>
-              <div className="space-y-1.5 text-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-400 flex items-center gap-1">
-                    <Home className="w-3 h-3" /> Median
-                  </span>
-                  <span className="font-semibold">{formatCurrency(infoWindowMarket.realEstate.medianPrice)}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-400 flex items-center gap-1">
-                    <TrendingUp className="w-3 h-3" /> Growth
-                  </span>
-                  <span className="font-semibold text-green-400">+{infoWindowMarket.realEstate.priceGrowth.toFixed(1)}%</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-400 flex items-center gap-1">
-                    <DollarSign className="w-3 h-3" /> Rent
-                  </span>
-                  <span className="font-semibold">{formatCurrency(infoWindowMarket.realEstate.avgRent)}/mo</span>
-                </div>
-              </div>
-              <div className="mt-3 pt-2 border-t border-slate-700 text-center">
-                <span className="text-xs text-amber-400/80">Click for detailed analysis</span>
-              </div>
-            </div>
-          </InfoWindow>
-        )}
       </Map>
 
+      {/* Floating info card when market is active */}
+      {activeMarket && (
+        <div className="absolute bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-72 bg-slate-900/95 backdrop-blur-sm border border-amber-500/30 rounded-lg p-4 shadow-xl z-10">
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <h4 className="font-bold text-amber-400 text-lg">{activeMarket.name}</h4>
+            {activeMarket.strFriendliness.tier === "Excellent" && (
+              <span className="inline-flex items-center gap-1 text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full border border-green-500/30">
+                <Sparkles className="w-3 h-3" />
+                STR Friendly
+              </span>
+            )}
+          </div>
+          <div className="space-y-2 text-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-slate-400 flex items-center gap-1.5">
+                <Home className="w-3.5 h-3.5" /> Median Price
+              </span>
+              <span className="font-semibold text-white">{formatCurrency(activeMarket.realEstate.medianPrice)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-slate-400 flex items-center gap-1.5">
+                <TrendingUp className="w-3.5 h-3.5" /> YoY Growth
+              </span>
+              <span className="font-semibold text-green-400">+{activeMarket.realEstate.priceGrowth.toFixed(1)}%</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-slate-400 flex items-center gap-1.5">
+                <DollarSign className="w-3.5 h-3.5" /> Avg Rent
+              </span>
+              <span className="font-semibold text-white">{formatCurrency(activeMarket.realEstate.avgRent)}/mo</span>
+            </div>
+          </div>
+          <div className="mt-3 pt-2 border-t border-slate-700/50 text-center">
+            <span className="text-xs text-amber-400/70">Click market card for full analysis</span>
+          </div>
+        </div>
+      )}
+
+      {/* Loading state */}
       {!mapLoaded && (
         <div className="absolute inset-0 bg-slate-900 flex items-center justify-center">
           <div className="animate-pulse flex flex-col items-center gap-3">
@@ -168,6 +176,12 @@ export function StateMapDark({
           </div>
         </div>
       )}
+
+      {/* Dark gradient overlays for polish */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-slate-900/40 to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-slate-900/60 to-transparent" />
+      </div>
     </div>
   );
 }

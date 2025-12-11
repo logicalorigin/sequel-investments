@@ -19,7 +19,7 @@ import {
   Star,
   CheckCircle,
 } from "lucide-react";
-import { StateMapGlobe, type StateMapGlobeHandle } from "@/components/StateMapGlobe";
+import { StateMapDark } from "@/components/StateMapDark";
 import { MarketDetailDrawer } from "@/components/MarketDetailDrawer";
 import { 
   getMarketDetails, 
@@ -250,8 +250,6 @@ export function TopMarketsSection({ stateSlug, stateName }: TopMarketsSectionPro
   const [hoveredMarket, setHoveredMarket] = useState<MarketDetail | null>(null);
   const [selectedMarket, setSelectedMarket] = useState<MarketDetail | null>(null);
   const isDesktop = useMediaQuery("(min-width: 1024px)");
-  
-  const mapRef = useRef<StateMapGlobeHandle>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const marketsWithDetails = useMemo(() => {
@@ -336,10 +334,9 @@ export function TopMarketsSection({ stateSlug, stateName }: TopMarketsSectionPro
         <div className={`grid gap-8 items-start transition-all duration-300 ${
           selectedMarket ? 'lg:grid-cols-2' : 'lg:grid-cols-2'
         }`}>
-          <Card className="overflow-hidden border-primary/10 bg-background/50">
-            <CardContent className="p-4 md:p-6">
-              <StateMapGlobe
-                ref={mapRef}
+          <Card className="overflow-hidden border-primary/10 bg-transparent">
+            <CardContent className="p-0">
+              <StateMapDark
                 stateSlug={stateSlug}
                 stateName={stateName}
                 markets={marketsWithDetails}
@@ -349,25 +346,33 @@ export function TopMarketsSection({ stateSlug, stateName }: TopMarketsSectionPro
                 onMarkerHover={handleMarkerHover}
               />
               
-              <div className="mt-4 flex flex-wrap gap-2 justify-center">
-                {marketsWithDetails.map((market) => (
-                  <Badge
-                    key={market.id}
-                    variant={selectedMarket?.id === market.id ? "default" : hoveredMarket?.id === market.id ? "secondary" : "outline"}
-                    className="cursor-pointer transition-all"
-                    onMouseEnter={() => setHoveredMarket(market)}
-                    onMouseLeave={() => setHoveredMarket(null)}
-                    onClick={() => handleCardClick(market)}
-                    data-testid={`badge-market-${market.name.toLowerCase().replace(/\s+/g, '-')}`}
-                  >
-                    <span className={`w-2 h-2 rounded-full mr-1.5 ${
-                      market.rank === 1 ? 'bg-primary' : 
-                      market.rank === 2 ? 'bg-primary/80' : 
-                      'bg-primary/60'
-                    }`} />
-                    {market.name}
-                  </Badge>
-                ))}
+              <div className="p-4 bg-slate-900/80 backdrop-blur-sm border-t border-amber-500/20">
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {marketsWithDetails.map((market) => (
+                    <Badge
+                      key={market.id}
+                      variant={selectedMarket?.id === market.id ? "default" : hoveredMarket?.id === market.id ? "secondary" : "outline"}
+                      className={`cursor-pointer transition-all ${
+                        selectedMarket?.id === market.id 
+                          ? 'bg-amber-500 text-slate-900 border-amber-400' 
+                          : hoveredMarket?.id === market.id 
+                            ? 'bg-amber-500/20 text-amber-300 border-amber-500/50' 
+                            : 'bg-slate-800/80 text-slate-300 border-slate-600 hover:border-amber-500/50 hover:text-amber-300'
+                      }`}
+                      onMouseEnter={() => setHoveredMarket(market)}
+                      onMouseLeave={() => setHoveredMarket(null)}
+                      onClick={() => handleCardClick(market)}
+                      data-testid={`badge-market-${market.name.toLowerCase().replace(/\s+/g, '-')}`}
+                    >
+                      <span className={`w-2 h-2 rounded-full mr-1.5 ${
+                        market.rank === 1 ? 'bg-amber-500' : 
+                        market.rank === 2 ? 'bg-amber-600' : 
+                        'bg-amber-700'
+                      }`} />
+                      {market.name}
+                    </Badge>
+                  ))}
+                </div>
               </div>
             </CardContent>
           </Card>
