@@ -610,6 +610,10 @@ export default function AdminLoanDetailPage() {
                   </TabsTrigger>
                 )}
                 <TabsTrigger value="details" data-testid="tab-details">Details</TabsTrigger>
+                <TabsTrigger value="documents" data-testid="tab-documents">
+                  <FileText className="h-4 w-4 mr-1" />
+                  Documents ({loan.documents?.length || 0})
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="payments" className="mt-4">
@@ -1427,6 +1431,119 @@ export default function AdminLoanDetailPage() {
                         )}
                       </div>
                     </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="documents" className="mt-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      Loan Documents
+                    </CardTitle>
+                    <CardDescription>
+                      Documents from loan processing/closing and servicing phases
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {loan.documents && loan.documents.length > 0 ? (
+                      <div className="space-y-6">
+                        {/* Processing/Closing Documents */}
+                        {loan.documents.filter((d: any) => d.phase === 'processing').length > 0 && (
+                          <div>
+                            <h4 className="font-medium text-sm text-muted-foreground mb-3">
+                              Loan Processing & Closing ({loan.documents.filter((d: any) => d.phase === 'processing').length})
+                            </h4>
+                            <div className="space-y-2">
+                              {loan.documents.filter((d: any) => d.phase === 'processing').map((doc: any) => (
+                                <div key={doc.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                                  <div className="flex items-center gap-3">
+                                    <FileText className="h-4 w-4 text-muted-foreground" />
+                                    <div>
+                                      <p className="font-medium text-sm">{doc.title || doc.documentType}</p>
+                                      <p className="text-xs text-muted-foreground">
+                                        {doc.fileName} {doc.documentStatus && <Badge variant="outline" className="ml-2 text-xs">{doc.documentStatus}</Badge>}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  {doc.fileUrl && (
+                                    <Button variant="outline" size="sm" asChild>
+                                      <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer">
+                                        View
+                                      </a>
+                                    </Button>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Servicing Documents */}
+                        {loan.documents.filter((d: any) => d.phase === 'servicing').length > 0 && (
+                          <div>
+                            <h4 className="font-medium text-sm text-muted-foreground mb-3">
+                              Loan Servicing ({loan.documents.filter((d: any) => d.phase === 'servicing').length})
+                            </h4>
+                            <div className="space-y-2">
+                              {loan.documents.filter((d: any) => d.phase === 'servicing').map((doc: any) => (
+                                <div key={doc.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                                  <div className="flex items-center gap-3">
+                                    <FileText className="h-4 w-4 text-muted-foreground" />
+                                    <div>
+                                      <p className="font-medium text-sm">{doc.title || doc.documentType}</p>
+                                      <p className="text-xs text-muted-foreground">{doc.fileName}</p>
+                                    </div>
+                                  </div>
+                                  {doc.fileUrl && (
+                                    <Button variant="outline" size="sm" asChild>
+                                      <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer">
+                                        View
+                                      </a>
+                                    </Button>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Documents without phase (legacy) */}
+                        {loan.documents.filter((d: any) => !d.phase).length > 0 && (
+                          <div>
+                            <h4 className="font-medium text-sm text-muted-foreground mb-3">
+                              Other Documents ({loan.documents.filter((d: any) => !d.phase).length})
+                            </h4>
+                            <div className="space-y-2">
+                              {loan.documents.filter((d: any) => !d.phase).map((doc: any) => (
+                                <div key={doc.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                                  <div className="flex items-center gap-3">
+                                    <FileText className="h-4 w-4 text-muted-foreground" />
+                                    <div>
+                                      <p className="font-medium text-sm">{doc.title || doc.documentType}</p>
+                                      <p className="text-xs text-muted-foreground">{doc.fileName}</p>
+                                    </div>
+                                  </div>
+                                  {doc.fileUrl && (
+                                    <Button variant="outline" size="sm" asChild>
+                                      <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer">
+                                        View
+                                      </a>
+                                    </Button>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                        <p>No documents available</p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
