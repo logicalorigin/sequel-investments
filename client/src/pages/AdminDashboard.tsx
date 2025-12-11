@@ -893,6 +893,17 @@ export default function AdminDashboard() {
                 Analytics
               </Button>
             </Link>
+            <Link href="/admin/financials">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 text-xs shrink-0"
+                data-testid="link-financials"
+              >
+                <CreditCard className="h-3.5 w-3.5 mr-1.5" />
+                Financials
+              </Button>
+            </Link>
             {currentUser.role === "admin" && (
               <Button
                 variant="ghost"

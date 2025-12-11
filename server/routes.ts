@@ -5548,6 +5548,496 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // =====================
+  // Admin Financials Dashboard Analytics
+  // =====================
+
+  // Helper function to parse date query params
+  const parseDateRange = (startDate?: string, endDate?: string) => {
+    const start = startDate ? new Date(startDate) : null;
+    const end = endDate ? new Date(endDate) : null;
+    return { start, end };
+  };
+
+  // GET /api/admin/analytics/pipeline - Pipeline metrics
+  app.get("/api/admin/analytics/pipeline", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const { startDate, endDate } = req.query;
+      const { start, end } = parseDateRange(startDate as string, endDate as string);
+
+      const applications = await storage.getAllLoanApplications();
+      const leads = await storage.getLeads();
+
+      // Filter by date range if provided
+      const filteredApplications = applications.filter(app => {
+        if (start && new Date(app.createdAt) < start) return false;
+        if (end && new Date(app.createdAt) > end) return false;
+        return true;
+      });
+
+      const filteredLeads = leads.filter(lead => {
+        if (start && new Date(lead.createdAt) < start) return false;
+        if (end && new Date(lead.createdAt) > end) return false;
+        return true;
+      });
+
+      // Count and value by status
+      const byStatus: Record<string, { count: number; value: number }> = {
+        draft: { count: 0, value: 0 },
+        submitted: { count: 0, value: 0 },
+        in_review: { count: 0, value: 0 },
+        approved: { count: 0, value: 0 },
+        funded: { count: 0, value: 0 },
+        denied: { count: 0, value: 0 },
+        withdrawn: { count: 0, value: 0 },
+      };
+      filteredApplications.forEach(app => {
+        if (app.status && byStatus[app.status]) {
+          byStatus[app.status].count++;
+          byStatus[app.status].value += app.loanAmount || 0;
+        }
+      });
+
+      // Count and value by processing stage
+      const byProcessingStage: Record<string, { count: number; value: number }> = {
+        account_review: { count: 0, value: 0 },
+        underwriting: { count: 0, value: 0 },
+        term_sheet: { count: 0, value: 0 },
+        processing: { count: 0, value: 0 },
+        docs_out: { count: 0, value: 0 },
+        closed: { count: 0, value: 0 },
+      };
+      filteredApplications.forEach(app => {
+        if (app.processingStage && byProcessingStage[app.processingStage]) {
+          byProcessingStage[app.processingStage].count++;
+          byProcessingStage[app.processingStage].value += app.loanAmount || 0;
+        }
+      });
+
+      // Count and value by loan type
+      const byLoanType: Record<string, { count: number; value: number }> = {};
+      filteredApplications.forEach(app => {
+        const type = app.loanType || "Unknown";
+        if (!byLoanType[type]) {
+          byLoanType[type] = { count: 0, value: 0 };
+        }
+        byLoanType[type].count++;
+        byLoanType[type].value += app.loanAmount || 0;
+      });
+
+      // Lead conversion rate
+      const submittedApplications = filteredApplications.filter(app => app.status !== "draft").length;
+      const leadConversionRate = filteredLeads.length > 0 
+        ? (submittedApplications / filteredLeads.length) * 100 
+        : 0;
+
+      // Total pipeline value (active applications: not funded, denied, or withdrawn)
+      const activePipelineApps = filteredApplications.filter(app => 
+        !["funded", "denied", "withdrawn"].includes(app.status)
+      );
+      const totalPipelineValue = activePipelineApps.reduce((sum, app) => sum + (app.loanAmount || 0), 0);
+      const totalPipelineCount = activePipelineApps.length;
+
+      // Average days in each stage (from stage history if available)
+      const stageDurations: Record<string, { totalDays: number; count: number }> = {};
+      for (const app of filteredApplications) {
+        try {
+          const history = await storage.getApplicationStageHistory(app.id);
+          history.forEach((h: any) => {
+            if (h.fromStage && h.durationMinutes) {
+              if (!stageDurations[h.fromStage]) {
+                stageDurations[h.fromStage] = { totalDays: 0, count: 0 };
+              }
+              stageDurations[h.fromStage].totalDays += h.durationMinutes / (60 * 24);
+              stageDurations[h.fromStage].count++;
+            }
+          });
+        } catch (e) {
+          // Stage history may not be available for all apps
+        }
+      }
+
+      const avgDaysPerStage: Record<string, number> = {};
+      Object.entries(stageDurations).forEach(([stage, data]) => {
+        avgDaysPerStage[stage] = data.count > 0 ? Math.round((data.totalDays / data.count) * 10) / 10 : 0;
+      });
+
+      return res.json({
+        byStatus,
+        byProcessingStage,
+        byLoanType,
+        leadConversionRate: Math.round(leadConversionRate * 10) / 10,
+        totalLeads: filteredLeads.length,
+        totalSubmittedApplications: submittedApplications,
+        totalPipelineValue,
+        totalPipelineCount,
+        avgDaysPerStage,
+      });
+    } catch (error) {
+      console.error("Error fetching pipeline analytics:", error);
+      return res.status(500).json({ error: "Failed to fetch pipeline analytics" });
+    }
+  });
+
+  // GET /api/admin/analytics/portfolio - Portfolio composition
+  app.get("/api/admin/analytics/portfolio", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const { startDate, endDate } = req.query;
+      const { start, end } = parseDateRange(startDate as string, endDate as string);
+
+      const servicedLoansData = await storage.getAllServicedLoans();
+
+      // Filter by closing date if date range provided
+      const filteredLoans = servicedLoansData.filter(loan => {
+        if (start && new Date(loan.closingDate) < start) return false;
+        if (end && new Date(loan.closingDate) > end) return false;
+        return true;
+      });
+
+      // Total funded volume
+      const totalFundedCount = filteredLoans.length;
+      const totalFundedVolume = filteredLoans.reduce((sum, loan) => sum + (loan.originalLoanAmount || 0), 0);
+
+      // Breakdown by loan type
+      const byLoanType: Record<string, { count: number; value: number }> = {};
+      filteredLoans.forEach(loan => {
+        const type = loan.loanType || "Unknown";
+        if (!byLoanType[type]) {
+          byLoanType[type] = { count: 0, value: 0 };
+        }
+        byLoanType[type].count++;
+        byLoanType[type].value += loan.originalLoanAmount || 0;
+      });
+
+      // Breakdown by loan status
+      const byLoanStatus: Record<string, { count: number; value: number }> = {
+        current: { count: 0, value: 0 },
+        grace_period: { count: 0, value: 0 },
+        late: { count: 0, value: 0 },
+        default: { count: 0, value: 0 },
+        paid_off: { count: 0, value: 0 },
+        foreclosure: { count: 0, value: 0 },
+        matured: { count: 0, value: 0 },
+      };
+      filteredLoans.forEach(loan => {
+        const status = loan.loanStatus || "current";
+        if (byLoanStatus[status]) {
+          byLoanStatus[status].count++;
+          byLoanStatus[status].value += loan.currentBalance || 0;
+        }
+      });
+
+      // Breakdown by state
+      const byState: Record<string, { count: number; value: number }> = {};
+      filteredLoans.forEach(loan => {
+        const state = loan.propertyState || "Unknown";
+        if (!byState[state]) {
+          byState[state] = { count: 0, value: 0 };
+        }
+        byState[state].count++;
+        byState[state].value += loan.originalLoanAmount || 0;
+      });
+
+      // Sort states by volume and get top 10
+      const topStates = Object.entries(byState)
+        .sort((a, b) => b[1].value - a[1].value)
+        .slice(0, 10)
+        .map(([state, data]) => ({ state, ...data }));
+
+      // Averages
+      const avgLoanSize = totalFundedCount > 0 
+        ? Math.round(totalFundedVolume / totalFundedCount) 
+        : 0;
+
+      const avgInterestRate = filteredLoans.length > 0
+        ? filteredLoans.reduce((sum, loan) => sum + (parseFloat(loan.interestRate) || 0), 0) / filteredLoans.length
+        : 0;
+
+      // Calculate average LTV (currentBalance / currentValue or arv)
+      const loansWithValues = filteredLoans.filter(loan => 
+        loan.currentBalance && (loan.currentValue || loan.arv)
+      );
+      const avgLTV = loansWithValues.length > 0
+        ? loansWithValues.reduce((sum, loan) => {
+            const value = loan.currentValue || loan.arv || 1;
+            return sum + ((loan.currentBalance || 0) / value) * 100;
+          }, 0) / loansWithValues.length
+        : 0;
+
+      // Monthly funded volume trend (last 12 months)
+      const now = new Date();
+      const monthlyTrend: { month: string; count: number; volume: number }[] = [];
+      
+      for (let i = 11; i >= 0; i--) {
+        const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
+        
+        const monthLoans = servicedLoansData.filter(loan => {
+          const closing = new Date(loan.closingDate);
+          return closing >= monthStart && closing <= monthEnd;
+        });
+
+        monthlyTrend.push({
+          month: monthStart.toLocaleString('default', { month: 'short', year: '2-digit' }),
+          count: monthLoans.length,
+          volume: monthLoans.reduce((sum, loan) => sum + (loan.originalLoanAmount || 0), 0),
+        });
+      }
+
+      return res.json({
+        totalFundedCount,
+        totalFundedVolume,
+        byLoanType,
+        byLoanStatus,
+        topStates,
+        avgLoanSize,
+        avgInterestRate: Math.round(avgInterestRate * 100) / 100,
+        avgLTV: Math.round(avgLTV * 10) / 10,
+        monthlyTrend,
+      });
+    } catch (error) {
+      console.error("Error fetching portfolio analytics:", error);
+      return res.status(500).json({ error: "Failed to fetch portfolio analytics" });
+    }
+  });
+
+  // GET /api/admin/analytics/revenue - Revenue and fee tracking
+  app.get("/api/admin/analytics/revenue", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const { startDate, endDate } = req.query;
+      const { start, end } = parseDateRange(startDate as string, endDate as string);
+
+      const servicedLoansData = await storage.getAllServicedLoans();
+
+      // Filter by closing date if date range provided
+      const filteredLoans = servicedLoansData.filter(loan => {
+        if (start && new Date(loan.closingDate) < start) return false;
+        if (end && new Date(loan.closingDate) > end) return false;
+        return true;
+      });
+
+      // Total origination fees (estimate as 1.5% of funded loans)
+      const ORIGINATION_FEE_RATE = 0.015;
+      const totalOriginationFees = filteredLoans.reduce((sum, loan) => 
+        sum + Math.round((loan.originalLoanAmount || 0) * ORIGINATION_FEE_RATE), 0);
+
+      // Get all payments for interest income
+      let totalInterestIncome = 0;
+      const paymentsByMonth: Record<string, { interest: number; principal: number; fees: number }> = {};
+
+      for (const loan of servicedLoansData) {
+        const payments = await storage.getLoanPayments(loan.id);
+        const filteredPayments = payments.filter(p => {
+          if (!p.paidDate) return false;
+          if (start && new Date(p.paidDate) < start) return false;
+          if (end && new Date(p.paidDate) > end) return false;
+          return p.status === "completed";
+        });
+
+        filteredPayments.forEach(payment => {
+          totalInterestIncome += payment.interestAmount || 0;
+          
+          // Group by month for trend
+          const paidDate = new Date(payment.paidDate!);
+          const monthKey = paidDate.toLocaleString('default', { month: 'short', year: '2-digit' });
+          
+          if (!paymentsByMonth[monthKey]) {
+            paymentsByMonth[monthKey] = { interest: 0, principal: 0, fees: 0 };
+          }
+          paymentsByMonth[monthKey].interest += payment.interestAmount || 0;
+          paymentsByMonth[monthKey].principal += payment.principalAmount || 0;
+          paymentsByMonth[monthKey].fees += (payment.lateFee || 0) + (payment.otherFees || 0);
+        });
+      }
+
+      // Fee breakdown by loan type
+      const feesByLoanType: Record<string, { originationFees: number; interestIncome: number }> = {};
+      
+      for (const loan of filteredLoans) {
+        const type = loan.loanType || "Unknown";
+        if (!feesByLoanType[type]) {
+          feesByLoanType[type] = { originationFees: 0, interestIncome: 0 };
+        }
+        feesByLoanType[type].originationFees += Math.round((loan.originalLoanAmount || 0) * ORIGINATION_FEE_RATE);
+        
+        // Get interest income for this loan
+        const payments = await storage.getLoanPayments(loan.id);
+        const completedPayments = payments.filter(p => p.status === "completed");
+        completedPayments.forEach(p => {
+          feesByLoanType[type].interestIncome += p.interestAmount || 0;
+        });
+      }
+
+      // Monthly revenue trend (last 12 months)
+      const now = new Date();
+      const monthlyRevenueTrend: { month: string; originationFees: number; interestIncome: number; totalFees: number }[] = [];
+      
+      for (let i = 11; i >= 0; i--) {
+        const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
+        const monthKey = monthStart.toLocaleString('default', { month: 'short', year: '2-digit' });
+        
+        // Origination fees from loans closed this month
+        const monthLoans = servicedLoansData.filter(loan => {
+          const closing = new Date(loan.closingDate);
+          return closing >= monthStart && closing <= monthEnd;
+        });
+        const monthOriginationFees = monthLoans.reduce((sum, loan) => 
+          sum + Math.round((loan.originalLoanAmount || 0) * ORIGINATION_FEE_RATE), 0);
+
+        const monthPaymentData = paymentsByMonth[monthKey] || { interest: 0, principal: 0, fees: 0 };
+
+        monthlyRevenueTrend.push({
+          month: monthKey,
+          originationFees: monthOriginationFees,
+          interestIncome: monthPaymentData.interest,
+          totalFees: monthPaymentData.fees,
+        });
+      }
+
+      return res.json({
+        totalOriginationFees,
+        totalInterestIncome,
+        totalRevenue: totalOriginationFees + totalInterestIncome,
+        originationFeeRate: ORIGINATION_FEE_RATE * 100,
+        feesByLoanType,
+        monthlyRevenueTrend,
+      });
+    } catch (error) {
+      console.error("Error fetching revenue analytics:", error);
+      return res.status(500).json({ error: "Failed to fetch revenue analytics" });
+    }
+  });
+
+  // GET /api/admin/analytics/servicing - Servicing health
+  app.get("/api/admin/analytics/servicing", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const { startDate, endDate } = req.query;
+      const { start, end } = parseDateRange(startDate as string, endDate as string);
+
+      const servicedLoansData = await storage.getAllServicedLoans();
+
+      // Filter to active loans only for servicing metrics (exclude paid_off)
+      const activeLoans = servicedLoansData.filter(loan => loan.loanStatus !== "paid_off");
+
+      // Payment status distribution
+      const paymentStatusDistribution: Record<string, { count: number; balance: number }> = {
+        current: { count: 0, balance: 0 },
+        grace_period: { count: 0, balance: 0 },
+        late: { count: 0, balance: 0 },
+        default: { count: 0, balance: 0 },
+        foreclosure: { count: 0, balance: 0 },
+        matured: { count: 0, balance: 0 },
+      };
+
+      activeLoans.forEach(loan => {
+        const status = loan.loanStatus || "current";
+        if (paymentStatusDistribution[status]) {
+          paymentStatusDistribution[status].count++;
+          paymentStatusDistribution[status].balance += loan.currentBalance || 0;
+        }
+      });
+
+      // Total outstanding balance vs original principal
+      const totalOutstandingBalance = activeLoans.reduce((sum, loan) => sum + (loan.currentBalance || 0), 0);
+      const totalOriginalPrincipal = activeLoans.reduce((sum, loan) => sum + (loan.originalLoanAmount || 0), 0);
+
+      // Draw utilization (for hard money / construction loans)
+      const drawLoans = activeLoans.filter(loan => 
+        ["fix_flip", "new_construction", "bridge"].includes(loan.loanType)
+      );
+      
+      let totalDrawCommitment = 0;
+      let totalDrawnAmount = 0;
+
+      for (const loan of drawLoans) {
+        totalDrawCommitment += loan.totalRehabBudget || 0;
+        totalDrawnAmount += loan.totalDrawsFunded || 0;
+      }
+
+      const drawUtilization = totalDrawCommitment > 0 
+        ? (totalDrawnAmount / totalDrawCommitment) * 100 
+        : 0;
+
+      // Delinquency rate (late + default / total active loans)
+      const delinquentLoans = activeLoans.filter(loan => 
+        ["late", "default", "foreclosure"].includes(loan.loanStatus || "")
+      );
+      const delinquencyRate = activeLoans.length > 0 
+        ? (delinquentLoans.length / activeLoans.length) * 100 
+        : 0;
+      const delinquentBalance = delinquentLoans.reduce((sum, loan) => sum + (loan.currentBalance || 0), 0);
+
+      // At-risk loans list (late, default, or foreclosure)
+      const atRiskLoans = delinquentLoans.map(loan => ({
+        id: loan.id,
+        loanNumber: loan.loanNumber,
+        loanType: loan.loanType,
+        loanStatus: loan.loanStatus,
+        propertyAddress: loan.propertyAddress,
+        propertyCity: loan.propertyCity,
+        propertyState: loan.propertyState,
+        currentBalance: loan.currentBalance,
+        originalLoanAmount: loan.originalLoanAmount,
+        interestRate: loan.interestRate,
+        maturityDate: loan.maturityDate,
+        totalPastDue: loan.totalPastDue,
+        paymentsDue: loan.paymentsDue,
+      }));
+
+      // Payment performance over time (using date range)
+      const paymentsByStatus: Record<string, number> = {
+        completed: 0,
+        late: 0,
+        partial: 0,
+        pending: 0,
+        scheduled: 0,
+      };
+
+      for (const loan of servicedLoansData) {
+        const payments = await storage.getLoanPayments(loan.id);
+        payments.forEach(payment => {
+          if (start && payment.dueDate && new Date(payment.dueDate) < start) return;
+          if (end && payment.dueDate && new Date(payment.dueDate) > end) return;
+          
+          if (payment.status === "completed") {
+            paymentsByStatus.completed++;
+          } else if (payment.status === "late") {
+            paymentsByStatus.late++;
+          } else if (payment.status === "partial") {
+            paymentsByStatus.partial++;
+          } else if (payment.status === "pending") {
+            paymentsByStatus.pending++;
+          } else if (payment.status === "scheduled") {
+            paymentsByStatus.scheduled++;
+          }
+        });
+      }
+
+      return res.json({
+        paymentStatusDistribution,
+        totalOutstandingBalance,
+        totalOriginalPrincipal,
+        principalPaydown: totalOriginalPrincipal - totalOutstandingBalance,
+        principalPaydownRate: totalOriginalPrincipal > 0 
+          ? Math.round(((totalOriginalPrincipal - totalOutstandingBalance) / totalOriginalPrincipal) * 1000) / 10 
+          : 0,
+        drawUtilization: Math.round(drawUtilization * 10) / 10,
+        totalDrawCommitment,
+        totalDrawnAmount,
+        delinquencyRate: Math.round(delinquencyRate * 10) / 10,
+        delinquentLoanCount: delinquentLoans.length,
+        delinquentBalance,
+        activeLoanCount: activeLoans.length,
+        atRiskLoans,
+        paymentsByStatus,
+      });
+    } catch (error) {
+      console.error("Error fetching servicing analytics:", error);
+      return res.status(500).json({ error: "Failed to fetch servicing analytics" });
+    }
+  });
+
+  // =====================
   // Webhook Management Routes (Admin only)
   // =====================
 

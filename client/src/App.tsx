@@ -64,6 +64,7 @@ import AdminWhiteLabelPage from "@/pages/AdminWhiteLabelPage";
 import AdminEmailLogPage from "@/pages/AdminEmailLogPage";
 import AdminSmsLogPage from "@/pages/AdminSmsLogPage";
 import AdminAppointmentsPage from "@/pages/AdminAppointmentsPage";
+import AdminFinancialsPage from "@/pages/AdminFinancialsPage";
 import MapCalibrationPage from "@/pages/admin/map-calibration";
 import BookConsultationPage from "@/pages/BookConsultationPage";
 import MyAppointmentsPage from "@/pages/MyAppointmentsPage";
@@ -113,6 +114,7 @@ function Router() {
       <Route path="/admin/email-log" component={AdminEmailLogPage} />
       <Route path="/admin/sms-log" component={AdminSmsLogPage} />
       <Route path="/admin/appointments" component={AdminAppointmentsPage} />
+      <Route path="/admin/financials" component={AdminFinancialsPage} />
       <Route path="/admin/map-calibration" component={MapCalibrationPage} />
       <Route path="/portal/book-consultation" component={BookConsultationPage} />
       <Route path="/portal/appointments" component={MyAppointmentsPage} />
