@@ -415,10 +415,13 @@ Our team can help you analyze your ADU project and find the right financing stru
     publishDate: "2024-09-18",
     readTime: "8 min read",
     heroImage: "https://images.unsplash.com/photo-1484154218962-a197022b5858?w=1200&h=600&fit=crop&auto=format",
-    excerpt: "Not all renovations are created equal. Learn which upgrades deliver the highest returns and how to stay on budget while maximizing property value.",
+    excerpt: "Garage doors deliver 194% ROI while luxury kitchen overhauls return only 30-40%. Learn which upgrades actually drive profit.",
     tags: ["Fix & Flip", "Renovations", "ROI"],
     relatedArticles: ["scope-of-work-guide", "complete-guide-to-dscr-loans"],
-    content: `
+    content: `This article features interactive charts. Please visit the full article page for the complete experience.
+
+## Original Content Below (for reference)
+
 ## Strategic Renovation for Maximum ROI
 
 As a real estate investor, every dollar you spend on renovations should work toward increasing your property's value and appeal. With rising labor and material costs, it's more important than ever to focus your budget on upgrades that deliver the highest returns.
@@ -686,10 +689,13 @@ Our team can help you structure the right loan for your project scope and timeli
     publishDate: "2024-08-12",
     readTime: "9 min read",
     heroImage: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=1200&h=600&fit=crop&auto=format",
-    excerpt: "A detailed Scope of Work is essential for fix and flip success. Learn how to create one that keeps your project on track and your lender confident.",
+    excerpt: "Document every task, material, cost, and timeline. A professional SOW keeps projects on budget and lenders confident.",
     tags: ["Fix & Flip", "Scope of Work", "Project Management"],
     relatedArticles: ["top-renovations-to-maximize-profits", "complete-guide-to-dscr-loans"],
-    content: `
+    content: `This article features interactive charts and visualizations. Please visit the full article page for the complete experience.
+
+## Original Content Below (for reference)
+
 ## What Is a Scope of Work?
 
 A Scope of Work (SOW) is a detailed outline of all planned construction and renovations for your real estate investment project. Think of it as the blueprint for your entire rehab—documenting every task, material, cost, and timeline from start to finish.
