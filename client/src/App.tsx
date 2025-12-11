@@ -54,6 +54,7 @@ import JoinPage from "@/pages/JoinPage";
 import StaffLoginPage from "@/pages/StaffLoginPage";
 import ResourcesPage from "@/pages/ResourcesPage";
 import ArticlePage from "@/pages/ArticlePage";
+import AmericanMigration2025Page from "@/pages/AmericanMigration2025Page";
 import AdminWhiteLabelPage from "@/pages/AdminWhiteLabelPage";
 import AdminEmailLogPage from "@/pages/AdminEmailLogPage";
 import AdminSmsLogPage from "@/pages/AdminSmsLogPage";
@@ -110,6 +111,7 @@ function Router() {
       <Route path="/join/:token" component={JoinPage} />
       <Route path="/sign/:token" component={SignDocumentPage} />
       <Route path="/resources" component={ResourcesPage} />
+      <Route path="/resources/american-migration-2025" component={AmericanMigration2025Page} />
       <Route path="/resources/:slug" component={ArticlePage} />
       <Route component={NotFound} />
     </Switch>
