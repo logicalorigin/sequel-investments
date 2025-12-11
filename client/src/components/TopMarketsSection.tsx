@@ -596,59 +596,236 @@ export function TopMarketsSection({ stateSlug, stateName }: TopMarketsSectionPro
                         />
                       )}
                       
-                      {/* Market markers */}
-                      {marketsWithDetails.map((market, index) => {
-                        const pos = bounds 
-                          ? latLngToSvgWithBounds(market.lat, market.lng, stateAbbr || "", bounds)
-                          : { x: 0, y: 0 };
-                        const isSelected = selectedMarket?.id === market.id;
-                        const isHovered = hoveredMarket?.id === market.id;
-                        const isActive = isSelected || isHovered;
-                        const radius = isActive ? 14 : 10;
+                      {/* Market markers with clustering and radial expansion */}
+                      {(() => {
+                        // Calculate positions for all markets
+                        const markersWithPos = marketsWithDetails.map((market, index) => ({
+                          market,
+                          index,
+                          pos: bounds 
+                            ? latLngToSvgWithBounds(market.lat, market.lng, stateAbbr || "", bounds)
+                            : { x: 0, y: 0 }
+                        }));
                         
-                        return (
-                          <g 
-                            key={market.id}
-                            style={{ cursor: 'pointer' }}
-                            onClick={() => handleMarkerClick(market)}
-                            onMouseEnter={() => handleMarkerHover(market)}
-                            onMouseLeave={() => handleMarkerHover(null)}
-                          >
-                            {/* Outer glow for active */}
-                            {isActive && (
-                              <circle
-                                cx={pos.x}
-                                cy={pos.y}
-                                r={radius + 6}
-                                fill="hsl(var(--primary) / 0.3)"
-                              />
-                            )}
-                            {/* Main circle */}
-                            <circle
-                              cx={pos.x}
-                              cy={pos.y}
-                              r={radius}
-                              fill={isActive ? "hsl(45 93% 58%)" : index === 0 ? "hsl(38 92% 50%)" : index === 1 ? "hsl(32 95% 44%)" : "hsl(28 94% 39%)"}
-                              stroke={isActive ? "hsl(48 96% 89%)" : "hsl(30 94% 25%)"}
-                              strokeWidth={isActive ? 3 : 2}
-                              style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.4))' }}
-                            />
-                            {/* Number label */}
-                            <text
-                              x={pos.x}
-                              y={pos.y + 4}
-                              textAnchor="middle"
-                              fill={isActive ? "#0f172a" : "hsl(48 96% 89%)"}
-                              fontSize={isActive ? 12 : 10}
-                              fontWeight="bold"
-                              fontFamily="system-ui, sans-serif"
-                              style={{ pointerEvents: 'none' }}
+                        // Improved cluster detection: merges markers within threshold of ANY cluster member
+                        const clusterThreshold = 15; // SVG units - markers closer than this will cluster
+                        const clusters: { center: { x: number; y: number }; markers: typeof markersWithPos }[] = [];
+                        const processed = new Set<number>();
+                        
+                        for (let i = 0; i < markersWithPos.length; i++) {
+                          if (processed.has(i)) continue;
+                          
+                          const cluster = [markersWithPos[i]];
+                          processed.add(i);
+                          
+                          // Keep checking for new additions until no more can be added
+                          let foundNew = true;
+                          while (foundNew) {
+                            foundNew = false;
+                            for (let j = 0; j < markersWithPos.length; j++) {
+                              if (processed.has(j)) continue;
+                              
+                              // Check distance against ALL cluster members (not just first)
+                              for (const clusterMember of cluster) {
+                                const dx = clusterMember.pos.x - markersWithPos[j].pos.x;
+                                const dy = clusterMember.pos.y - markersWithPos[j].pos.y;
+                                const dist = Math.sqrt(dx * dx + dy * dy);
+                                
+                                if (dist < clusterThreshold) {
+                                  cluster.push(markersWithPos[j]);
+                                  processed.add(j);
+                                  foundNew = true;
+                                  break;
+                                }
+                              }
+                            }
+                          }
+                          
+                          // Calculate cluster center
+                          const centerX = cluster.reduce((sum, m) => sum + m.pos.x, 0) / cluster.length;
+                          const centerY = cluster.reduce((sum, m) => sum + m.pos.y, 0) / cluster.length;
+                          clusters.push({ center: { x: centerX, y: centerY }, markers: cluster });
+                        }
+                        
+                        // Check if any marker in a cluster is hovered/selected
+                        const isClusterActive = (cluster: typeof clusters[0]) => 
+                          cluster.markers.some(m => 
+                            hoveredMarket?.id === m.market.id || selectedMarket?.id === m.market.id
+                          );
+                        
+                        return clusters.map((cluster, clusterIdx) => {
+                          const isExpanded = isClusterActive(cluster);
+                          const isSingleMarker = cluster.markers.length === 1;
+                          
+                          if (isSingleMarker) {
+                            // Render single marker (smaller size)
+                            const { market, index, pos } = cluster.markers[0];
+                            const isSelected = selectedMarket?.id === market.id;
+                            const isHovered = hoveredMarket?.id === market.id;
+                            const isActive = isSelected || isHovered;
+                            const radius = isActive ? 8 : 6;
+                            
+                            return (
+                              <g 
+                                key={market.id}
+                                style={{ cursor: 'pointer' }}
+                                onClick={() => handleMarkerClick(market)}
+                                onMouseEnter={() => handleMarkerHover(market)}
+                                onMouseLeave={() => handleMarkerHover(null)}
+                              >
+                                {isActive && (
+                                  <circle cx={pos.x} cy={pos.y} r={radius + 4} fill="hsl(var(--primary) / 0.3)" />
+                                )}
+                                <circle
+                                  cx={pos.x}
+                                  cy={pos.y}
+                                  r={radius}
+                                  fill={isActive ? "hsl(45 93% 58%)" : index === 0 ? "hsl(38 92% 50%)" : index === 1 ? "hsl(32 95% 44%)" : "hsl(28 94% 39%)"}
+                                  stroke={isActive ? "hsl(48 96% 89%)" : "hsl(30 94% 25%)"}
+                                  strokeWidth={isActive ? 2 : 1.5}
+                                  style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.4))' }}
+                                />
+                                <text
+                                  x={pos.x}
+                                  y={pos.y + 2.5}
+                                  textAnchor="middle"
+                                  fill={isActive ? "#0f172a" : "hsl(48 96% 89%)"}
+                                  fontSize={isActive ? 8 : 7}
+                                  fontWeight="bold"
+                                  fontFamily="system-ui, sans-serif"
+                                  style={{ pointerEvents: 'none' }}
+                                >
+                                  {index + 1}
+                                </text>
+                              </g>
+                            );
+                          }
+                          
+                          // Clustered markers - show radial expansion on hover
+                          const expandRadius = 18; // Distance from center for expanded markers
+                          const hitboxRadius = expandRadius + 10; // Slightly larger for easier hover
+                          
+                          return (
+                            <g 
+                              key={`cluster-${clusterIdx}`}
+                              onMouseLeave={() => handleMarkerHover(null)}
                             >
-                              {index + 1}
-                            </text>
-                          </g>
-                        );
-                      })}
+                              {isExpanded ? (
+                                // Radial expansion - show all markers in a circle
+                                <>
+                                  {/* Transparent hitbox to keep cluster expanded while hovering within area */}
+                                  <circle
+                                    cx={cluster.center.x}
+                                    cy={cluster.center.y}
+                                    r={hitboxRadius}
+                                    fill="transparent"
+                                    style={{ pointerEvents: 'all' }}
+                                  />
+                                  {/* Connection lines from center to expanded markers */}
+                                  {cluster.markers.map((m, i) => {
+                                    const angle = (i * 2 * Math.PI) / cluster.markers.length - Math.PI / 2;
+                                    const expandedX = cluster.center.x + Math.cos(angle) * expandRadius;
+                                    const expandedY = cluster.center.y + Math.sin(angle) * expandRadius;
+                                    return (
+                                      <line
+                                        key={`line-${m.market.id}`}
+                                        x1={cluster.center.x}
+                                        y1={cluster.center.y}
+                                        x2={expandedX}
+                                        y2={expandedY}
+                                        stroke="hsl(var(--primary) / 0.4)"
+                                        strokeWidth={1}
+                                        strokeDasharray="2,2"
+                                        style={{ pointerEvents: 'none' }}
+                                      />
+                                    );
+                                  })}
+                                  {/* Small center dot showing cluster origin */}
+                                  <circle
+                                    cx={cluster.center.x}
+                                    cy={cluster.center.y}
+                                    r={3}
+                                    fill="hsl(var(--primary) / 0.5)"
+                                    style={{ pointerEvents: 'none' }}
+                                  />
+                                  {/* Expanded markers in radial pattern */}
+                                  {cluster.markers.map((m, i) => {
+                                    const angle = (i * 2 * Math.PI) / cluster.markers.length - Math.PI / 2;
+                                    const expandedX = cluster.center.x + Math.cos(angle) * expandRadius;
+                                    const expandedY = cluster.center.y + Math.sin(angle) * expandRadius;
+                                    const isSelected = selectedMarket?.id === m.market.id;
+                                    const isHovered = hoveredMarket?.id === m.market.id;
+                                    const isActive = isSelected || isHovered;
+                                    const radius = isActive ? 7 : 5;
+                                    
+                                    return (
+                                      <g 
+                                        key={m.market.id}
+                                        style={{ cursor: 'pointer' }}
+                                        onClick={() => handleMarkerClick(m.market)}
+                                        onMouseEnter={() => handleMarkerHover(m.market)}
+                                      >
+                                        {isActive && (
+                                          <circle cx={expandedX} cy={expandedY} r={radius + 3} fill="hsl(var(--primary) / 0.4)" />
+                                        )}
+                                        <circle
+                                          cx={expandedX}
+                                          cy={expandedY}
+                                          r={radius}
+                                          fill={isActive ? "hsl(45 93% 58%)" : m.index === 0 ? "hsl(38 92% 50%)" : m.index === 1 ? "hsl(32 95% 44%)" : "hsl(28 94% 39%)"}
+                                          stroke={isActive ? "hsl(48 96% 89%)" : "hsl(30 94% 25%)"}
+                                          strokeWidth={isActive ? 2 : 1}
+                                          style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.4))' }}
+                                        />
+                                        <text
+                                          x={expandedX}
+                                          y={expandedY + 2}
+                                          textAnchor="middle"
+                                          fill={isActive ? "#0f172a" : "hsl(48 96% 89%)"}
+                                          fontSize={6}
+                                          fontWeight="bold"
+                                          fontFamily="system-ui, sans-serif"
+                                          style={{ pointerEvents: 'none' }}
+                                        >
+                                          {m.index + 1}
+                                        </text>
+                                      </g>
+                                    );
+                                  })}
+                                </>
+                              ) : (
+                                // Collapsed cluster marker showing count
+                                <g 
+                                  style={{ cursor: 'pointer' }}
+                                  onMouseEnter={() => handleMarkerHover(cluster.markers[0].market)}
+                                >
+                                  <circle
+                                    cx={cluster.center.x}
+                                    cy={cluster.center.y}
+                                    r={9}
+                                    fill="hsl(38 92% 50%)"
+                                    stroke="hsl(30 94% 25%)"
+                                    strokeWidth={2}
+                                    style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.4))' }}
+                                  />
+                                  <text
+                                    x={cluster.center.x}
+                                    y={cluster.center.y + 3}
+                                    textAnchor="middle"
+                                    fill="hsl(48 96% 89%)"
+                                    fontSize={8}
+                                    fontWeight="bold"
+                                    fontFamily="system-ui, sans-serif"
+                                    style={{ pointerEvents: 'none' }}
+                                  >
+                                    {cluster.markers.length}
+                                  </text>
+                                </g>
+                              )}
+                            </g>
+                          );
+                        });
+                      })()}
                     </svg>
                   );
                 })()}
