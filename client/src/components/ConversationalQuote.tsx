@@ -894,83 +894,10 @@ export default function ConversationalQuote() {
         const hasVerifiedAddress = !!(formData.propertyAddress && formData.propertyCity && formData.propertyState);
         const hasMapCoordinates = formData.propertyLat !== null && formData.propertyLng !== null;
         return (
-          <div className="flex flex-col h-full w-full max-w-lg mx-auto px-4">
-            {/* Zone 1: Map Container Card (~60% of available height) */}
-            <div className="relative flex-[3] min-h-[240px] sm:min-h-[300px] rounded-2xl border border-white/10 overflow-hidden shadow-lg shadow-black/30 mb-4">
-              {/* Google Map */}
-              <Map
-                id="address-verification-map"
-                center={mapCenter}
-                zoom={mapZoom}
-                gestureHandling="cooperative"
-                disableDefaultUI={true}
-                styles={darkMapStyles}
-                className="w-full h-full"
-              >
-                {/* Hidden default marker - we use custom overlay instead */}
-                {hasVerifiedAddress && hasMapCoordinates && (
-                  <Marker
-                    position={{ lat: formData.propertyLat!, lng: formData.propertyLng! }}
-                    title={formData.propertyAddress}
-                    visible={false}
-                  />
-                )}
-              </Map>
-              
-              {/* Custom green "Me" marker overlay - centered on map */}
-              {hasVerifiedAddress && hasMapCoordinates && (
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <motion.div
-                    initial={{ scale: 0, y: -20 }}
-                    animate={{ scale: 1, y: 0 }}
-                    transition={{ type: "spring", damping: 15, stiffness: 300 }}
-                    className="relative"
-                    style={{ marginTop: "-24px" }}
-                  >
-                    <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/40 border-[3px] border-white">
-                      <span className="text-white text-xs sm:text-sm font-bold">Me</span>
-                    </div>
-                    {/* Pin shadow/tail */}
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1.5">
-                      <div className="w-3 h-3 bg-black/30 rounded-full blur-sm" />
-                    </div>
-                  </motion.div>
-                </div>
-              )}
-              
-              {/* Loading indicator for geolocation */}
-              {isGeolocationLoading && (
-                <div className="absolute inset-0 flex items-center justify-center bg-slate-900/60">
-                  <div className="flex items-center gap-2 text-white/80">
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    <span className="text-sm">Finding your location...</span>
-                  </div>
-                </div>
-              )}
-              
-              {/* Floating Address Bar at Top of Map (when verified) */}
-              {hasVerifiedAddress && (
-                <motion.div
-                  initial={{ y: -20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  className="absolute top-3 left-3 right-3 z-10"
-                >
-                  <div className="bg-slate-900/95 backdrop-blur-sm rounded-lg border border-white/10 px-3 py-2.5">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />
-                      <p className="text-white text-xs sm:text-sm font-medium truncate">
-                        {formData.propertyAddress}
-                      </p>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </div>
-            
-            {/* Zone 2: Bottom Panel - Dark Card with Controls */}
-            <div className="flex-[2] min-h-[200px] bg-slate-900/95 rounded-2xl border border-white/10 p-4 sm:p-5 flex flex-col">
-              {/* Address Input Section */}
-              <div className="space-y-3 flex-1">
+          <div className="flex flex-col h-full w-full max-w-lg mx-auto px-4 gap-4">
+            {/* Zone 1 (TOP): Address Input & Verification Status */}
+            <div className="bg-slate-900/95 rounded-2xl border border-white/10 p-4 sm:p-5">
+              <div className="space-y-3">
                 <div>
                   <label className="text-white/50 text-xs uppercase tracking-wider mb-2 block">
                     Property Address
@@ -1022,31 +949,85 @@ export default function ConversationalQuote() {
                   )}
                 </AnimatePresence>
               </div>
-              
-              {/* Action Buttons */}
-              <div className="space-y-2 mt-4">
-                {/* Continue Button - Yellow/Gold (only show when address verified) */}
-                {hasVerifiedAddress && (
-                  <motion.button
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    onClick={handleNext}
-                    className="w-full py-3.5 bg-amber-400 hover:bg-amber-500 text-slate-900 font-semibold rounded-xl transition-colors shadow-lg shadow-amber-400/20"
-                    data-testid="button-continue-address"
-                  >
-                    Continue
-                  </motion.button>
+            </div>
+            
+            {/* Zone 2 (MIDDLE): Map Card */}
+            <div className="relative flex-1 min-h-[200px] sm:min-h-[280px] rounded-2xl border border-white/10 overflow-hidden shadow-lg shadow-black/30">
+              {/* Google Map */}
+              <Map
+                id="address-verification-map"
+                center={mapCenter}
+                zoom={mapZoom}
+                gestureHandling="cooperative"
+                disableDefaultUI={true}
+                styles={darkMapStyles}
+                className="w-full h-full"
+              >
+                {/* Hidden default marker - we use custom overlay instead */}
+                {hasVerifiedAddress && hasMapCoordinates && (
+                  <Marker
+                    position={{ lat: formData.propertyLat!, lng: formData.propertyLng! }}
+                    title={formData.propertyAddress}
+                    visible={false}
+                  />
                 )}
-                
-                {/* Skip Button */}
-                <button
+              </Map>
+              
+              {/* Custom green "Me" marker overlay - centered on map */}
+              {hasVerifiedAddress && hasMapCoordinates && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <motion.div
+                    initial={{ scale: 0, y: -20 }}
+                    animate={{ scale: 1, y: 0 }}
+                    transition={{ type: "spring", damping: 15, stiffness: 300 }}
+                    className="relative"
+                    style={{ marginTop: "-24px" }}
+                  >
+                    <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/40 border-[3px] border-white">
+                      <span className="text-white text-xs sm:text-sm font-bold">Me</span>
+                    </div>
+                    {/* Pin shadow/tail */}
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1.5">
+                      <div className="w-3 h-3 bg-black/30 rounded-full blur-sm" />
+                    </div>
+                  </motion.div>
+                </div>
+              )}
+              
+              {/* Loading indicator for geolocation */}
+              {isGeolocationLoading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-slate-900/60">
+                  <div className="flex items-center gap-2 text-white/80">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span className="text-sm">Finding your location...</span>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            {/* Zone 3 (BOTTOM): Action Buttons */}
+            <div className="space-y-2 pb-2">
+              {/* Continue Button - Yellow/Gold (only show when address verified) */}
+              {hasVerifiedAddress && (
+                <motion.button
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
                   onClick={handleNext}
-                  className="w-full py-3 text-white/60 hover:text-white text-sm font-medium transition-colors"
-                  data-testid="button-skip-address"
+                  className="w-full py-3.5 bg-amber-400 hover:bg-amber-500 text-slate-900 font-semibold rounded-xl transition-colors shadow-lg shadow-amber-400/20"
+                  data-testid="button-continue-address"
                 >
-                  I'm Still Looking
-                </button>
-              </div>
+                  Continue
+                </motion.button>
+              )}
+              
+              {/* Skip Button */}
+              <button
+                onClick={handleNext}
+                className="w-full py-3 text-white/60 hover:text-white text-sm font-medium transition-colors"
+                data-testid="button-skip-address"
+              >
+                I'm Still Looking
+              </button>
             </div>
           </div>
         );
