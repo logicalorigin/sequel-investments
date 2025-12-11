@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { useRoute, Link, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Camera, Video, X, Check, ChevronLeft, Upload, Trash2, Play, Pause, RotateCcw, Image as ImageIcon, Film, Loader2 } from "lucide-react";
+import { Camera, Video, X, Check, ChevronLeft, Trash2, Play, Pause, RotateCcw, Image as ImageIcon, Film, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -88,7 +88,6 @@ export default function DrawMediaCapturePage() {
   const streamRef = useRef<MediaStream | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const { data: draw, isLoading: drawLoading } = useQuery<LoanDraw>({
     queryKey: ["/api/loan-draws", drawId],
@@ -295,62 +294,6 @@ export default function DrawMediaCapturePage() {
       }
     }
   }, [isRecording]);
-  
-  const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files) return;
-    
-    Array.from(files).forEach((file) => {
-      const isVideo = file.type.startsWith("video/");
-      const isPhoto = file.type.startsWith("image/");
-      
-      if (!isVideo && !isPhoto) {
-        toast({
-          title: "Invalid file type",
-          description: "Please select photos or videos only",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      if (isPhoto && file.size > PHOTO_VERIFICATION_CONFIG.MAX_PHOTO_SIZE_MB * 1024 * 1024) {
-        toast({
-          title: "Photo too large",
-          description: `Maximum photo size is ${PHOTO_VERIFICATION_CONFIG.MAX_PHOTO_SIZE_MB}MB`,
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      if (isVideo && file.size > PHOTO_VERIFICATION_CONFIG.MAX_VIDEO_SIZE_MB * 1024 * 1024) {
-        toast({
-          title: "Video too large",
-          description: `Maximum video size is ${PHOTO_VERIFICATION_CONFIG.MAX_VIDEO_SIZE_MB}MB`,
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      const id = `upload-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      const previewUrl = URL.createObjectURL(file);
-      
-      setCapturedMedia(prev => [...prev, {
-        id,
-        file,
-        type: isVideo ? "video" : "photo",
-        category: selectedCategory,
-        previewUrl,
-        caption: "",
-        uploadProgress: 0,
-        uploadStatus: "pending",
-        browserLocation: browserLocation || undefined,
-      }]);
-    });
-    
-    if (event.target) {
-      event.target.value = "";
-    }
-  }, [selectedCategory, browserLocation, toast]);
   
   const removeMedia = useCallback((id: string) => {
     setCapturedMedia(prev => {
@@ -622,27 +565,6 @@ export default function DrawMediaCapturePage() {
                 <Camera className="h-5 w-5" />
                 Open Camera
               </Button>
-              
-              <Button
-                variant="outline"
-                size="lg"
-                className="gap-2 h-14"
-                onClick={() => fileInputRef.current?.click()}
-                data-testid="button-upload-files"
-              >
-                <Upload className="h-5 w-5" />
-                Upload from Device
-              </Button>
-              
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*,video/*"
-                multiple
-                className="hidden"
-                onChange={handleFileSelect}
-                data-testid="input-file"
-              />
             </div>
             
             <p className="mt-4 text-xs text-muted-foreground text-center">
@@ -674,9 +596,9 @@ export default function DrawMediaCapturePage() {
                 {uploadingCount > 0 ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  <Upload className="h-4 w-4" />
+                  <Check className="h-4 w-4" />
                 )}
-                Upload All
+                Save All
               </Button>
             )}
           </div>
