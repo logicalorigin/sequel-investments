@@ -916,23 +916,78 @@ export default function ConversationalQuote() {
                 )}
               </Map>
               
-              {/* Custom green "Me" marker overlay - centered on map */}
+              {/* Custom green "Me" marker overlay - centered on map with pop animation */}
               {hasVerifiedAddress && hasMapCoordinates && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   <motion.div
-                    initial={{ scale: 0, y: -20 }}
-                    animate={{ scale: 1, y: 0 }}
-                    transition={{ type: "spring", damping: 15, stiffness: 300 }}
+                    initial={{ scale: 0, y: -50, opacity: 0 }}
+                    animate={{ scale: 1, y: 0, opacity: 1 }}
+                    transition={{ 
+                      type: "spring", 
+                      damping: 10, 
+                      stiffness: 200,
+                      mass: 0.8
+                    }}
                     className="relative"
                     style={{ marginTop: "-24px" }}
                   >
-                    <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/40 border-[3px] border-white">
-                      <span className="text-white text-xs sm:text-sm font-bold">Me</span>
+                    {/* Pulsing ring animation */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <motion.div
+                        initial={{ scale: 0.8, opacity: 0.8 }}
+                        animate={{ scale: 2, opacity: 0 }}
+                        transition={{ 
+                          duration: 1.5, 
+                          repeat: Infinity,
+                          ease: "easeOut"
+                        }}
+                        className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-emerald-500"
+                      />
                     </div>
-                    {/* Pin shadow/tail */}
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1.5">
-                      <div className="w-3 h-3 bg-black/30 rounded-full blur-sm" />
+                    {/* Second pulse ring (delayed) */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <motion.div
+                        initial={{ scale: 0.8, opacity: 0.6 }}
+                        animate={{ scale: 2.5, opacity: 0 }}
+                        transition={{ 
+                          duration: 1.5, 
+                          repeat: Infinity,
+                          ease: "easeOut",
+                          delay: 0.5
+                        }}
+                        className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-emerald-400"
+                      />
                     </div>
+                    {/* Main marker with bounce */}
+                    <motion.div
+                      animate={{ 
+                        y: [0, -8, 0],
+                        scale: [1, 1.1, 1]
+                      }}
+                      transition={{ 
+                        duration: 0.6,
+                        delay: 0.3,
+                        ease: "easeOut"
+                      }}
+                      className="relative"
+                    >
+                      <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/50 border-[3px] border-white">
+                        <span className="text-white text-xs sm:text-sm font-bold">Me</span>
+                      </div>
+                      {/* Pin tail/pointer */}
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1">
+                        <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-t-[10px] border-l-transparent border-r-transparent border-t-emerald-500" />
+                      </div>
+                    </motion.div>
+                    {/* Ground shadow */}
+                    <motion.div 
+                      initial={{ scale: 0, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 0.3 }}
+                      transition={{ delay: 0.4 }}
+                      className="absolute top-full left-1/2 -translate-x-1/2 mt-2"
+                    >
+                      <div className="w-6 h-2 bg-black/40 rounded-full blur-sm" />
+                    </motion.div>
                   </motion.div>
                 </div>
               )}
@@ -1008,33 +1063,6 @@ export default function ConversationalQuote() {
                 </div>
               </div>
               
-              {/* Spacer - map visible here */}
-              <div className="flex-1" />
-              
-              {/* BOTTOM: Continue Button (only when verified) */}
-              <div className="p-4 pointer-events-auto">
-                <div className="max-w-md mx-auto space-y-3">
-                  {hasVerifiedAddress ? (
-                    <motion.button
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      onClick={handleNext}
-                      className="w-full py-3.5 bg-amber-400 hover:bg-amber-500 text-slate-900 font-semibold rounded-xl transition-colors shadow-lg shadow-amber-400/20"
-                      data-testid="button-continue-address"
-                    >
-                      Continue
-                    </motion.button>
-                  ) : (
-                    <button
-                      onClick={handleNext}
-                      className="w-full py-3.5 bg-slate-800/90 backdrop-blur-sm border border-white/10 text-white/70 hover:text-white text-sm font-medium rounded-xl transition-colors"
-                      data-testid="button-skip-address"
-                    >
-                      I'm Still Looking
-                    </button>
-                  )}
-                </div>
-              </div>
             </div>
           </div>
         );
