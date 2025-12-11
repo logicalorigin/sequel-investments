@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
+import { PortalSignUpCTA } from "@/components/PortalSignUpCTA";
 import {
   LineChart,
   Line,
@@ -375,27 +376,34 @@ export default function AmericanMigration2025Page() {
             Working with a lender who understands these markets and can analyze deals quickly provides a competitive advantage during acquisition.
           </p>
 
-          {/* Call to Action */}
-          <Card className="mt-12 bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-            <CardContent className="p-8 text-center">
-              <h3 className="text-xl font-bold mb-3">Ready to Invest in High-Growth Markets?</h3>
-              <p className="text-muted-foreground mb-6">
-                Our team specializes in financing investment properties across the country. We help investors move quickly on opportunities in South Carolina, Texas, and other high-growth markets.
-              </p>
-              <div className="flex flex-wrap justify-center gap-4">
-                <Link href="/get-quote">
-                  <Button size="lg" data-testid="button-get-quote">
-                    Get Pre-Qualified
-                  </Button>
-                </Link>
-                <Link href="/where-we-lend">
-                  <Button variant="outline" size="lg" data-testid="button-where-we-lend">
-                    See Where We Lend
-                  </Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Inline CTA */}
+          <div className="my-8">
+            <PortalSignUpCTA 
+              variant="inline"
+              title="Researching high-growth markets?"
+              description="Create a free account to access market data and analyze deals"
+            />
+          </div>
+
+          {/* Portal Sign-up Card */}
+          <div className="my-12">
+            <h2 className="text-2xl font-bold mb-2">Start Analyzing Deals</h2>
+            <p className="text-muted-foreground mb-6">Use our investor portal to run numbers on properties in South Carolina, Texas, Florida, and other growth markets.</p>
+            <PortalSignUpCTA 
+              loanType="general" 
+              title="Access Investment Tools"
+              description="Compare markets, analyze deals with our calculators, and track your investment pipeline."
+            />
+          </div>
+
+          {/* Final CTA Banner */}
+          <div className="mt-12">
+            <PortalSignUpCTA 
+              variant="banner"
+              title="Ready to Invest in High-Growth Markets?"
+              description="We specialize in financing investment properties across South Carolina, Texas, Florida, and other high-growth states. Move quickly on opportunities."
+            />
+          </div>
         </div>
       </article>
 

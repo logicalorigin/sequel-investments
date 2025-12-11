@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
+import { ArticleFixFlipCalculator } from "@/components/ArticleFixFlipCalculator";
+import { PortalSignUpCTA } from "@/components/PortalSignUpCTA";
 import {
   BarChart,
   Bar,
@@ -548,27 +550,37 @@ export default function ScopeOfWorkGuidePage() {
             </CardContent>
           </Card>
 
-          {/* Call to Action */}
-          <Card className="mt-12 bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-            <CardContent className="p-8 text-center">
-              <h3 className="text-xl font-bold mb-3">Ready to Get Your Fix & Flip Funded?</h3>
-              <p className="text-muted-foreground mb-6">
-                Our fix and flip loans offer up to 90% of purchase price, up to 100% of rehab costs, 48-hour draw turnaround, and rates from 8.90%. Our team can help you refine your SOW and structure financing that matches your project.
-              </p>
-              <div className="flex flex-wrap justify-center gap-4">
-                <Link href="/get-quote">
-                  <Button size="lg" data-testid="button-get-quote">
-                    Submit Your Deal
-                  </Button>
-                </Link>
-                <Link href="/resources/top-renovations-to-maximize-profits">
-                  <Button variant="outline" size="lg" data-testid="button-renovations-guide">
-                    View Renovations Guide
-                  </Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Inline CTA */}
+          <div className="my-8">
+            <PortalSignUpCTA 
+              variant="inline"
+              title="Need to manage your rehab project?"
+              description="Create a free account to track budgets, draws, and timelines"
+            />
+          </div>
+
+          {/* Embedded Calculator */}
+          <div className="my-12">
+            <h2 className="text-2xl font-bold mb-2">Calculate Your Fix & Flip Returns</h2>
+            <p className="text-muted-foreground mb-6">Estimate profit and cash requirements based on your scope of work. Sign up to save scenarios and track actual costs.</p>
+            <div className="grid md:grid-cols-2 gap-8">
+              <ArticleFixFlipCalculator />
+              <PortalSignUpCTA 
+                loanType="fix-flip" 
+                title="Unlock Full Project Management"
+                description="Track rehab budgets vs. actuals, manage draw requests, and document your progress."
+              />
+            </div>
+          </div>
+
+          {/* Final CTA Banner */}
+          <div className="mt-12">
+            <PortalSignUpCTA 
+              variant="banner"
+              title="Ready to Get Your Fix & Flip Funded?"
+              description="Up to 90% of purchase + 100% of rehab, 48-hour draw turnaround, and rates from 8.90%. Our team helps structure financing for your SOW."
+            />
+          </div>
         </div>
       </article>
 
