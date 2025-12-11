@@ -775,28 +775,7 @@ export function TopMarketsSection({ stateSlug, stateName }: TopMarketsSectionPro
                                       />
                                     );
                                   })}
-                                  {/* Center master bubble */}
-                                  <circle
-                                    cx={cluster.center.x}
-                                    cy={cluster.center.y}
-                                    r={5}
-                                    fill="hsl(38 92% 50%)"
-                                    stroke="hsl(30 94% 35%)"
-                                    strokeWidth={1.5}
-                                    style={{ filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.3))', pointerEvents: 'none' }}
-                                  />
-                                  <text
-                                    x={cluster.center.x}
-                                    y={cluster.center.y + 2}
-                                    textAnchor="middle"
-                                    fill="hsl(48 96% 95%)"
-                                    fontSize={5}
-                                    fontWeight="bold"
-                                    fontFamily="system-ui, sans-serif"
-                                    style={{ pointerEvents: 'none' }}
-                                  >
-                                    {cluster.markers.length}
-                                  </text>
+                                  {/* Center icon hidden when expanded - only satellites visible */}
                                   {/* Expanded markers in radial pattern - closer and tighter */}
                                   {cluster.markers.map((m, i) => {
                                     const angle = (i * 2 * Math.PI) / cluster.markers.length - Math.PI / 2;
