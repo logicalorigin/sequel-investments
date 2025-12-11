@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,13 +19,67 @@ import {
   Star,
   CheckCircle,
 } from "lucide-react";
-import { StateMapDark } from "@/components/StateMapDark";
+import { statePaths } from "./USMap";
 import { MarketDetailDrawer } from "@/components/MarketDetailDrawer";
 import { 
   getMarketDetails, 
   generateMarketDetailFromBasicData,
   type MarketDetail 
 } from "@/data/marketDetails";
+
+// Map state slugs to abbreviations
+const SLUG_TO_ABBR: Record<string, string> = {
+  "california": "CA", "texas": "TX", "florida": "FL", "new-york": "NY",
+  "arizona": "AZ", "colorado": "CO", "georgia": "GA", "nevada": "NV",
+  "north-carolina": "NC", "tennessee": "TN", "washington": "WA",
+  "south-carolina": "SC", "idaho": "ID", "utah": "UT", "oregon": "OR",
+  "alabama": "AL", "kentucky": "KY", "louisiana": "LA", "ohio": "OH",
+  "indiana": "IN", "michigan": "MI", "missouri": "MO", "maryland": "MD",
+  "virginia": "VA", "pennsylvania": "PA", "new-jersey": "NJ",
+  "massachusetts": "MA", "illinois": "IL", "minnesota": "MN",
+  "wisconsin": "WI", "iowa": "IA", "kansas": "KS", "nebraska": "NE",
+  "oklahoma": "OK", "arkansas": "AR", "mississippi": "MS",
+  "new-mexico": "NM", "montana": "MT", "wyoming": "WY",
+  "north-dakota": "ND", "south-dakota": "SD", "west-virginia": "WV",
+  "connecticut": "CT", "new-hampshire": "NH", "maine": "ME",
+  "vermont": "VT", "rhode-island": "RI", "delaware": "DE",
+  "district-of-columbia": "DC", "hawaii": "HI", "alaska": "AK",
+};
+
+// Get the bounding box for a state path to calculate its center
+function getPathBounds(pathD: string): { minX: number; minY: number; maxX: number; maxY: number; centerX: number; centerY: number } {
+  const coords: number[][] = [];
+  const regex = /[ML]\s*([\d.]+)[,\s]+([\d.]+)/gi;
+  let match;
+  while ((match = regex.exec(pathD)) !== null) {
+    coords.push([parseFloat(match[1]), parseFloat(match[2])]);
+  }
+  if (coords.length === 0) return { minX: 0, minY: 0, maxX: 100, maxY: 100, centerX: 50, centerY: 50 };
+  
+  const xs = coords.map(c => c[0]);
+  const ys = coords.map(c => c[1]);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
+  return {
+    minX,
+    minY,
+    maxX,
+    maxY,
+    centerX: (minX + maxX) / 2,
+    centerY: (minY + maxY) / 2
+  };
+}
+
+// Convert lat/lng to SVG coordinates (approximate)
+function latLngToSvg(lat: number, lng: number): { x: number; y: number } {
+  // Approximate conversion for continental US
+  // SVG viewBox is 959 x 593
+  const x = ((lng + 125) / 58) * 959;
+  const y = ((50 - lat) / 25) * 593;
+  return { x, y };
+}
 
 function useMediaQuery(query: string): boolean {
   const [matches, setMatches] = useState(false);
@@ -334,40 +388,135 @@ export function TopMarketsSection({ stateSlug, stateName }: TopMarketsSectionPro
         <div className={`grid gap-8 items-start transition-all duration-300 ${
           selectedMarket ? 'lg:grid-cols-2' : 'lg:grid-cols-2'
         }`}>
-          <Card className="overflow-hidden border-primary/10 bg-transparent">
+          <Card className="overflow-hidden border-primary/10 bg-card/50">
             <CardContent className="p-0">
-              <StateMapDark
-                stateSlug={stateSlug}
-                stateName={stateName}
-                markets={marketsWithDetails}
-                selectedMarket={selectedMarket}
-                hoveredMarket={hoveredMarket}
-                onMarkerClick={handleMarkerClick}
-                onMarkerHover={handleMarkerHover}
-              />
+              {/* SVG-based state map like hero section */}
+              <div className="relative h-[400px] md:h-[500px] overflow-hidden bg-slate-900/50">
+                {(() => {
+                  const stateAbbr = SLUG_TO_ABBR[stateSlug];
+                  const statePathD = stateAbbr ? statePaths[stateAbbr] : null;
+                  const bounds = statePathD ? getPathBounds(statePathD) : null;
+                  
+                  // Calculate viewBox to zoom and center on the focus state
+                  const padding = 80;
+                  const viewBoxX = bounds ? bounds.minX - padding : 0;
+                  const viewBoxY = bounds ? bounds.minY - padding : 0;
+                  const viewBoxW = bounds ? (bounds.maxX - bounds.minX) + padding * 2 : 959;
+                  const viewBoxH = bounds ? (bounds.maxY - bounds.minY) + padding * 2 : 593;
+
+                  return (
+                    <svg
+                      viewBox={`${viewBoxX} ${viewBoxY} ${viewBoxW} ${viewBoxH}`}
+                      className="w-full h-full"
+                      preserveAspectRatio="xMidYMid meet"
+                    >
+                      <defs>
+                        <linearGradient id="stateGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.9" />
+                          <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0.7" />
+                        </linearGradient>
+                        <filter id="stateShadow" x="-20%" y="-20%" width="140%" height="140%">
+                          <feDropShadow dx="0" dy="4" stdDeviation="8" floodColor="#000" floodOpacity="0.4" />
+                        </filter>
+                      </defs>
+                      
+                      {/* All other states - very subtle background */}
+                      {Object.entries(statePaths).map(([abbr, pathD]) => {
+                        if (abbr === stateAbbr) return null;
+                        return (
+                          <path
+                            key={abbr}
+                            d={pathD}
+                            fill="hsl(var(--muted-foreground) / 0.08)"
+                            stroke="hsl(var(--muted-foreground) / 0.15)"
+                            strokeWidth={0.5}
+                          />
+                        );
+                      })}
+                      
+                      {/* Focus state - prominent and highlighted */}
+                      {statePathD && (
+                        <path
+                          d={statePathD}
+                          fill="url(#stateGradient)"
+                          stroke="hsl(var(--primary))"
+                          strokeWidth={2}
+                          filter="url(#stateShadow)"
+                        />
+                      )}
+                      
+                      {/* Market markers */}
+                      {marketsWithDetails.map((market, index) => {
+                        const pos = latLngToSvg(market.lat, market.lng);
+                        const isSelected = selectedMarket?.id === market.id;
+                        const isHovered = hoveredMarket?.id === market.id;
+                        const isActive = isSelected || isHovered;
+                        const radius = isActive ? 14 : 10;
+                        
+                        return (
+                          <g 
+                            key={market.id}
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => handleMarkerClick(market)}
+                            onMouseEnter={() => handleMarkerHover(market)}
+                            onMouseLeave={() => handleMarkerHover(null)}
+                          >
+                            {/* Outer glow for active */}
+                            {isActive && (
+                              <circle
+                                cx={pos.x}
+                                cy={pos.y}
+                                r={radius + 6}
+                                fill="hsl(var(--primary) / 0.3)"
+                              />
+                            )}
+                            {/* Main circle */}
+                            <circle
+                              cx={pos.x}
+                              cy={pos.y}
+                              r={radius}
+                              fill={isActive ? "hsl(45 93% 58%)" : index === 0 ? "hsl(38 92% 50%)" : index === 1 ? "hsl(32 95% 44%)" : "hsl(28 94% 39%)"}
+                              stroke={isActive ? "hsl(48 96% 89%)" : "hsl(30 94% 25%)"}
+                              strokeWidth={isActive ? 3 : 2}
+                              style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.4))' }}
+                            />
+                            {/* Number label */}
+                            <text
+                              x={pos.x}
+                              y={pos.y + 4}
+                              textAnchor="middle"
+                              fill={isActive ? "#0f172a" : "hsl(48 96% 89%)"}
+                              fontSize={isActive ? 12 : 10}
+                              fontWeight="bold"
+                              fontFamily="system-ui, sans-serif"
+                              style={{ pointerEvents: 'none' }}
+                            >
+                              {index + 1}
+                            </text>
+                          </g>
+                        );
+                      })}
+                    </svg>
+                  );
+                })()}
+              </div>
               
-              <div className="p-4 bg-slate-900/80 backdrop-blur-sm border-t border-amber-500/20">
+              <div className="p-4 bg-card border-t">
                 <div className="flex flex-wrap gap-2 justify-center">
                   {marketsWithDetails.map((market) => (
                     <Badge
                       key={market.id}
                       variant={selectedMarket?.id === market.id ? "default" : hoveredMarket?.id === market.id ? "secondary" : "outline"}
-                      className={`cursor-pointer transition-all ${
-                        selectedMarket?.id === market.id 
-                          ? 'bg-amber-500 text-slate-900 border-amber-400' 
-                          : hoveredMarket?.id === market.id 
-                            ? 'bg-amber-500/20 text-amber-300 border-amber-500/50' 
-                            : 'bg-slate-800/80 text-slate-300 border-slate-600 hover:border-amber-500/50 hover:text-amber-300'
-                      }`}
+                      className="cursor-pointer"
                       onMouseEnter={() => setHoveredMarket(market)}
                       onMouseLeave={() => setHoveredMarket(null)}
                       onClick={() => handleCardClick(market)}
                       data-testid={`badge-market-${market.name.toLowerCase().replace(/\s+/g, '-')}`}
                     >
                       <span className={`w-2 h-2 rounded-full mr-1.5 ${
-                        market.rank === 1 ? 'bg-amber-500' : 
-                        market.rank === 2 ? 'bg-amber-600' : 
-                        'bg-amber-700'
+                        market.rank === 1 ? 'bg-primary' : 
+                        market.rank === 2 ? 'bg-primary/70' : 
+                        'bg-primary/50'
                       }`} />
                       {market.name}
                     </Badge>
