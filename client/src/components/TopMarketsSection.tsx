@@ -398,19 +398,11 @@ export function TopMarketsSection({ stateSlug, stateName }: TopMarketsSectionPro
                   const bounds = statePathD ? getPathBounds(statePathD) : null;
                   
                   // Calculate viewBox to zoom and center on the focus state
-                  // Use smaller padding to maximize state size in frame
-                  const stateWidth = bounds ? bounds.maxX - bounds.minX : 200;
-                  const stateHeight = bounds ? bounds.maxY - bounds.minY : 200;
-                  
-                  // Add proportional padding (15% of state size)
-                  const paddingX = stateWidth * 0.15;
-                  const paddingY = stateHeight * 0.15;
-                  
-                  // Create a viewBox that's centered on the state with minimal padding
-                  const viewBoxX = bounds ? bounds.minX - paddingX : 0;
-                  const viewBoxY = bounds ? bounds.minY - paddingY : 0;
-                  const viewBoxW = bounds ? stateWidth + paddingX * 2 : 959;
-                  const viewBoxH = bounds ? stateHeight + paddingY * 2 : 593;
+                  const padding = 80;
+                  const viewBoxX = bounds ? bounds.minX - padding : 0;
+                  const viewBoxY = bounds ? bounds.minY - padding : 0;
+                  const viewBoxW = bounds ? (bounds.maxX - bounds.minX) + padding * 2 : 959;
+                  const viewBoxH = bounds ? (bounds.maxY - bounds.minY) + padding * 2 : 593;
 
                   return (
                     <svg
