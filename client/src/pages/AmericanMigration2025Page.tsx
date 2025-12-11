@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Link } from "wouter";
-import { ArrowLeft, Calendar, User, TrendingUp, MapPin, DollarSign, Home } from "lucide-react";
+import { ArrowLeft, Calendar, User, TrendingUp, MapPin, DollarSign, Home, ExternalLink } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -147,12 +147,30 @@ export default function AmericanMigration2025Page() {
       {/* Article Content */}
       <article className="container mx-auto px-4 py-12 max-w-4xl">
         <div className="prose prose-lg dark:prose-invert max-w-none">
-          <p className="text-xl text-muted-foreground leading-relaxed mb-8">
-            For real estate investors, understanding where Americans are moving isn't just interesting—it's essential for building a profitable portfolio. Population growth drives rental demand, supports property values, and creates opportunities for savvy investors who position themselves ahead of the trend.
+          
+          {/* Expert Quote - Featured */}
+          <Card className="my-8 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-l-4 border-l-primary">
+            <CardContent className="p-6">
+              <blockquote className="text-lg font-medium text-foreground mb-3">
+                "Population migration is favoring the Sun Belt and the digital economy is booming."
+              </blockquote>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span className="font-semibold">Richard Barkham</span>
+                <span>|</span>
+                <span>Global Chief Economist, CBRE</span>
+                <a href="https://www.cbre.com/insights/books/us-real-estate-market-outlook-2025" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
+                  <ExternalLink className="h-3 w-3" />
+                </a>
+              </div>
+            </CardContent>
+          </Card>
+
+          <p className="mb-6">
+            Population growth remains one of the strongest predictors of real estate performance. More residents mean more renters, more buyers, and increased competition for housing stock. These factors directly support rental rates and property values.
           </p>
 
           <p className="mb-6">
-            After years of pandemic-driven migration, the dust has settled enough to reveal clear patterns. While overall interstate moves have moderated from their 2022 peak, certain markets continue to attract a steady stream of new residents—and that's exactly where investors should be looking.
+            After years of pandemic-driven migration, clear patterns have emerged. Overall interstate moves have moderated from their 2022 peak, but certain markets continue attracting a steady stream of new residents. These high-growth areas present compelling opportunities for investors who position themselves ahead of the trend.
           </p>
 
           {/* Chart 1: Relocation Trends */}
@@ -198,14 +216,14 @@ export default function AmericanMigration2025Page() {
             </CardContent>
           </Card>
 
-          <h2 className="text-2xl font-bold mt-12 mb-6">The Top Markets Drawing New Residents</h2>
+          <h2 className="text-2xl font-bold mt-12 mb-6">Top Markets Drawing New Residents</h2>
 
           <p className="mb-6">
-            While Florida and Texas dominated headlines during the pandemic migration boom, the landscape has shifted. South Carolina has emerged as the new front-runner, attracting nearly twice as many inbound movers as outbound residents.
+            Florida and Texas dominated headlines during the pandemic migration boom. The landscape has since shifted. South Carolina now leads, attracting nearly twice as many inbound movers as outbound residents.
           </p>
 
           <p className="mb-6">
-            For investors, this matters because population growth is one of the strongest predictors of real estate performance. More residents mean more renters, more buyers, and more competition for limited housing stock—all factors that support both rental rates and property values.
+            Population growth directly impacts real estate performance. More residents create rental demand, buyer competition, and upward pressure on limited housing stock. These dynamics benefit both rental rates and property values.
           </p>
 
           {/* Chart 2: Investment Hotspots */}
@@ -265,10 +283,10 @@ export default function AmericanMigration2025Page() {
             </CardContent>
           </Card>
 
-          <h2 className="text-2xl font-bold mt-12 mb-6">What's Driving the Migration?</h2>
+          <h2 className="text-2xl font-bold mt-12 mb-6">Migration Drivers</h2>
 
           <p className="mb-6">
-            Several factors are pushing Americans toward these high-growth markets:
+            Several factors push Americans toward high-growth markets:
           </p>
 
           <div className="grid gap-4 md:grid-cols-2 mb-8">
@@ -278,7 +296,7 @@ export default function AmericanMigration2025Page() {
                   <DollarSign className="h-4 w-4 text-primary" />
                   Lower Cost of Living
                 </h4>
-                <p className="text-sm text-muted-foreground">Residents from high-cost states like California and New York can sell their homes and buy comparable properties with cash left over.</p>
+                <p className="text-sm text-muted-foreground">Residents from California and New York sell their homes and buy comparable properties in destination markets with cash remaining.</p>
               </CardContent>
             </Card>
             <Card>
@@ -287,7 +305,7 @@ export default function AmericanMigration2025Page() {
                   <Home className="h-4 w-4 text-primary" />
                   Tax Advantages
                 </h4>
-                <p className="text-sm text-muted-foreground">States like Texas, Florida, and Tennessee have no state income tax, letting residents keep more of their earnings.</p>
+                <p className="text-sm text-muted-foreground">Texas, Florida, and Tennessee have no state income tax, allowing residents to retain more earnings.</p>
               </CardContent>
             </Card>
             <Card>
@@ -296,7 +314,7 @@ export default function AmericanMigration2025Page() {
                   <TrendingUp className="h-4 w-4 text-primary" />
                   Job Growth
                 </h4>
-                <p className="text-sm text-muted-foreground">Major employers are relocating headquarters and operations to business-friendly Sun Belt states.</p>
+                <p className="text-sm text-muted-foreground">Major employers continue relocating headquarters and operations to business-friendly Sun Belt states.</p>
               </CardContent>
             </Card>
             <Card>
@@ -305,7 +323,7 @@ export default function AmericanMigration2025Page() {
                   <MapPin className="h-4 w-4 text-primary" />
                   Remote Work Flexibility
                 </h4>
-                <p className="text-sm text-muted-foreground">Workers who can work from anywhere are choosing locations based on lifestyle preferences rather than office proximity.</p>
+                <p className="text-sm text-muted-foreground">Location-independent workers choose destinations based on lifestyle preferences over office proximity.</p>
               </CardContent>
             </Card>
           </div>
@@ -313,28 +331,28 @@ export default function AmericanMigration2025Page() {
           <h2 className="text-2xl font-bold mt-12 mb-6">Investment Implications</h2>
 
           <p className="mb-6">
-            For real estate investors, these migration patterns create clear opportunities:
+            Migration patterns create clear opportunities across investment strategies:
           </p>
 
           <h3 className="text-xl font-semibold mt-8 mb-4">Rental Properties in Growth Markets</h3>
           <p className="mb-6">
-            New residents need places to live, and many prefer to rent while they get established in a new area. DSCR loans are ideal for acquiring rental properties in these markets because they qualify based on the property's income potential rather than your personal income.
+            New residents need housing, and many rent while establishing themselves in unfamiliar areas. DSCR loans work well for acquiring rentals in these markets because qualification depends on property income potential rather than borrower income documentation.
           </p>
 
           <h3 className="text-xl font-semibold mt-8 mb-4">Fix and Flip Opportunities</h3>
           <p className="mb-6">
-            Population growth puts pressure on existing housing stock, supporting prices and creating opportunities for value-add investors. Properties that might sit on the market in stagnant areas sell quickly in high-growth markets.
+            Population growth puts pressure on existing housing stock, supporting prices and creating value-add opportunities. Properties that sit on the market in stagnant areas move quickly in high-growth markets.
           </p>
 
           <h3 className="text-xl font-semibold mt-8 mb-4">New Construction</h3>
           <p className="mb-6">
-            In markets where population growth outpaces housing supply, new construction loans can help you meet demand with modern inventory that commands premium prices.
+            Markets where population growth outpaces housing supply present opportunities for ground-up development. New construction loans help investors meet demand with modern inventory commanding premium prices.
           </p>
 
           <Card className="my-8 bg-primary/5 border-primary/20">
             <CardContent className="p-6">
               <blockquote className="text-lg italic text-foreground">
-                "Smart investors follow population growth. When you invest in markets where people want to live, you're not just buying property—you're buying into demand that supports your investment for years to come."
+                "Invest in markets where people want to live. Population growth supports your investment for years because you're buying into sustained demand."
               </blockquote>
               <p className="text-sm text-muted-foreground mt-4">— Sequel Investments</p>
             </CardContent>
@@ -343,18 +361,18 @@ export default function AmericanMigration2025Page() {
           <h2 className="text-2xl font-bold mt-12 mb-6">Due Diligence Considerations</h2>
 
           <p className="mb-6">
-            While population growth is a positive indicator, investors should also consider:
+            Population growth signals opportunity, but thorough analysis remains essential:
           </p>
 
           <ul className="list-disc pl-6 space-y-2 mb-6">
-            <li><strong>Insurance costs:</strong> Some high-growth states, particularly in hurricane-prone areas, have seen significant increases in property insurance premiums.</li>
-            <li><strong>Property taxes:</strong> States without income tax often have higher property taxes to fund government services.</li>
-            <li><strong>Market-specific dynamics:</strong> Even within high-growth states, some neighborhoods and property types perform better than others.</li>
-            <li><strong>Competition:</strong> Popular markets attract more investors, which can compress cap rates and make deals harder to find.</li>
+            <li><strong>Insurance costs:</strong> Hurricane-prone states have experienced significant premium increases. Some areas face insurer withdrawals entirely.</li>
+            <li><strong>Property taxes:</strong> States without income tax often compensate with higher property taxes.</li>
+            <li><strong>Market-specific dynamics:</strong> Performance varies by neighborhood and property type even within high-growth states.</li>
+            <li><strong>Competition:</strong> Popular markets attract more investors, compressing cap rates and increasing acquisition difficulty.</li>
           </ul>
 
           <p className="mb-8">
-            Working with a lender who understands these markets—and can help you analyze deals quickly—gives you an edge when competing for properties.
+            Working with a lender who understands these markets and can analyze deals quickly provides a competitive advantage during acquisition.
           </p>
 
           {/* Call to Action */}
@@ -362,7 +380,7 @@ export default function AmericanMigration2025Page() {
             <CardContent className="p-8 text-center">
               <h3 className="text-xl font-bold mb-3">Ready to Invest in High-Growth Markets?</h3>
               <p className="text-muted-foreground mb-6">
-                Our team specializes in financing investment properties across the country. Whether you're targeting South Carolina, Texas, or any of the other high-growth markets, we can help you move quickly on opportunities.
+                Our team specializes in financing investment properties across the country. We help investors move quickly on opportunities in South Carolina, Texas, and other high-growth markets.
               </p>
               <div className="flex flex-wrap justify-center gap-4">
                 <Link href="/get-quote">
