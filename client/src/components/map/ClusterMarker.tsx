@@ -122,8 +122,8 @@ export function ClusterMarker({
           style={{ pointerEvents: 'all' }}
         />
         
-        {/* Fading cluster bubble in background */}
-        <g style={{ opacity: 0.3 }}>
+        {/* Heavily faded cluster bubble in background */}
+        <g style={{ opacity: 0.12 }}>
           <ClusterBubble
             x={center.x}
             y={center.y}
