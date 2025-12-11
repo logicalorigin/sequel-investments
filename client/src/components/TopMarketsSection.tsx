@@ -410,8 +410,12 @@ export function TopMarketsSection({ stateSlug, stateName }: TopMarketsSectionPro
     
     // Debounce to prevent accidental triggers (250ms delay)
     hoverTimeoutRef.current = setTimeout(() => {
+      // Set cluster ID first to ensure proper rendering before animation starts
       setScatteringClusterId(clusterId);
-      scatterAnimation.animate(cluster);
+      // Start animation on next tick to ensure state is updated
+      requestAnimationFrame(() => {
+        scatterAnimation.animate(cluster);
+      });
     }, 250);
   }, [isDesktop, scatterAnimation]);
   

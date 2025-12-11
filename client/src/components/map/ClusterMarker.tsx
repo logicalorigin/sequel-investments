@@ -95,8 +95,33 @@ export function ClusterMarker({
 
   // If scattering, render individual animated markers instead of cluster bubble
   if (isScattering && scatterPositions && scatterPositions.length > 0) {
+    // Calculate bounding box for scatter area to use as hover target
+    const padding = 20;
+    const allX = scatterPositions.map(p => p.x);
+    const allY = scatterPositions.map(p => p.y);
+    const minX = Math.min(...allX) - padding;
+    const maxX = Math.max(...allX) + padding;
+    const minY = Math.min(...allY) - padding;
+    const maxY = Math.max(...allY) + padding;
+    
     return (
-      <g data-testid={`cluster-scatter-${clusterIdx}`}>
+      <g 
+        data-testid={`cluster-scatter-${clusterIdx}`}
+        onMouseLeave={() => {
+          onMarkerHover(null);
+          onClusterHoverEnd?.();
+        }}
+      >
+        {/* Invisible hover area covering all scattered markers */}
+        <rect
+          x={minX}
+          y={minY}
+          width={maxX - minX}
+          height={maxY - minY}
+          fill="transparent"
+          style={{ pointerEvents: 'all' }}
+        />
+        
         {/* Fading cluster bubble in background */}
         <g style={{ opacity: 0.3 }}>
           <ClusterBubble
@@ -149,22 +174,31 @@ export function ClusterMarker({
   }
 
   // Multiple markets - cluster bubble, hover starts scatter animation
+  const bubbleRadius = markers.length > 9 ? 14 : 12;
+  const hitAreaPadding = 12;
+  
+  const handleHoverStart = () => {
+    onMarkerHover(topMarket);
+    onClusterHoverStart?.(cluster);
+  };
+  
+  const handleHoverEnd = () => {
+    onMarkerHover(null);
+    onClusterHoverEnd?.();
+  };
+  
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onClusterClick(cluster);
+  };
+  
   return (
     <g 
       style={{ cursor: 'zoom-in' }}
-      onMouseEnter={() => {
-        onMarkerHover(topMarket);
-        onClusterHoverStart?.(cluster);
-      }}
-      onMouseLeave={() => {
-        onMarkerHover(null);
-        onClusterHoverEnd?.();
-      }}
-      onClick={(e) => {
-        e.stopPropagation();
-        onClusterClick(cluster);
-      }}
       data-testid={`cluster-marker-${clusterIdx}`}
+      onMouseEnter={handleHoverStart}
+      onMouseLeave={handleHoverEnd}
+      onClick={handleClick}
     >
       <ClusterBubble
         x={center.x}
@@ -173,6 +207,20 @@ export function ClusterMarker({
         colors={colors}
         isActive={isActive}
         hasSTRExcellent={stats.hasSTRExcellent}
+      />
+      {/* Hit area on top (rendered last in SVG = highest z-order) for reliable hover detection */}
+      <circle
+        cx={center.x}
+        cy={center.y}
+        r={bubbleRadius + hitAreaPadding}
+        fill="rgba(0,0,0,0.001)"
+        style={{ pointerEvents: 'all' }}
+        data-testid={`cluster-hitarea-${clusterIdx}`}
+        onMouseEnter={handleHoverStart}
+        onMouseLeave={handleHoverEnd}
+        onPointerEnter={handleHoverStart}
+        onPointerLeave={handleHoverEnd}
+        onClick={handleClick}
       />
     </g>
   );
