@@ -33,7 +33,6 @@ import {
   type SVGBounds 
 } from "@/lib/mapUtils";
 import { useMarkerClustering } from "@/hooks/useMarkerClustering";
-import { MapMarker } from "@/components/map/MapMarker";
 import { ClusterMarker } from "@/components/map/ClusterMarker";
 
 interface Metro {
@@ -314,7 +313,7 @@ export function TopMarketsSection({ stateSlug, stateName }: TopMarketsSectionPro
   const statePathD = stateAbbr ? statePaths[stateAbbr] : null;
   const bounds: SVGBounds | null = statePathD ? parsePathBounds(statePathD) : null;
 
-  const { clusters, isClusterActive } = useMarkerClustering(
+  const { clusters } = useMarkerClustering(
     marketsWithDetails,
     stateAbbr,
     bounds,
@@ -414,41 +413,17 @@ export function TopMarketsSection({ stateSlug, stateName }: TopMarketsSectionPro
                     />
                   )}
                   
-                  {clusters.map((cluster, clusterIdx) => {
-                    const isExpanded = isClusterActive(cluster);
-                    const isSingleMarker = cluster.markers.length === 1;
-                    
-                    if (isSingleMarker) {
-                      const { market, index, pos } = cluster.markers[0];
-                      return (
-                        <MapMarker
-                          key={market.id}
-                          market={market}
-                          index={index}
-                          pos={pos}
-                          isHovered={hoveredMarket?.id === market.id}
-                          isSelected={selectedMarket?.id === market.id}
-                          onClick={() => handleMarkerClick(market)}
-                          onMouseEnter={() => handleMarkerHover(market)}
-                          onMouseLeave={() => handleMarkerHover(null)}
-                        />
-                      );
-                    }
-                    
-                    return (
-                      <ClusterMarker
-                        key={`cluster-${clusterIdx}`}
-                        cluster={cluster}
-                        clusterIdx={clusterIdx}
-                        isExpanded={isExpanded}
-                        hoveredMarket={hoveredMarket}
-                        selectedMarket={selectedMarket}
-                        onMarkerClick={handleMarkerClick}
-                        onMarkerHover={handleMarkerHover}
-                        setHoveredMarket={setHoveredMarket}
-                      />
-                    );
-                  })}
+                  {clusters.map((cluster, clusterIdx) => (
+                    <ClusterMarker
+                      key={`cluster-${clusterIdx}`}
+                      cluster={cluster}
+                      clusterIdx={clusterIdx}
+                      hoveredMarket={hoveredMarket}
+                      selectedMarket={selectedMarket}
+                      onMarkerClick={handleMarkerClick}
+                      onMarkerHover={handleMarkerHover}
+                    />
+                  ))}
                 </svg>
               </div>
               

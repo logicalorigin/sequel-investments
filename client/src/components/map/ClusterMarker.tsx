@@ -1,198 +1,270 @@
 import type { MarketDetail } from "@/data/marketDetails";
-import type { MarkerCluster, MarkerWithPosition } from "@/hooks/useMarkerClustering";
+import type { MarkerCluster } from "@/hooks/useMarkerClustering";
 
 /** Props for the ClusterMarker component */
 export interface ClusterMarkerProps {
   cluster: MarkerCluster;
   clusterIdx: number;
-  isExpanded: boolean;
   hoveredMarket: MarketDetail | null;
   selectedMarket: MarketDetail | null;
   onMarkerClick: (market: MarketDetail) => void;
   onMarkerHover: (market: MarketDetail | null) => void;
-  setHoveredMarket: (market: MarketDetail | null) => void;
 }
 
-const EXPAND_RADIUS = 12;
-const HITBOX_RADIUS = EXPAND_RADIUS + 8;
+/** Get color based on CAP rate tier */
+function getCapRateColor(capRate: number): { bg: string; border: string; text: string } {
+  if (capRate >= 6.0) return { bg: "#16a34a", border: "#15803d", text: "#fff" };
+  if (capRate >= 5.0) return { bg: "#eab308", border: "#ca8a04", text: "#1f2937" };
+  if (capRate >= 4.0) return { bg: "#f97316", border: "#ea580c", text: "#fff" };
+  return { bg: "#ef4444", border: "#dc2626", text: "#fff" };
+}
 
-const MARKER_COLORS = [
-  { fill: "hsl(142 71% 45%)", stroke: "hsl(142 71% 35%)" },
-  { fill: "hsl(262 80% 55%)", stroke: "hsl(262 80% 40%)" },
-  { fill: "hsl(217 91% 60%)", stroke: "hsl(217 91% 45%)" },
-  { fill: "hsl(38 92% 50%)", stroke: "hsl(38 92% 40%)" },
-  { fill: "hsl(330 80% 55%)", stroke: "hsl(330 80% 40%)" },
-];
+/** Truncate market name for display */
+function truncateName(name: string, maxLength: number = 10): string {
+  if (name.length <= maxLength) return name;
+  return name.slice(0, maxLength - 1) + "…";
+}
 
 /**
- * Renders a cluster of market markers on the SVG map.
- * Shows collapsed state (single marker with count) or expanded radial menu.
+ * Google Maps style cluster marker.
+ * - Single market: Shows pill with name and CAP rate
+ * - Multiple markets: Shows count bubble, click to open first market details
  */
 export function ClusterMarker({
   cluster,
   clusterIdx,
-  isExpanded,
   hoveredMarket,
   selectedMarket,
   onMarkerClick,
   onMarkerHover,
-  setHoveredMarket,
 }: ClusterMarkerProps) {
-  if (isExpanded) {
+  const { stats, center, markers } = cluster;
+  const isSingleMarket = markers.length === 1;
+  const topMarket = stats.topMarket;
+  const colors = getCapRateColor(stats.maxCapRate);
+  
+  const isActive = markers.some(m => 
+    hoveredMarket?.id === m.market.id || selectedMarket?.id === m.market.id
+  );
+
+  // Single market - show informative pill
+  if (isSingleMarket) {
+    const market = markers[0].market;
+    const isSTRExcellent = market.strFriendliness?.tier === "Excellent";
+    
     return (
-      <g onMouseLeave={() => onMarkerHover(null)}>
-        <circle
-          cx={cluster.center.x}
-          cy={cluster.center.y}
-          r={HITBOX_RADIUS}
-          fill="transparent"
-          style={{ pointerEvents: 'all' }}
+      <g 
+        style={{ cursor: 'pointer' }}
+        onMouseEnter={() => onMarkerHover(market)}
+        onMouseLeave={() => onMarkerHover(null)}
+        onClick={(e) => {
+          e.stopPropagation();
+          onMarkerClick(market);
+        }}
+        data-testid={`marker-${market.id}`}
+      >
+        <SingleMarkerPill
+          x={center.x}
+          y={center.y}
+          market={market}
+          colors={colors}
+          isActive={isActive}
+          isSTRExcellent={isSTRExcellent}
         />
-        {cluster.markers.map((m, i) => {
-          const angle = (i * 2 * Math.PI) / cluster.markers.length - Math.PI / 2;
-          const expandedX = cluster.center.x + Math.cos(angle) * EXPAND_RADIUS;
-          const expandedY = cluster.center.y + Math.sin(angle) * EXPAND_RADIUS;
-          return (
-            <line
-              key={`line-${m.market.id}`}
-              x1={cluster.center.x}
-              y1={cluster.center.y}
-              x2={expandedX}
-              y2={expandedY}
-              stroke="hsl(var(--primary) / 0.3)"
-              strokeWidth={1}
-              strokeDasharray="1,1"
-              style={{ pointerEvents: 'none' }}
-            />
-          );
-        })}
-        {cluster.markers.map((m, i) => (
-          <ExpandedMarker
-            key={m.market.id}
-            marker={m}
-            index={i}
-            totalCount={cluster.markers.length}
-            center={cluster.center}
-            isHovered={hoveredMarket?.id === m.market.id}
-            isSelected={selectedMarket?.id === m.market.id}
-            onClick={() => onMarkerClick(m.market)}
-            onMouseEnter={() => onMarkerHover(m.market)}
-          />
-        ))}
       </g>
     );
   }
 
+  // Multiple markets - Google Maps style cluster bubble
   return (
     <g 
       style={{ cursor: 'pointer' }}
-      onMouseEnter={() => onMarkerHover(cluster.markers[0].market)}
+      onMouseEnter={() => onMarkerHover(topMarket)}
       onMouseLeave={() => onMarkerHover(null)}
       onClick={(e) => {
         e.stopPropagation();
-        setHoveredMarket(cluster.markers[0].market);
+        onMarkerClick(topMarket);
       }}
       data-testid={`cluster-marker-${clusterIdx}`}
     >
-      <circle
-        cx={cluster.center.x}
-        cy={cluster.center.y}
-        r={15}
-        fill="transparent"
-        style={{ pointerEvents: 'all' }}
+      <ClusterBubble
+        x={center.x}
+        y={center.y}
+        count={markers.length}
+        colors={colors}
+        isActive={isActive}
+        hasSTRExcellent={stats.hasSTRExcellent}
       />
-      <circle
-        cx={cluster.center.x}
-        cy={cluster.center.y}
-        r={9}
-        fill="hsl(38 92% 50%)"
-        stroke="hsl(30 94% 25%)"
-        strokeWidth={2}
-        style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.4))', pointerEvents: 'none' }}
-      />
-      <text
-        x={cluster.center.x}
-        y={cluster.center.y + 3}
-        textAnchor="middle"
-        fill="hsl(48 96% 89%)"
-        fontSize={8}
-        fontWeight="bold"
-        fontFamily="system-ui, sans-serif"
-        style={{ pointerEvents: 'none' }}
-      >
-        {cluster.markers.length}
-      </text>
     </g>
   );
 }
 
-interface ExpandedMarkerProps {
-  marker: MarkerWithPosition;
-  index: number;
-  totalCount: number;
-  center: { x: number; y: number };
-  isHovered: boolean;
-  isSelected: boolean;
-  onClick: () => void;
-  onMouseEnter: () => void;
+interface SingleMarkerPillProps {
+  x: number;
+  y: number;
+  market: MarketDetail;
+  colors: { bg: string; border: string; text: string };
+  isActive: boolean;
+  isSTRExcellent: boolean;
 }
 
-function ExpandedMarker({
-  marker,
-  index,
-  totalCount,
-  center,
-  isHovered,
-  isSelected,
-  onClick,
-  onMouseEnter,
-}: ExpandedMarkerProps) {
-  const angle = (index * 2 * Math.PI) / totalCount - Math.PI / 2;
-  const expandedX = center.x + Math.cos(angle) * EXPAND_RADIUS;
-  const expandedY = center.y + Math.sin(angle) * EXPAND_RADIUS;
-  const isActive = isSelected || isHovered;
-  const radius = isActive ? 6 : 5;
-  
-  const colorIndex = index % MARKER_COLORS.length;
-  const markerColor = isActive 
-    ? { fill: "hsl(45 93% 58%)", stroke: "hsl(48 96% 89%)" }
-    : MARKER_COLORS[colorIndex];
+/** Pill showing market name, CAP rate, and STR badge */
+function SingleMarkerPill({ x, y, market, colors, isActive, isSTRExcellent }: SingleMarkerPillProps) {
+  const name = truncateName(market.name, 12);
+  const capRate = market.realEstate.capRate.toFixed(1);
+  const pillWidth = isSTRExcellent ? 52 : 44;
+  const pillHeight = 16;
   
   return (
-    <g 
-      style={{ cursor: 'pointer' }}
-      onClick={onClick}
-      onMouseEnter={onMouseEnter}
-    >
+    <g style={{ filter: isActive ? 'drop-shadow(0 4px 8px rgba(0,0,0,0.5))' : 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }}>
+      {/* Active glow */}
       {isActive && (
-        <circle 
-          cx={expandedX} 
-          cy={expandedY} 
-          r={radius + 3} 
-          fill="hsl(var(--primary) / 0.35)" 
+        <rect
+          x={x - pillWidth/2 - 2}
+          y={y - pillHeight/2 - 2}
+          width={pillWidth + 4}
+          height={pillHeight + 4}
+          rx={10}
+          fill="rgba(255,255,255,0.3)"
         />
       )}
-      <circle
-        cx={expandedX}
-        cy={expandedY}
-        r={radius}
-        fill={markerColor.fill}
-        stroke={markerColor.stroke}
-        strokeWidth={isActive ? 1.5 : 1}
-        style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.35))' }}
+      
+      {/* Main pill */}
+      <rect
+        x={x - pillWidth/2}
+        y={y - pillHeight/2}
+        width={pillWidth}
+        height={pillHeight}
+        rx={8}
+        fill={colors.bg}
+        stroke={colors.border}
+        strokeWidth={1.5}
+      />
+      
+      {/* Market name */}
+      <text
+        x={x - pillWidth/2 + 4}
+        y={y + 3}
+        fill={colors.text}
+        fontSize={6}
+        fontWeight="600"
+        fontFamily="system-ui, sans-serif"
+        style={{ pointerEvents: 'none' }}
+      >
+        {name}
+      </text>
+      
+      {/* CAP rate badge */}
+      <rect
+        x={x + pillWidth/2 - 16}
+        y={y - 5}
+        width={14}
+        height={10}
+        rx={3}
+        fill="rgba(0,0,0,0.25)"
       />
       <text
-        x={expandedX}
-        y={expandedY + 1.5}
-        textAnchor="middle"
-        fill="white"
+        x={x + pillWidth/2 - 9}
+        y={y + 2}
+        fill="#fff"
         fontSize={5}
+        fontWeight="700"
+        textAnchor="middle"
+        fontFamily="system-ui, sans-serif"
+        style={{ pointerEvents: 'none' }}
+      >
+        {capRate}%
+      </text>
+      
+      {/* STR Excellent badge */}
+      {isSTRExcellent && (
+        <g>
+          <circle
+            cx={x + pillWidth/2 + 4}
+            cy={y}
+            r={4}
+            fill="#10b981"
+            stroke="#047857"
+            strokeWidth={1}
+          />
+          <text
+            x={x + pillWidth/2 + 4}
+            y={y + 2}
+            fill="#fff"
+            fontSize={4}
+            fontWeight="bold"
+            textAnchor="middle"
+            fontFamily="system-ui, sans-serif"
+            style={{ pointerEvents: 'none' }}
+          >
+            S
+          </text>
+        </g>
+      )}
+    </g>
+  );
+}
+
+interface ClusterBubbleProps {
+  x: number;
+  y: number;
+  count: number;
+  colors: { bg: string; border: string; text: string };
+  isActive: boolean;
+  hasSTRExcellent: boolean;
+}
+
+/** Google Maps style cluster bubble showing count */
+function ClusterBubble({ x, y, count, colors, isActive, hasSTRExcellent }: ClusterBubbleProps) {
+  const radius = count > 9 ? 14 : 12;
+  
+  return (
+    <g style={{ filter: isActive ? 'drop-shadow(0 4px 8px rgba(0,0,0,0.5))' : 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }}>
+      {/* Active glow */}
+      {isActive && (
+        <circle
+          cx={x}
+          cy={y}
+          r={radius + 3}
+          fill="rgba(255,255,255,0.35)"
+        />
+      )}
+      
+      {/* Main bubble */}
+      <circle
+        cx={x}
+        cy={y}
+        r={radius}
+        fill={colors.bg}
+        stroke={colors.border}
+        strokeWidth={2}
+      />
+      
+      {/* Count number */}
+      <text
+        x={x}
+        y={y + 4}
+        textAnchor="middle"
+        fill={colors.text}
+        fontSize={10}
         fontWeight="bold"
         fontFamily="system-ui, sans-serif"
         style={{ pointerEvents: 'none' }}
       >
-        {marker.index + 1}
+        {count}
       </text>
+      
+      {/* Small STR indicator if any market in cluster is Excellent */}
+      {hasSTRExcellent && (
+        <circle
+          cx={x + radius - 2}
+          cy={y - radius + 2}
+          r={3}
+          fill="#10b981"
+          stroke="#047857"
+          strokeWidth={0.5}
+        />
+      )}
     </g>
   );
 }

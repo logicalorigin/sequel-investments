@@ -9,10 +9,20 @@ export interface MarkerWithPosition {
   pos: Point;
 }
 
-/** A cluster of nearby markers */
+/** Aggregate stats for a cluster */
+export interface ClusterStats {
+  topMarket: MarketDetail;
+  maxCapRate: number;
+  avgCapRate: number;
+  hasSTRExcellent: boolean;
+  strTierCounts: Record<string, number>;
+}
+
+/** A cluster of nearby markers with aggregate stats */
 export interface MarkerCluster {
   center: Point;
   markers: MarkerWithPosition[];
+  stats: ClusterStats;
 }
 
 /** Options for the clustering algorithm */
@@ -89,7 +99,35 @@ export function useMarkerClustering(
       
       const centerX = cluster.reduce((sum, m) => sum + m.pos.x, 0) / cluster.length;
       const centerY = cluster.reduce((sum, m) => sum + m.pos.y, 0) / cluster.length;
-      clusterList.push({ center: { x: centerX, y: centerY }, markers: cluster });
+      
+      // Calculate aggregate stats for this cluster
+      const capRates = cluster.map(m => m.market.realEstate.capRate);
+      const maxCapRate = Math.max(...capRates);
+      const avgCapRate = capRates.reduce((a, b) => a + b, 0) / capRates.length;
+      
+      // Find top market by CAP rate
+      const topMarket = cluster.reduce((best, m) => 
+        m.market.realEstate.capRate > best.market.realEstate.capRate ? m : best
+      ).market;
+      
+      // Count STR tiers
+      const strTierCounts: Record<string, number> = {};
+      let hasSTRExcellent = false;
+      for (const m of cluster) {
+        const tier = m.market.strFriendliness?.tier || "Unknown";
+        strTierCounts[tier] = (strTierCounts[tier] || 0) + 1;
+        if (tier === "Excellent") hasSTRExcellent = true;
+      }
+      
+      const stats: ClusterStats = {
+        topMarket,
+        maxCapRate,
+        avgCapRate,
+        hasSTRExcellent,
+        strTierCounts
+      };
+      
+      clusterList.push({ center: { x: centerX, y: centerY }, markers: cluster, stats });
     }
     
     return clusterList;
