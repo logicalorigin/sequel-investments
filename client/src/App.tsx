@@ -57,6 +57,8 @@ import ArticlePage from "@/pages/ArticlePage";
 import AmericanMigration2025Page from "@/pages/AmericanMigration2025Page";
 import DSCRLoansGuidePage from "@/pages/DSCRLoansGuidePage";
 import ADUGuidePage from "@/pages/ADUGuidePage";
+import RenovationsGuidePage from "@/pages/RenovationsGuidePage";
+import ScopeOfWorkGuidePage from "@/pages/ScopeOfWorkGuidePage";
 import AdminWhiteLabelPage from "@/pages/AdminWhiteLabelPage";
 import AdminEmailLogPage from "@/pages/AdminEmailLogPage";
 import AdminSmsLogPage from "@/pages/AdminSmsLogPage";
@@ -116,6 +118,8 @@ function Router() {
       <Route path="/resources/american-migration-2025" component={AmericanMigration2025Page} />
       <Route path="/resources/complete-guide-to-dscr-loans" component={DSCRLoansGuidePage} />
       <Route path="/resources/what-investors-should-know-about-adus" component={ADUGuidePage} />
+      <Route path="/resources/top-renovations-to-maximize-profits" component={RenovationsGuidePage} />
+      <Route path="/resources/scope-of-work-guide" component={ScopeOfWorkGuidePage} />
       <Route path="/resources/:slug" component={ArticlePage} />
       <Route component={NotFound} />
     </Switch>
