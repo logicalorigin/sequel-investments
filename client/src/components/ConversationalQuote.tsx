@@ -895,7 +895,7 @@ export default function ConversationalQuote() {
         const hasVerifiedAddress = !!(formData.propertyAddress && formData.propertyCity && formData.propertyState);
         const hasMapCoordinates = formData.propertyLat !== null && formData.propertyLng !== null;
         return (
-          <div className="relative w-full h-[calc(100vh-220px)] sm:h-[calc(100vh-280px)] -mt-3 sm:-mt-12 -mx-3 sm:-mx-12 rounded-xl overflow-hidden" style={{ width: 'calc(100% + 1.5rem)', marginLeft: '-0.75rem' }}>
+          <div className="relative w-full h-[calc(100vh-180px)] sm:h-[calc(100vh-220px)] -mt-3 sm:-mt-12 -mx-3 sm:-mx-12 -mb-3 sm:-mb-12 overflow-hidden" style={{ width: 'calc(100% + 1.5rem)', marginLeft: '-0.75rem' }}>
             {/* Map Background - view only, no interaction, hide attributions */}
             <div className="absolute inset-0 pointer-events-none [&_.gm-style-cc]:!hidden [&_.gmnoprint]:!hidden [&_a[href*='google']]:!hidden [&_.gm-style>div:last-child]:!hidden">
               <Map
@@ -1017,7 +1017,7 @@ export default function ConversationalQuote() {
                     />
                   </div>
                   
-                  {/* Verification Status - green for verified */}
+                  {/* Verification Status - green for "Address Verified", amber/theme for other text */}
                   <AnimatePresence mode="wait">
                     {hasVerifiedAddress && (
                       <motion.div
@@ -1033,7 +1033,7 @@ export default function ConversationalQuote() {
                             </div>
                             <div className="text-left min-w-0">
                               <p className="text-emerald-400 text-xs font-medium">Address Verified</p>
-                              <p className="text-white/50 text-[10px] truncate">
+                              <p className="text-amber-400/70 text-[10px] truncate">
                                 {formData.propertyCity}, {formData.propertyState} {formData.propertyZip}
                               </p>
                             </div>
@@ -1043,7 +1043,7 @@ export default function ConversationalQuote() {
                           )}
                           {!isLoadingPropertyDetails && formData.propertyDetails?.estimatedValue && (
                             <div className="text-right flex-shrink-0">
-                              <p className="text-white/40 text-[10px]">Est. Value</p>
+                              <p className="text-amber-400/50 text-[10px]">Est. Value</p>
                               <p className="text-amber-400 font-bold text-sm">
                                 ${parseInt(formData.propertyDetails.estimatedValue).toLocaleString()}
                               </p>
