@@ -47,21 +47,124 @@ const SLUG_TO_ABBR: Record<string, string> = {
 };
 
 // Get the bounding box for a state path to calculate its center
+// Properly handles both absolute (M,L) and relative (m,l) SVG commands
 function getPathBounds(pathD: string): { minX: number; minY: number; maxX: number; maxY: number; centerX: number; centerY: number } {
-  const coords: number[][] = [];
-  const regex = /[ML]\s*([\d.]+)[,\s]+([\d.]+)/gi;
-  let match;
-  while ((match = regex.exec(pathD)) !== null) {
-    coords.push([parseFloat(match[1]), parseFloat(match[2])]);
-  }
-  if (coords.length === 0) return { minX: 0, minY: 0, maxX: 100, maxY: 100, centerX: 50, centerY: 50 };
+  const points: { x: number; y: number }[] = [];
+  let currentX = 0;
+  let currentY = 0;
+  let startX = 0;
+  let startY = 0;
   
-  const xs = coords.map(c => c[0]);
-  const ys = coords.map(c => c[1]);
+  // Split path into commands - handles M, m, L, l, H, h, V, v, Z, z, C, c, S, s, Q, q, T, t, A, a
+  const commands = pathD.match(/[MmLlHhVvZzCcSsQqTtAa][^MmLlHhVvZzCcSsQqTtAa]*/g) || [];
+  
+  for (const cmd of commands) {
+    const type = cmd[0];
+    const args = cmd.slice(1).trim().split(/[\s,]+/).filter(s => s).map(Number);
+    
+    switch (type) {
+      case 'M': // Absolute moveto
+        for (let i = 0; i < args.length; i += 2) {
+          currentX = args[i];
+          currentY = args[i + 1];
+          if (i === 0) { startX = currentX; startY = currentY; }
+          points.push({ x: currentX, y: currentY });
+        }
+        break;
+      case 'm': // Relative moveto
+        for (let i = 0; i < args.length; i += 2) {
+          currentX += args[i];
+          currentY += args[i + 1];
+          if (i === 0) { startX = currentX; startY = currentY; }
+          points.push({ x: currentX, y: currentY });
+        }
+        break;
+      case 'L': // Absolute lineto
+        for (let i = 0; i < args.length; i += 2) {
+          currentX = args[i];
+          currentY = args[i + 1];
+          points.push({ x: currentX, y: currentY });
+        }
+        break;
+      case 'l': // Relative lineto
+        for (let i = 0; i < args.length; i += 2) {
+          currentX += args[i];
+          currentY += args[i + 1];
+          points.push({ x: currentX, y: currentY });
+        }
+        break;
+      case 'H': // Absolute horizontal
+        for (const x of args) {
+          currentX = x;
+          points.push({ x: currentX, y: currentY });
+        }
+        break;
+      case 'h': // Relative horizontal
+        for (const dx of args) {
+          currentX += dx;
+          points.push({ x: currentX, y: currentY });
+        }
+        break;
+      case 'V': // Absolute vertical
+        for (const y of args) {
+          currentY = y;
+          points.push({ x: currentX, y: currentY });
+        }
+        break;
+      case 'v': // Relative vertical
+        for (const dy of args) {
+          currentY += dy;
+          points.push({ x: currentX, y: currentY });
+        }
+        break;
+      case 'C': // Absolute cubic bezier
+        for (let i = 0; i < args.length; i += 6) {
+          points.push({ x: args[i], y: args[i + 1] });
+          points.push({ x: args[i + 2], y: args[i + 3] });
+          currentX = args[i + 4];
+          currentY = args[i + 5];
+          points.push({ x: currentX, y: currentY });
+        }
+        break;
+      case 'c': // Relative cubic bezier
+        for (let i = 0; i < args.length; i += 6) {
+          points.push({ x: currentX + args[i], y: currentY + args[i + 1] });
+          points.push({ x: currentX + args[i + 2], y: currentY + args[i + 3] });
+          currentX += args[i + 4];
+          currentY += args[i + 5];
+          points.push({ x: currentX, y: currentY });
+        }
+        break;
+      case 'Z':
+      case 'z': // Close path
+        currentX = startX;
+        currentY = startY;
+        break;
+      default:
+        // For other commands (Q, S, T, A), just track the endpoint if present
+        if (args.length >= 2) {
+          const isRelative = type === type.toLowerCase();
+          if (isRelative) {
+            currentX += args[args.length - 2];
+            currentY += args[args.length - 1];
+          } else {
+            currentX = args[args.length - 2];
+            currentY = args[args.length - 1];
+          }
+          points.push({ x: currentX, y: currentY });
+        }
+    }
+  }
+  
+  if (points.length === 0) return { minX: 0, minY: 0, maxX: 100, maxY: 100, centerX: 50, centerY: 50 };
+  
+  const xs = points.map(p => p.x);
+  const ys = points.map(p => p.y);
   const minX = Math.min(...xs);
   const maxX = Math.max(...xs);
   const minY = Math.min(...ys);
   const maxY = Math.max(...ys);
+  
   return {
     minX,
     minY,
