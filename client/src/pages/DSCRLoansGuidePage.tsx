@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { Slider } from "@/components/ui/slider";
+import { ArticleDSCRCalculator } from "@/components/ArticleDSCRCalculator";
+import { PortalSignUpCTA } from "@/components/PortalSignUpCTA";
 import {
   BarChart,
   Bar,
@@ -341,6 +343,15 @@ export default function DSCRLoansGuidePage() {
             </Card>
           </div>
 
+          {/* Inline CTA */}
+          <div className="my-8">
+            <PortalSignUpCTA 
+              variant="inline"
+              title="Want to compare financing options?"
+              description="Create a free account to run side-by-side loan comparisons"
+            />
+          </div>
+
           <h2 className="text-2xl font-bold mt-12 mb-6">Qualification Requirements</h2>
 
           <div className="grid gap-4 md:grid-cols-2 mb-8">
@@ -482,27 +493,28 @@ export default function DSCRLoansGuidePage() {
             </Card>
           </div>
 
-          {/* Call to Action */}
-          <Card className="mt-12 bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-            <CardContent className="p-8 text-center">
-              <h3 className="text-xl font-bold mb-3">Ready to Scale Your Rental Portfolio?</h3>
-              <p className="text-muted-foreground mb-6">
-                Sequel Investments offers DSCR loans with no minimum DSCR requirement, rates starting at 5.75%, and closings as fast as 10 days.
-              </p>
-              <div className="flex flex-wrap justify-center gap-4">
-                <Link href="/get-quote">
-                  <Button size="lg" data-testid="button-get-quote">
-                    Get Your Rate Today
-                  </Button>
-                </Link>
-                <Link href="/calculator">
-                  <Button variant="outline" size="lg" data-testid="button-calculator">
-                    Try Our Calculator
-                  </Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Embedded Calculator */}
+          <div className="my-12">
+            <h2 className="text-2xl font-bold mb-2">Estimate Your DSCR Loan</h2>
+            <p className="text-muted-foreground mb-6">Run your numbers below to see estimated rates and cash flow. Create a free account to save scenarios and access detailed analysis.</p>
+            <div className="grid md:grid-cols-2 gap-8">
+              <ArticleDSCRCalculator />
+              <PortalSignUpCTA 
+                loanType="dscr" 
+                title="Unlock Full Deal Analysis"
+                description="Save unlimited scenarios, compare properties, and track your portfolio in one place."
+              />
+            </div>
+          </div>
+
+          {/* Final CTA Banner */}
+          <div className="mt-12">
+            <PortalSignUpCTA 
+              variant="banner"
+              title="Ready to Scale Your Rental Portfolio?"
+              description="Join thousands of investors using our platform to analyze DSCR deals, track applications, and close faster with rates starting at 5.75%."
+            />
+          </div>
         </div>
       </article>
 
