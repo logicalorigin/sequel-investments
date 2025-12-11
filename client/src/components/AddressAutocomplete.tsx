@@ -141,7 +141,8 @@ function GoogleMapsAutocomplete({
           request,
           (results: AutocompletePrediction[] | null, status: string) => {
             if (status === "OK" && results) {
-              setPredictions(results);
+              // Only show the top result for cleaner UX
+              setPredictions(results.slice(0, 1));
               setShowDropdown(true);
             } else {
               setPredictions([]);
