@@ -175,58 +175,93 @@ function getPathBounds(pathD: string): { minX: number; minY: number; maxX: numbe
   };
 }
 
-// Geographic center (lat/lng) for each state - used to calculate marker offsets
-const STATE_GEO_CENTERS: Record<string, { lat: number; lng: number }> = {
-  "AL": { lat: 32.8, lng: -86.8 }, "AK": { lat: 64.0, lng: -153.0 }, "AZ": { lat: 34.2, lng: -111.5 },
-  "AR": { lat: 35.0, lng: -92.5 }, "CA": { lat: 37.0, lng: -120.0 }, "CO": { lat: 39.0, lng: -105.5 },
-  "CT": { lat: 41.6, lng: -72.7 }, "DE": { lat: 39.0, lng: -75.5 }, "FL": { lat: 28.0, lng: -82.5 },
-  "GA": { lat: 32.7, lng: -83.5 }, "HI": { lat: 20.8, lng: -156.3 }, "ID": { lat: 44.0, lng: -114.5 },
-  "IL": { lat: 40.0, lng: -89.0 }, "IN": { lat: 40.0, lng: -86.2 }, "IA": { lat: 42.0, lng: -93.5 },
-  "KS": { lat: 38.5, lng: -98.5 }, "KY": { lat: 37.8, lng: -85.8 }, "LA": { lat: 31.0, lng: -92.0 },
-  "ME": { lat: 45.3, lng: -69.0 }, "MD": { lat: 39.0, lng: -76.7 }, "MA": { lat: 42.4, lng: -71.4 },
-  "MI": { lat: 44.3, lng: -85.5 }, "MN": { lat: 46.0, lng: -94.5 }, "MS": { lat: 32.7, lng: -89.7 },
-  "MO": { lat: 38.5, lng: -92.5 }, "MT": { lat: 47.0, lng: -110.0 }, "NE": { lat: 41.5, lng: -99.8 },
-  "NV": { lat: 39.0, lng: -117.0 }, "NH": { lat: 43.5, lng: -71.5 }, "NJ": { lat: 40.2, lng: -74.7 },
-  "NM": { lat: 34.5, lng: -106.0 }, "NY": { lat: 43.0, lng: -75.5 }, "NC": { lat: 35.5, lng: -79.5 },
-  "ND": { lat: 47.5, lng: -100.5 }, "OH": { lat: 40.4, lng: -82.8 }, "OK": { lat: 35.5, lng: -97.5 },
-  "OR": { lat: 44.0, lng: -120.5 }, "PA": { lat: 41.0, lng: -77.5 }, "RI": { lat: 41.7, lng: -71.5 },
-  "SC": { lat: 34.0, lng: -81.0 }, "SD": { lat: 44.4, lng: -100.2 }, "TN": { lat: 35.8, lng: -86.0 },
-  "TX": { lat: 31.0, lng: -100.0 }, "UT": { lat: 39.3, lng: -111.5 }, "VT": { lat: 44.0, lng: -72.7 },
-  "VA": { lat: 37.5, lng: -78.5 }, "WA": { lat: 47.5, lng: -120.5 }, "WV": { lat: 38.9, lng: -80.5 },
-  "WI": { lat: 44.5, lng: -90.0 }, "WY": { lat: 43.0, lng: -107.5 },
+// Accurate geographic bounding boxes for each state (minLat, maxLat, minLng, maxLng)
+// These define the actual extent of each state for proper coordinate mapping
+const STATE_GEO_BOUNDS: Record<string, { minLat: number; maxLat: number; minLng: number; maxLng: number }> = {
+  "AL": { minLat: 30.22, maxLat: 35.01, minLng: -88.47, maxLng: -84.89 },
+  "AK": { minLat: 51.21, maxLat: 71.39, minLng: -179.15, maxLng: -129.98 },
+  "AZ": { minLat: 31.33, maxLat: 37.00, minLng: -114.81, maxLng: -109.04 },
+  "AR": { minLat: 33.00, maxLat: 36.50, minLng: -94.62, maxLng: -89.64 },
+  "CA": { minLat: 32.53, maxLat: 42.01, minLng: -124.48, maxLng: -114.13 },
+  "CO": { minLat: 36.99, maxLat: 41.00, minLng: -109.06, maxLng: -102.04 },
+  "CT": { minLat: 40.95, maxLat: 42.05, minLng: -73.73, maxLng: -71.79 },
+  "DE": { minLat: 38.45, maxLat: 39.84, minLng: -75.79, maxLng: -75.05 },
+  "FL": { minLat: 24.40, maxLat: 31.00, minLng: -87.63, maxLng: -80.03 },
+  "GA": { minLat: 30.36, maxLat: 35.00, minLng: -85.61, maxLng: -80.84 },
+  "HI": { minLat: 18.91, maxLat: 22.24, minLng: -160.25, maxLng: -154.81 },
+  "ID": { minLat: 41.99, maxLat: 49.00, minLng: -117.24, maxLng: -111.04 },
+  "IL": { minLat: 36.97, maxLat: 42.51, minLng: -91.51, maxLng: -87.02 },
+  "IN": { minLat: 37.77, maxLat: 41.76, minLng: -88.10, maxLng: -84.78 },
+  "IA": { minLat: 40.38, maxLat: 43.50, minLng: -96.64, maxLng: -90.14 },
+  "KS": { minLat: 36.99, maxLat: 40.00, minLng: -102.05, maxLng: -94.59 },
+  "KY": { minLat: 36.50, maxLat: 39.15, minLng: -89.57, maxLng: -81.96 },
+  "LA": { minLat: 28.93, maxLat: 33.02, minLng: -94.04, maxLng: -88.82 },
+  "ME": { minLat: 43.06, maxLat: 47.46, minLng: -71.08, maxLng: -66.95 },
+  "MD": { minLat: 37.91, maxLat: 39.72, minLng: -79.49, maxLng: -75.05 },
+  "MA": { minLat: 41.24, maxLat: 42.89, minLng: -73.51, maxLng: -69.93 },
+  "MI": { minLat: 41.70, maxLat: 48.31, minLng: -90.42, maxLng: -82.12 },
+  "MN": { minLat: 43.50, maxLat: 49.38, minLng: -97.24, maxLng: -89.49 },
+  "MS": { minLat: 30.17, maxLat: 35.00, minLng: -91.66, maxLng: -88.10 },
+  "MO": { minLat: 35.99, maxLat: 40.61, minLng: -95.77, maxLng: -89.10 },
+  "MT": { minLat: 44.36, maxLat: 49.00, minLng: -116.05, maxLng: -104.04 },
+  "NE": { minLat: 40.00, maxLat: 43.00, minLng: -104.05, maxLng: -95.31 },
+  "NV": { minLat: 35.00, maxLat: 42.00, minLng: -120.01, maxLng: -114.04 },
+  "NH": { minLat: 42.70, maxLat: 45.31, minLng: -72.56, maxLng: -70.70 },
+  "NJ": { minLat: 38.93, maxLat: 41.36, minLng: -75.56, maxLng: -73.89 },
+  "NM": { minLat: 31.33, maxLat: 37.00, minLng: -109.05, maxLng: -103.00 },
+  "NY": { minLat: 40.50, maxLat: 45.02, minLng: -79.76, maxLng: -71.86 },
+  "NC": { minLat: 33.84, maxLat: 36.59, minLng: -84.32, maxLng: -75.46 },
+  "ND": { minLat: 45.94, maxLat: 49.00, minLng: -104.05, maxLng: -96.55 },
+  "OH": { minLat: 38.40, maxLat: 42.33, minLng: -84.82, maxLng: -80.52 },
+  "OK": { minLat: 33.62, maxLat: 37.00, minLng: -103.00, maxLng: -94.43 },
+  "OR": { minLat: 41.99, maxLat: 46.29, minLng: -124.57, maxLng: -116.46 },
+  "PA": { minLat: 39.72, maxLat: 42.27, minLng: -80.52, maxLng: -74.69 },
+  "RI": { minLat: 41.15, maxLat: 42.02, minLng: -71.86, maxLng: -71.12 },
+  "SC": { minLat: 32.03, maxLat: 35.22, minLng: -83.35, maxLng: -78.54 },
+  "SD": { minLat: 42.48, maxLat: 45.95, minLng: -104.06, maxLng: -96.44 },
+  "TN": { minLat: 34.98, maxLat: 36.68, minLng: -90.31, maxLng: -81.65 },
+  "TX": { minLat: 25.84, maxLat: 36.50, minLng: -106.65, maxLng: -93.51 },
+  "UT": { minLat: 36.99, maxLat: 42.00, minLng: -114.05, maxLng: -109.04 },
+  "VT": { minLat: 42.73, maxLat: 45.02, minLng: -73.44, maxLng: -71.46 },
+  "VA": { minLat: 36.54, maxLat: 39.47, minLng: -83.68, maxLng: -75.24 },
+  "WA": { minLat: 45.54, maxLat: 49.00, minLng: -124.85, maxLng: -116.92 },
+  "WV": { minLat: 37.20, maxLat: 40.64, minLng: -82.64, maxLng: -77.72 },
+  "WI": { minLat: 42.49, maxLat: 47.31, minLng: -92.89, maxLng: -86.25 },
+  "WY": { minLat: 40.99, maxLat: 45.01, minLng: -111.06, maxLng: -104.05 },
+  "DC": { minLat: 38.79, maxLat: 38.99, minLng: -77.12, maxLng: -76.91 },
 };
 
-// Convert lat/lng to SVG coordinates using state path center as reference
+// Convert lat/lng to SVG coordinates using accurate state bounds interpolation
 function latLngToSvgWithBounds(
   lat: number, 
   lng: number, 
   stateAbbr: string,
-  bounds: { centerX: number; centerY: number; minX: number; maxX: number; minY: number; maxY: number }
+  svgBounds: { centerX: number; centerY: number; minX: number; maxX: number; minY: number; maxY: number }
 ): { x: number; y: number } {
-  const geoCenter = STATE_GEO_CENTERS[stateAbbr];
+  const geoBounds = STATE_GEO_BOUNDS[stateAbbr];
   
-  if (!geoCenter) {
+  if (!geoBounds) {
     // Fallback - place at SVG center
-    return { x: bounds.centerX, y: bounds.centerY };
+    return { x: svgBounds.centerX, y: svgBounds.centerY };
   }
   
-  // Calculate geographic offset from state center
-  const dLng = lng - geoCenter.lng;
-  const dLat = lat - geoCenter.lat;
+  // Calculate normalized position within geographic bounds (0-1)
+  const geoWidth = geoBounds.maxLng - geoBounds.minLng;
+  const geoHeight = geoBounds.maxLat - geoBounds.minLat;
   
-  // Estimate state geographic span based on typical US state sizes
-  // Most states span 3-10 degrees longitude and 2-6 degrees latitude
-  const svgWidth = bounds.maxX - bounds.minX;
-  const svgHeight = bounds.maxY - bounds.minY;
+  // Normalize: where does this point fall within the state's geographic extent?
+  // X: 0 = west edge, 1 = east edge
+  // Y: 0 = south edge, 1 = north edge  
+  const normalizedX = (lng - geoBounds.minLng) / geoWidth;
+  const normalizedY = (lat - geoBounds.minLat) / geoHeight;
   
-  // Use a consistent scale factor based on the SVG dimensions
-  // The Albers projection used in the SVG compresses longitude at higher latitudes
-  const scaleX = svgWidth / 8;  // Assume ~8 degrees longitude span
-  const scaleY = svgHeight / 5; // Assume ~5 degrees latitude span
+  // Map to SVG coordinates
+  // SVG Y is inverted (0 at top), so we flip the normalized Y
+  const svgWidth = svgBounds.maxX - svgBounds.minX;
+  const svgHeight = svgBounds.maxY - svgBounds.minY;
   
-  // Apply offset from the SVG path center
-  const x = bounds.centerX + (dLng * scaleX);
-  const y = bounds.centerY - (dLat * scaleY); // Y is inverted in SVG
+  const x = svgBounds.minX + (normalizedX * svgWidth);
+  const y = svgBounds.maxY - (normalizedY * svgHeight); // Flip Y for SVG coordinate system
   
   return { x, y };
 }
