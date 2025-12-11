@@ -105,28 +105,12 @@ const questions: Question[] = [
     prompt: "Where is the property located?",
     field: "propertyAddress",
   },
-  // DSCR: Combined property details + transaction type selection
+  // DSCR: Combined property details + transaction type + financials (all in one step)
   {
     id: "dscr-property-transaction",
     type: "dscr-property-transaction",
     prompt: "Property Details",
     showFor: ["dscr"],
-  },
-  // DSCR Purchase flow
-  {
-    id: "dscr-purchase-financials",
-    type: "dscr-purchase-financials",
-    prompt: "Property Financials",
-    showFor: ["dscr"],
-    showForTransaction: ["purchase"],
-  },
-  // DSCR Refinance flow
-  {
-    id: "dscr-refinance-financials",
-    type: "dscr-refinance-financials",
-    prompt: "Property Financials",
-    showFor: ["dscr"],
-    showForTransaction: ["refinance"],
   },
   // Fix & Flip: Combined financials page
   {
@@ -481,11 +465,13 @@ export default function ConversationalQuote() {
       case "property-address":
         return !!formData.propertyAddress || !!formData.propertyCity;
       case "dscr-property-transaction":
-        return !!formData.transactionType; // Must select purchase or refinance to continue
-      case "dscr-purchase-financials":
-        return !!formData.purchasePrice && !!formData.monthlyRent && !!formData.annualTaxes && !!formData.annualInsurance;
-      case "dscr-refinance-financials":
-        return !!formData.propertyValue && !!formData.currentLoanBalance && !!formData.monthlyRent && !!formData.annualTaxes && !!formData.annualInsurance;
+        // Must select transaction type AND fill in core financials
+        if (!formData.transactionType) return false;
+        if (formData.transactionType === "purchase") {
+          return !!formData.purchasePrice && !!formData.monthlyRent;
+        } else {
+          return !!formData.propertyValue && !!formData.currentLoanBalance && !!formData.monthlyRent;
+        }
       case "fixflip-financials":
         return !!formData.purchasePrice && !!formData.rehabBudget && !!formData.afterRepairValue;
       case "construction-financials":
@@ -741,10 +727,26 @@ export default function ConversationalQuote() {
         );
 
       case "dscr-property-transaction":
+        // Calculate values for purchase
+        const dscrPurchasePrice = parseFloat(formData.purchasePrice.replace(/,/g, "")) || 0;
+        const dscrDownPaymentPct = parseFloat(formData.downPaymentPercent) || 20;
+        const dscrDownPaymentAmt = dscrPurchasePrice * dscrDownPaymentPct / 100;
+        const dscrLoanAmt = dscrPurchasePrice - dscrDownPaymentAmt;
+        
+        // Calculate values for refinance
+        const dscrRefiPropValue = parseFloat(formData.propertyValue.replace(/,/g, "")) || 0;
+        const dscrRefiLoanBal = parseFloat(formData.currentLoanBalance.replace(/,/g, "")) || 0;
+        const dscrRefiMaxLoan = dscrRefiPropValue * 0.75;
+        const dscrRefiRawMaxCashOut = dscrRefiMaxLoan - dscrRefiLoanBal;
+        const dscrRefiEquity = dscrRefiPropValue - dscrRefiLoanBal;
+        const dscrCashOutStep = dscrRefiRawMaxCashOut >= 50000 ? 10000 : 5000;
+        const dscrCashOutSliderMax = Math.max(0, Math.floor(dscrRefiRawMaxCashOut / dscrCashOutStep) * dscrCashOutStep);
+        const dscrCashOutAvailable = dscrCashOutSliderMax >= 10000;
+        
         return (
-          <div className="space-y-3 sm:space-y-6 max-w-xl mx-auto px-2 sm:px-0">
+          <div className="space-y-3 sm:space-y-4 max-w-2xl mx-auto px-2 sm:px-0">
             <div className="text-center">
-              <h2 className="text-lg sm:text-3xl font-bold text-white leading-tight mb-1 sm:mb-2">
+              <h2 className="text-lg sm:text-3xl font-bold text-white leading-tight mb-1">
                 Property Details
               </h2>
               <p className="text-white/60 text-xs sm:text-sm">
@@ -807,13 +809,14 @@ export default function ConversationalQuote() {
               </motion.button>
             </div>
 
-            {/* Property Details - shown after transaction type selected */}
+            {/* Content area - shown after transaction type selected */}
             <AnimatePresence mode="wait">
               {formData.transactionType && (
                 <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
+                  key={formData.transactionType}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: 0.3 }}
                   className="space-y-3"
                 >
@@ -822,358 +825,202 @@ export default function ConversationalQuote() {
                       <Loader2 className="w-5 h-5 sm:w-6 sm:h-6 text-primary animate-spin" />
                       <span className="ml-2 text-white/60 text-sm">Fetching details...</span>
                     </div>
-                  ) : (
+                  ) : formData.transactionType === "purchase" ? (
                     <>
-                      {/* Dynamic Property Value Field based on transaction type */}
-                      <div className="bg-white/5 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-white/10">
-                        <label className="text-white/50 text-[10px] sm:text-xs uppercase tracking-wide block mb-2">
-                          {formData.transactionType === "purchase" ? "Purchase Price" : "Est. Value"}
-                        </label>
-                        <div className="flex items-center justify-center">
-                          <span className="text-white/60 text-xl sm:text-2xl mr-1">$</span>
-                          <input
-                            type="text"
-                            value={formData.transactionType === "purchase" 
-                              ? formData.purchasePrice 
-                              : formData.propertyDetails.estimatedValue}
-                            onChange={(e) => {
-                              if (formData.transactionType === "purchase") {
-                                updateField("purchasePrice", formatCurrency(e.target.value));
-                              } else {
-                                updatePropertyDetail("estimatedValue", formatCurrency(e.target.value));
-                              }
-                            }}
-                            placeholder="0"
-                            className="w-full bg-transparent text-xl sm:text-3xl font-bold text-white text-center focus:outline-none"
-                            data-testid="input-property-value"
-                          />
+                      {/* PURCHASE FLOW - Integrated Financials */}
+                      <CurrencySliderInput
+                        value={formData.purchasePrice}
+                        onChange={(val) => updateField("purchasePrice", val)}
+                        min={50000}
+                        max={3000000}
+                        step={10000}
+                        label="Purchase Price"
+                        data-testid="input-dscr-purchase-price"
+                      />
+                      
+                      <PercentageSlider
+                        value={formData.downPaymentPercent}
+                        onChange={(val) => updateField("downPaymentPercent", val)}
+                        min={20}
+                        max={50}
+                        step={5}
+                        label="Down Payment"
+                        calculatedAmount={dscrDownPaymentAmt}
+                        helperText="Minimum 20% required"
+                        data-testid="input-down-payment"
+                      />
+                      
+                      {dscrPurchasePrice > 0 && (
+                        <motion.div 
+                          className="bg-primary/10 rounded-lg p-2 sm:p-3 border border-primary/30"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                        >
+                          <div className="flex justify-between items-center">
+                            <span className="text-white/60 text-xs sm:text-sm">Est. Loan Amount</span>
+                            <span className="text-sm sm:text-lg font-bold text-primary">
+                              ${dscrLoanAmt.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                            </span>
+                          </div>
+                        </motion.div>
+                      )}
+                      
+                      <CurrencySliderInput
+                        value={formData.monthlyRent}
+                        onChange={(val) => updateField("monthlyRent", val)}
+                        min={500}
+                        max={15000}
+                        step={100}
+                        label="Expected Monthly Rent"
+                        data-testid="input-dscr-monthly-rent"
+                      />
+                      
+                      {/* Property Specs + Annual Costs in compact grid */}
+                      <div className="grid grid-cols-4 gap-2">
+                        <div className="bg-white/5 rounded-lg p-2 border border-white/10">
+                          <label className="text-white/50 text-[9px] uppercase tracking-wide block mb-1">Beds</label>
+                          <input type="text" value={formData.propertyDetails.beds} onChange={(e) => updatePropertyDetail("beds", e.target.value)} placeholder="--" className="w-full bg-transparent text-sm font-bold text-white text-center focus:outline-none" data-testid="input-beds" />
+                        </div>
+                        <div className="bg-white/5 rounded-lg p-2 border border-white/10">
+                          <label className="text-white/50 text-[9px] uppercase tracking-wide block mb-1">Baths</label>
+                          <input type="text" value={formData.propertyDetails.baths} onChange={(e) => updatePropertyDetail("baths", e.target.value)} placeholder="--" className="w-full bg-transparent text-sm font-bold text-white text-center focus:outline-none" data-testid="input-baths" />
+                        </div>
+                        <div className="bg-white/5 rounded-lg p-2 border border-white/10">
+                          <label className="text-white/50 text-[9px] uppercase tracking-wide block mb-1">Sq Ft</label>
+                          <input type="text" value={formData.propertyDetails.sqft} onChange={(e) => updatePropertyDetail("sqft", e.target.value)} placeholder="--" className="w-full bg-transparent text-sm font-bold text-white text-center focus:outline-none" data-testid="input-sqft" />
+                        </div>
+                        <div className="bg-white/5 rounded-lg p-2 border border-white/10">
+                          <label className="text-white/50 text-[9px] uppercase tracking-wide block mb-1">Year</label>
+                          <input type="text" value={formData.propertyDetails.yearBuilt} onChange={(e) => updatePropertyDetail("yearBuilt", e.target.value)} placeholder="--" className="w-full bg-transparent text-sm font-bold text-white text-center focus:outline-none" data-testid="input-yearBuilt" />
                         </div>
                       </div>
                       
-                      {/* Property Specs Grid */}
-                      <div className="grid grid-cols-4 gap-2">
-                        <div className="bg-white/5 rounded-lg p-2 sm:p-3 border border-white/10">
-                          <label className="text-white/50 text-[9px] sm:text-[10px] uppercase tracking-wide block mb-1">Beds</label>
-                          <input
-                            type="text"
-                            value={formData.propertyDetails.beds}
-                            onChange={(e) => updatePropertyDetail("beds", e.target.value)}
-                            placeholder="--"
-                            className="w-full bg-transparent text-sm sm:text-lg font-bold text-white text-center focus:outline-none"
-                            data-testid="input-beds"
-                          />
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="bg-white/5 rounded-lg p-2 border border-white/10">
+                          <label className="text-white/50 text-[9px] uppercase tracking-wide block mb-1">Taxes/yr</label>
+                          <div className="flex items-center"><span className="text-white/40 mr-0.5 text-xs">$</span><input type="text" value={formData.annualTaxes} onChange={(e) => updateField("annualTaxes", formatCurrency(e.target.value))} placeholder="0" className="w-full bg-transparent text-sm font-bold text-white focus:outline-none" data-testid="input-annual-taxes" /></div>
                         </div>
-                        <div className="bg-white/5 rounded-lg p-2 sm:p-3 border border-white/10">
-                          <label className="text-white/50 text-[9px] sm:text-[10px] uppercase tracking-wide block mb-1">Baths</label>
-                          <input
-                            type="text"
-                            value={formData.propertyDetails.baths}
-                            onChange={(e) => updatePropertyDetail("baths", e.target.value)}
-                            placeholder="--"
-                            className="w-full bg-transparent text-sm sm:text-lg font-bold text-white text-center focus:outline-none"
-                            data-testid="input-baths"
-                          />
+                        <div className="bg-white/5 rounded-lg p-2 border border-white/10">
+                          <label className="text-white/50 text-[9px] uppercase tracking-wide block mb-1">Ins/yr</label>
+                          <div className="flex items-center"><span className="text-white/40 mr-0.5 text-xs">$</span><input type="text" value={formData.annualInsurance} onChange={(e) => updateField("annualInsurance", formatCurrency(e.target.value))} placeholder="0" className="w-full bg-transparent text-sm font-bold text-white focus:outline-none" data-testid="input-annual-insurance" /></div>
                         </div>
-                        <div className="bg-white/5 rounded-lg p-2 sm:p-3 border border-white/10">
-                          <label className="text-white/50 text-[9px] sm:text-[10px] uppercase tracking-wide block mb-1">Sq Ft</label>
-                          <input
-                            type="text"
-                            value={formData.propertyDetails.sqft}
-                            onChange={(e) => updatePropertyDetail("sqft", e.target.value)}
-                            placeholder="--"
-                            className="w-full bg-transparent text-sm sm:text-lg font-bold text-white text-center focus:outline-none"
-                            data-testid="input-sqft"
-                          />
-                        </div>
-                        <div className="bg-white/5 rounded-lg p-2 sm:p-3 border border-white/10">
-                          <label className="text-white/50 text-[9px] sm:text-[10px] uppercase tracking-wide block mb-1">Year</label>
-                          <input
-                            type="text"
-                            value={formData.propertyDetails.yearBuilt}
-                            onChange={(e) => updatePropertyDetail("yearBuilt", e.target.value)}
-                            placeholder="--"
-                            className="w-full bg-transparent text-sm sm:text-lg font-bold text-white text-center focus:outline-none"
-                            data-testid="input-yearBuilt"
-                          />
+                        <div className="bg-white/5 rounded-lg p-2 border border-white/10">
+                          <label className="text-white/50 text-[9px] uppercase tracking-wide block mb-1">HOA/yr</label>
+                          <div className="flex items-center"><span className="text-white/40 mr-0.5 text-xs">$</span><input type="text" value={formData.annualHoa} onChange={(e) => updateField("annualHoa", formatCurrency(e.target.value))} placeholder="0" className="w-full bg-transparent text-sm font-bold text-white focus:outline-none" data-testid="input-annual-hoa" /></div>
                         </div>
                       </div>
-                      <p className="text-white/40 text-[10px] sm:text-xs text-center">
-                        Auto-filled when available. Edit if needed.
-                      </p>
+                    </>
+                  ) : (
+                    <>
+                      {/* REFINANCE FLOW - Integrated Financials */}
+                      <CurrencySliderInput
+                        value={formData.propertyValue}
+                        onChange={(val) => updateField("propertyValue", val)}
+                        min={100000}
+                        max={5000000}
+                        step={25000}
+                        label="Property Value"
+                        data-testid="input-property-value"
+                      />
+                      
+                      <CurrencySliderInput
+                        value={formData.currentLoanBalance}
+                        onChange={(val) => updateField("currentLoanBalance", val)}
+                        min={0}
+                        max={3000000}
+                        step={10000}
+                        label="Current Loan Balance"
+                        data-testid="input-current-loan-balance"
+                      />
+                      
+                      {dscrRefiPropValue > 0 && dscrRefiLoanBal > 0 && (
+                        <motion.div 
+                          className={`rounded-lg p-2 sm:p-3 border ${dscrCashOutAvailable ? "bg-primary/10 border-primary/30" : "bg-red-500/10 border-red-500/30"}`}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                        >
+                          <div className="flex justify-between text-xs sm:text-sm">
+                            <span className="text-white/60">Current Equity</span>
+                            <span className={`font-medium ${dscrRefiEquity >= 0 ? "text-white" : "text-red-400"}`}>
+                              ${dscrRefiEquity.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-xs sm:text-sm mt-1">
+                            <span className="text-white/60">Max Cash Out</span>
+                            <span className={`font-bold ${dscrCashOutAvailable ? "text-primary" : "text-red-400"}`}>
+                              ${dscrCashOutSliderMax.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                            </span>
+                          </div>
+                        </motion.div>
+                      )}
+                      
+                      {dscrCashOutAvailable ? (
+                        <CurrencySliderInput
+                          value={formData.desiredCashOut}
+                          onChange={(val) => updateField("desiredCashOut", val)}
+                          min={0}
+                          max={dscrCashOutSliderMax}
+                          step={dscrCashOutStep}
+                          label="Desired Cash Out"
+                          data-testid="input-desired-cash-out"
+                        />
+                      ) : (
+                        <div className="bg-white/5 rounded-lg p-2 sm:p-3 border border-white/10 opacity-50">
+                          <label className="text-white/50 text-[9px] uppercase tracking-wide block mb-1">Desired Cash Out</label>
+                          <div className="text-sm font-bold text-white/40">$0</div>
+                          <p className="text-white/40 text-[9px]">Min $10k equity required</p>
+                        </div>
+                      )}
+                      
+                      <CurrencySliderInput
+                        value={formData.monthlyRent}
+                        onChange={(val) => updateField("monthlyRent", val)}
+                        min={500}
+                        max={15000}
+                        step={100}
+                        label="Current Monthly Rent"
+                        data-testid="input-refi-monthly-rent"
+                      />
+                      
+                      {/* Property Specs + Annual Costs in compact grid */}
+                      <div className="grid grid-cols-4 gap-2">
+                        <div className="bg-white/5 rounded-lg p-2 border border-white/10">
+                          <label className="text-white/50 text-[9px] uppercase tracking-wide block mb-1">Beds</label>
+                          <input type="text" value={formData.propertyDetails.beds} onChange={(e) => updatePropertyDetail("beds", e.target.value)} placeholder="--" className="w-full bg-transparent text-sm font-bold text-white text-center focus:outline-none" data-testid="input-refi-beds" />
+                        </div>
+                        <div className="bg-white/5 rounded-lg p-2 border border-white/10">
+                          <label className="text-white/50 text-[9px] uppercase tracking-wide block mb-1">Baths</label>
+                          <input type="text" value={formData.propertyDetails.baths} onChange={(e) => updatePropertyDetail("baths", e.target.value)} placeholder="--" className="w-full bg-transparent text-sm font-bold text-white text-center focus:outline-none" data-testid="input-refi-baths" />
+                        </div>
+                        <div className="bg-white/5 rounded-lg p-2 border border-white/10">
+                          <label className="text-white/50 text-[9px] uppercase tracking-wide block mb-1">Sq Ft</label>
+                          <input type="text" value={formData.propertyDetails.sqft} onChange={(e) => updatePropertyDetail("sqft", e.target.value)} placeholder="--" className="w-full bg-transparent text-sm font-bold text-white text-center focus:outline-none" data-testid="input-refi-sqft" />
+                        </div>
+                        <div className="bg-white/5 rounded-lg p-2 border border-white/10">
+                          <label className="text-white/50 text-[9px] uppercase tracking-wide block mb-1">Year</label>
+                          <input type="text" value={formData.propertyDetails.yearBuilt} onChange={(e) => updatePropertyDetail("yearBuilt", e.target.value)} placeholder="--" className="w-full bg-transparent text-sm font-bold text-white text-center focus:outline-none" data-testid="input-refi-yearBuilt" />
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="bg-white/5 rounded-lg p-2 border border-white/10">
+                          <label className="text-white/50 text-[9px] uppercase tracking-wide block mb-1">Taxes/yr</label>
+                          <div className="flex items-center"><span className="text-white/40 mr-0.5 text-xs">$</span><input type="text" value={formData.annualTaxes} onChange={(e) => updateField("annualTaxes", formatCurrency(e.target.value))} placeholder="0" className="w-full bg-transparent text-sm font-bold text-white focus:outline-none" data-testid="input-refi-annual-taxes" /></div>
+                        </div>
+                        <div className="bg-white/5 rounded-lg p-2 border border-white/10">
+                          <label className="text-white/50 text-[9px] uppercase tracking-wide block mb-1">Ins/yr</label>
+                          <div className="flex items-center"><span className="text-white/40 mr-0.5 text-xs">$</span><input type="text" value={formData.annualInsurance} onChange={(e) => updateField("annualInsurance", formatCurrency(e.target.value))} placeholder="0" className="w-full bg-transparent text-sm font-bold text-white focus:outline-none" data-testid="input-refi-annual-insurance" /></div>
+                        </div>
+                        <div className="bg-white/5 rounded-lg p-2 border border-white/10">
+                          <label className="text-white/50 text-[9px] uppercase tracking-wide block mb-1">HOA/yr</label>
+                          <div className="flex items-center"><span className="text-white/40 mr-0.5 text-xs">$</span><input type="text" value={formData.annualHoa} onChange={(e) => updateField("annualHoa", formatCurrency(e.target.value))} placeholder="0" className="w-full bg-transparent text-sm font-bold text-white focus:outline-none" data-testid="input-refi-annual-hoa" /></div>
+                        </div>
+                      </div>
                     </>
                   )}
                 </motion.div>
               )}
             </AnimatePresence>
-          </div>
-        );
-
-      case "dscr-purchase-financials":
-        const purchasePriceNum = parseFloat(formData.purchasePrice.replace(/,/g, "")) || 0;
-        const downPaymentNum = parseFloat(formData.downPaymentPercent) || 20;
-        const downPaymentAmount = purchasePriceNum * downPaymentNum / 100;
-        const loanAmount = purchasePriceNum - downPaymentAmount;
-        
-        return (
-          <div className="space-y-3 sm:space-y-6 max-w-xl mx-auto px-2 sm:px-0">
-            <div className="text-center">
-              <h2 className="text-lg sm:text-3xl font-bold text-white leading-tight mb-1">
-                Purchase Details
-              </h2>
-            </div>
-            <div className="space-y-2 sm:space-y-4">
-              <CurrencySliderInput
-                value={formData.purchasePrice}
-                onChange={(val) => updateField("purchasePrice", val)}
-                min={50000}
-                max={3000000}
-                step={10000}
-                label="Purchase Price"
-                data-testid="input-dscr-purchase-price"
-              />
-              
-              <PercentageSlider
-                value={formData.downPaymentPercent}
-                onChange={(val) => updateField("downPaymentPercent", val)}
-                min={20}
-                max={50}
-                step={5}
-                label="Down Payment"
-                calculatedAmount={downPaymentAmount}
-                helperText="Minimum 20% required"
-                data-testid="input-down-payment"
-              />
-              
-              {purchasePriceNum > 0 && (
-                <motion.div 
-                  className="bg-primary/10 rounded-lg sm:rounded-xl p-2 sm:p-4 border border-primary/30"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                >
-                  <div className="flex justify-between items-center">
-                    <span className="text-white/60 text-xs sm:text-sm">Est. Loan Amount</span>
-                    <motion.span 
-                      className="text-base sm:text-xl font-bold text-primary"
-                      key={loanAmount}
-                      initial={{ scale: 0.9 }}
-                      animate={{ scale: 1 }}
-                    >
-                      ${loanAmount.toLocaleString("en-US", { maximumFractionDigits: 0 })}
-                    </motion.span>
-                  </div>
-                </motion.div>
-              )}
-              
-              <CurrencySliderInput
-                value={formData.monthlyRent}
-                onChange={(val) => updateField("monthlyRent", val)}
-                min={500}
-                max={15000}
-                step={100}
-                label="Expected Monthly Rent"
-                helperText="Monthly rental income"
-                data-testid="input-dscr-monthly-rent"
-              />
-              
-              <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                <div className="bg-white/5 rounded-lg sm:rounded-xl p-2 sm:p-4 border border-white/10">
-                  <label className="text-white/50 text-[10px] sm:text-xs uppercase tracking-wide block mb-1 sm:mb-2">Taxes</label>
-                  <div className="flex items-center">
-                    <span className="text-white/40 mr-0.5 text-xs sm:text-base">$</span>
-                    <input
-                      type="text"
-                      value={formData.annualTaxes}
-                      onChange={(e) => updateField("annualTaxes", formatCurrency(e.target.value))}
-                      placeholder="0"
-                      className="w-full bg-transparent text-sm sm:text-lg font-bold text-white focus:outline-none"
-                      data-testid="input-annual-taxes"
-                    />
-                  </div>
-                </div>
-                <div className="bg-white/5 rounded-lg sm:rounded-xl p-2 sm:p-4 border border-white/10">
-                  <label className="text-white/50 text-[10px] sm:text-xs uppercase tracking-wide block mb-1 sm:mb-2">Ins.</label>
-                  <div className="flex items-center">
-                    <span className="text-white/40 mr-0.5 text-xs sm:text-base">$</span>
-                    <input
-                      type="text"
-                      value={formData.annualInsurance}
-                      onChange={(e) => updateField("annualInsurance", formatCurrency(e.target.value))}
-                      placeholder="0"
-                      className="w-full bg-transparent text-sm sm:text-lg font-bold text-white focus:outline-none"
-                      data-testid="input-annual-insurance"
-                    />
-                  </div>
-                </div>
-                <div className="bg-white/5 rounded-lg sm:rounded-xl p-2 sm:p-4 border border-white/10">
-                  <label className="text-white/50 text-[10px] sm:text-xs uppercase tracking-wide block mb-1 sm:mb-2">HOA</label>
-                  <div className="flex items-center">
-                    <span className="text-white/40 mr-0.5 text-xs sm:text-base">$</span>
-                    <input
-                      type="text"
-                      value={formData.annualHoa}
-                      onChange={(e) => updateField("annualHoa", formatCurrency(e.target.value))}
-                      placeholder="0"
-                      className="w-full bg-transparent text-sm sm:text-lg font-bold text-white focus:outline-none"
-                      data-testid="input-annual-hoa"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-
-      case "dscr-refinance-financials":
-        const refiPropertyValue = parseFloat(formData.propertyValue.replace(/,/g, "")) || 0;
-        const refiLoanBalance = parseFloat(formData.currentLoanBalance.replace(/,/g, "")) || 0;
-        const refiMaxLoan = refiPropertyValue * 0.75;
-        const refiRawMaxCashOut = refiMaxLoan - refiLoanBalance;
-        const refiEquity = refiPropertyValue - refiLoanBalance;
-        const cashOutStep = refiRawMaxCashOut >= 50000 ? 10000 : 5000;
-        const cashOutSliderMax = Math.max(0, Math.floor(refiRawMaxCashOut / cashOutStep) * cashOutStep);
-        const cashOutAvailable = cashOutSliderMax >= 10000;
-        
-        return (
-          <div className="space-y-3 sm:space-y-6 max-w-xl mx-auto px-2 sm:px-0">
-            <div className="text-center">
-              <h2 className="text-lg sm:text-3xl font-bold text-white leading-tight mb-1">
-                Refinance Details
-              </h2>
-            </div>
-            <div className="space-y-2 sm:space-y-4">
-              <CurrencySliderInput
-                value={formData.propertyValue}
-                onChange={(val) => updateField("propertyValue", val)}
-                min={100000}
-                max={5000000}
-                step={25000}
-                label="Property Value"
-                helperText="Current market value"
-                data-testid="input-property-value"
-              />
-              
-              <CurrencySliderInput
-                value={formData.currentLoanBalance}
-                onChange={(val) => updateField("currentLoanBalance", val)}
-                min={0}
-                max={3000000}
-                step={10000}
-                label="Current Loan Balance"
-                helperText="Outstanding mortgage balance"
-                data-testid="input-current-loan-balance"
-              />
-              
-              {refiPropertyValue > 0 && refiLoanBalance > 0 && (
-                <motion.div 
-                  className={`rounded-lg sm:rounded-xl p-2 sm:p-4 border ${cashOutAvailable ? "bg-primary/10 border-primary/30" : "bg-red-500/10 border-red-500/30"}`}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                >
-                  <div className="flex justify-between text-xs sm:text-sm">
-                    <span className="text-white/60">Current Equity</span>
-                    <motion.span 
-                      className={`font-medium ${refiEquity >= 0 ? "text-white" : "text-red-400"}`}
-                      key={refiEquity}
-                      initial={{ scale: 0.9 }}
-                      animate={{ scale: 1 }}
-                    >
-                      ${refiEquity.toLocaleString("en-US", { maximumFractionDigits: 0 })}
-                    </motion.span>
-                  </div>
-                  <div className="flex justify-between text-xs sm:text-sm mt-1">
-                    <span className="text-white/60">Max Cash Out Available</span>
-                    <motion.span 
-                      className={`font-bold ${cashOutAvailable ? "text-primary" : "text-red-400"}`}
-                      key={cashOutSliderMax}
-                      initial={{ scale: 0.9 }}
-                      animate={{ scale: 1 }}
-                    >
-                      ${cashOutSliderMax.toLocaleString("en-US", { maximumFractionDigits: 0 })}
-                    </motion.span>
-                  </div>
-                  {!cashOutAvailable && (
-                    <p className="text-red-400/70 text-[10px] sm:text-xs mt-2">
-                      Insufficient equity for cash-out. Consider a rate & term refinance instead.
-                    </p>
-                  )}
-                </motion.div>
-              )}
-              
-              {cashOutAvailable ? (
-                <CurrencySliderInput
-                  value={formData.desiredCashOut}
-                  onChange={(val) => updateField("desiredCashOut", val)}
-                  min={0}
-                  max={cashOutSliderMax}
-                  step={cashOutStep}
-                  label="Desired Cash Out"
-                  helperText={`Up to $${cashOutSliderMax.toLocaleString()}`}
-                  data-testid="input-desired-cash-out"
-                />
-              ) : (
-                <div className="bg-white/5 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-white/10 opacity-50">
-                  <label className="text-white/50 text-[10px] sm:text-xs uppercase tracking-wide block mb-1">Desired Cash Out</label>
-                  <div className="text-base sm:text-xl font-bold text-white/40">$0</div>
-                  <p className="text-white/40 text-[10px] sm:text-xs mt-1">Minimum $10k equity required</p>
-                </div>
-              )}
-              
-              <CurrencySliderInput
-                value={formData.monthlyRent}
-                onChange={(val) => updateField("monthlyRent", val)}
-                min={500}
-                max={15000}
-                step={100}
-                label="Current Monthly Rent"
-                helperText="Monthly rental income"
-                data-testid="input-refi-monthly-rent"
-              />
-              
-              <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                <div className="bg-white/5 rounded-lg sm:rounded-xl p-2 sm:p-4 border border-white/10">
-                  <label className="text-white/50 text-[10px] sm:text-xs uppercase tracking-wide block mb-1 sm:mb-2">Taxes</label>
-                  <div className="flex items-center">
-                    <span className="text-white/40 mr-0.5 text-xs sm:text-base">$</span>
-                    <input
-                      type="text"
-                      value={formData.annualTaxes}
-                      onChange={(e) => updateField("annualTaxes", formatCurrency(e.target.value))}
-                      placeholder="0"
-                      className="w-full bg-transparent text-sm sm:text-lg font-bold text-white focus:outline-none"
-                      data-testid="input-refi-annual-taxes"
-                    />
-                  </div>
-                </div>
-                <div className="bg-white/5 rounded-lg sm:rounded-xl p-2 sm:p-4 border border-white/10">
-                  <label className="text-white/50 text-[10px] sm:text-xs uppercase tracking-wide block mb-1 sm:mb-2">Ins.</label>
-                  <div className="flex items-center">
-                    <span className="text-white/40 mr-0.5 text-xs sm:text-base">$</span>
-                    <input
-                      type="text"
-                      value={formData.annualInsurance}
-                      onChange={(e) => updateField("annualInsurance", formatCurrency(e.target.value))}
-                      placeholder="0"
-                      className="w-full bg-transparent text-sm sm:text-lg font-bold text-white focus:outline-none"
-                      data-testid="input-refi-annual-insurance"
-                    />
-                  </div>
-                </div>
-                <div className="bg-white/5 rounded-lg sm:rounded-xl p-2 sm:p-4 border border-white/10">
-                  <label className="text-white/50 text-[10px] sm:text-xs uppercase tracking-wide block mb-1 sm:mb-2">HOA</label>
-                  <div className="flex items-center">
-                    <span className="text-white/40 mr-0.5 text-xs sm:text-base">$</span>
-                    <input
-                      type="text"
-                      value={formData.annualHoa}
-                      onChange={(e) => updateField("annualHoa", formatCurrency(e.target.value))}
-                      placeholder="0"
-                      className="w-full bg-transparent text-sm sm:text-lg font-bold text-white focus:outline-none"
-                      data-testid="input-refi-annual-hoa"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         );
 
@@ -1207,57 +1054,7 @@ export default function ConversationalQuote() {
               </div>
             ) : (
               <>
-                {/* 2x2 Grid for Property Details */}
-                <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                  <div className="bg-white/5 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-white/10">
-                    <label className="text-white/50 text-[10px] sm:text-xs uppercase tracking-wide block mb-1 sm:mb-2">Beds</label>
-                    <input
-                      type="text"
-                      value={formData.propertyDetails.beds}
-                      onChange={(e) => updatePropertyDetail("beds", e.target.value)}
-                      placeholder="--"
-                      className="w-full bg-transparent text-xl sm:text-3xl font-bold text-white text-center focus:outline-none"
-                      data-testid="input-ff-beds"
-                    />
-                  </div>
-                  <div className="bg-white/5 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-white/10">
-                    <label className="text-white/50 text-[10px] sm:text-xs uppercase tracking-wide block mb-1 sm:mb-2">Baths</label>
-                    <input
-                      type="text"
-                      value={formData.propertyDetails.baths}
-                      onChange={(e) => updatePropertyDetail("baths", e.target.value)}
-                      placeholder="--"
-                      className="w-full bg-transparent text-xl sm:text-3xl font-bold text-white text-center focus:outline-none"
-                      data-testid="input-ff-baths"
-                    />
-                  </div>
-                  <div className="bg-white/5 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-white/10">
-                    <label className="text-white/50 text-[10px] sm:text-xs uppercase tracking-wide block mb-1 sm:mb-2">Sq Ft</label>
-                    <input
-                      type="text"
-                      value={formData.propertyDetails.sqft}
-                      onChange={(e) => updatePropertyDetail("sqft", e.target.value)}
-                      placeholder="--"
-                      className="w-full bg-transparent text-xl sm:text-3xl font-bold text-white text-center focus:outline-none"
-                      data-testid="input-ff-sqft"
-                    />
-                  </div>
-                  <div className="bg-white/5 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-white/10">
-                    <label className="text-white/50 text-[10px] sm:text-xs uppercase tracking-wide block mb-1 sm:mb-2">Year Built</label>
-                    <input
-                      type="text"
-                      value={formData.propertyDetails.yearBuilt}
-                      onChange={(e) => updatePropertyDetail("yearBuilt", e.target.value)}
-                      placeholder="--"
-                      className="w-full bg-transparent text-xl sm:text-3xl font-bold text-white text-center focus:outline-none"
-                      data-testid="input-ff-yearBuilt"
-                    />
-                  </div>
-                </div>
-                
-                <p className="text-white/40 text-[10px] sm:text-xs text-center">Auto-filled when available</p>
-                
-                {/* Financial Sliders */}
+                {/* Financial Sliders FIRST */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
                   <CurrencySliderInput
                     value={formData.purchasePrice}
@@ -1289,6 +1086,56 @@ export default function ConversationalQuote() {
                   label="After Repair Value (ARV)"
                   data-testid="input-fixflip-arv"
                 />
+                
+                {/* 2x2 Grid for Property Details */}
+                <div className="grid grid-cols-4 gap-2 sm:gap-3">
+                  <div className="bg-white/5 rounded-lg sm:rounded-xl p-2 sm:p-3 border border-white/10">
+                    <label className="text-white/50 text-[9px] sm:text-[10px] uppercase tracking-wide block mb-1">Beds</label>
+                    <input
+                      type="text"
+                      value={formData.propertyDetails.beds}
+                      onChange={(e) => updatePropertyDetail("beds", e.target.value)}
+                      placeholder="--"
+                      className="w-full bg-transparent text-lg sm:text-2xl font-bold text-white text-center focus:outline-none"
+                      data-testid="input-ff-beds"
+                    />
+                  </div>
+                  <div className="bg-white/5 rounded-lg sm:rounded-xl p-2 sm:p-3 border border-white/10">
+                    <label className="text-white/50 text-[9px] sm:text-[10px] uppercase tracking-wide block mb-1">Baths</label>
+                    <input
+                      type="text"
+                      value={formData.propertyDetails.baths}
+                      onChange={(e) => updatePropertyDetail("baths", e.target.value)}
+                      placeholder="--"
+                      className="w-full bg-transparent text-lg sm:text-2xl font-bold text-white text-center focus:outline-none"
+                      data-testid="input-ff-baths"
+                    />
+                  </div>
+                  <div className="bg-white/5 rounded-lg sm:rounded-xl p-2 sm:p-3 border border-white/10">
+                    <label className="text-white/50 text-[9px] sm:text-[10px] uppercase tracking-wide block mb-1">Sq Ft</label>
+                    <input
+                      type="text"
+                      value={formData.propertyDetails.sqft}
+                      onChange={(e) => updatePropertyDetail("sqft", e.target.value)}
+                      placeholder="--"
+                      className="w-full bg-transparent text-lg sm:text-2xl font-bold text-white text-center focus:outline-none"
+                      data-testid="input-ff-sqft"
+                    />
+                  </div>
+                  <div className="bg-white/5 rounded-lg sm:rounded-xl p-2 sm:p-3 border border-white/10">
+                    <label className="text-white/50 text-[9px] sm:text-[10px] uppercase tracking-wide block mb-1">Year</label>
+                    <input
+                      type="text"
+                      value={formData.propertyDetails.yearBuilt}
+                      onChange={(e) => updatePropertyDetail("yearBuilt", e.target.value)}
+                      placeholder="--"
+                      className="w-full bg-transparent text-lg sm:text-2xl font-bold text-white text-center focus:outline-none"
+                      data-testid="input-ff-yearBuilt"
+                    />
+                  </div>
+                </div>
+                
+                <p className="text-white/40 text-[10px] sm:text-xs text-center">Auto-filled when available</p>
                 
                 {(ffPurchase > 0 || ffRehab > 0 || ffArv > 0) && (
                   <motion.div 
@@ -1361,61 +1208,7 @@ export default function ConversationalQuote() {
               </p>
             </div>
             
-            {/* 2x2 Grid for Project Specs */}
-            <div className="grid grid-cols-2 gap-2 sm:gap-3">
-              <div className="bg-white/5 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-white/10">
-                <label className="text-white/50 text-[10px] sm:text-xs uppercase tracking-wide block mb-1 sm:mb-2">Lot Size</label>
-                <div className="flex items-center justify-center">
-                  <input
-                    type="text"
-                    value={formData.propertyDetails.sqft}
-                    onChange={(e) => updatePropertyDetail("sqft", e.target.value)}
-                    placeholder="--"
-                    className="w-full bg-transparent text-xl sm:text-3xl font-bold text-white text-center focus:outline-none"
-                    data-testid="input-nc-lot-size"
-                  />
-                  <span className="text-white/40 text-sm ml-1">sf</span>
-                </div>
-              </div>
-              <div className="bg-white/5 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-white/10">
-                <label className="text-white/50 text-[10px] sm:text-xs uppercase tracking-wide block mb-1 sm:mb-2">Planned Beds</label>
-                <input
-                  type="text"
-                  value={formData.propertyDetails.beds}
-                  onChange={(e) => updatePropertyDetail("beds", e.target.value)}
-                  placeholder="--"
-                  className="w-full bg-transparent text-xl sm:text-3xl font-bold text-white text-center focus:outline-none"
-                  data-testid="input-nc-beds"
-                />
-              </div>
-              <div className="bg-white/5 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-white/10">
-                <label className="text-white/50 text-[10px] sm:text-xs uppercase tracking-wide block mb-1 sm:mb-2">Planned Baths</label>
-                <input
-                  type="text"
-                  value={formData.propertyDetails.baths}
-                  onChange={(e) => updatePropertyDetail("baths", e.target.value)}
-                  placeholder="--"
-                  className="w-full bg-transparent text-xl sm:text-3xl font-bold text-white text-center focus:outline-none"
-                  data-testid="input-nc-baths"
-                />
-              </div>
-              <div className="bg-white/5 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-white/10">
-                <label className="text-white/50 text-[10px] sm:text-xs uppercase tracking-wide block mb-1 sm:mb-2">Build Sq Ft</label>
-                <div className="flex items-center justify-center">
-                  <input
-                    type="text"
-                    value={formData.propertyDetails.estimatedValue}
-                    onChange={(e) => updatePropertyDetail("estimatedValue", e.target.value)}
-                    placeholder="--"
-                    className="w-full bg-transparent text-xl sm:text-3xl font-bold text-white text-center focus:outline-none"
-                    data-testid="input-nc-build-sqft"
-                  />
-                  <span className="text-white/40 text-sm ml-1">sf</span>
-                </div>
-              </div>
-            </div>
-            
-            {/* Financial Sliders in 2-column grid */}
+            {/* Financial Sliders FIRST */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
               <CurrencySliderInput
                 value={formData.purchasePrice}
@@ -1447,6 +1240,56 @@ export default function ConversationalQuote() {
               label="Completed Value"
               data-testid="input-construction-completed-value"
             />
+            
+            {/* 4-column Grid for Project Specs */}
+            <div className="grid grid-cols-4 gap-2 sm:gap-3">
+              <div className="bg-white/5 rounded-lg sm:rounded-xl p-2 sm:p-3 border border-white/10">
+                <label className="text-white/50 text-[9px] sm:text-[10px] uppercase tracking-wide block mb-1">Lot Size</label>
+                <div className="flex items-center justify-center">
+                  <input
+                    type="text"
+                    value={formData.propertyDetails.sqft}
+                    onChange={(e) => updatePropertyDetail("sqft", e.target.value)}
+                    placeholder="--"
+                    className="w-full bg-transparent text-lg sm:text-2xl font-bold text-white text-center focus:outline-none"
+                    data-testid="input-nc-lot-size"
+                  />
+                </div>
+              </div>
+              <div className="bg-white/5 rounded-lg sm:rounded-xl p-2 sm:p-3 border border-white/10">
+                <label className="text-white/50 text-[9px] sm:text-[10px] uppercase tracking-wide block mb-1">Beds</label>
+                <input
+                  type="text"
+                  value={formData.propertyDetails.beds}
+                  onChange={(e) => updatePropertyDetail("beds", e.target.value)}
+                  placeholder="--"
+                  className="w-full bg-transparent text-lg sm:text-2xl font-bold text-white text-center focus:outline-none"
+                  data-testid="input-nc-beds"
+                />
+              </div>
+              <div className="bg-white/5 rounded-lg sm:rounded-xl p-2 sm:p-3 border border-white/10">
+                <label className="text-white/50 text-[9px] sm:text-[10px] uppercase tracking-wide block mb-1">Baths</label>
+                <input
+                  type="text"
+                  value={formData.propertyDetails.baths}
+                  onChange={(e) => updatePropertyDetail("baths", e.target.value)}
+                  placeholder="--"
+                  className="w-full bg-transparent text-lg sm:text-2xl font-bold text-white text-center focus:outline-none"
+                  data-testid="input-nc-baths"
+                />
+              </div>
+              <div className="bg-white/5 rounded-lg sm:rounded-xl p-2 sm:p-3 border border-white/10">
+                <label className="text-white/50 text-[9px] sm:text-[10px] uppercase tracking-wide block mb-1">Build SF</label>
+                <input
+                  type="text"
+                  value={formData.propertyDetails.estimatedValue}
+                  onChange={(e) => updatePropertyDetail("estimatedValue", e.target.value)}
+                  placeholder="--"
+                  className="w-full bg-transparent text-lg sm:text-2xl font-bold text-white text-center focus:outline-none"
+                  data-testid="input-nc-build-sqft"
+                />
+              </div>
+            </div>
             
             {(cLand > 0 || cBuild > 0 || cCompleted > 0) && (
               <motion.div 
@@ -1647,18 +1490,44 @@ export default function ConversationalQuote() {
           </Link>
         </div>
         
-        {/* Pipeline Iconography - compact on mobile */}
-        <div className="max-w-2xl mx-auto px-3 sm:px-4 py-1.5 sm:py-3">
-          <div className="flex items-center justify-between">
+        {/* Pipeline Iconography - centered with clickable completed steps */}
+        <div className="max-w-md mx-auto px-3 sm:px-4 py-1.5 sm:py-3">
+          <div className="flex items-center justify-center">
             {pipelineSteps.map((step, index) => {
               const Icon = step.icon;
               const currentStep = getCurrentPipelineStep();
               const isActive = index === currentStep;
               const isCompleted = index < currentStep;
+              const isClickable = isCompleted;
+              
+              const handleStepClick = () => {
+                if (isClickable) {
+                  // Navigate to the first question of that pipeline step
+                  const targetQuestionIndex = filteredQuestions.findIndex(q => {
+                    if (index === 0) return q.id === "loan-type";
+                    if (index === 1) return q.id === "property-address";
+                    if (index === 2) return ["dscr-purchase-financials", "dscr-refinance-financials", "fixflip-financials", "construction-financials", "dscr-property-transaction"].includes(q.id);
+                    if (index === 3) return q.id === "experience";
+                    if (index === 4) return q.id === "contact";
+                    return false;
+                  });
+                  if (targetQuestionIndex >= 0) {
+                    setDirection(-1);
+                    setCurrentQuestionIndex(targetQuestionIndex);
+                  }
+                }
+              };
               
               return (
-                <div key={step.id} className="flex items-center flex-1">
-                  <div className="flex flex-col items-center">
+                <div key={step.id} className="flex items-center">
+                  <motion.button
+                    onClick={handleStepClick}
+                    disabled={!isClickable}
+                    className={`flex flex-col items-center ${isClickable ? "cursor-pointer" : "cursor-default"}`}
+                    whileHover={isClickable ? { scale: 1.1 } : undefined}
+                    whileTap={isClickable ? { scale: 0.95 } : undefined}
+                    data-testid={`pipeline-step-${step.id}`}
+                  >
                     <motion.div
                       className={`
                         w-6 h-6 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all
@@ -1676,9 +1545,9 @@ export default function ConversationalQuote() {
                     <span className={`text-xs mt-1 hidden sm:block ${isActive ? "text-primary font-medium" : isCompleted ? "text-white/70" : "text-white/40"}`}>
                       {step.label}
                     </span>
-                  </div>
+                  </motion.button>
                   {index < pipelineSteps.length - 1 && (
-                    <div className={`flex-1 h-0.5 mx-1 sm:mx-2 ${isCompleted ? "bg-primary" : "bg-white/10"}`} />
+                    <div className={`w-8 sm:w-12 h-0.5 mx-1 sm:mx-2 ${isCompleted ? "bg-primary" : "bg-white/10"}`} />
                   )}
                 </div>
               );
