@@ -1026,7 +1026,7 @@ export class DatabaseStorage implements IStorage {
         scopeOfWorkItemId: drawLineItems.scopeOfWorkItemId,
         requestedAmount: drawLineItems.requestedAmount,
         approvedAmount: drawLineItems.approvedAmount,
-        status: drawLineItems.status,
+        fundedAmount: drawLineItems.fundedAmount,
         notes: drawLineItems.notes,
         createdAt: drawLineItems.createdAt,
         updatedAt: drawLineItems.updatedAt,

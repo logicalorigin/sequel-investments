@@ -32,6 +32,7 @@ import {
   type StaffRole,
   type AppointmentStatus,
   type SignatureRequestStatus,
+  type ServicedLoan,
   STAFF_ROLE_COLORS,
   DEFAULT_WHITE_LABEL_SETTINGS,
 } from "@shared/schema";
@@ -612,11 +613,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Helper to lookup loan by ID (UUID) or loan number
+  async function findLoanByIdOrNumber(idOrNumber: string): Promise<ServicedLoan | undefined> {
+    // Try by UUID first
+    let loan = await storage.getServicedLoan(idOrNumber);
+    // If not found, try by loan number
+    if (!loan) {
+      loan = await storage.getServicedLoanByNumber(idOrNumber);
+    }
+    return loan;
+  }
+
   app.get("/api/serviced-loans/:id", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
-      const loan = await storage.getServicedLoan(req.params.id);
+      const loan = await findLoanByIdOrNumber(req.params.id);
       
       if (!loan) {
         return res.status(404).json({ error: "Loan not found" });
@@ -639,7 +651,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
-      const loan = await storage.getServicedLoan(req.params.id);
+      const loan = await findLoanByIdOrNumber(req.params.id);
       
       if (!loan) {
         return res.status(404).json({ error: "Loan not found" });
@@ -886,7 +898,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
-      const loan = await storage.getServicedLoan(req.params.loanId);
+      const loan = await findLoanByIdOrNumber(req.params.loanId);
       
       if (!loan) {
         return res.status(404).json({ error: "Loan not found" });
@@ -901,6 +913,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching scope of work:", error);
       return res.status(500).json({ error: "Failed to fetch scope of work" });
+    }
+  });
+
+  app.get("/api/serviced-loans/:loanId/scope-of-work-with-draws", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const loan = await findLoanByIdOrNumber(req.params.loanId);
+      
+      if (!loan) {
+        return res.status(404).json({ error: "Loan not found" });
+      }
+      
+      if (loan.userId !== userId && user?.role === "borrower") {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const items = await storage.getScopeOfWorkItems(loan.id);
+      const draws = await storage.getLoanDraws(loan.id);
+      const allDrawLineItems = await storage.getAllDrawLineItemsByLoan(loan.id);
+      
+      const fundedDraws = draws.filter(d => d.status === "funded" || d.status === "approved")
+        .sort((a, b) => a.drawNumber - b.drawNumber);
+      
+      const itemsWithDraws = items.map(item => {
+        const drawAmounts: Record<number, number> = {};
+        let totalFunded = 0;
+        
+        for (const draw of fundedDraws) {
+          const lineItem = allDrawLineItems.find(
+            li => li.scopeOfWorkItemId === item.id && li.loanDrawId === draw.id
+          );
+          const amount = lineItem?.fundedAmount || lineItem?.approvedAmount || 0;
+          drawAmounts[draw.drawNumber] = amount;
+          totalFunded += amount;
+        }
+        
+        return {
+          ...item,
+          drawAmounts,
+          totalFunded,
+          remaining: item.budgetAmount - totalFunded,
+        };
+      });
+      
+      return res.json({
+        items: itemsWithDraws,
+        draws: fundedDraws.map(d => ({
+          drawNumber: d.drawNumber,
+          status: d.status,
+          fundedDate: d.fundedDate,
+          fundedAmount: d.fundedAmount,
+        })),
+      });
+    } catch (error) {
+      console.error("Error fetching scope of work with draws:", error);
+      return res.status(500).json({ error: "Failed to fetch scope of work with draws" });
     }
   });
 
