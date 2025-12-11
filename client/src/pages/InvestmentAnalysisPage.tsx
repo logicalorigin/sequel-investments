@@ -178,8 +178,8 @@ export default function InvestmentAnalysisPage() {
   };
 
   const createApplicationMutation = useMutation({
-    mutationFn: async (loanType: string) => {
-      const res = await apiRequest("POST", "/api/applications", { loanType });
+    mutationFn: async ({ loanType, productVariant }: { loanType: string; productVariant?: string }) => {
+      const res = await apiRequest("POST", "/api/applications", { loanType, productVariant });
       return await res.json() as LoanApplication;
     },
     onSuccess: (newApp: LoanApplication) => {
@@ -1163,7 +1163,10 @@ export default function InvestmentAnalysisPage() {
 
                   <Button 
                     className="w-full"
-                    onClick={() => createApplicationMutation.mutate(getLoanType())}
+                    onClick={() => createApplicationMutation.mutate({ 
+                      loanType: getLoanType(), 
+                      productVariant: dealType === "rental" ? transactionType : undefined 
+                    })}
                     disabled={createApplicationMutation.isPending}
                     data-testid="button-get-term-sheet"
                   >
