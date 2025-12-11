@@ -82,29 +82,32 @@ export function StatePageHero({ state, formatLoanVolume }: StatePageHeroProps) {
   const statePathD = statePaths[state.abbreviation];
   const bounds = statePathD ? getPathBounds(statePathD) : null;
   
-  // Calculate viewBox to center the focus state in the right portion of the hero
-  // We shift the viewBox so the state appears in the right-center area
-  const mapWidth = 1000;
-  const mapHeight = 600;
+  // Calculate viewBox to zoom into the focus state and position it on the right side of the hero
+  // The text content is on the left, so the state should appear prominently on the right
+  const padding = 80; // Generous padding around the state
   
-  // Target: position the state's center around x=700 (right-center of the hero)
-  // This means we need to shift the viewBox left
-  const targetX = 700;
-  const shiftX = bounds ? bounds.centerX - targetX : 0;
+  // Calculate the state's dimensions with padding
+  const stateWidth = bounds ? (bounds.maxX - bounds.minX) + padding * 2 : 200;
+  const stateHeight = bounds ? (bounds.maxY - bounds.minY) + padding * 2 : 200;
   
-  // Create a viewBox that's shifted to put the state in the right area
-  const viewBoxX = shiftX;
-  const viewBoxY = 0;
+  // Create a viewBox that's wider to allow the state to be positioned on the right
+  // The viewBox width should be about 2x the state width to leave room for text area
+  const viewBoxWidth = Math.max(stateWidth * 2, 400);
+  const viewBoxHeight = Math.max(stateHeight * 1.2, 300);
+  
+  // Position the viewBox so the state appears on the right half
+  // Start the viewBox left of the state so there's empty space (for text) on the left
+  const viewBoxX = bounds ? bounds.minX - padding - stateWidth * 0.8 : 0;
+  const viewBoxY = bounds ? bounds.minY - padding - (viewBoxHeight - stateHeight) / 2 : 0;
 
   return (
     <section className="relative pt-12 pb-20 overflow-hidden min-h-[500px]">
-      {/* US Map Background - positioned to center the focus state on the right */}
+      {/* US Map Background - zoomed to focus state, positioned on right side */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <svg
-          viewBox={`${viewBoxX} ${viewBoxY} ${mapWidth} ${mapHeight}`}
+          viewBox={`${viewBoxX} ${viewBoxY} ${viewBoxWidth} ${viewBoxHeight}`}
           className="w-full h-full"
           preserveAspectRatio="xMidYMid slice"
-          style={{ transform: 'scale(1.2)', transformOrigin: 'center' }}
         >
           {/* All other states - very subtle */}
           {Object.entries(statePaths).map(([abbr, pathD]) => {
