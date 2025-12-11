@@ -2238,14 +2238,19 @@ export const DEFAULT_BUSINESS_HOURS = [
 // Photo verification status enum
 export const photoVerificationStatusEnum = pgEnum("photo_verification_status", [
   "pending",           // Just uploaded, not verified yet
-  "verified",          // GPS + timestamp verified
+  "verified",          // GPS + timestamp verified - all checks passed
+  "gps_match",         // Browser and EXIF GPS match (within threshold)
+  "gps_mismatch",      // Browser and EXIF GPS differ significantly
   "outside_geofence",  // Photo taken outside property location
   "stale_timestamp",   // Photo is too old (>24 hours)
   "metadata_missing",  // No EXIF GPS/timestamp data
+  "browser_gps_only",  // Only browser GPS available, no EXIF
+  "exif_gps_only",     // Only EXIF GPS available, browser denied
+  "no_gps_data",       // Neither browser nor EXIF GPS available
   "manual_approved",   // Staff manually approved despite issues
   "manual_rejected"    // Staff manually rejected
 ]);
-export type PhotoVerificationStatus = "pending" | "verified" | "outside_geofence" | "stale_timestamp" | "metadata_missing" | "manual_approved" | "manual_rejected";
+export type PhotoVerificationStatus = "pending" | "verified" | "gps_match" | "gps_mismatch" | "outside_geofence" | "stale_timestamp" | "metadata_missing" | "browser_gps_only" | "exif_gps_only" | "no_gps_data" | "manual_approved" | "manual_rejected";
 
 // Property locations table - stores geocoded lat/lng for job sites
 export const propertyLocations = pgTable("property_locations", {
@@ -2658,15 +2663,30 @@ export const verificationPhotos = pgTable("verification_photos", {
   exifTimestamp: timestamp("exif_timestamp"),
   exifCameraModel: text("exif_camera_model"),
   
-  // Browser-reported location
+  // Browser-reported location (captured at time of photo)
   browserLatitude: text("browser_latitude"),
   browserLongitude: text("browser_longitude"),
+  browserAccuracyMeters: integer("browser_accuracy_meters"), // GPS accuracy in meters
+  browserCapturedAt: timestamp("browser_captured_at"), // When browser GPS was captured
+  
+  // EXIF altitude (if available)
+  exifAltitude: text("exif_altitude"),
+  
+  // GPS verification distances (computed)
+  distanceExifToBrowserMeters: integer("distance_exif_to_browser_meters"), // Distance between EXIF and browser GPS
+  distanceExifToPropertyMeters: integer("distance_exif_to_property_meters"), // Distance from EXIF to property
+  distanceBrowserToPropertyMeters: integer("distance_browser_to_property_meters"), // Distance from browser to property
+  
+  // GPS verification flags
+  gpsPermissionDenied: boolean("gps_permission_denied").default(false),
+  exifGpsMissing: boolean("exif_gps_missing").default(false),
   
   // Verification results
   verificationStatus: photoVerificationStatusEnum("verification_status").default("pending").notNull(),
-  distanceFromPropertyMeters: integer("distance_from_property_meters"),
-  verificationDetails: text("verification_details"),
+  distanceFromPropertyMeters: integer("distance_from_property_meters"), // Legacy: primary distance metric
+  verificationDetails: text("verification_details"), // JSON with detailed verification info
   verifiedAt: timestamp("verified_at"),
+  verifiedByUserId: varchar("verified_by_user_id").references(() => users.id), // Staff who manually verified
   
   // Notes from borrower
   notes: text("notes"),
@@ -2692,6 +2712,10 @@ export const verificationPhotosRelations = relations(verificationPhotos, ({ one 
   }),
   uploadedBy: one(users, {
     fields: [verificationPhotos.uploadedByUserId],
+    references: [users.id],
+  }),
+  verifiedBy: one(users, {
+    fields: [verificationPhotos.verifiedByUserId],
     references: [users.id],
   }),
   scopeOfWorkItem: one(scopeOfWorkItems, {

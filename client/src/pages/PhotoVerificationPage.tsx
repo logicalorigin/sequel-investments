@@ -43,13 +43,28 @@ interface VerificationPhoto {
   exifLongitude?: string;
   exifTimestamp?: string;
   exifCameraModel?: string;
+  exifAltitude?: string;
   browserLatitude?: string;
   browserLongitude?: string;
+  browserAccuracyMeters?: number;
+  browserCapturedAt?: string;
+  distanceExifToBrowserMeters?: number;
+  distanceExifToPropertyMeters?: number;
+  distanceBrowserToPropertyMeters?: number;
+  gpsPermissionDenied?: boolean;
+  exifGpsMissing?: boolean;
   notes?: string;
   verificationStatus: string;
   verificationDetails?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+interface BrowserGPSData {
+  lat: number;
+  lng: number;
+  accuracy: number;
+  capturedAt: Date;
 }
 
 interface LoanApplication {
@@ -110,9 +125,11 @@ export default function PhotoVerificationPage() {
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [capturedFile, setCapturedFile] = useState<File | null>(null);
   const [notes, setNotes] = useState("");
-  const [browserLocation, setBrowserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [browserLocation, setBrowserLocation] = useState<BrowserGPSData | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [gpsPermissionDenied, setGpsPermissionDenied] = useState(false);
   const [showPhotoList, setShowPhotoList] = useState(false);
+  const [isLocationLoading, setIsLocationLoading] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -163,6 +180,9 @@ export default function PhotoVerificationPage() {
         mimeType: data.file.type,
         browserLatitude: browserLocation?.lat?.toString(),
         browserLongitude: browserLocation?.lng?.toString(),
+        browserAccuracyMeters: browserLocation?.accuracy ? Math.round(browserLocation.accuracy) : undefined,
+        browserCapturedAt: browserLocation?.capturedAt?.toISOString(),
+        gpsPermissionDenied,
         notes: data.notes,
       });
     },
@@ -196,19 +216,35 @@ export default function PhotoVerificationPage() {
   const requestLocation = useCallback(() => {
     if (navigator.geolocation) {
       setLocationError(null);
+      setIsLocationLoading(true);
+      setGpsPermissionDenied(false);
       navigator.geolocation.getCurrentPosition(
         (position) => {
           setBrowserLocation({
             lat: position.coords.latitude,
             lng: position.coords.longitude,
+            accuracy: position.coords.accuracy,
+            capturedAt: new Date(),
           });
+          setIsLocationLoading(false);
         },
         (error) => {
           console.error("Geolocation error:", error);
-          setLocationError("Location access denied. Photos will be uploaded without GPS verification.");
+          setIsLocationLoading(false);
+          setGpsPermissionDenied(true);
+          if (error.code === error.PERMISSION_DENIED) {
+            setLocationError("Location access denied. Photos can still be uploaded but GPS verification will be limited.");
+          } else if (error.code === error.POSITION_UNAVAILABLE) {
+            setLocationError("Location unavailable. Please ensure GPS is enabled on your device.");
+          } else if (error.code === error.TIMEOUT) {
+            setLocationError("Location request timed out. Please try again.");
+          }
         },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 }
       );
+    } else {
+      setLocationError("Geolocation is not supported by this browser.");
+      setGpsPermissionDenied(true);
     }
   }, []);
   
@@ -335,15 +371,61 @@ export default function PhotoVerificationPage() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "verified":
+      case "gps_match":
       case "manual_approved":
         return <CheckCircle2 className="h-5 w-5 text-green-500" aria-label="Verified" />;
       case "pending":
+      case "browser_gps_only":
+      case "exif_gps_only":
         return <Clock className="h-5 w-5 text-yellow-500" aria-label="Pending review" />;
-      case "failed":
+      case "gps_mismatch":
+      case "outside_geofence":
+      case "stale_timestamp":
       case "manual_rejected":
         return <AlertCircle className="h-5 w-5 text-red-500" aria-label="Failed verification" />;
+      case "no_gps_data":
+      case "metadata_missing":
+        return <AlertCircle className="h-5 w-5 text-orange-500" aria-label="Missing GPS data" />;
       default:
         return <Clock className="h-5 w-5 text-muted-foreground" aria-label="Awaiting upload" />;
+    }
+  };
+  
+  const getVerificationStatusLabel = (status: string): string => {
+    const labels: Record<string, string> = {
+      pending: "Pending",
+      verified: "Verified",
+      gps_match: "GPS Verified",
+      gps_mismatch: "GPS Mismatch",
+      outside_geofence: "Outside Area",
+      stale_timestamp: "Photo Too Old",
+      metadata_missing: "No Metadata",
+      browser_gps_only: "Browser GPS Only",
+      exif_gps_only: "Photo GPS Only",
+      no_gps_data: "No GPS",
+      manual_approved: "Approved",
+      manual_rejected: "Rejected",
+    };
+    return labels[status] || status;
+  };
+  
+  const getVerificationStatusBadgeVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
+    switch (status) {
+      case "verified":
+      case "gps_match":
+      case "manual_approved":
+        return "default";
+      case "gps_mismatch":
+      case "outside_geofence":
+      case "stale_timestamp":
+      case "manual_rejected":
+        return "destructive";
+      case "pending":
+      case "browser_gps_only":
+      case "exif_gps_only":
+        return "secondary";
+      default:
+        return "outline";
     }
   };
 
@@ -592,6 +674,71 @@ export default function PhotoVerificationPage() {
                 )}
               </div>
               
+              {/* GPS Verification Status Card */}
+              <Card className="border-0 shadow-sm">
+                <CardContent className="p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">GPS Verification</span>
+                    <Badge 
+                      variant={getVerificationStatusBadgeVariant(existingPhoto.verificationStatus)}
+                      data-testid="badge-verification-status"
+                    >
+                      {getVerificationStatusLabel(existingPhoto.verificationStatus)}
+                    </Badge>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    {/* Browser GPS */}
+                    <div className="flex items-center gap-1.5 text-muted-foreground">
+                      <MapPin className="h-3.5 w-3.5 shrink-0" />
+                      <span>Browser GPS:</span>
+                      {existingPhoto.browserLatitude && existingPhoto.browserLongitude ? (
+                        <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                      ) : existingPhoto.gpsPermissionDenied ? (
+                        <AlertCircle className="h-3.5 w-3.5 text-red-500" />
+                      ) : (
+                        <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                      )}
+                    </div>
+                    
+                    {/* EXIF GPS */}
+                    <div className="flex items-center gap-1.5 text-muted-foreground">
+                      <Camera className="h-3.5 w-3.5 shrink-0" />
+                      <span>Photo GPS:</span>
+                      {existingPhoto.exifLatitude && existingPhoto.exifLongitude ? (
+                        <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                      ) : (
+                        <AlertCircle className="h-3.5 w-3.5 text-orange-500" />
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Distance Information */}
+                  {existingPhoto.distanceExifToBrowserMeters !== undefined && existingPhoto.distanceExifToBrowserMeters !== null && (
+                    <div className="pt-2 border-t">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">GPS Sources Match:</span>
+                        <span className={`font-medium ${
+                          existingPhoto.distanceExifToBrowserMeters <= 50 
+                            ? "text-green-600" 
+                            : existingPhoto.distanceExifToBrowserMeters <= 100 
+                              ? "text-yellow-600" 
+                              : "text-red-600"
+                        }`}>
+                          {existingPhoto.distanceExifToBrowserMeters}m apart
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {existingPhoto.browserAccuracyMeters && (
+                    <div className="text-xs text-muted-foreground">
+                      Browser accuracy: ±{existingPhoto.browserAccuracyMeters}m
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+              
               {existingPhoto.notes && (
                 <div className="p-3 bg-muted rounded-lg">
                   <p className="text-sm text-muted-foreground">{existingPhoto.notes}</p>
@@ -638,12 +785,35 @@ export default function PhotoVerificationPage() {
                       <p className="text-lg font-semibold">{currentPhoto.label}</p>
                       <p className="text-sm text-white/80">{currentPhoto.description}</p>
                     </div>
-                    <Badge 
-                      variant="secondary" 
-                      className="bg-white/20 text-white border-white/30 shrink-0"
-                    >
-                      {activePhotoIndex + 1}/{currentCategory.photos.length}
-                    </Badge>
+                    <div className="flex flex-col items-end gap-1.5 shrink-0">
+                      <Badge 
+                        variant="secondary" 
+                        className="bg-white/20 text-white border-white/30"
+                      >
+                        {activePhotoIndex + 1}/{currentCategory.photos.length}
+                      </Badge>
+                      {/* GPS Status Indicator */}
+                      <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-xs ${
+                        browserLocation 
+                          ? "bg-green-500/20 text-green-300" 
+                          : isLocationLoading 
+                            ? "bg-yellow-500/20 text-yellow-300"
+                            : gpsPermissionDenied 
+                              ? "bg-red-500/20 text-red-300"
+                              : "bg-white/10 text-white/70"
+                      }`}>
+                        <MapPin className="h-3 w-3" />
+                        {browserLocation ? (
+                          <span>GPS: ±{Math.round(browserLocation.accuracy)}m</span>
+                        ) : isLocationLoading ? (
+                          <span>Acquiring GPS...</span>
+                        ) : gpsPermissionDenied ? (
+                          <span>GPS Denied</span>
+                        ) : (
+                          <span>GPS Pending</span>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
                 
