@@ -313,6 +313,7 @@ export default function DSCRAnalyzerPage() {
       };
       const response = await apiRequest("POST", "/api/applications", {
         loanType: "DSCR",
+        productVariant: transactionType,
         propertyAddress: propertyAddress || "TBD",
         purchasePrice: parseFloat(propertyValue) || 0,
         loanAmount: parseFloat(requestedLoanAmount) || 0,
