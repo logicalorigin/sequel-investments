@@ -177,10 +177,26 @@ export function StateMapDark({
         </div>
       )}
 
-      {/* Dark gradient overlays for polish */}
+      {/* Dark gradient overlays with theme color accents */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-slate-900/40 to-transparent" />
-        <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-slate-900/60 to-transparent" />
+        {/* Overall dark wash to blend with site theme */}
+        <div className="absolute inset-0 bg-slate-900/30" />
+        
+        {/* Top gradient with amber accent */}
+        <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-b from-slate-900/80 via-slate-900/40 to-transparent" />
+        
+        {/* Bottom gradient - stronger for info card area */}
+        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-slate-900/90 via-slate-900/50 to-transparent" />
+        
+        {/* Side vignettes */}
+        <div className="absolute top-0 left-0 bottom-0 w-16 bg-gradient-to-r from-slate-900/60 to-transparent" />
+        <div className="absolute top-0 right-0 bottom-0 w-16 bg-gradient-to-l from-slate-900/60 to-transparent" />
+        
+        {/* Subtle amber glow at corners */}
+        <div className="absolute top-0 left-0 w-32 h-32 bg-gradient-to-br from-amber-900/20 to-transparent" />
+        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-amber-900/20 to-transparent" />
+        <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-amber-900/15 to-transparent" />
+        <div className="absolute bottom-0 right-0 w-32 h-32 bg-gradient-to-tl from-amber-900/15 to-transparent" />
       </div>
     </div>
   );
