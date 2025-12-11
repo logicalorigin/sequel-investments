@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
+import { ArticleFixFlipCalculator } from "@/components/ArticleFixFlipCalculator";
+import { PortalSignUpCTA } from "@/components/PortalSignUpCTA";
 import {
   BarChart,
   Bar,
@@ -542,27 +544,37 @@ export default function RenovationsGuidePage() {
             </Card>
           </div>
 
-          {/* Call to Action */}
-          <Card className="mt-12 bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-            <CardContent className="p-8 text-center">
-              <h3 className="text-xl font-bold mb-3">Ready to Finance Your Renovation Project?</h3>
-              <p className="text-muted-foreground mb-6">
-                Sequel Investments offers Fix & Flip loans up to 90% of purchase + 100% of rehab, bridge loans for value-add projects, and DSCR loans for post-renovation refinancing.
-              </p>
-              <div className="flex flex-wrap justify-center gap-4">
-                <Link href="/get-quote">
-                  <Button size="lg" data-testid="button-get-quote">
-                    Get Your Renovation Financing
-                  </Button>
-                </Link>
-                <Link href="/resources/scope-of-work-guide">
-                  <Button variant="outline" size="lg" data-testid="button-scope-of-work">
-                    View Scope of Work Guide
-                  </Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Inline CTA */}
+          <div className="my-8">
+            <PortalSignUpCTA 
+              variant="inline"
+              title="Planning a flip renovation?"
+              description="Create a free account to save deal scenarios and track projects"
+            />
+          </div>
+
+          {/* Embedded Calculator */}
+          <div className="my-12">
+            <h2 className="text-2xl font-bold mb-2">Analyze Your Fix & Flip Deal</h2>
+            <p className="text-muted-foreground mb-6">Run your numbers to estimate profit and ROI. Create a free account for full analysis and scenario saving.</p>
+            <div className="grid md:grid-cols-2 gap-8">
+              <ArticleFixFlipCalculator />
+              <PortalSignUpCTA 
+                loanType="fix-flip" 
+                title="Unlock Full Deal Analysis"
+                description="Save unlimited scenarios, track rehab budgets, and manage draw requests."
+              />
+            </div>
+          </div>
+
+          {/* Final CTA Banner */}
+          <div className="mt-12">
+            <PortalSignUpCTA 
+              variant="banner"
+              title="Ready to Finance Your Renovation Project?"
+              description="Fix & Flip loans up to 90% of purchase + 100% of rehab, 48-hour draw turnaround, and rates from 8.90%."
+            />
+          </div>
         </div>
       </article>
 

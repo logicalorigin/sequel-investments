@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
+import { ArticleDSCRCalculator } from "@/components/ArticleDSCRCalculator";
+import { PortalSignUpCTA } from "@/components/PortalSignUpCTA";
 import {
   BarChart,
   Bar,
@@ -523,27 +525,37 @@ export default function ADUGuidePage() {
             </Card>
           </div>
 
-          {/* Call to Action */}
-          <Card className="mt-12 bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-            <CardContent className="p-8 text-center">
-              <h3 className="text-xl font-bold mb-3">Ready to Finance Your ADU Project?</h3>
-              <p className="text-muted-foreground mb-6">
-                Sequel Investments offers DSCR loans for properties with existing ADUs, fix and flip loans for ADU addition projects, and construction loans for ground-up development.
-              </p>
-              <div className="flex flex-wrap justify-center gap-4">
-                <Link href="/get-quote">
-                  <Button size="lg" data-testid="button-get-quote">
-                    Speak with a Loan Specialist
-                  </Button>
-                </Link>
-                <Link href="/loan-programs">
-                  <Button variant="outline" size="lg" data-testid="button-loan-programs">
-                    View Loan Programs
-                  </Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Inline CTA */}
+          <div className="my-8">
+            <PortalSignUpCTA 
+              variant="inline"
+              title="Evaluating an ADU investment?"
+              description="Create a free account to run detailed DSCR scenarios"
+            />
+          </div>
+
+          {/* Embedded Calculator */}
+          <div className="my-12">
+            <h2 className="text-2xl font-bold mb-2">Analyze Your ADU Investment</h2>
+            <p className="text-muted-foreground mb-6">Estimate cash flow from ADU rental income. Create a free account to model different scenarios and save your analysis.</p>
+            <div className="grid md:grid-cols-2 gap-8">
+              <ArticleDSCRCalculator />
+              <PortalSignUpCTA 
+                loanType="dscr" 
+                title="Unlock Full ADU Analysis"
+                description="Compare ADU scenarios, track portfolio cash flow, and access construction/rehab calculators."
+              />
+            </div>
+          </div>
+
+          {/* Final CTA Banner */}
+          <div className="mt-12">
+            <PortalSignUpCTA 
+              variant="banner"
+              title="Ready to Finance Your ADU Project?"
+              description="DSCR loans for properties with ADUs, fix and flip loans for additions, and construction loans for ground-up builds."
+            />
+          </div>
         </div>
       </article>
 
