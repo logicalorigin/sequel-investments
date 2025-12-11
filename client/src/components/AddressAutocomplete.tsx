@@ -226,7 +226,7 @@ function GoogleMapsAutocomplete({
 
   return (
     <div className="relative">
-      <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+      <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/50 z-10 pointer-events-none" />
       <Input
         ref={inputRef}
         value={inputValue}
@@ -234,7 +234,7 @@ function GoogleMapsAutocomplete({
         onKeyDown={handleKeyDown}
         onFocus={() => predictions.length > 0 && setShowDropdown(true)}
         placeholder={placeholder}
-        className={`pl-10 pr-8 ${className}`}
+        className={`pl-10 pr-10 ${className}`}
         data-testid={testId}
       />
       {inputValue && (
@@ -242,15 +242,15 @@ function GoogleMapsAutocomplete({
           type="button"
           variant="ghost"
           size="icon"
-          className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6"
+          className="absolute right-2 top-1/2 transform -translate-y-1/2 h-7 w-7 hover:bg-white/10"
           onClick={handleClear}
           data-testid="button-clear-address"
         >
-          <X className="h-3 w-3" />
+          <X className="h-4 w-4 text-white/60" />
         </Button>
       )}
       {isLoading && (
-        <Loader2 className="absolute right-8 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+        <Loader2 className="absolute right-10 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin text-white/50" />
       )}
 
       {showDropdown && predictions.length > 0 && (
