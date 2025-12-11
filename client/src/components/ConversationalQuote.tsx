@@ -73,6 +73,12 @@ interface FormData {
   annualTaxes: string;
   annualInsurance: string;
   annualHoa: string;
+  // Borrower profile fields
+  entityType: string;
+  creditRange: string;
+  liquidReserves: string;
+  yearsInvesting: string;
+  citizenship: string;
 }
 
 interface Question {
@@ -340,6 +346,12 @@ export default function ConversationalQuote() {
     annualTaxes: "",
     annualInsurance: "",
     annualHoa: "",
+    // Borrower profile fields
+    entityType: "",
+    creditRange: "",
+    liquidReserves: "",
+    yearsInvesting: "",
+    citizenship: "",
   });
   const [isLoadingPropertyDetails, setIsLoadingPropertyDetails] = useState(false);
 
@@ -358,6 +370,13 @@ export default function ConversationalQuote() {
     if (formData.transactionType === "refinance") {
       const propValue = parseFloat(formData.propertyValue.replace(/,/g, "")) || 0;
       const loanBalance = parseFloat(formData.currentLoanBalance.replace(/,/g, "")) || 0;
+      
+      // Clamp loan balance if it exceeds property value
+      if (propValue > 0 && loanBalance > propValue) {
+        setFormData(prev => ({ ...prev, currentLoanBalance: propValue.toLocaleString("en-US") }));
+        return; // Exit early - this will re-trigger the effect with updated balance
+      }
+      
       const rawMaxCashOut = (propValue * 0.75) - loanBalance;
       const step = rawMaxCashOut >= 50000 ? 10000 : 5000;
       const effectiveMax = Math.max(0, Math.floor(rawMaxCashOut / step) * step);
@@ -450,6 +469,7 @@ export default function ConversationalQuote() {
           propertyCity: "",
           propertyState: "",
           propertyZip: "",
+          // Keep borrower profile fields (don't reset them)
         };
       }
       return { ...prev, [field]: value };
@@ -929,9 +949,17 @@ export default function ConversationalQuote() {
                       
                       <CurrencySliderInput
                         value={formData.currentLoanBalance}
-                        onChange={(val) => updateField("currentLoanBalance", val)}
+                        onChange={(val) => {
+                          const newBalance = parseFloat(val.replace(/,/g, "")) || 0;
+                          const propVal = dscrRefiPropValue || 3000000;
+                          if (newBalance <= propVal) {
+                            updateField("currentLoanBalance", val);
+                          } else {
+                            updateField("currentLoanBalance", propVal.toLocaleString("en-US"));
+                          }
+                        }}
                         min={0}
-                        max={3000000}
+                        max={Math.max(dscrRefiPropValue || 3000000, 100000)}
                         step={10000}
                         label="Current Loan Balance"
                         data-testid="input-current-loan-balance"
@@ -1342,37 +1370,191 @@ export default function ConversationalQuote() {
         );
 
       case "experience":
+        const entityTypes = [
+          { id: "individual", label: "Individual" },
+          { id: "llc", label: "LLC" },
+          { id: "corp", label: "Corporation" },
+          { id: "trust", label: "Trust" },
+        ];
+        const creditRanges = [
+          { id: "760+", label: "760+" },
+          { id: "720-759", label: "720-759" },
+          { id: "680-719", label: "680-719" },
+          { id: "640-679", label: "640-679" },
+          { id: "under640", label: "Under 640" },
+        ];
+        const reserveOptions = [
+          { id: "0-3mo", label: "0-3 months" },
+          { id: "3-6mo", label: "3-6 months" },
+          { id: "6-12mo", label: "6-12 months" },
+          { id: "12+mo", label: "12+ months" },
+        ];
+        const citizenshipOptions = [
+          { id: "us-citizen", label: "US Citizen" },
+          { id: "permanent-resident", label: "Permanent Resident" },
+          { id: "foreign-national", label: "Foreign National" },
+        ];
+        
         return (
-          <div className="space-y-4 sm:space-y-8 text-center">
-            <h2 className="text-xl sm:text-3xl md:text-4xl font-bold text-white leading-tight">
-              <TypewriterText text={currentQuestion.prompt} />
-            </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 max-w-2xl mx-auto">
-              {experienceLevels.map((level) => {
-                const isSelected = formData.experience === level.id;
-                const IconComponent = level.icon === "seedling" ? Sprout 
-                  : level.icon === "trending" ? TrendingUp 
-                  : level.icon === "award" ? Award 
-                  : Rocket;
-                return (
-                  <motion.button
-                    key={level.id}
-                    onClick={() => updateField("experience", level.id)}
-                    className={`
-                      p-2 sm:p-4 rounded-lg sm:rounded-xl border-2 transition-all
-                      ${isSelected 
-                        ? "border-primary bg-primary/20" 
-                        : "border-white/10 bg-white/5 hover:border-white/30"}
-                    `}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    data-testid={`option-experience-${level.id}`}
-                  >
-                    <IconComponent className={`w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-1 sm:mb-2 ${isSelected ? "text-primary" : "text-white/60"}`} />
-                    <span className="text-[10px] sm:text-sm text-white font-medium">{level.label}</span>
-                  </motion.button>
-                );
-              })}
+          <div className="space-y-4 sm:space-y-6 max-w-2xl mx-auto px-2 sm:px-0">
+            <div className="text-center">
+              <h2 className="text-lg sm:text-3xl font-bold text-white leading-tight mb-1">
+                Tell Us About Yourself
+              </h2>
+              <p className="text-white/60 text-xs sm:text-sm">
+                This helps us match you with the best loan options
+              </p>
+            </div>
+            
+            {/* Deals Completed */}
+            <div className="space-y-2">
+              <label className="text-amber-500 text-[10px] sm:text-xs font-medium uppercase tracking-wide block">
+                Investment Experience
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {experienceLevels.map((level) => {
+                  const isSelected = formData.experience === level.id;
+                  const IconComponent = level.icon === "seedling" ? Sprout 
+                    : level.icon === "trending" ? TrendingUp 
+                    : level.icon === "award" ? Award 
+                    : Rocket;
+                  return (
+                    <motion.button
+                      key={level.id}
+                      onClick={() => updateField("experience", level.id)}
+                      className={`
+                        p-2 sm:p-3 rounded-lg border-2 transition-all
+                        ${isSelected 
+                          ? "border-primary bg-primary/20" 
+                          : "border-white/10 bg-white/5 hover:border-white/30"}
+                      `}
+                      whileTap={{ scale: 0.95 }}
+                      data-testid={`option-experience-${level.id}`}
+                    >
+                      <IconComponent className={`w-5 h-5 sm:w-6 sm:h-6 mx-auto mb-1 ${isSelected ? "text-primary" : "text-white/60"}`} />
+                      <span className="text-[9px] sm:text-xs text-white font-medium block">{level.label}</span>
+                    </motion.button>
+                  );
+                })}
+              </div>
+            </div>
+            
+            {/* Entity Type & Credit Score Row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              {/* Entity Type */}
+              <div className="space-y-2">
+                <label className="text-amber-500 text-[10px] sm:text-xs font-medium uppercase tracking-wide block">
+                  Entity Type
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {entityTypes.map((entity) => {
+                    const isSelected = formData.entityType === entity.id;
+                    return (
+                      <motion.button
+                        key={entity.id}
+                        onClick={() => updateField("entityType", entity.id)}
+                        className={`
+                          p-2 rounded-lg border transition-all text-xs sm:text-sm font-medium
+                          ${isSelected 
+                            ? "border-primary bg-primary/20 text-white" 
+                            : "border-white/10 bg-white/5 text-white/70 hover:border-white/30"}
+                        `}
+                        whileTap={{ scale: 0.95 }}
+                        data-testid={`option-entity-${entity.id}`}
+                      >
+                        {entity.label}
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              </div>
+              
+              {/* Credit Score */}
+              <div className="space-y-2">
+                <label className="text-amber-500 text-[10px] sm:text-xs font-medium uppercase tracking-wide block">
+                  Credit Score Range
+                </label>
+                <div className="grid grid-cols-3 sm:grid-cols-5 gap-1">
+                  {creditRanges.map((credit) => {
+                    const isSelected = formData.creditRange === credit.id;
+                    return (
+                      <motion.button
+                        key={credit.id}
+                        onClick={() => updateField("creditRange", credit.id)}
+                        className={`
+                          py-2 px-1 rounded-lg border transition-all text-[10px] sm:text-xs font-medium
+                          ${isSelected 
+                            ? "border-primary bg-primary/20 text-white" 
+                            : "border-white/10 bg-white/5 text-white/70 hover:border-white/30"}
+                        `}
+                        whileTap={{ scale: 0.95 }}
+                        data-testid={`option-credit-${credit.id}`}
+                      >
+                        {credit.label}
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+            
+            {/* Liquid Reserves & Citizenship Row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              {/* Liquid Reserves */}
+              <div className="space-y-2">
+                <label className="text-amber-500 text-[10px] sm:text-xs font-medium uppercase tracking-wide block">
+                  Liquid Reserves
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {reserveOptions.map((reserve) => {
+                    const isSelected = formData.liquidReserves === reserve.id;
+                    return (
+                      <motion.button
+                        key={reserve.id}
+                        onClick={() => updateField("liquidReserves", reserve.id)}
+                        className={`
+                          p-2 rounded-lg border transition-all text-[10px] sm:text-xs font-medium
+                          ${isSelected 
+                            ? "border-primary bg-primary/20 text-white" 
+                            : "border-white/10 bg-white/5 text-white/70 hover:border-white/30"}
+                        `}
+                        whileTap={{ scale: 0.95 }}
+                        data-testid={`option-reserves-${reserve.id}`}
+                      >
+                        {reserve.label}
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              </div>
+              
+              {/* Citizenship Status */}
+              <div className="space-y-2">
+                <label className="text-amber-500 text-[10px] sm:text-xs font-medium uppercase tracking-wide block">
+                  Citizenship Status
+                </label>
+                <div className="grid grid-cols-1 gap-2">
+                  {citizenshipOptions.map((citizen) => {
+                    const isSelected = formData.citizenship === citizen.id;
+                    return (
+                      <motion.button
+                        key={citizen.id}
+                        onClick={() => updateField("citizenship", citizen.id)}
+                        className={`
+                          p-2 rounded-lg border transition-all text-xs sm:text-sm font-medium
+                          ${isSelected 
+                            ? "border-primary bg-primary/20 text-white" 
+                            : "border-white/10 bg-white/5 text-white/70 hover:border-white/30"}
+                        `}
+                        whileTap={{ scale: 0.95 }}
+                        data-testid={`option-citizenship-${citizen.id}`}
+                      >
+                        {citizen.label}
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           </div>
         );

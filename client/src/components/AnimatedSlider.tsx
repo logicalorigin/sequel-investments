@@ -258,22 +258,24 @@ export function CurrencySliderInput({
   }, [onChange]);
   
   return (
-    <div className="bg-gray-900/90 rounded-lg sm:rounded-xl p-3 sm:p-5 border border-gray-700 space-y-1 sm:space-y-2">
-      <div className="flex items-center justify-between gap-1 sm:gap-2">
-        <label className="text-amber-500 text-[10px] sm:text-xs font-medium uppercase tracking-wide whitespace-nowrap">{label}</label>
-        <div className="flex items-center">
-          <DollarSign className="w-3 h-3 sm:w-4 sm:h-4 text-amber-400 mr-0.5 sm:mr-1" />
-          <input
-            type="text"
-            value={value}
-            onChange={handleInputChange}
-            placeholder="0"
-            className="w-24 sm:w-32 bg-transparent text-base sm:text-xl font-bold text-amber-500 text-right focus:outline-none"
-            data-testid={testId ? `${testId}-input` : undefined}
-          />
-        </div>
+    <div className="bg-gray-900/90 rounded-lg sm:rounded-xl p-3 sm:p-5 border border-gray-700 space-y-2 sm:space-y-3">
+      {/* Label at top */}
+      <label className="text-amber-500 text-[10px] sm:text-xs font-medium uppercase tracking-wide block">{label}</label>
+      
+      {/* Editable value - prominent and centered above slider */}
+      <div className="flex items-center justify-center">
+        <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400 mr-1" />
+        <input
+          type="text"
+          value={value}
+          onChange={handleInputChange}
+          placeholder="0"
+          className="bg-transparent text-2xl sm:text-3xl font-bold text-amber-500 text-center focus:outline-none w-full max-w-[200px]"
+          data-testid={testId ? `${testId}-input` : undefined}
+        />
       </div>
       
+      {/* Slider below */}
       <div className="px-3 sm:px-6">
         <AnimatedSlider
           value={numericValue}
@@ -288,7 +290,7 @@ export function CurrencySliderInput({
       </div>
       
       {helperText && (
-        <p className="text-amber-400/60 text-[10px] sm:text-xs">{helperText}</p>
+        <p className="text-amber-400/60 text-[10px] sm:text-xs text-center">{helperText}</p>
       )}
     </div>
   );
@@ -330,21 +332,23 @@ export function PercentageSlider({
   }, [onChange, min, max]);
   
   return (
-    <div className="bg-gray-900/90 rounded-lg sm:rounded-xl p-3 sm:p-5 border border-gray-700 space-y-1 sm:space-y-2">
-      <div className="flex items-center justify-between">
-        <label className="text-amber-500 text-[10px] sm:text-xs font-medium uppercase tracking-wide">{label}</label>
-        <div className="flex items-center gap-0.5 sm:gap-1">
-          <input
-            type="text"
-            value={numericValue}
-            onChange={handleInputChange}
-            className="w-10 sm:w-12 bg-transparent text-lg sm:text-2xl font-bold text-amber-500 text-right focus:outline-none"
-            data-testid={testId ? `${testId}-input` : undefined}
-          />
-          <span className="text-amber-400 text-sm sm:text-lg">%</span>
-        </div>
+    <div className="bg-gray-900/90 rounded-lg sm:rounded-xl p-3 sm:p-5 border border-gray-700 space-y-2 sm:space-y-3">
+      {/* Label at top */}
+      <label className="text-amber-500 text-[10px] sm:text-xs font-medium uppercase tracking-wide block">{label}</label>
+      
+      {/* Editable value - prominent and centered above slider */}
+      <div className="flex items-center justify-center">
+        <input
+          type="text"
+          value={numericValue}
+          onChange={handleInputChange}
+          className="w-16 sm:w-20 bg-transparent text-2xl sm:text-3xl font-bold text-amber-500 text-center focus:outline-none"
+          data-testid={testId ? `${testId}-input` : undefined}
+        />
+        <span className="text-amber-400 text-lg sm:text-2xl font-bold">%</span>
       </div>
       
+      {/* Slider below */}
       <div className="px-3 sm:px-6">
         <AnimatedSlider
           value={numericValue}
