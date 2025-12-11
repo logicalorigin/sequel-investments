@@ -894,66 +894,9 @@ export default function ConversationalQuote() {
         const hasVerifiedAddress = !!(formData.propertyAddress && formData.propertyCity && formData.propertyState);
         const hasMapCoordinates = formData.propertyLat !== null && formData.propertyLng !== null;
         return (
-          <div className="flex flex-col h-full w-full max-w-lg mx-auto px-4 gap-4">
-            {/* Zone 1 (TOP): Address Input & Verification Status */}
-            <div className="bg-slate-900/95 rounded-2xl border border-white/10 p-4 sm:p-5">
-              <div className="space-y-3">
-                <div>
-                  <label className="text-white/50 text-xs uppercase tracking-wider mb-2 block">
-                    Property Address
-                  </label>
-                  <AddressAutocomplete
-                    value={formData.propertyAddress}
-                    onChange={(val) => updateField("propertyAddress", val)}
-                    onPlaceSelect={handleAddressSelect}
-                    placeholder="Enter property address..."
-                    className="w-full text-sm sm:text-base p-3.5 rounded-xl border border-white/20 bg-slate-800/80 text-white placeholder:text-white/40 focus:border-amber-400 focus:outline-none transition-all"
-                    data-testid="input-property-address"
-                  />
-                </div>
-                
-                {/* Verification Status */}
-                <AnimatePresence mode="wait">
-                  {hasVerifiedAddress && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="overflow-hidden"
-                    >
-                      <div className="flex items-center justify-between gap-3 py-2">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div className="w-7 h-7 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                          </div>
-                          <div className="text-left min-w-0">
-                            <p className="text-emerald-400 text-xs font-medium">Address Verified</p>
-                            <p className="text-white/50 text-[10px] truncate">
-                              {formData.propertyCity}, {formData.propertyState} {formData.propertyZip}
-                            </p>
-                          </div>
-                        </div>
-                        {isLoadingPropertyDetails && (
-                          <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
-                        )}
-                        {!isLoadingPropertyDetails && formData.propertyDetails?.estimatedValue && (
-                          <div className="text-right flex-shrink-0">
-                            <p className="text-white/40 text-[10px]">Est. Value</p>
-                            <p className="text-amber-400 font-bold text-sm">
-                              ${parseInt(formData.propertyDetails.estimatedValue).toLocaleString()}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </div>
-            
-            {/* Zone 2 (MIDDLE): Map Card */}
-            <div className="relative flex-1 min-h-[200px] sm:min-h-[280px] rounded-2xl border border-white/10 overflow-hidden shadow-lg shadow-black/30">
-              {/* Google Map */}
+          <div className="absolute inset-0 overflow-hidden">
+            {/* Full-screen Map Background */}
+            <div className="absolute inset-0">
               <Map
                 id="address-verification-map"
                 center={mapCenter}
@@ -996,7 +939,7 @@ export default function ConversationalQuote() {
               
               {/* Loading indicator for geolocation */}
               {isGeolocationLoading && (
-                <div className="absolute inset-0 flex items-center justify-center bg-slate-900/60">
+                <div className="absolute inset-0 flex items-center justify-center bg-slate-900/50">
                   <div className="flex items-center gap-2 text-white/80">
                     <Loader2 className="w-5 h-5 animate-spin" />
                     <span className="text-sm">Finding your location...</span>
@@ -1005,29 +948,93 @@ export default function ConversationalQuote() {
               )}
             </div>
             
-            {/* Zone 3 (BOTTOM): Action Buttons */}
-            <div className="space-y-2 pb-2">
-              {/* Continue Button - Yellow/Gold (only show when address verified) */}
-              {hasVerifiedAddress && (
-                <motion.button
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  onClick={handleNext}
-                  className="w-full py-3.5 bg-amber-400 hover:bg-amber-500 text-slate-900 font-semibold rounded-xl transition-colors shadow-lg shadow-amber-400/20"
-                  data-testid="button-continue-address"
-                >
-                  Continue
-                </motion.button>
-              )}
+            {/* Floating UI Overlay */}
+            <div className="absolute inset-0 flex flex-col pointer-events-none">
+              {/* TOP: Address Input Card */}
+              <div className="p-4 pointer-events-auto">
+                <div className="max-w-md mx-auto bg-slate-900/95 backdrop-blur-md rounded-2xl border border-white/10 p-4 shadow-xl">
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-white/50 text-xs uppercase tracking-wider mb-2 block">
+                        Property Address
+                      </label>
+                      <AddressAutocomplete
+                        value={formData.propertyAddress}
+                        onChange={(val) => updateField("propertyAddress", val)}
+                        onPlaceSelect={handleAddressSelect}
+                        placeholder="Enter property address..."
+                        className="w-full text-sm sm:text-base p-3.5 rounded-xl border border-white/20 bg-slate-800/80 text-white placeholder:text-white/40 focus:border-amber-400 focus:outline-none transition-all"
+                        data-testid="input-property-address"
+                      />
+                    </div>
+                    
+                    {/* Verification Status */}
+                    <AnimatePresence mode="wait">
+                      {hasVerifiedAddress && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="flex items-center justify-between gap-3 py-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div className="w-7 h-7 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                              </div>
+                              <div className="text-left min-w-0">
+                                <p className="text-emerald-400 text-xs font-medium">Address Verified</p>
+                                <p className="text-white/50 text-[10px] truncate">
+                                  {formData.propertyCity}, {formData.propertyState} {formData.propertyZip}
+                                </p>
+                              </div>
+                            </div>
+                            {isLoadingPropertyDetails && (
+                              <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+                            )}
+                            {!isLoadingPropertyDetails && formData.propertyDetails?.estimatedValue && (
+                              <div className="text-right flex-shrink-0">
+                                <p className="text-white/40 text-[10px]">Est. Value</p>
+                                <p className="text-amber-400 font-bold text-sm">
+                                  ${parseInt(formData.propertyDetails.estimatedValue).toLocaleString()}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </div>
+              </div>
               
-              {/* Skip Button */}
-              <button
-                onClick={handleNext}
-                className="w-full py-3 text-white/60 hover:text-white text-sm font-medium transition-colors"
-                data-testid="button-skip-address"
-              >
-                I'm Still Looking
-              </button>
+              {/* Spacer - map visible here */}
+              <div className="flex-1" />
+              
+              {/* BOTTOM: Continue Button (only when verified) */}
+              <div className="p-4 pointer-events-auto">
+                <div className="max-w-md mx-auto space-y-3">
+                  {hasVerifiedAddress ? (
+                    <motion.button
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      onClick={handleNext}
+                      className="w-full py-3.5 bg-amber-400 hover:bg-amber-500 text-slate-900 font-semibold rounded-xl transition-colors shadow-lg shadow-amber-400/20"
+                      data-testid="button-continue-address"
+                    >
+                      Continue
+                    </motion.button>
+                  ) : (
+                    <button
+                      onClick={handleNext}
+                      className="w-full py-3.5 bg-slate-800/90 backdrop-blur-sm border border-white/10 text-white/70 hover:text-white text-sm font-medium rounded-xl transition-colors"
+                      data-testid="button-skip-address"
+                    >
+                      I'm Still Looking
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         );
