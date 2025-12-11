@@ -72,79 +72,58 @@ function getPathBounds(pathD: string): { minX: number; minY: number; maxX: numbe
   };
 }
 
-// State geographic centers (lat/lng) and their corresponding SVG centers
-// Used to calculate marker positions relative to state centers
-const STATE_GEO_CENTERS: Record<string, { lat: number; lng: number; svgX: number; svgY: number; scaleX: number; scaleY: number }> = {
-  "CA": { lat: 37.0, lng: -120.0, svgX: 140, svgY: 320, scaleX: 18, scaleY: 22 },
-  "TX": { lat: 31.0, lng: -100.0, svgX: 500, svgY: 450, scaleX: 16, scaleY: 20 },
-  "FL": { lat: 28.0, lng: -82.5, svgX: 820, svgY: 480, scaleX: 14, scaleY: 18 },
-  "AZ": { lat: 34.2, lng: -111.5, svgX: 245, svgY: 385, scaleX: 18, scaleY: 22 },
-  "NV": { lat: 39.0, lng: -117.0, svgX: 175, svgY: 290, scaleX: 18, scaleY: 22 },
-  "CO": { lat: 39.0, lng: -105.5, svgX: 350, svgY: 300, scaleX: 17, scaleY: 21 },
-  "NM": { lat: 34.5, lng: -106.0, svgX: 340, svgY: 400, scaleX: 17, scaleY: 21 },
-  "GA": { lat: 32.7, lng: -83.5, svgX: 760, svgY: 410, scaleX: 15, scaleY: 19 },
-  "NC": { lat: 35.5, lng: -79.5, svgX: 810, svgY: 360, scaleX: 14, scaleY: 18 },
-  "TN": { lat: 35.8, lng: -86.0, svgX: 720, svgY: 355, scaleX: 15, scaleY: 19 },
-  "SC": { lat: 34.0, lng: -81.0, svgX: 795, svgY: 385, scaleX: 14, scaleY: 18 },
-  "VA": { lat: 37.5, lng: -78.5, svgX: 825, svgY: 330, scaleX: 14, scaleY: 18 },
-  "WA": { lat: 47.5, lng: -120.5, svgX: 165, svgY: 85, scaleX: 18, scaleY: 22 },
-  "OR": { lat: 44.0, lng: -120.5, svgX: 140, svgY: 175, scaleX: 18, scaleY: 22 },
-  "UT": { lat: 39.3, lng: -111.5, svgX: 265, svgY: 295, scaleX: 17, scaleY: 21 },
-  "ID": { lat: 44.0, lng: -114.5, svgX: 220, svgY: 170, scaleX: 17, scaleY: 21 },
-  "MT": { lat: 47.0, lng: -110.0, svgX: 295, svgY: 100, scaleX: 16, scaleY: 20 },
-  "WY": { lat: 43.0, lng: -107.5, svgX: 325, svgY: 195, scaleX: 16, scaleY: 20 },
-  "OH": { lat: 40.4, lng: -82.8, svgX: 765, svgY: 280, scaleX: 14, scaleY: 18 },
-  "PA": { lat: 41.0, lng: -77.5, svgX: 825, svgY: 250, scaleX: 14, scaleY: 18 },
-  "NY": { lat: 43.0, lng: -75.5, svgX: 855, svgY: 200, scaleX: 13, scaleY: 17 },
-  "MI": { lat: 44.3, lng: -85.5, svgX: 700, svgY: 190, scaleX: 14, scaleY: 18 },
-  "IL": { lat: 40.0, lng: -89.0, svgX: 660, svgY: 285, scaleX: 15, scaleY: 19 },
-  "IN": { lat: 40.0, lng: -86.2, svgX: 710, svgY: 290, scaleX: 15, scaleY: 19 },
-  "MO": { lat: 38.5, lng: -92.5, svgX: 600, svgY: 320, scaleX: 15, scaleY: 19 },
-  "KS": { lat: 38.5, lng: -98.5, svgX: 480, svgY: 325, scaleX: 16, scaleY: 20 },
-  "OK": { lat: 35.5, lng: -97.5, svgX: 500, svgY: 380, scaleX: 16, scaleY: 20 },
-  "AR": { lat: 35.0, lng: -92.5, svgX: 600, svgY: 385, scaleX: 15, scaleY: 19 },
-  "LA": { lat: 31.0, lng: -92.0, svgX: 610, svgY: 450, scaleX: 15, scaleY: 19 },
-  "MS": { lat: 32.7, lng: -89.7, svgX: 660, svgY: 420, scaleX: 15, scaleY: 19 },
-  "AL": { lat: 32.8, lng: -86.8, svgX: 715, svgY: 415, scaleX: 15, scaleY: 19 },
-  "KY": { lat: 37.8, lng: -85.8, svgX: 735, svgY: 330, scaleX: 14, scaleY: 18 },
-  "WV": { lat: 38.9, lng: -80.5, svgX: 795, svgY: 305, scaleX: 14, scaleY: 18 },
-  "MD": { lat: 39.0, lng: -76.7, svgX: 850, svgY: 295, scaleX: 13, scaleY: 17 },
-  "NJ": { lat: 40.2, lng: -74.7, svgX: 875, svgY: 260, scaleX: 12, scaleY: 16 },
-  "MA": { lat: 42.4, lng: -71.4, svgX: 905, svgY: 200, scaleX: 12, scaleY: 16 },
-  "CT": { lat: 41.6, lng: -72.7, svgX: 895, svgY: 225, scaleX: 12, scaleY: 16 },
-  "RI": { lat: 41.7, lng: -71.5, svgX: 905, svgY: 220, scaleX: 11, scaleY: 15 },
-  "NH": { lat: 43.5, lng: -71.5, svgX: 900, svgY: 175, scaleX: 12, scaleY: 16 },
-  "VT": { lat: 44.0, lng: -72.7, svgX: 890, svgY: 160, scaleX: 12, scaleY: 16 },
-  "ME": { lat: 45.3, lng: -69.0, svgX: 920, svgY: 130, scaleX: 12, scaleY: 16 },
-  "MN": { lat: 46.0, lng: -94.5, svgX: 570, svgY: 150, scaleX: 15, scaleY: 19 },
-  "WI": { lat: 44.5, lng: -90.0, svgX: 640, svgY: 185, scaleX: 15, scaleY: 19 },
-  "IA": { lat: 42.0, lng: -93.5, svgX: 585, svgY: 240, scaleX: 15, scaleY: 19 },
-  "NE": { lat: 41.5, lng: -99.8, svgX: 450, svgY: 255, scaleX: 16, scaleY: 20 },
-  "SD": { lat: 44.4, lng: -100.2, svgX: 440, svgY: 175, scaleX: 16, scaleY: 20 },
-  "ND": { lat: 47.5, lng: -100.5, svgX: 435, svgY: 105, scaleX: 16, scaleY: 20 },
-  "DE": { lat: 39.0, lng: -75.5, svgX: 870, svgY: 290, scaleX: 12, scaleY: 16 },
-  "HI": { lat: 20.8, lng: -156.3, svgX: 300, svgY: 565, scaleX: 10, scaleY: 14 },
-  "AK": { lat: 64.0, lng: -153.0, svgX: 155, svgY: 530, scaleX: 8, scaleY: 12 },
+// Geographic center (lat/lng) for each state - used to calculate marker offsets
+const STATE_GEO_CENTERS: Record<string, { lat: number; lng: number }> = {
+  "AL": { lat: 32.8, lng: -86.8 }, "AK": { lat: 64.0, lng: -153.0 }, "AZ": { lat: 34.2, lng: -111.5 },
+  "AR": { lat: 35.0, lng: -92.5 }, "CA": { lat: 37.0, lng: -120.0 }, "CO": { lat: 39.0, lng: -105.5 },
+  "CT": { lat: 41.6, lng: -72.7 }, "DE": { lat: 39.0, lng: -75.5 }, "FL": { lat: 28.0, lng: -82.5 },
+  "GA": { lat: 32.7, lng: -83.5 }, "HI": { lat: 20.8, lng: -156.3 }, "ID": { lat: 44.0, lng: -114.5 },
+  "IL": { lat: 40.0, lng: -89.0 }, "IN": { lat: 40.0, lng: -86.2 }, "IA": { lat: 42.0, lng: -93.5 },
+  "KS": { lat: 38.5, lng: -98.5 }, "KY": { lat: 37.8, lng: -85.8 }, "LA": { lat: 31.0, lng: -92.0 },
+  "ME": { lat: 45.3, lng: -69.0 }, "MD": { lat: 39.0, lng: -76.7 }, "MA": { lat: 42.4, lng: -71.4 },
+  "MI": { lat: 44.3, lng: -85.5 }, "MN": { lat: 46.0, lng: -94.5 }, "MS": { lat: 32.7, lng: -89.7 },
+  "MO": { lat: 38.5, lng: -92.5 }, "MT": { lat: 47.0, lng: -110.0 }, "NE": { lat: 41.5, lng: -99.8 },
+  "NV": { lat: 39.0, lng: -117.0 }, "NH": { lat: 43.5, lng: -71.5 }, "NJ": { lat: 40.2, lng: -74.7 },
+  "NM": { lat: 34.5, lng: -106.0 }, "NY": { lat: 43.0, lng: -75.5 }, "NC": { lat: 35.5, lng: -79.5 },
+  "ND": { lat: 47.5, lng: -100.5 }, "OH": { lat: 40.4, lng: -82.8 }, "OK": { lat: 35.5, lng: -97.5 },
+  "OR": { lat: 44.0, lng: -120.5 }, "PA": { lat: 41.0, lng: -77.5 }, "RI": { lat: 41.7, lng: -71.5 },
+  "SC": { lat: 34.0, lng: -81.0 }, "SD": { lat: 44.4, lng: -100.2 }, "TN": { lat: 35.8, lng: -86.0 },
+  "TX": { lat: 31.0, lng: -100.0 }, "UT": { lat: 39.3, lng: -111.5 }, "VT": { lat: 44.0, lng: -72.7 },
+  "VA": { lat: 37.5, lng: -78.5 }, "WA": { lat: 47.5, lng: -120.5 }, "WV": { lat: 38.9, lng: -80.5 },
+  "WI": { lat: 44.5, lng: -90.0 }, "WY": { lat: 43.0, lng: -107.5 },
 };
 
-// Convert lat/lng to SVG coordinates using state-relative positioning
-function latLngToSvg(lat: number, lng: number, stateAbbr: string): { x: number; y: number } {
-  const stateCenter = STATE_GEO_CENTERS[stateAbbr];
+// Convert lat/lng to SVG coordinates using state path center as reference
+function latLngToSvgWithBounds(
+  lat: number, 
+  lng: number, 
+  stateAbbr: string,
+  bounds: { centerX: number; centerY: number; minX: number; maxX: number; minY: number; maxY: number }
+): { x: number; y: number } {
+  const geoCenter = STATE_GEO_CENTERS[stateAbbr];
   
-  if (!stateCenter) {
-    // Fallback to basic approximation
-    const x = ((lng + 125) / 58) * 959;
-    const y = ((50 - lat) / 25) * 593;
-    return { x, y };
+  if (!geoCenter) {
+    // Fallback - place at SVG center
+    return { x: bounds.centerX, y: bounds.centerY };
   }
   
-  // Calculate offset from state geographic center
-  const dLng = lng - stateCenter.lng;
-  const dLat = lat - stateCenter.lat;
+  // Calculate geographic offset from state center
+  const dLng = lng - geoCenter.lng;
+  const dLat = lat - geoCenter.lat;
   
-  // Apply offset with state-specific scaling
-  const x = stateCenter.svgX + (dLng * stateCenter.scaleX);
-  const y = stateCenter.svgY - (dLat * stateCenter.scaleY); // Y is inverted in SVG
+  // Estimate state geographic span based on typical US state sizes
+  // Most states span 3-10 degrees longitude and 2-6 degrees latitude
+  const svgWidth = bounds.maxX - bounds.minX;
+  const svgHeight = bounds.maxY - bounds.minY;
+  
+  // Use a consistent scale factor based on the SVG dimensions
+  // The Albers projection used in the SVG compresses longitude at higher latitudes
+  const scaleX = svgWidth / 8;  // Assume ~8 degrees longitude span
+  const scaleY = svgHeight / 5; // Assume ~5 degrees latitude span
+  
+  // Apply offset from the SVG path center
+  const x = bounds.centerX + (dLng * scaleX);
+  const y = bounds.centerY - (dLat * scaleY); // Y is inverted in SVG
   
   return { x, y };
 }
@@ -522,7 +501,9 @@ export function TopMarketsSection({ stateSlug, stateName }: TopMarketsSectionPro
                       
                       {/* Market markers */}
                       {marketsWithDetails.map((market, index) => {
-                        const pos = latLngToSvg(market.lat, market.lng, stateAbbr || "");
+                        const pos = bounds 
+                          ? latLngToSvgWithBounds(market.lat, market.lng, stateAbbr || "", bounds)
+                          : { x: 0, y: 0 };
                         const isSelected = selectedMarket?.id === market.id;
                         const isHovered = hoveredMarket?.id === market.id;
                         const isActive = isSelected || isHovered;
