@@ -238,7 +238,7 @@ function GoogleMapsAutocomplete({
         onKeyDown={handleKeyDown}
         onFocus={() => predictions.length > 0 && setShowDropdown(true)}
         placeholder={placeholder}
-        className={`pl-10 pr-10 ${className}`}
+        className={`pl-12 pr-12 ${className}`}
         data-testid={testId}
       />
       {/* Left icon - MapPin or animated checkmark - positioned inside input */}
