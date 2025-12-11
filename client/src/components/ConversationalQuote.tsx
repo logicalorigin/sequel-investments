@@ -378,6 +378,30 @@ export default function ConversationalQuote() {
     }
   }, [isAuthenticated, user]);
 
+  useEffect(() => {
+    if (formData.transactionType === "refinance") {
+      const propValue = parseFloat(formData.propertyValue.replace(/,/g, "")) || 0;
+      const loanBalance = parseFloat(formData.currentLoanBalance.replace(/,/g, "")) || 0;
+      const rawMaxCashOut = (propValue * 0.75) - loanBalance;
+      const step = rawMaxCashOut >= 50000 ? 10000 : 5000;
+      const effectiveMax = Math.max(0, Math.floor(rawMaxCashOut / step) * step);
+      const currentCashOut = parseFloat(formData.desiredCashOut.replace(/,/g, "")) || 0;
+      
+      if (effectiveMax < 10000) {
+        if (currentCashOut > 0) {
+          setFormData(prev => ({ ...prev, desiredCashOut: "0" }));
+        }
+      } else {
+        const snappedValue = Math.floor(currentCashOut / step) * step;
+        const clampedValue = Math.min(snappedValue, effectiveMax);
+        
+        if (clampedValue !== currentCashOut && currentCashOut > 0) {
+          setFormData(prev => ({ ...prev, desiredCashOut: formatCurrency(clampedValue.toString()) }));
+        }
+      }
+    }
+  }, [formData.propertyValue, formData.currentLoanBalance, formData.transactionType, formData.desiredCashOut]);
+
   const filteredQuestions = questions.filter(q => {
     // Filter by loan type
     if (q.showFor && !q.showFor.includes(formData.loanType)) return false;
@@ -995,10 +1019,12 @@ export default function ConversationalQuote() {
       case "dscr-refinance-financials":
         const refiPropertyValue = parseFloat(formData.propertyValue.replace(/,/g, "")) || 0;
         const refiLoanBalance = parseFloat(formData.currentLoanBalance.replace(/,/g, "")) || 0;
-        const refiCashOut = parseFloat(formData.desiredCashOut.replace(/,/g, "")) || 0;
         const refiMaxLoan = refiPropertyValue * 0.75;
-        const refiNewLoanAmount = refiLoanBalance + refiCashOut;
+        const refiRawMaxCashOut = refiMaxLoan - refiLoanBalance;
         const refiEquity = refiPropertyValue - refiLoanBalance;
+        const cashOutStep = refiRawMaxCashOut >= 50000 ? 10000 : 5000;
+        const cashOutSliderMax = Math.max(0, Math.floor(refiRawMaxCashOut / cashOutStep) * cashOutStep);
+        const cashOutAvailable = cashOutSliderMax >= 10000;
         
         return (
           <div className="space-y-3 sm:space-y-6 max-w-xl mx-auto px-2 sm:px-0">
@@ -1033,14 +1059,14 @@ export default function ConversationalQuote() {
               
               {refiPropertyValue > 0 && refiLoanBalance > 0 && (
                 <motion.div 
-                  className="bg-primary/10 rounded-lg sm:rounded-xl p-2 sm:p-4 border border-primary/30"
+                  className={`rounded-lg sm:rounded-xl p-2 sm:p-4 border ${cashOutAvailable ? "bg-primary/10 border-primary/30" : "bg-red-500/10 border-red-500/30"}`}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                 >
                   <div className="flex justify-between text-xs sm:text-sm">
                     <span className="text-white/60">Current Equity</span>
                     <motion.span 
-                      className="text-white font-medium"
+                      className={`font-medium ${refiEquity >= 0 ? "text-white" : "text-red-400"}`}
                       key={refiEquity}
                       initial={{ scale: 0.9 }}
                       animate={{ scale: 1 }}
@@ -1051,27 +1077,40 @@ export default function ConversationalQuote() {
                   <div className="flex justify-between text-xs sm:text-sm mt-1">
                     <span className="text-white/60">Max Cash Out (75% LTV)</span>
                     <motion.span 
-                      className="text-primary font-bold"
-                      key={refiMaxLoan - refiLoanBalance}
+                      className={`font-bold ${cashOutAvailable ? "text-primary" : "text-red-400"}`}
+                      key={cashOutSliderMax}
                       initial={{ scale: 0.9 }}
                       animate={{ scale: 1 }}
                     >
-                      ${Math.max(0, refiMaxLoan - refiLoanBalance).toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                      ${cashOutSliderMax.toLocaleString("en-US", { maximumFractionDigits: 0 })}
                     </motion.span>
                   </div>
+                  {!cashOutAvailable && (
+                    <p className="text-red-400/70 text-[10px] sm:text-xs mt-2">
+                      Insufficient equity for cash-out. Consider a rate & term refinance instead.
+                    </p>
+                  )}
                 </motion.div>
               )}
               
-              <CurrencySliderInput
-                value={formData.desiredCashOut}
-                onChange={(val) => updateField("desiredCashOut", val)}
-                min={0}
-                max={Math.max(500000, Math.floor((refiMaxLoan - refiLoanBalance) / 10000) * 10000)}
-                step={10000}
-                label="Desired Cash Out"
-                helperText="Amount you want to take out"
-                data-testid="input-desired-cash-out"
-              />
+              {cashOutAvailable ? (
+                <CurrencySliderInput
+                  value={formData.desiredCashOut}
+                  onChange={(val) => updateField("desiredCashOut", val)}
+                  min={0}
+                  max={cashOutSliderMax}
+                  step={cashOutStep}
+                  label="Desired Cash Out"
+                  helperText={`Up to $${cashOutSliderMax.toLocaleString()}`}
+                  data-testid="input-desired-cash-out"
+                />
+              ) : (
+                <div className="bg-white/5 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-white/10 opacity-50">
+                  <label className="text-white/50 text-[10px] sm:text-xs uppercase tracking-wide block mb-1">Desired Cash Out</label>
+                  <div className="text-base sm:text-xl font-bold text-white/40">$0</div>
+                  <p className="text-white/40 text-[10px] sm:text-xs mt-1">Minimum $10k equity required</p>
+                </div>
+              )}
               
               <CurrencySliderInput
                 value={formData.monthlyRent}
