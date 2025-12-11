@@ -25,6 +25,9 @@ const easeOutBack = (t: number): number => {
   return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
 };
 
+// Scatter distance multiplier - how much further markers fly from cluster center
+const SCATTER_DISTANCE_MULTIPLIER = 1.6;
+
 export function useScatterAnimation(options: UseScatterAnimationOptions = {}) {
   const { 
     duration = 400, 
@@ -85,8 +88,11 @@ export function useScatterAnimation(options: UseScatterAnimationOptions = {}) {
       const newPositions = cluster.markers.map(m => {
         const startX = cluster.center.x;
         const startY = cluster.center.y;
-        const endX = m.pos.x;
-        const endY = m.pos.y;
+        // Apply multiplier to push markers further from center
+        const deltaX = (m.pos.x - startX) * SCATTER_DISTANCE_MULTIPLIER;
+        const deltaY = (m.pos.y - startY) * SCATTER_DISTANCE_MULTIPLIER;
+        const endX = startX + deltaX;
+        const endY = startY + deltaY;
         
         return {
           id: m.market.id,
