@@ -1,8 +1,45 @@
-import { useState, useEffect, useCallback } from "react";
-import { Map, Marker, useApiIsLoaded } from "@vis.gl/react-google-maps";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { Map, Marker, useApiIsLoaded, useMap } from "@vis.gl/react-google-maps";
 import { darkMapStyles, STATE_CENTERS } from "@/lib/mapStyles";
+import { getStateBoundary } from "@/lib/stateBoundaries";
 import type { MarketDetail } from "@/data/marketDetails";
 import { Home, TrendingUp, DollarSign, Sparkles } from "lucide-react";
+
+// Component to draw state boundary polygon
+function StateBoundaryPolygon({ stateSlug }: { stateSlug: string }) {
+  const map = useMap();
+  const polygonRef = useRef<google.maps.Polygon | null>(null);
+
+  useEffect(() => {
+    if (!map) return;
+
+    const boundary = getStateBoundary(stateSlug);
+    if (!boundary) return;
+
+    // Create the polygon
+    const polygon = new google.maps.Polygon({
+      paths: boundary.coordinates,
+      strokeColor: "#b45309",
+      strokeOpacity: 0.9,
+      strokeWeight: 2,
+      fillColor: "#b45309",
+      fillOpacity: 0.6,
+      map: map,
+    });
+
+    polygonRef.current = polygon;
+
+    // Cleanup
+    return () => {
+      if (polygonRef.current) {
+        polygonRef.current.setMap(null);
+        polygonRef.current = null;
+      }
+    };
+  }, [map, stateSlug]);
+
+  return null;
+}
 
 interface StateMapDarkProps {
   stateSlug: string;
@@ -90,6 +127,9 @@ export function StateMapDark({
         onTilesLoaded={() => setMapLoaded(true)}
         mapId="dark-state-map"
       >
+        {/* State boundary polygon filled with amber/gold theme color */}
+        {apiIsLoaded && <StateBoundaryPolygon stateSlug={stateSlug} />}
+        
         {apiIsLoaded && markets.map((market, index) => {
           const isSelected = selectedMarket?.id === market.id;
           const isHovered = hoveredMarket?.id === market.id;
@@ -177,26 +217,10 @@ export function StateMapDark({
         </div>
       )}
 
-      {/* Dark gradient overlays with theme color accents */}
+      {/* Simple edge gradients */}
       <div className="absolute inset-0 pointer-events-none">
-        {/* Overall dark wash to blend with site theme */}
-        <div className="absolute inset-0 bg-slate-900/30" />
-        
-        {/* Top gradient with amber accent */}
-        <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-b from-slate-900/80 via-slate-900/40 to-transparent" />
-        
-        {/* Bottom gradient - stronger for info card area */}
-        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-slate-900/90 via-slate-900/50 to-transparent" />
-        
-        {/* Side vignettes */}
-        <div className="absolute top-0 left-0 bottom-0 w-16 bg-gradient-to-r from-slate-900/60 to-transparent" />
-        <div className="absolute top-0 right-0 bottom-0 w-16 bg-gradient-to-l from-slate-900/60 to-transparent" />
-        
-        {/* Subtle amber glow at corners */}
-        <div className="absolute top-0 left-0 w-32 h-32 bg-gradient-to-br from-amber-900/20 to-transparent" />
-        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-amber-900/20 to-transparent" />
-        <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-amber-900/15 to-transparent" />
-        <div className="absolute bottom-0 right-0 w-32 h-32 bg-gradient-to-tl from-amber-900/15 to-transparent" />
+        <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-slate-900/40 to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-slate-900/60 to-transparent" />
       </div>
     </div>
   );

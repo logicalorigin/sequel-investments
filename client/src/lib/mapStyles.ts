@@ -1,6 +1,41 @@
 export type GoogleMapStyle = google.maps.MapTypeStyle;
 
+// Dark gray map styles - neutral gray background for state overlay effect
 export const darkMapStyles: GoogleMapStyle[] = [
+  { elementType: "geometry", stylers: [{ color: "#4b5563" }] }, // Gray-600 base
+  { elementType: "labels.text.fill", stylers: [{ color: "#9ca3af" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#374151" }] },
+  { featureType: "administrative.country", elementType: "geometry.stroke", stylers: [{ color: "#6b7280" }] },
+  { featureType: "administrative.land_parcel", elementType: "labels.text.fill", stylers: [{ color: "#6b7280" }] },
+  { featureType: "administrative.province", elementType: "geometry.stroke", stylers: [{ color: "#6b7280" }] },
+  { featureType: "landscape.man_made", elementType: "geometry.stroke", stylers: [{ color: "#6b7280" }] },
+  { featureType: "landscape.natural", elementType: "geometry", stylers: [{ color: "#4b5563" }] },
+  { featureType: "poi", elementType: "geometry", stylers: [{ color: "#4b5563" }] },
+  { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#9ca3af" }] },
+  { featureType: "poi", elementType: "labels.text.stroke", stylers: [{ color: "#374151" }] },
+  { featureType: "poi.park", elementType: "geometry.fill", stylers: [{ color: "#4b5563" }] },
+  { featureType: "poi.park", elementType: "labels.text.fill", stylers: [{ color: "#6b7280" }] },
+  { featureType: "road", elementType: "geometry", stylers: [{ color: "#6b7280" }] },
+  { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#9ca3af" }] },
+  { featureType: "road", elementType: "labels.text.stroke", stylers: [{ color: "#374151" }] },
+  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#6b7280" }] },
+  { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#6b7280" }] },
+  { featureType: "road.highway", elementType: "labels.text.fill", stylers: [{ color: "#9ca3af" }] },
+  { featureType: "road.highway", elementType: "labels.text.stroke", stylers: [{ color: "#374151" }] },
+  { featureType: "road.arterial", elementType: "geometry", stylers: [{ color: "#6b7280" }] },
+  { featureType: "road.arterial", elementType: "labels.text.fill", stylers: [{ color: "#9ca3af" }] },
+  { featureType: "road.local", elementType: "geometry", stylers: [{ color: "#6b7280" }] },
+  { featureType: "road.local", elementType: "labels.text.fill", stylers: [{ color: "#9ca3af" }] },
+  { featureType: "transit", elementType: "labels.text.fill", stylers: [{ color: "#9ca3af" }] },
+  { featureType: "transit", elementType: "labels.text.stroke", stylers: [{ color: "#374151" }] },
+  { featureType: "transit.line", elementType: "geometry.fill", stylers: [{ color: "#6b7280" }] },
+  { featureType: "transit.station", elementType: "geometry", stylers: [{ color: "#4b5563" }] },
+  { featureType: "water", elementType: "geometry", stylers: [{ color: "#374151" }] },
+  { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#6b7280" }] },
+];
+
+// Original dark theme with amber roads - kept for hero map
+export const darkMapStylesWithAmberRoads: GoogleMapStyle[] = [
   { elementType: "geometry", stylers: [{ color: "#0f172a" }] },
   { elementType: "labels.text.fill", stylers: [{ color: "#d4a574" }] },
   { elementType: "labels.text.stroke", stylers: [{ color: "#0f172a" }] },
