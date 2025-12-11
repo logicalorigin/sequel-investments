@@ -1259,15 +1259,36 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
                         </DialogDescription>
                       </DialogHeader>
                       <div className="space-y-4">
-                        <div>
-                          <Label htmlFor="drawDescription">Description (optional)</Label>
-                          <Textarea
-                            id="drawDescription"
-                            value={newDrawDescription}
-                            onChange={(e) => setNewDrawDescription(e.target.value)}
-                            placeholder="Describe the work completed for this draw..."
-                            data-testid="input-draw-description"
-                          />
+                        {/* Budget remaining progress bar with red-to-green gradient */}
+                        <div className="mb-4">
+                          <div className="flex justify-between text-sm mb-2">
+                            <span className="font-medium">Budget Remaining</span>
+                            <span className={`font-medium ${
+                              remaining / (grandTotalBudget || loan.totalRehabBudget) > 0.5 
+                                ? "text-emerald-500" 
+                                : remaining / (grandTotalBudget || loan.totalRehabBudget) > 0.25 
+                                  ? "text-amber-500" 
+                                  : "text-red-500"
+                            }`}>
+                              {formatCurrency(remaining)} of {formatCurrency(grandTotalBudget || loan.totalRehabBudget)}
+                            </span>
+                          </div>
+                          <div className="h-3 w-full rounded-full overflow-hidden bg-muted">
+                            <div 
+                              className="h-full transition-all duration-300"
+                              style={{
+                                width: `${Math.min(100, (remaining / (grandTotalBudget || loan.totalRehabBudget)) * 100)}%`,
+                                background: `linear-gradient(90deg, 
+                                  hsl(0, 72%, 51%) 0%, 
+                                  hsl(38, 92%, 50%) 50%, 
+                                  hsl(142, 71%, 45%) 100%)`
+                              }}
+                              data-testid="progress-budget-remaining"
+                            />
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {((remaining / (grandTotalBudget || loan.totalRehabBudget)) * 100).toFixed(0)}% of budget remaining
+                          </p>
                         </div>
 
                         <Separator />
@@ -1279,30 +1300,46 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
                               <div className="space-y-2">
                                 {cs.items.map((item) => {
                                   const itemRemaining = item.budgetAmount - item.totalFunded;
+                                  const itemAmount = drawLineAmounts[item.id] || 0;
                                   return (
-                                    <div key={item.id} className="flex items-center justify-between gap-4">
-                                      <div className="flex-1">
-                                        <span className="text-sm">{item.itemName}</span>
+                                    <div key={item.id} className="flex items-center justify-between gap-2">
+                                      <div className="flex-1 min-w-0">
+                                        <span className="text-sm truncate">{item.itemName}</span>
                                         <span className="text-xs text-muted-foreground ml-2">
                                           (Remaining: {formatCurrency(itemRemaining)})
                                         </span>
                                       </div>
-                                      <Input
-                                        type="number"
-                                        min={0}
-                                        max={itemRemaining}
-                                        value={drawLineAmounts[item.id] || ""}
-                                        onChange={(e) => {
-                                          const val = parseInt(e.target.value) || 0;
-                                          setDrawLineAmounts(prev => ({
-                                            ...prev,
-                                            [item.id]: Math.min(val, itemRemaining)
-                                          }));
-                                        }}
-                                        placeholder="0"
-                                        className="w-[6.5rem] text-right"
-                                        data-testid={`input-draw-line-${item.id}`}
-                                      />
+                                      <div className="flex items-center gap-2 shrink-0">
+                                        <Input
+                                          type="number"
+                                          min={0}
+                                          max={itemRemaining}
+                                          value={drawLineAmounts[item.id] || ""}
+                                          onChange={(e) => {
+                                            const val = parseInt(e.target.value) || 0;
+                                            setDrawLineAmounts(prev => ({
+                                              ...prev,
+                                              [item.id]: Math.min(val, itemRemaining)
+                                            }));
+                                          }}
+                                          placeholder="0"
+                                          className="w-[6.5rem] text-right"
+                                          data-testid={`input-draw-line-${item.id}`}
+                                        />
+                                        {itemAmount > 0 && (
+                                          <Button
+                                            size="icon"
+                                            variant="ghost"
+                                            className="text-primary"
+                                            asChild
+                                            data-testid={`button-capture-photos-${item.id}`}
+                                          >
+                                            <Link href={`/portal/loans/${loan.id}/draws/new/capture?scopeItemId=${item.id}&category=${cs.category}`}>
+                                              <Camera className="h-4 w-4" />
+                                            </Link>
+                                          </Button>
+                                        )}
+                                      </div>
                                     </div>
                                   );
                                 })}
@@ -1329,7 +1366,6 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
                         <Button 
                           onClick={() => createDrawMutation.mutate({
                             requestedAmount: newDrawTotal,
-                            description: newDrawDescription,
                           })}
                           disabled={newDrawTotal === 0 || createDrawMutation.isPending}
                           data-testid="button-create-draw"
