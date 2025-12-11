@@ -15,12 +15,16 @@ import {
   Tooltip,
   ResponsiveContainer,
   Cell,
-  PieChart,
-  Pie,
-  Legend,
 } from "recharts";
 
-const renovationRoiData = [
+interface RenovationDataItem {
+  project: string;
+  roi: number;
+  cost: number;
+  color: string;
+}
+
+const renovationRoiData: RenovationDataItem[] = [
   { project: "Garage Door", roi: 194, cost: 4513, color: "hsl(var(--primary))" },
   { project: "Steel Entry Door", roi: 188, cost: 2355, color: "hsl(var(--primary))" },
   { project: "Stone Veneer", roi: 153, cost: 11000, color: "hsl(142 76% 36%)" },
@@ -29,12 +33,6 @@ const renovationRoiData = [
   { project: "Bathroom Remodel", roi: 73, cost: 24000, color: "hsl(217 91% 60%)" },
   { project: "Wood Deck", roi: 83, cost: 25000, color: "hsl(217 91% 60%)" },
   { project: "Vinyl Windows", roi: 67, cost: 20000, color: "hsl(var(--muted-foreground))" },
-];
-
-const renovationTierData = [
-  { name: "Tier 1: Essential", value: 40, color: "hsl(var(--primary))" },
-  { name: "Tier 2: High-Impact", value: 45, color: "hsl(142 76% 36%)" },
-  { name: "Tier 3: Nice-to-Have", value: 15, color: "hsl(217 91% 60%)" },
 ];
 
 const flooringCostData = [
@@ -204,10 +202,20 @@ export default function RenovationsGuidePage() {
                         border: '1px solid hsl(var(--border))',
                         borderRadius: '8px'
                       }}
-                      formatter={(value: number, name: string, props: any) => [
-                        `${value}% ROI ($${props.payload.cost.toLocaleString()} avg cost)`,
-                        'Return on Investment'
-                      ]}
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length > 0) {
+                          const data = payload[0].payload as RenovationDataItem;
+                          return (
+                            <div className="bg-card border border-border rounded-lg p-3">
+                              <p className="font-semibold">{data.project}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {data.roi}% ROI (${data.cost.toLocaleString()} avg cost)
+                              </p>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
                     />
                     <Bar dataKey="roi" radius={[0, 4, 4, 0]}>
                       {renovationRoiData.map((entry, index) => (
