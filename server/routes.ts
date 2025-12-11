@@ -5765,7 +5765,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Monthly funded volume trend (last 12 months)
       const now = new Date();
-      const monthlyTrend: { month: string; count: number; volume: number }[] = [];
+      const monthlyTrend: { month: string; count: number; value: number }[] = [];
       
       for (let i = 11; i >= 0; i--) {
         const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
@@ -5779,19 +5779,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         monthlyTrend.push({
           month: monthStart.toLocaleString('default', { month: 'short', year: '2-digit' }),
           count: monthLoans.length,
-          volume: monthLoans.reduce((sum, loan) => sum + (loan.originalLoanAmount || 0), 0),
+          value: monthLoans.reduce((sum, loan) => sum + (loan.originalLoanAmount || 0), 0),
         });
       }
 
+      // Return response structure matching frontend interface
       return res.json({
-        totalFundedCount,
-        totalFundedVolume,
+        totalFunded: {
+          value: totalFundedVolume,
+          count: totalFundedCount,
+        },
         byLoanType,
-        byLoanStatus,
-        topStates,
-        avgLoanSize,
-        avgInterestRate: Math.round(avgInterestRate * 100) / 100,
-        avgLTV: Math.round(avgLTV * 10) / 10,
+        byStatus: byLoanStatus,
+        byState: topStates,
+        averages: {
+          loanSize: avgLoanSize,
+          interestRate: Math.round(avgInterestRate * 100) / 100,
+          ltv: Math.round(avgLTV * 10) / 10,
+        },
         monthlyTrend,
       });
     } catch (error) {
