@@ -10,29 +10,72 @@ interface StatePageHeroProps {
 }
 
 // Get the bounding box for a state path to calculate its center
+// Properly handles both absolute (M,L) and relative (m,l) SVG commands
 function getPathBounds(pathD: string): { minX: number; minY: number; maxX: number; maxY: number; centerX: number; centerY: number } {
-  const coords: number[][] = [];
-  const regex = /[ML]\s*([\d.]+)[,\s]+([\d.]+)/gi;
-  let match;
-  while ((match = regex.exec(pathD)) !== null) {
-    coords.push([parseFloat(match[1]), parseFloat(match[2])]);
-  }
-  if (coords.length === 0) return { minX: 0, minY: 0, maxX: 100, maxY: 100, centerX: 50, centerY: 50 };
+  const points: { x: number; y: number }[] = [];
+  let currentX = 0;
+  let currentY = 0;
+  let startX = 0;
+  let startY = 0;
   
-  const xs = coords.map(c => c[0]);
-  const ys = coords.map(c => c[1]);
+  const commands = pathD.match(/[MmLlHhVvZzCcSsQqTtAa][^MmLlHhVvZzCcSsQqTtAa]*/g) || [];
+  
+  for (const cmd of commands) {
+    const type = cmd[0];
+    const args = cmd.slice(1).trim().split(/[\s,]+/).filter(s => s).map(Number);
+    
+    switch (type) {
+      case 'M':
+        for (let i = 0; i < args.length; i += 2) {
+          currentX = args[i]; currentY = args[i + 1];
+          if (i === 0) { startX = currentX; startY = currentY; }
+          points.push({ x: currentX, y: currentY });
+        }
+        break;
+      case 'm':
+        for (let i = 0; i < args.length; i += 2) {
+          currentX += args[i]; currentY += args[i + 1];
+          if (i === 0) { startX = currentX; startY = currentY; }
+          points.push({ x: currentX, y: currentY });
+        }
+        break;
+      case 'L':
+        for (let i = 0; i < args.length; i += 2) {
+          currentX = args[i]; currentY = args[i + 1];
+          points.push({ x: currentX, y: currentY });
+        }
+        break;
+      case 'l':
+        for (let i = 0; i < args.length; i += 2) {
+          currentX += args[i]; currentY += args[i + 1];
+          points.push({ x: currentX, y: currentY });
+        }
+        break;
+      case 'H': currentX = args[0]; points.push({ x: currentX, y: currentY }); break;
+      case 'h': currentX += args[0]; points.push({ x: currentX, y: currentY }); break;
+      case 'V': currentY = args[0]; points.push({ x: currentX, y: currentY }); break;
+      case 'v': currentY += args[0]; points.push({ x: currentX, y: currentY }); break;
+      case 'Z': case 'z': currentX = startX; currentY = startY; break;
+      default:
+        if (args.length >= 2) {
+          const isRel = type === type.toLowerCase();
+          if (isRel) { currentX += args[args.length - 2]; currentY += args[args.length - 1]; }
+          else { currentX = args[args.length - 2]; currentY = args[args.length - 1]; }
+          points.push({ x: currentX, y: currentY });
+        }
+    }
+  }
+  
+  if (points.length === 0) return { minX: 0, minY: 0, maxX: 100, maxY: 100, centerX: 50, centerY: 50 };
+  
+  const xs = points.map(p => p.x);
+  const ys = points.map(p => p.y);
   const minX = Math.min(...xs);
   const maxX = Math.max(...xs);
   const minY = Math.min(...ys);
   const maxY = Math.max(...ys);
-  return {
-    minX,
-    minY,
-    maxX,
-    maxY,
-    centerX: (minX + maxX) / 2,
-    centerY: (minY + maxY) / 2
-  };
+  
+  return { minX, minY, maxX, maxY, centerX: (minX + maxX) / 2, centerY: (minY + maxY) / 2 };
 }
 
 export function StatePageHero({ state, formatLoanVolume }: StatePageHeroProps) {
