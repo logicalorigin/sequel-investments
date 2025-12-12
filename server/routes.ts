@@ -5550,6 +5550,173 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "Failed to fetch unread count" });
     }
   });
+  
+  // Search message threads with filters
+  app.get("/api/admin/messages/search", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const { filter, search, applicationId } = req.query;
+      const threads = await storage.searchMessagesForStaff({
+        filter: filter as 'all' | 'unread' | 'starred' | 'archived' | undefined,
+        search: search as string | undefined,
+        applicationId: applicationId as string | undefined,
+      });
+      return res.json(threads);
+    } catch (error) {
+      console.error("Error searching messages:", error);
+      return res.status(500).json({ error: "Failed to search messages" });
+    }
+  });
+  
+  // Update message properties (star, archive, read, priority)
+  app.patch("/api/admin/messages/:id", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { isStarred, isArchived, isRead, priority } = req.body;
+      
+      const updated = await storage.updateMessageProperties(id, {
+        isStarred,
+        isArchived,
+        isRead,
+        priority,
+      });
+      
+      if (!updated) {
+        return res.status(404).json({ error: "Message not found" });
+      }
+      
+      return res.json(updated);
+    } catch (error) {
+      console.error("Error updating message:", error);
+      return res.status(500).json({ error: "Failed to update message" });
+    }
+  });
+  
+  // Bulk update messages
+  app.post("/api/admin/messages/bulk", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const { ids, action } = req.body;
+      
+      if (!ids || !Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ error: "ids array is required" });
+      }
+      
+      let updates: { isStarred?: boolean; isArchived?: boolean; isRead?: boolean } = {};
+      
+      switch (action) {
+        case 'markRead':
+          updates = { isRead: true };
+          break;
+        case 'markUnread':
+          updates = { isRead: false };
+          break;
+        case 'star':
+          updates = { isStarred: true };
+          break;
+        case 'unstar':
+          updates = { isStarred: false };
+          break;
+        case 'archive':
+          updates = { isArchived: true };
+          break;
+        case 'unarchive':
+          updates = { isArchived: false };
+          break;
+        default:
+          return res.status(400).json({ error: "Invalid action" });
+      }
+      
+      const count = await storage.bulkUpdateMessages(ids, updates);
+      return res.json({ success: true, updatedCount: count });
+    } catch (error) {
+      console.error("Error bulk updating messages:", error);
+      return res.status(500).json({ error: "Failed to bulk update messages" });
+    }
+  });
+  
+  // Message templates CRUD
+  app.get("/api/admin/message-templates", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const userId = req.user?.id;
+      const templates = await storage.getMessageTemplates(userId);
+      return res.json(templates);
+    } catch (error) {
+      console.error("Error fetching templates:", error);
+      return res.status(500).json({ error: "Failed to fetch templates" });
+    }
+  });
+  
+  app.post("/api/admin/message-templates", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const userId = req.user?.id;
+      const { name, category, subject, content, isGlobal } = req.body;
+      
+      if (!name || !content) {
+        return res.status(400).json({ error: "name and content are required" });
+      }
+      
+      const template = await storage.createMessageTemplate({
+        name,
+        category: category || 'general',
+        subject,
+        content,
+        isGlobal: isGlobal || false,
+        createdByUserId: userId,
+      });
+      
+      return res.status(201).json(template);
+    } catch (error) {
+      console.error("Error creating template:", error);
+      return res.status(500).json({ error: "Failed to create template" });
+    }
+  });
+  
+  app.patch("/api/admin/message-templates/:id", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { name, category, subject, content, isGlobal, isActive } = req.body;
+      
+      const updated = await storage.updateMessageTemplate(id, {
+        name,
+        category,
+        subject,
+        content,
+        isGlobal,
+        isActive,
+      });
+      
+      if (!updated) {
+        return res.status(404).json({ error: "Template not found" });
+      }
+      
+      return res.json(updated);
+    } catch (error) {
+      console.error("Error updating template:", error);
+      return res.status(500).json({ error: "Failed to update template" });
+    }
+  });
+  
+  app.delete("/api/admin/message-templates/:id", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteMessageTemplate(id);
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting template:", error);
+      return res.status(500).json({ error: "Failed to delete template" });
+    }
+  });
+  
+  // Increment template usage when used
+  app.post("/api/admin/message-templates/:id/use", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      await storage.incrementTemplateUsage(id);
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Error incrementing template usage:", error);
+      return res.status(500).json({ error: "Failed to update template usage" });
+    }
+  });
 
   // ============================================
   // SIMULATION ENDPOINTS (Admin only)

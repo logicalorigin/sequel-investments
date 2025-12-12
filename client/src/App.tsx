@@ -72,6 +72,7 @@ import BookConsultationPage from "@/pages/BookConsultationPage";
 import MyAppointmentsPage from "@/pages/MyAppointmentsPage";
 import SignDocumentPage from "@/pages/SignDocumentPage";
 import MessagesPage from "@/pages/MessagesPage";
+import AdminMessagesPage from "@/pages/AdminMessagesPage";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -120,6 +121,7 @@ function Router() {
       <Route path="/admin/financials">{() => <AdminLayout><AdminFinancialsPage /></AdminLayout>}</Route>
       <Route path="/admin/portfolio">{() => <AdminLayout><AdminPortfolioPage /></AdminLayout>}</Route>
       <Route path="/admin/map-calibration">{() => <AdminLayout><MapCalibrationPage /></AdminLayout>}</Route>
+      <Route path="/admin/messages">{() => <AdminLayout><AdminMessagesPage /></AdminLayout>}</Route>
       <Route path="/portal/book-consultation" component={BookConsultationPage} />
       <Route path="/portal/appointments" component={MyAppointmentsPage} />
       <Route path="/portal/messages" component={MessagesPage} />
