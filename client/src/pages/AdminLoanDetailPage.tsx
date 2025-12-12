@@ -138,9 +138,14 @@ const drawStatusConfig = {
 const photoVerificationStatusConfig: Record<PhotoVerificationStatus, { label: string; icon: typeof CheckCircle2; color: string }> = {
   pending: { label: "Pending", icon: Clock, color: "bg-gray-500/10 text-gray-600 border-gray-500/30" },
   verified: { label: "Verified", icon: CheckCircle2, color: "bg-green-500/10 text-green-600 border-green-500/30" },
+  gps_match: { label: "GPS Match", icon: CheckCircle2, color: "bg-green-500/10 text-green-600 border-green-500/30" },
+  gps_mismatch: { label: "GPS Mismatch", icon: AlertTriangle, color: "bg-red-500/10 text-red-600 border-red-500/30" },
   outside_geofence: { label: "Outside Geofence", icon: Navigation, color: "bg-orange-500/10 text-orange-600 border-orange-500/30" },
   stale_timestamp: { label: "Stale Photo", icon: Clock, color: "bg-yellow-500/10 text-yellow-600 border-yellow-500/30" },
   metadata_missing: { label: "No Location Data", icon: HelpCircle, color: "bg-gray-500/10 text-gray-500 border-gray-500/30" },
+  browser_gps_only: { label: "Browser GPS Only", icon: MapPin, color: "bg-blue-500/10 text-blue-600 border-blue-500/30" },
+  exif_gps_only: { label: "EXIF GPS Only", icon: Image, color: "bg-blue-500/10 text-blue-600 border-blue-500/30" },
+  no_gps_data: { label: "No GPS Data", icon: HelpCircle, color: "bg-gray-500/10 text-gray-500 border-gray-500/30" },
   manual_approved: { label: "Manually Approved", icon: ThumbsUp, color: "bg-blue-500/10 text-blue-600 border-blue-500/30" },
   manual_rejected: { label: "Manually Rejected", icon: ThumbsDown, color: "bg-red-500/10 text-red-600 border-red-500/30" },
 };
@@ -1808,7 +1813,7 @@ export default function AdminLoanDetailPage() {
                               <span className="font-medium">Property Location</span>
                             </div>
                             <p className="text-xs text-muted-foreground">
-                              {propertyLocation.latitude.toFixed(6)}, {propertyLocation.longitude.toFixed(6)}
+                              {parseFloat(propertyLocation.latitude).toFixed(6)}, {parseFloat(propertyLocation.longitude).toFixed(6)}
                             </p>
                             <p className="text-xs text-muted-foreground">
                               Geofence: {propertyLocation.geofenceRadiusMeters}m radius
@@ -1830,7 +1835,7 @@ export default function AdminLoanDetailPage() {
                           {selectedPhoto.exifLatitude && selectedPhoto.exifLongitude ? (
                             <>
                               <p className="text-xs">
-                                {selectedPhoto.exifLatitude.toFixed(6)}, {selectedPhoto.exifLongitude.toFixed(6)}
+                                {parseFloat(selectedPhoto.exifLatitude).toFixed(6)}, {parseFloat(selectedPhoto.exifLongitude).toFixed(6)}
                               </p>
                               {selectedPhoto.distanceFromPropertyMeters !== null && (
                                 <p className={`text-xs font-medium mt-1 ${
@@ -1857,7 +1862,7 @@ export default function AdminLoanDetailPage() {
                               <span className="font-medium text-muted-foreground">Browser Location (Fallback)</span>
                             </div>
                             <p className="text-xs text-muted-foreground">
-                              {selectedPhoto.browserLatitude.toFixed(6)}, {selectedPhoto.browserLongitude.toFixed(6)}
+                              {parseFloat(selectedPhoto.browserLatitude).toFixed(6)}, {parseFloat(selectedPhoto.browserLongitude).toFixed(6)}
                             </p>
                           </div>
                         )}

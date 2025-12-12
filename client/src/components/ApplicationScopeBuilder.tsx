@@ -55,7 +55,9 @@ import type {
 } from "@shared/schema";
 import { 
   DEFAULT_SCOPE_OF_WORK_ITEMS, 
-  SCOPE_OF_WORK_CATEGORY_NAMES 
+  SCOPE_OF_WORK_CATEGORY_NAMES,
+  getSOWTemplateForLoanType,
+  getCategoryNamesForLoanType,
 } from "@shared/schema";
 
 interface ApplicationScopeBuilderProps {
@@ -63,6 +65,7 @@ interface ApplicationScopeBuilderProps {
   readOnly?: boolean;
   desiredRehabBudget?: number | null;
   onUpdateRehabBudget?: (newBudget: number) => Promise<void>;
+  loanType?: string;
 }
 
 const categoryOrder: ScopeOfWorkCategory[] = [
@@ -87,6 +90,7 @@ export function ApplicationScopeBuilder({
   readOnly = false,
   desiredRehabBudget,
   onUpdateRehabBudget,
+  loanType = "Fix & Flip",
 }: ApplicationScopeBuilderProps) {
   const { toast } = useToast();
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
@@ -102,9 +106,12 @@ export function ApplicationScopeBuilder({
     enabled: !!applicationId,
   });
 
+  const sowTemplate = getSOWTemplateForLoanType(loanType);
+  const categoryNames = getCategoryNamesForLoanType(loanType);
+
   const initializeMutation = useMutation({
     mutationFn: async () => {
-      const promises = DEFAULT_SCOPE_OF_WORK_ITEMS.map((item) =>
+      const promises = sowTemplate.map((item) =>
         apiRequest("POST", `/api/loan-applications/${applicationId}/scope-items`, {
           loanApplicationId: applicationId,
           category: item.category,
@@ -119,9 +126,10 @@ export function ApplicationScopeBuilder({
       queryClient.invalidateQueries({ 
         queryKey: ["/api/loan-applications", applicationId, "scope-items"] 
       });
+      const templateName = loanType === "New Construction" ? "New Construction" : "Fix & Flip";
       toast({
         title: "Scope Initialized",
-        description: "Default scope of work items have been added.",
+        description: `${templateName} scope of work items have been added.`,
       });
     },
     onError: () => {
@@ -422,7 +430,7 @@ export function ApplicationScopeBuilder({
                   >
                     <div className="flex items-center justify-between w-full pr-4">
                       <span className="font-medium">
-                        {SCOPE_OF_WORK_CATEGORY_NAMES[cs.category]}
+                        {categoryNames[cs.category]}
                       </span>
                       <span className="text-sm text-muted-foreground">
                         {formatCurrency(cs.totalBudget)}
