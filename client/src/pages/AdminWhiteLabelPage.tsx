@@ -60,7 +60,7 @@ export default function AdminWhiteLabelPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/white-label"] });
       toast({
         title: "Settings Saved",
-        description: "White-label branding has been updated.",
+        description: "Site customization has been updated.",
       });
     },
     onError: (error: Error) => {

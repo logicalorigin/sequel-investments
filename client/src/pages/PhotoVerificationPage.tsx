@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { compressImage, compressBlob } from "@/lib/imageCompression";
 
 interface VerificationPhoto {
   id: string;
@@ -322,7 +323,7 @@ export default function PhotoVerificationPage() {
     setIsCapturing(false);
   }, []);
   
-  const capturePhoto = useCallback(() => {
+  const capturePhoto = useCallback(async () => {
     if (videoRef.current && canvasRef.current) {
       const video = videoRef.current;
       const canvas = canvasRef.current;
@@ -347,33 +348,66 @@ export default function PhotoVerificationPage() {
       const ctx = canvas.getContext("2d");
       ctx?.drawImage(video, 0, 0, width, height);
       
-      canvas.toBlob((blob) => {
+      canvas.toBlob(async (blob) => {
         if (blob) {
-          const file = new File([blob], `photo_${Date.now()}.jpg`, { type: "image/jpeg" });
-          setCapturedFile(file);
-          setCapturedImage(canvas.toDataURL("image/jpeg"));
+          // Compress the captured photo
+          const compressedFile = await compressBlob(blob, `photo_${Date.now()}.jpg`, {
+            maxWidth: 1920,
+            maxHeight: 1440,
+            quality: 0.8,
+            maxFileSizeMB: 1,
+          });
+          // Revoke previous blob URL to prevent memory leak
+          if (capturedImage && capturedImage.startsWith('blob:')) {
+            URL.revokeObjectURL(capturedImage);
+          }
+          setCapturedFile(compressedFile);
+          // Convert to data URL for preview (consistent with file upload flow)
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            setCapturedImage(e.target?.result as string);
+          };
+          reader.readAsDataURL(compressedFile);
+        } else {
+          toast({
+            title: "Capture failed",
+            description: "Could not capture photo. Please try again.",
+            variant: "destructive",
+          });
         }
+        stopCamera();
       }, "image/jpeg", 0.85);
-      
-      stopCamera();
     }
-  }, [stopCamera]);
+  }, [stopCamera, toast, capturedImage]);
   
-  const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       requestLocation();
-      setCapturedFile(file);
+      
+      // Compress the image before storing
+      const compressedFile = await compressImage(file, {
+        maxWidth: 1920,
+        maxHeight: 1440,
+        quality: 0.8,
+        maxFileSizeMB: 1,
+      });
+      
+      // Revoke previous URL to prevent memory leak
+      if (capturedImage && capturedImage.startsWith('blob:')) {
+        URL.revokeObjectURL(capturedImage);
+      }
+      setCapturedFile(compressedFile);
       const reader = new FileReader();
       reader.onload = (e) => {
         setCapturedImage(e.target?.result as string);
       };
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(compressedFile);
     }
     if (event.target) {
       event.target.value = '';
     }
-  }, [requestLocation]);
+  }, [requestLocation, capturedImage]);
   
   const handleUpload = useCallback(() => {
     if (capturedFile) {
