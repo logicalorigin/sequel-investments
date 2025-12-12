@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Menu, X, ChevronDown } from "lucide-react";
+import { Menu, X, ChevronDown, Search } from "lucide-react";
+import { SearchTrigger, SearchCommand } from "@/components/SearchCommand";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +15,7 @@ export function Navigation() {
   const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileLoanProductsOpen, setIsMobileLoanProductsOpen] = useState(false);
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const { settings, isDemoMode } = useWhiteLabel();
   
   const companyName = settings?.companyName || "SEQUEL INVESTMENTS";
@@ -120,6 +122,7 @@ export function Navigation() {
           </div>
 
           <div className="hidden lg:flex items-center gap-3">
+            <SearchTrigger context="public" />
             <Link href="/portal" data-testid="link-nav-portal">
               <Button 
                 size="default"
@@ -131,6 +134,15 @@ export function Navigation() {
             </Link>
           </div>
 
+          <button
+            className="lg:hidden text-foreground p-1.5 rounded-md hover-elevate"
+            onClick={() => setIsMobileSearchOpen(true)}
+            aria-label="Search"
+            data-testid="button-mobile-search"
+          >
+            <Search className="h-5 w-5" />
+          </button>
+          <SearchCommand context="public" open={isMobileSearchOpen} onOpenChange={setIsMobileSearchOpen} />
           <button
             className="lg:hidden text-foreground"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
