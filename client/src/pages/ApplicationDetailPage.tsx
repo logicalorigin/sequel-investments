@@ -1358,6 +1358,149 @@ export default function ApplicationDetailPage() {
               </CardContent>
             </Card>
 
+            {/* Messages - Prominent placement for borrower communication */}
+            <Card data-testid="messages-section" className="border-l-4 border-l-primary">
+              <Collapsible open={messagesExpanded} onOpenChange={setMessagesExpanded}>
+                <CardHeader className="flex flex-row items-center justify-between gap-2 pb-3">
+                  <CollapsibleTrigger className="flex items-center gap-2 hover:opacity-80">
+                    <CardTitle className="flex items-center gap-2">
+                      <MessageSquare className="h-5 w-5 text-primary" />
+                      Messages
+                    </CardTitle>
+                    {unreadCount > 0 && (
+                      <Badge 
+                        className="bg-red-500 text-white text-xs px-1.5 py-0.5 min-w-[18px] h-[18px] flex items-center justify-center"
+                        data-testid="badge-unread-messages"
+                      >
+                        {unreadCount}
+                      </Badge>
+                    )}
+                    <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${messagesExpanded ? "rotate-180" : ""}`} />
+                  </CollapsibleTrigger>
+                </CardHeader>
+                <CollapsibleContent>
+                  <CardContent className="pt-0">
+                    {messagesLoading ? (
+                      <div className="animate-pulse space-y-3">
+                        {[1, 2, 3].map(i => (
+                          <div key={i} className="flex gap-3">
+                            <div className="h-8 w-8 bg-muted rounded-full" />
+                            <div className="flex-1 space-y-1">
+                              <div className="h-3 bg-muted rounded w-1/2" />
+                              <div className="h-4 bg-muted rounded w-3/4" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <>
+                        <ScrollArea className="h-[300px] pr-4 mb-4">
+                          {messages.length > 0 ? (
+                            <div className="space-y-4">
+                              {[...messages].sort((a, b) => 
+                                new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+                              ).map((message) => {
+                                const isOwnMessage = message.senderUserId === user?.id;
+                                return (
+                                  <div 
+                                    key={message.id} 
+                                    className={`flex ${isOwnMessage ? "justify-end" : "justify-start"}`}
+                                    data-testid={`message-${message.id}`}
+                                  >
+                                    <div className={`max-w-[85%] ${isOwnMessage ? "items-end" : "items-start"}`}>
+                                      <div className="flex items-center gap-2 mb-1">
+                                        {!isOwnMessage && (
+                                          <span className="text-xs font-medium">{message.senderName}</span>
+                                        )}
+                                        <Badge 
+                                          className={`text-[10px] px-1.5 py-0 ${
+                                            message.senderRole === "admin" 
+                                              ? "bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300" 
+                                              : message.senderRole === "staff" 
+                                              ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
+                                              : "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"
+                                          }`}
+                                        >
+                                          {message.senderRole === "admin" ? "Admin" : message.senderRole === "staff" ? "Staff" : "Borrower"}
+                                        </Badge>
+                                        {isOwnMessage && (
+                                          <span className="text-xs font-medium">You</span>
+                                        )}
+                                      </div>
+                                      <div className={`rounded-lg px-3 py-2 ${
+                                        isOwnMessage 
+                                          ? "bg-primary text-primary-foreground" 
+                                          : "bg-muted"
+                                      }`}>
+                                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                                        {message.attachments && Array.isArray(message.attachments) && message.attachments.length > 0 && (
+                                          <div className="mt-2 pt-2 border-t border-current/20 space-y-1">
+                                            {message.attachments.map((attachment, idx) => (
+                                              <a 
+                                                key={idx}
+                                                href={attachment.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center gap-1 text-xs hover:underline"
+                                              >
+                                                <Paperclip className="h-3 w-3" />
+                                                {attachment.name}
+                                              </a>
+                                            ))}
+                                          </div>
+                                        )}
+                                      </div>
+                                      <p className="text-[10px] text-muted-foreground mt-1">
+                                        {formatDistanceToNow(new Date(message.createdAt), { addSuffix: true })}
+                                      </p>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <div className="text-center py-8">
+                              <MessageSquare className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
+                              <p className="text-sm text-muted-foreground">No messages yet</p>
+                              <p className="text-xs text-muted-foreground mt-1">Start a conversation with your loan team</p>
+                            </div>
+                          )}
+                        </ScrollArea>
+
+                        <div className="space-y-2">
+                          <Textarea
+                            placeholder="Type your message..."
+                            value={newMessage}
+                            onChange={(e) => setNewMessage(e.target.value)}
+                            className="resize-none min-h-[80px]"
+                            data-testid="input-message"
+                          />
+                          <div className="flex justify-end">
+                            <Button
+                              onClick={() => {
+                                if (newMessage.trim()) {
+                                  sendMessageMutation.mutate(newMessage.trim());
+                                }
+                              }}
+                              disabled={!newMessage.trim() || sendMessageMutation.isPending}
+                              data-testid="button-send-message"
+                            >
+                              {sendMessageMutation.isPending ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              ) : (
+                                <Send className="h-4 w-4 mr-2" />
+                              )}
+                              Send
+                            </Button>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </CardContent>
+                </CollapsibleContent>
+              </Collapsible>
+            </Card>
+
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -1699,148 +1842,6 @@ export default function ApplicationDetailPage() {
                   </div>
                 )}
               </CardContent>
-            </Card>
-
-            <Card data-testid="messages-section">
-              <Collapsible open={messagesExpanded} onOpenChange={setMessagesExpanded}>
-                <CardHeader className="flex flex-row items-center justify-between gap-2 pb-3">
-                  <CollapsibleTrigger className="flex items-center gap-2 hover:opacity-80">
-                    <CardTitle className="flex items-center gap-2">
-                      <MessageSquare className="h-5 w-5 text-primary" />
-                      Messages
-                    </CardTitle>
-                    {unreadCount > 0 && (
-                      <Badge 
-                        className="bg-red-500 text-white text-xs px-1.5 py-0.5 min-w-[18px] h-[18px] flex items-center justify-center"
-                        data-testid="badge-unread-messages"
-                      >
-                        {unreadCount}
-                      </Badge>
-                    )}
-                    <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${messagesExpanded ? "rotate-180" : ""}`} />
-                  </CollapsibleTrigger>
-                </CardHeader>
-                <CollapsibleContent>
-                  <CardContent className="pt-0">
-                    {messagesLoading ? (
-                      <div className="animate-pulse space-y-3">
-                        {[1, 2, 3].map(i => (
-                          <div key={i} className="flex gap-3">
-                            <div className="h-8 w-8 bg-muted rounded-full" />
-                            <div className="flex-1 space-y-1">
-                              <div className="h-3 bg-muted rounded w-1/2" />
-                              <div className="h-4 bg-muted rounded w-3/4" />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <>
-                        <ScrollArea className="h-[300px] pr-4 mb-4">
-                          {messages.length > 0 ? (
-                            <div className="space-y-4">
-                              {[...messages].sort((a, b) => 
-                                new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-                              ).map((message) => {
-                                const isOwnMessage = message.senderUserId === user?.id;
-                                return (
-                                  <div 
-                                    key={message.id} 
-                                    className={`flex ${isOwnMessage ? "justify-end" : "justify-start"}`}
-                                    data-testid={`message-${message.id}`}
-                                  >
-                                    <div className={`max-w-[85%] ${isOwnMessage ? "items-end" : "items-start"}`}>
-                                      <div className="flex items-center gap-2 mb-1">
-                                        {!isOwnMessage && (
-                                          <span className="text-xs font-medium">{message.senderName}</span>
-                                        )}
-                                        <Badge 
-                                          className={`text-[10px] px-1.5 py-0 ${
-                                            message.senderRole === "admin" 
-                                              ? "bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300" 
-                                              : message.senderRole === "staff" 
-                                              ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
-                                              : "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"
-                                          }`}
-                                        >
-                                          {message.senderRole === "admin" ? "Admin" : message.senderRole === "staff" ? "Staff" : "Borrower"}
-                                        </Badge>
-                                        {isOwnMessage && (
-                                          <span className="text-xs font-medium">You</span>
-                                        )}
-                                      </div>
-                                      <div className={`rounded-lg px-3 py-2 ${
-                                        isOwnMessage 
-                                          ? "bg-primary text-primary-foreground" 
-                                          : "bg-muted"
-                                      }`}>
-                                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                                        {message.attachments && Array.isArray(message.attachments) && message.attachments.length > 0 && (
-                                          <div className="mt-2 pt-2 border-t border-current/20 space-y-1">
-                                            {message.attachments.map((attachment, idx) => (
-                                              <a 
-                                                key={idx}
-                                                href={attachment.url}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="flex items-center gap-1 text-xs hover:underline"
-                                              >
-                                                <Paperclip className="h-3 w-3" />
-                                                {attachment.name}
-                                              </a>
-                                            ))}
-                                          </div>
-                                        )}
-                                      </div>
-                                      <p className="text-[10px] text-muted-foreground mt-1">
-                                        {formatDistanceToNow(new Date(message.createdAt), { addSuffix: true })}
-                                      </p>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          ) : (
-                            <div className="text-center py-8">
-                              <MessageSquare className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
-                              <p className="text-sm text-muted-foreground">No messages yet</p>
-                              <p className="text-xs text-muted-foreground mt-1">Start a conversation with your loan team</p>
-                            </div>
-                          )}
-                        </ScrollArea>
-
-                        <div className="space-y-2">
-                          <Textarea
-                            placeholder="Type your message..."
-                            value={newMessage}
-                            onChange={(e) => setNewMessage(e.target.value)}
-                            className="resize-none min-h-[80px]"
-                            data-testid="input-message"
-                          />
-                          <div className="flex justify-end">
-                            <Button
-                              onClick={() => {
-                                if (newMessage.trim()) {
-                                  sendMessageMutation.mutate(newMessage.trim());
-                                }
-                              }}
-                              disabled={!newMessage.trim() || sendMessageMutation.isPending}
-                              data-testid="button-send-message"
-                            >
-                              {sendMessageMutation.isPending ? (
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              ) : (
-                                <Send className="h-4 w-4 mr-2" />
-                              )}
-                              Send
-                            </Button>
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </CardContent>
-                </CollapsibleContent>
-              </Collapsible>
             </Card>
           </div>
         </div>

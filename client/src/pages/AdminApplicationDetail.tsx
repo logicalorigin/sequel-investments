@@ -747,122 +747,13 @@ export default function AdminApplicationDetail() {
               </CardContent>
             </Card>
 
-            {/* Quick Actions */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <Button 
-                  className="w-full" 
-                  variant="outline"
-                  onClick={() => updateMutation.mutate({ status: "in_review" })}
-                  disabled={application.status === "in_review"}
-                  data-testid="button-mark-review"
-                >
-                  Mark as In Review
-                </Button>
-                <Button 
-                  className="w-full" 
-                  variant="outline"
-                  onClick={() => updateMutation.mutate({ status: "approved" })}
-                  disabled={application.status === "approved"}
-                  data-testid="button-approve"
-                >
-                  Approve Application
-                </Button>
-                <Button 
-                  className="w-full" 
-                  onClick={() => updateMutation.mutate({ status: "funded" })}
-                  disabled={application.status === "funded"}
-                  data-testid="button-fund"
-                >
-                  <DollarSign className="h-4 w-4 mr-2" />
-                  Mark as Funded
-                </Button>
-                {(application.status === "in_review" || application.status === "submitted") && (
-                  <Button 
-                    className="w-full" 
-                    variant="outline"
-                    onClick={() => setShowRevisionDialog(true)}
-                    data-testid="button-request-revisions"
-                  >
-                    <RotateCcw className="h-4 w-4 mr-2" />
-                    Request Revisions
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Dates */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Calendar className="h-5 w-5" />
-                  Important Dates
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Created</span>
-                  <span className="text-sm font-medium">
-                    {application.createdAt ? new Date(application.createdAt).toLocaleDateString() : "-"}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Last Updated</span>
-                  <span className="text-sm font-medium">
-                    {application.updatedAt ? new Date(application.updatedAt).toLocaleDateString() : "-"}
-                  </span>
-                </div>
-                <Separator />
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Requested Close</span>
-                  <span className="text-sm font-medium">
-                    {application.requestedClosingDate 
-                      ? new Date(application.requestedClosingDate).toLocaleDateString() 
-                      : <span className="text-muted-foreground/60">Not set</span>}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Close of Escrow</span>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 justify-start text-left font-normal"
-                        data-testid="button-edit-closing-date"
-                      >
-                        <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                        {application.closingDate 
-                          ? format(new Date(application.closingDate), "MMM d, yyyy")
-                          : <span className="text-muted-foreground">Set date</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="end">
-                      <CalendarComponent
-                        mode="single"
-                        selected={application.closingDate ? new Date(application.closingDate) : undefined}
-                        onSelect={(date) => {
-                          if (date) {
-                            updateMutation.mutate({ closingDate: date.toISOString() as any });
-                          }
-                        }}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card data-testid="messages-section">
+            {/* Messages - Prominent placement for team communication */}
+            <Card data-testid="messages-section" className="border-l-4 border-l-primary">
               <Collapsible open={messagesExpanded} onOpenChange={setMessagesExpanded}>
                 <CardHeader className="flex flex-row items-center justify-between gap-2 pb-3">
                   <CollapsibleTrigger className="flex items-center gap-2 hover:opacity-80">
                     <CardTitle className="text-lg flex items-center gap-2">
-                      <MessageSquare className="h-5 w-5" />
+                      <MessageSquare className="h-5 w-5 text-primary" />
                       Messages
                     </CardTitle>
                     {unreadCount > 0 && (
@@ -997,6 +888,116 @@ export default function AdminApplicationDetail() {
                   </CardContent>
                 </CollapsibleContent>
               </Collapsible>
+            </Card>
+
+            {/* Quick Actions */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Quick Actions</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <Button 
+                  className="w-full" 
+                  variant="outline"
+                  onClick={() => updateMutation.mutate({ status: "in_review" })}
+                  disabled={application.status === "in_review"}
+                  data-testid="button-mark-review"
+                >
+                  Mark as In Review
+                </Button>
+                <Button 
+                  className="w-full" 
+                  variant="outline"
+                  onClick={() => updateMutation.mutate({ status: "approved" })}
+                  disabled={application.status === "approved"}
+                  data-testid="button-approve"
+                >
+                  Approve Application
+                </Button>
+                <Button 
+                  className="w-full" 
+                  onClick={() => updateMutation.mutate({ status: "funded" })}
+                  disabled={application.status === "funded"}
+                  data-testid="button-fund"
+                >
+                  <DollarSign className="h-4 w-4 mr-2" />
+                  Mark as Funded
+                </Button>
+                {(application.status === "in_review" || application.status === "submitted") && (
+                  <Button 
+                    className="w-full" 
+                    variant="outline"
+                    onClick={() => setShowRevisionDialog(true)}
+                    data-testid="button-request-revisions"
+                  >
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Request Revisions
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Dates */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  Important Dates
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Created</span>
+                  <span className="text-sm font-medium">
+                    {application.createdAt ? new Date(application.createdAt).toLocaleDateString() : "-"}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Last Updated</span>
+                  <span className="text-sm font-medium">
+                    {application.updatedAt ? new Date(application.updatedAt).toLocaleDateString() : "-"}
+                  </span>
+                </div>
+                <Separator />
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Requested Close</span>
+                  <span className="text-sm font-medium">
+                    {application.requestedClosingDate 
+                      ? new Date(application.requestedClosingDate).toLocaleDateString() 
+                      : <span className="text-muted-foreground/60">Not set</span>}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Close of Escrow</span>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 justify-start text-left font-normal"
+                        data-testid="button-edit-closing-date"
+                      >
+                        <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                        {application.closingDate 
+                          ? format(new Date(application.closingDate), "MMM d, yyyy")
+                          : <span className="text-muted-foreground">Set date</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="end">
+                      <CalendarComponent
+                        mode="single"
+                        selected={application.closingDate ? new Date(application.closingDate) : undefined}
+                        onSelect={(date) => {
+                          if (date) {
+                            updateMutation.mutate({ closingDate: date.toISOString() as any });
+                          }
+                        }}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </CardContent>
             </Card>
           </div>
         </div>
