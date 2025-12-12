@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { GoogleMapsProvider } from "@/components/GoogleMapsProvider";
 import { WhiteLabelProvider } from "@/context/WhiteLabelContext";
 import { DemoModeBanner } from "@/components/DemoModeBanner";
+import AdminLayout from "@/components/AdminLayout";
 
 function ScrollToTop() {
   const [location] = useLocation();
@@ -106,19 +107,19 @@ function Router() {
       <Route path="/funded-deals/:id" component={FundedDealDetailPage} />
       <Route path="/login" component={LoginPage} />
       <Route path="/admin/login" component={StaffLoginPage} />
-      <Route path="/admin" component={AdminDashboard} />
-      <Route path="/admin/analytics" component={AdminAnalyticsPage} />
-      <Route path="/admin/application/:id" component={AdminApplicationDetail} />
-      <Route path="/admin/servicing" component={AdminServicingPage} />
-      <Route path="/admin/servicing/:id" component={AdminLoanDetailPage} />
-      <Route path="/admin/borrower/:id" component={BorrowerProfilePage} />
-      <Route path="/admin/white-label" component={AdminWhiteLabelPage} />
-      <Route path="/admin/email-log" component={AdminEmailLogPage} />
-      <Route path="/admin/sms-log" component={AdminSmsLogPage} />
-      <Route path="/admin/appointments" component={AdminAppointmentsPage} />
-      <Route path="/admin/financials" component={AdminFinancialsPage} />
-      <Route path="/admin/portfolio" component={AdminPortfolioPage} />
-      <Route path="/admin/map-calibration" component={MapCalibrationPage} />
+      <Route path="/admin">{() => <AdminLayout><AdminDashboard /></AdminLayout>}</Route>
+      <Route path="/admin/analytics">{() => <AdminLayout><AdminAnalyticsPage /></AdminLayout>}</Route>
+      <Route path="/admin/application/:id">{() => <AdminLayout><AdminApplicationDetail /></AdminLayout>}</Route>
+      <Route path="/admin/servicing">{() => <AdminLayout><AdminServicingPage /></AdminLayout>}</Route>
+      <Route path="/admin/servicing/:id">{() => <AdminLayout><AdminLoanDetailPage /></AdminLayout>}</Route>
+      <Route path="/admin/borrower/:id">{() => <AdminLayout><BorrowerProfilePage /></AdminLayout>}</Route>
+      <Route path="/admin/white-label">{() => <AdminLayout><AdminWhiteLabelPage /></AdminLayout>}</Route>
+      <Route path="/admin/email-log">{() => <AdminLayout><AdminEmailLogPage /></AdminLayout>}</Route>
+      <Route path="/admin/sms-log">{() => <AdminLayout><AdminSmsLogPage /></AdminLayout>}</Route>
+      <Route path="/admin/appointments">{() => <AdminLayout><AdminAppointmentsPage /></AdminLayout>}</Route>
+      <Route path="/admin/financials">{() => <AdminLayout><AdminFinancialsPage /></AdminLayout>}</Route>
+      <Route path="/admin/portfolio">{() => <AdminLayout><AdminPortfolioPage /></AdminLayout>}</Route>
+      <Route path="/admin/map-calibration">{() => <AdminLayout><MapCalibrationPage /></AdminLayout>}</Route>
       <Route path="/portal/book-consultation" component={BookConsultationPage} />
       <Route path="/portal/appointments" component={MyAppointmentsPage} />
       <Route path="/portal/messages" component={MessagesPage} />
