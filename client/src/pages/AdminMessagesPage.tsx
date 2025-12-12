@@ -501,6 +501,71 @@ export default function AdminMessagesPage() {
               </div>
             </DialogContent>
           </Dialog>
+
+          {/* Edit Template Dialog */}
+          <Dialog open={!!editingTemplate} onOpenChange={(open) => !open && setEditingTemplate(null)}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Edit Template</DialogTitle>
+                <DialogDescription>Update your message template.</DialogDescription>
+              </DialogHeader>
+              {editingTemplate && (
+                <div className="space-y-3">
+                  <Input
+                    placeholder="Template name"
+                    value={editingTemplate.name}
+                    onChange={(e) => setEditingTemplate({ ...editingTemplate, name: e.target.value })}
+                    data-testid="input-edit-template-name"
+                  />
+                  <Textarea
+                    placeholder="Template content..."
+                    value={editingTemplate.content}
+                    onChange={(e) => setEditingTemplate({ ...editingTemplate, content: e.target.value })}
+                    className="min-h-[100px]"
+                    data-testid="input-edit-template-content"
+                  />
+                  <select
+                    value={editingTemplate.category}
+                    onChange={(e) => setEditingTemplate({ ...editingTemplate, category: e.target.value as any })}
+                    className="w-full border rounded px-2 py-1 text-sm"
+                    data-testid="select-edit-template-category"
+                  >
+                    <option value="general">General</option>
+                    <option value="status_update">Status Update</option>
+                    <option value="document_request">Document Request</option>
+                    <option value="follow_up">Follow Up</option>
+                    <option value="closing">Closing</option>
+                  </select>
+                </div>
+              )}
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setEditingTemplate(null)}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (editingTemplate) {
+                      updateTemplateMutation.mutate({
+                        id: editingTemplate.id,
+                        data: {
+                          name: editingTemplate.name,
+                          content: editingTemplate.content,
+                          category: editingTemplate.category,
+                        }
+                      });
+                    }
+                  }}
+                  disabled={!editingTemplate?.name || !editingTemplate?.content || updateTemplateMutation.isPending}
+                  data-testid="button-save-template"
+                >
+                  {updateTemplateMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : null}
+                  Save Changes
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
