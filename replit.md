@@ -48,6 +48,12 @@ I prefer simple language. I want iterative development. Ask before making major 
     - **Loan Assignments**: Staff ownership with role-based assignments (account_executive, processor, underwriter, closer, servicer). Tracks primary assignees, assignment history, and active/inactive status.
     - **DSCR Product Variants**: Purchase, Cash-Out Refinance, and Rate & Term Refinance loan types for DSCR loans via `productVariant` enum.
     - **API Endpoints**: Full CRUD operations for stage history and assignments at `/api/admin/applications/:id/stage-history`, `/api/admin/applications/:id/assignments`, `/api/admin/assignments/:id`, and `/api/my-assignments` for staff dashboard.
+- **Application Revision Workflow**:
+    - **Revision Requests**: Staff can return applications to borrowers with section-specific revision requests (property_info, financials, documents, borrower_info, entity_info, loan_terms, other). Each request includes staff notes explaining what needs correction.
+    - **Borrower Revision Flow**: Borrowers see a prominent banner when revisions are requested, with cards for each pending request showing the section, notes, and a "Mark as Addressed" button. Once all requests are addressed, borrowers can resubmit.
+    - **Application Messaging**: Threaded messaging between staff and borrowers per application. Messages show sender role badges, timestamps, and support file attachments. Unread count indicators on both portals.
+    - **Email Notifications**: Automatic emails sent when staff request revisions (to borrower) and when borrower resubmits (to assigned staff members).
+    - **API Endpoints**: `/api/applications/:id/revision-requests`, `/api/applications/:id/revision-requests/pending`, `/api/admin/applications/:id/revision-requests`, `/api/revision-requests/:id/resolve`, `/api/applications/:id/resubmit`, `/api/applications/:id/messages`, `/api/applications/:id/messages/unread-count`.
 - **SaaS Features**:
     - **Admin Analytics Dashboard**: Pipeline metrics and visualization.
     - **White-Label Demo Mode**: Customizable company branding, colors, and contact information.
