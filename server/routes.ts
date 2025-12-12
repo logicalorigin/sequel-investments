@@ -5419,6 +5419,139 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ============================================
+  // STAFF MESSAGE PREFERENCES & PRESENCE (Staff/Admin)
+  // ============================================
+  
+  // Get current user's message preferences
+  app.get("/api/admin/preferences/messages", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const prefs = await storage.getStaffMessagePreferences(userId);
+      
+      // Return defaults if no preferences exist yet
+      if (!prefs) {
+        return res.json({
+          staffUserId: userId,
+          emailNotificationsEnabled: true,
+          quietHoursEnabled: false,
+          quietHoursStart: null,
+          quietHoursEnd: null,
+          quietHoursTimezone: "America/New_York",
+          batchIntervalMinutes: 15,
+          lastNotifiedAt: null,
+          lastSeenAt: null,
+          lastHeartbeatAt: null,
+        });
+      }
+      
+      return res.json(prefs);
+    } catch (error) {
+      console.error("Error fetching message preferences:", error);
+      return res.status(500).json({ error: "Failed to fetch preferences" });
+    }
+  });
+  
+  // Update current user's message preferences
+  app.put("/api/admin/preferences/messages", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const {
+        emailNotificationsEnabled,
+        quietHoursEnabled,
+        quietHoursStart,
+        quietHoursEnd,
+        quietHoursTimezone,
+        batchIntervalMinutes,
+      } = req.body;
+      
+      const prefs = await storage.upsertStaffMessagePreferences({
+        staffUserId: userId,
+        emailNotificationsEnabled: emailNotificationsEnabled ?? true,
+        quietHoursEnabled: quietHoursEnabled ?? false,
+        quietHoursStart: quietHoursStart ?? null,
+        quietHoursEnd: quietHoursEnd ?? null,
+        quietHoursTimezone: quietHoursTimezone ?? "America/New_York",
+        batchIntervalMinutes: batchIntervalMinutes ?? 15,
+      });
+      
+      return res.json(prefs);
+    } catch (error) {
+      console.error("Error updating message preferences:", error);
+      return res.status(500).json({ error: "Failed to update preferences" });
+    }
+  });
+  
+  // Update presence heartbeat (called periodically by admin messenger)
+  app.post("/api/admin/presence/heartbeat", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      await storage.updateStaffHeartbeat(userId);
+      return res.json({ success: true, timestamp: new Date().toISOString() });
+    } catch (error) {
+      console.error("Error updating heartbeat:", error);
+      return res.status(500).json({ error: "Failed to update heartbeat" });
+    }
+  });
+  
+  // Get list of online staff members
+  app.get("/api/admin/staff/online", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const thresholdMinutes = parseInt(req.query.threshold as string) || 2;
+      const onlineStaff = await storage.getOnlineStaff(thresholdMinutes);
+      
+      // Return simplified user info (don't expose passwords etc.)
+      const safeStaff = onlineStaff.map(user => ({
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role,
+        staffRole: user.staffRole,
+        profileImageUrl: user.profileImageUrl,
+      }));
+      
+      return res.json(safeStaff);
+    } catch (error) {
+      console.error("Error fetching online staff:", error);
+      return res.status(500).json({ error: "Failed to fetch online staff" });
+    }
+  });
+  
+  // Get all message threads for staff (inbox view)
+  app.get("/api/admin/message-threads", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const threads = await storage.getMessageThreadsForStaff();
+      return res.json(threads);
+    } catch (error) {
+      console.error("Error fetching message threads:", error);
+      return res.status(500).json({ error: "Failed to fetch message threads" });
+    }
+  });
+  
+  // Get total unread count for staff
+  app.get("/api/admin/messages/unread-count", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const count = await storage.getTotalUnreadCountForStaff();
+      return res.json({ unreadCount: count });
+    } catch (error) {
+      console.error("Error fetching unread count:", error);
+      return res.status(500).json({ error: "Failed to fetch unread count" });
+    }
+  });
+
+  // ============================================
   // SIMULATION ENDPOINTS (Admin only)
   // ============================================
   

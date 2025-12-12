@@ -45,6 +45,7 @@ import {
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { User as UserType } from "@shared/schema";
+import AdminMessenger from "./AdminMessenger";
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -260,6 +261,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             {children}
           </main>
         </div>
+        <AdminMessenger />
       </div>
     </SidebarProvider>
   );
