@@ -31,6 +31,7 @@ import {
   Users,
   ArrowLeft,
   HardHat,
+  LayoutTemplate,
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { User as UserType } from "@shared/schema";
@@ -57,6 +58,7 @@ const operationsNavItems = [
 const settingsNavItems = [
   { title: "Users", href: "/admin/users", icon: Users },
   { title: "Webhooks", href: "/admin/webhooks", icon: Webhook },
+  { title: "Page Builder", href: "/admin/page-builder", icon: LayoutTemplate },
   { title: "Customize Site", href: "/admin/white-label", icon: Settings },
 ];
 

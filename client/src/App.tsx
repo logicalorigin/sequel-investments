@@ -76,6 +76,7 @@ import AdminMessagesPage from "@/pages/AdminMessagesPage";
 import AdminDrawRequestsPage from "@/pages/AdminDrawRequestsPage";
 import AdminUsersPage from "@/pages/AdminUsersPage";
 import AdminWebhooksPage from "@/pages/AdminWebhooksPage";
+import AdminPageBuilderPage from "@/pages/AdminPageBuilderPage";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -128,6 +129,7 @@ function Router() {
       <Route path="/admin/draw-requests">{() => <AdminLayout><AdminDrawRequestsPage /></AdminLayout>}</Route>
       <Route path="/admin/users">{() => <AdminLayout><AdminUsersPage /></AdminLayout>}</Route>
       <Route path="/admin/webhooks">{() => <AdminLayout><AdminWebhooksPage /></AdminLayout>}</Route>
+      <Route path="/admin/page-builder">{() => <AdminLayout><AdminPageBuilderPage /></AdminLayout>}</Route>
       <Route path="/portal/book-consultation" component={BookConsultationPage} />
       <Route path="/portal/appointments" component={MyAppointmentsPage} />
       <Route path="/portal/messages" component={MessagesPage} />
