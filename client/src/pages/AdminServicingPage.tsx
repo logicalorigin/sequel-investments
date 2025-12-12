@@ -430,27 +430,8 @@ export default function AdminServicingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b bg-card sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/admin")} data-testid="button-back">
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div>
-              <h1 className="text-xl font-bold">Loan Servicing</h1>
-              <p className="text-sm text-muted-foreground">Manage active loans, payments, and draws</p>
-            </div>
-          </div>
-          <Link href="/admin">
-            <Button variant="outline" data-testid="link-admin-dashboard">
-              Admin Dashboard
-            </Button>
-          </Link>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-4 py-6">
+    <div className="h-full">
+      <div className="max-w-7xl mx-auto px-4 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full max-w-md grid-cols-2">
             <TabsTrigger value="dscr" className="gap-2" data-testid="tab-dscr">
@@ -682,7 +663,7 @@ export default function AdminServicingPage() {
             </Card>
           </TabsContent>
         </Tabs>
-      </main>
+      </div>
     </div>
   );
 }

@@ -357,33 +357,19 @@ export default function AdminApplicationDetail() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b bg-card">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center gap-4">
-            <Link href="/admin">
-              <Button variant="ghost" size="icon" data-testid="button-back">
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-            </Link>
-            <div className="flex-1">
-              <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold font-mono" data-testid="text-loan-id">
-                  LOAN: {application.id.slice(0, 8).toUpperCase()}
-                </h1>
-                <Badge className={statusColors[application.status]}>
-                  {statusLabels[application.status]}
-                </Badge>
-              </div>
-              <p className="text-muted-foreground text-sm mt-1">
-                {application.loanType} • {application.borrowerName}
-              </p>
-            </div>
-          </div>
+    <div className="h-full">
+      <div className="max-w-7xl mx-auto px-6 py-6">
+        <div className="flex items-center gap-3 mb-6">
+          <h1 className="text-2xl font-bold font-mono" data-testid="text-loan-id">
+            LOAN: {application.id.slice(0, 8).toUpperCase()}
+          </h1>
+          <Badge className={statusColors[application.status]}>
+            {statusLabels[application.status]}
+          </Badge>
+          <span className="text-muted-foreground text-sm">
+            {application.loanType} • {application.borrowerName}
+          </span>
         </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-6 py-8">
         <div className="grid lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-6">
             {/* Processing Stage Stepper */}
@@ -1001,7 +987,7 @@ export default function AdminApplicationDetail() {
             </Card>
           </div>
         </div>
-      </main>
+      </div>
 
       {/* Request Revisions Dialog */}
       <Dialog open={showRevisionDialog} onOpenChange={setShowRevisionDialog}>

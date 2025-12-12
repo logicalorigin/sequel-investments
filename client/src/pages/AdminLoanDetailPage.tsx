@@ -514,31 +514,19 @@ export default function AdminLoanDetailPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b bg-card sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/admin/servicing")} data-testid="button-back">
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold font-mono">{loan.loanNumber}</h1>
-                <Badge variant="outline" className={typeConfig.color}>
-                  <TypeIcon className="h-3 w-3 mr-1" />
-                  {typeConfig.label}
-                </Badge>
-                <Badge variant="outline" className={statusCfg.color}>
-                  {statusCfg.label}
-                </Badge>
-              </div>
-              <p className="text-sm text-muted-foreground">{loan.propertyAddress}</p>
-            </div>
-          </div>
+    <div className="h-full">
+      <div className="max-w-7xl mx-auto px-4 py-6">
+        <div className="flex items-center gap-2 mb-6">
+          <h1 className="text-xl font-bold font-mono">{loan.loanNumber}</h1>
+          <Badge variant="outline" className={typeConfig.color}>
+            <TypeIcon className="h-3 w-3 mr-1" />
+            {typeConfig.label}
+          </Badge>
+          <Badge variant="outline" className={statusCfg.color}>
+            {statusCfg.label}
+          </Badge>
+          <span className="text-sm text-muted-foreground ml-2">{loan.propertyAddress}</span>
         </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-4 py-6">
         <div className="grid lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -1999,7 +1987,7 @@ export default function AdminLoanDetailPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </main>
+      </div>
     </div>
   );
 }

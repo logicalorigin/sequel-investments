@@ -151,41 +151,8 @@ export default function AdminPortfolioPage() {
   })) : [];
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 sm:gap-4">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-8 w-8 sm:h-9 sm:w-9" 
-              onClick={() => navigate("/admin")}
-              data-testid="button-back"
-            >
-              <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
-            </Button>
-            <div>
-              <h1 className="text-lg sm:text-xl md:text-2xl font-bold" data-testid="text-page-title">Loan Portfolio</h1>
-              <p className="text-muted-foreground text-xs sm:text-sm hidden sm:block">
-                Portfolio composition and performance metrics
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => navigate("/admin/servicing")}
-              data-testid="button-view-servicing"
-            >
-              <TrendingUp className="h-4 w-4 mr-1.5" />
-              View Servicing
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-6">
+    <div className="h-full">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-6">
         {isLoading ? (
           <LoadingSkeleton />
         ) : !portfolio ? (
@@ -341,7 +308,7 @@ export default function AdminPortfolioPage() {
             </Card>
           </>
         )}
-      </main>
+      </div>
     </div>
   );
 }
