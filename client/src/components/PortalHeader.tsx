@@ -1,7 +1,8 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LogOut, User, Calculator, ChevronDown, Home, Hammer, HardHat, Bell, Check, FileText, AlertCircle, Users, DollarSign, X, ArrowLeft, MessageSquare } from "lucide-react";
+import { LogOut, User, Calculator, ChevronDown, Home, Hammer, HardHat, Bell, Check, FileText, AlertCircle, Users, DollarSign, X, ArrowLeft, MessageSquare, Search } from "lucide-react";
+import { SearchTrigger } from "@/components/SearchCommand";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -159,6 +160,7 @@ export function PortalHeader({ user, title, titleExtra, backHref, hideTitleOnMob
         </div>
         
         <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+          <SearchTrigger context="borrower" />
           <Link href="/portal">
             <Button 
               variant={isPortfolio ? "secondary" : "ghost"}
