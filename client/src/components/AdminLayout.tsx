@@ -3,14 +3,6 @@ import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
@@ -32,16 +24,11 @@ import {
   Calendar,
   CreditCard,
   Settings,
-  Mail,
   MessageSquare,
   LogOut,
-  ChevronDown,
   Building2,
   Webhook,
-  Shield,
   Users,
-  FileText,
-  MapPin,
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { User as UserType } from "@shared/schema";
@@ -61,13 +48,13 @@ const operationsNavItems = [
   { title: "Loan Servicing", href: "/admin/servicing", icon: DollarSign },
   { title: "Appointments", href: "/admin/appointments", icon: Calendar },
   { title: "Financials", href: "/admin/financials", icon: CreditCard },
+  { title: "Messages", href: "/admin/messages", icon: MessageSquare },
 ];
 
 const settingsNavItems = [
+  { title: "Users", href: "/admin/users", icon: Users },
+  { title: "Webhooks", href: "/admin/webhooks", icon: Webhook },
   { title: "White Label", href: "/admin/white-label", icon: Settings },
-  { title: "Email Log", href: "/admin/email-log", icon: Mail },
-  { title: "SMS Log", href: "/admin/sms-log", icon: MessageSquare },
-  { title: "Map Calibration", href: "/admin/map-calibration", icon: MapPin },
 ];
 
 function AdminSidebar() {
@@ -211,31 +198,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             </div>
             
             <div className="flex items-center gap-2 sm:gap-3">
-              {currentUser?.role === "admin" && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-8 gap-1" data-testid="button-settings-dropdown">
-                      <Settings className="h-4 w-4" />
-                      <span className="hidden sm:inline text-xs">Settings</span>
-                      <ChevronDown className="h-3 w-3" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuLabel>Admin Settings</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem data-testid="dropdown-webhooks">
-                      <Webhook className="h-4 w-4 mr-2" />
-                      Webhooks
-                    </DropdownMenuItem>
-                    <DropdownMenuItem data-testid="dropdown-simulation">
-                      <BarChart3 className="h-4 w-4 mr-2" />
-                      Loan Simulation
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
-              
-              <div className="flex items-center gap-1.5 pl-2 border-l">
+              <div className="flex items-center gap-1.5">
                 <Badge variant="outline" className="capitalize text-xs">
                   {currentUser?.role || "staff"}
                 </Badge>
