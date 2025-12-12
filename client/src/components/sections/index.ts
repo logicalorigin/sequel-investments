@@ -5,3 +5,8 @@ export { FAQSection } from "./FAQSection";
 export { HeroSection } from "./HeroSection";
 export { LoanProductsSection } from "./LoanProductsSection";
 export { TestimonialsSection } from "./TestimonialsSection";
+export { StatsBarSection } from "./StatsBarSection";
+export { LeadFormSection } from "./LeadFormSection";
+export { RecentlyFundedSection } from "./RecentlyFundedSection";
+export { StateMapSection } from "./StateMapSection";
+export { CustomContentSection } from "./CustomContentSection";
