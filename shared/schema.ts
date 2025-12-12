@@ -3166,3 +3166,334 @@ export const insertStaffMessagePreferencesSchema = createInsertSchema(staffMessa
   createdAt: true,
   updatedAt: true,
 });
+
+// ============================================
+// PAGE LAYOUTS (Modular Page Builder)
+// ============================================
+
+// Available section types for the modular page builder
+export const sectionTypeEnum = pgEnum("section_type", [
+  "hero",
+  "trust_indicators",
+  "loan_products",
+  "testimonials",
+  "faq",
+  "lead_form",
+  "recently_funded",
+  "state_map",
+  "feature_highlights",
+  "cta_banner",
+  "custom_content",
+  "stats_bar",
+]);
+
+// Hero section variants
+export type HeroVariant = "carousel" | "static" | "video" | "split";
+
+// Section configuration types (stored as JSONB)
+export interface HeroSectionConfig {
+  variant: HeroVariant;
+  headline?: string;
+  subheadline?: string;
+  ctaText?: string;
+  ctaLink?: string;
+  secondaryCtaText?: string;
+  secondaryCtaLink?: string;
+  backgroundImage?: string;
+  backgroundVideo?: string;
+  showFundedDeals?: boolean;
+  overlayOpacity?: number;
+}
+
+export interface TrustIndicatorsSectionConfig {
+  showYearsInBusiness?: boolean;
+  showTotalFunded?: boolean;
+  showStatesServed?: boolean;
+  showActiveLoans?: boolean;
+  customStats?: Array<{
+    label: string;
+    value: string;
+    icon?: string;
+  }>;
+}
+
+export interface LoanProductsSectionConfig {
+  showDSCR?: boolean;
+  showFixFlip?: boolean;
+  showConstruction?: boolean;
+  customTitle?: string;
+  customDescription?: string;
+  cardStyle?: "default" | "compact" | "detailed";
+}
+
+export interface TestimonialsSectionConfig {
+  testimonials?: Array<{
+    name: string;
+    role?: string;
+    company?: string;
+    quote: string;
+    image?: string;
+    rating?: number;
+  }>;
+  layout?: "carousel" | "grid" | "list";
+  showRatings?: boolean;
+}
+
+export interface FAQSectionConfig {
+  title?: string;
+  description?: string;
+  items?: Array<{
+    question: string;
+    answer: string;
+  }>;
+  layout?: "accordion" | "two-column";
+}
+
+export interface LeadFormSectionConfig {
+  title?: string;
+  description?: string;
+  ctaText?: string;
+  showPhone?: boolean;
+  showLoanAmount?: boolean;
+  showPropertyType?: boolean;
+  backgroundColor?: string;
+}
+
+export interface RecentlyFundedSectionConfig {
+  title?: string;
+  maxItems?: number;
+  showRate?: boolean;
+  showCloseTime?: boolean;
+  autoScroll?: boolean;
+}
+
+export interface StateMapSectionConfig {
+  title?: string;
+  description?: string;
+  highlightStates?: string[];
+  showLoanVolume?: boolean;
+}
+
+export interface FeatureHighlightsSectionConfig {
+  title?: string;
+  features?: Array<{
+    icon?: string;
+    title: string;
+    description: string;
+  }>;
+  layout?: "grid" | "list" | "cards";
+  columns?: 2 | 3 | 4;
+}
+
+export interface CTABannerSectionConfig {
+  headline?: string;
+  description?: string;
+  ctaText?: string;
+  ctaLink?: string;
+  backgroundColor?: string;
+  textColor?: string;
+}
+
+export interface CustomContentSectionConfig {
+  htmlContent?: string;
+  cssClass?: string;
+  paddingTop?: string;
+  paddingBottom?: string;
+}
+
+export interface StatsBarSectionConfig {
+  stats?: Array<{
+    value: string;
+    label: string;
+    prefix?: string;
+    suffix?: string;
+  }>;
+  backgroundColor?: string;
+}
+
+// Union type for all section configs
+export type SectionConfig = 
+  | HeroSectionConfig
+  | TrustIndicatorsSectionConfig
+  | LoanProductsSectionConfig
+  | TestimonialsSectionConfig
+  | FAQSectionConfig
+  | LeadFormSectionConfig
+  | RecentlyFundedSectionConfig
+  | StateMapSectionConfig
+  | FeatureHighlightsSectionConfig
+  | CTABannerSectionConfig
+  | CustomContentSectionConfig
+  | StatsBarSectionConfig;
+
+// Individual section in a page layout
+export interface PageSection {
+  id: string;
+  type: typeof sectionTypeEnum.enumValues[number];
+  title?: string;
+  isVisible: boolean;
+  config: SectionConfig;
+  order: number;
+}
+
+// Pages that can be customized
+export const customizablePageEnum = pgEnum("customizable_page", [
+  "home",
+  "dscr",
+  "fix_flip",
+  "construction",
+  "about",
+  "contact",
+  "resources",
+]);
+
+// Page layouts table
+export const pageLayouts = pgTable("page_layouts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  pageId: customizablePageEnum("page_id").notNull().unique(),
+  pageName: text("page_name").notNull(),
+  sections: jsonb("sections").$type<PageSection[]>().notNull().default([]),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_page_layouts_page_id").on(table.pageId),
+  index("idx_page_layouts_active").on(table.isActive),
+]);
+
+export type PageLayout = typeof pageLayouts.$inferSelect;
+export type InsertPageLayout = typeof pageLayouts.$inferInsert;
+
+export const insertPageLayoutSchema = createInsertSchema(pageLayouts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Default homepage layout configuration
+export const DEFAULT_HOME_PAGE_LAYOUT: Omit<InsertPageLayout, 'id'> = {
+  pageId: "home",
+  pageName: "Home Page",
+  sections: [
+    {
+      id: "hero-1",
+      type: "hero",
+      title: "Hero Section",
+      isVisible: true,
+      order: 0,
+      config: {
+        variant: "carousel",
+        headline: "Fast, Flexible Real Estate Investment Loans",
+        subheadline: "Close in as few as 5 days with competitive rates",
+        ctaText: "Get Your Quote",
+        ctaLink: "/get-quote",
+        showFundedDeals: true,
+      } as HeroSectionConfig,
+    },
+    {
+      id: "trust-1",
+      type: "trust_indicators",
+      title: "Trust Indicators",
+      isVisible: true,
+      order: 1,
+      config: {
+        showYearsInBusiness: true,
+        showTotalFunded: true,
+        showStatesServed: true,
+        showActiveLoans: true,
+      } as TrustIndicatorsSectionConfig,
+    },
+    {
+      id: "products-1",
+      type: "loan_products",
+      title: "Loan Products",
+      isVisible: true,
+      order: 2,
+      config: {
+        showDSCR: true,
+        showFixFlip: true,
+        showConstruction: true,
+        customTitle: "Loan Programs",
+        cardStyle: "default",
+      } as LoanProductsSectionConfig,
+    },
+    {
+      id: "features-1",
+      type: "feature_highlights",
+      title: "Why Choose Us",
+      isVisible: true,
+      order: 3,
+      config: {
+        title: "Why Investors Choose Us",
+        layout: "grid",
+        columns: 3,
+        features: [
+          { icon: "Clock", title: "Fast Closings", description: "Close in as few as 5 days" },
+          { icon: "Shield", title: "No Prepayment Penalty", description: "Pay off early with no fees" },
+          { icon: "Users", title: "Dedicated Support", description: "Personal loan specialist assigned" },
+        ],
+      } as FeatureHighlightsSectionConfig,
+    },
+    {
+      id: "testimonials-1",
+      type: "testimonials",
+      title: "Client Testimonials",
+      isVisible: true,
+      order: 4,
+      config: {
+        layout: "carousel",
+        showRatings: true,
+      } as TestimonialsSectionConfig,
+    },
+    {
+      id: "funded-1",
+      type: "recently_funded",
+      title: "Recently Funded",
+      isVisible: true,
+      order: 5,
+      config: {
+        title: "Recently Funded Deals",
+        maxItems: 8,
+        showRate: true,
+        showCloseTime: true,
+        autoScroll: true,
+      } as RecentlyFundedSectionConfig,
+    },
+    {
+      id: "map-1",
+      type: "state_map",
+      title: "Where We Lend",
+      isVisible: true,
+      order: 6,
+      config: {
+        title: "Where We Lend",
+        showLoanVolume: true,
+      } as StateMapSectionConfig,
+    },
+    {
+      id: "faq-1",
+      type: "faq",
+      title: "FAQ",
+      isVisible: true,
+      order: 7,
+      config: {
+        title: "Frequently Asked Questions",
+        layout: "accordion",
+      } as FAQSectionConfig,
+    },
+    {
+      id: "cta-1",
+      type: "cta_banner",
+      title: "Call to Action",
+      isVisible: true,
+      order: 8,
+      config: {
+        headline: "Ready to Get Started?",
+        description: "Get your personalized rate quote in minutes",
+        ctaText: "Get Your Quote",
+        ctaLink: "/get-quote",
+      } as CTABannerSectionConfig,
+    },
+  ],
+  isActive: true,
+};
