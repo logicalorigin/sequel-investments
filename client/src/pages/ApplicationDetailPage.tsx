@@ -989,6 +989,7 @@ export default function ApplicationDetailPage() {
                 <ApplicationScopeBuilder 
                   applicationId={applicationId!} 
                   readOnly={application.status !== "draft" && application.status !== "submitted"}
+                  loanType={application.loanType === "new_construction" ? "new_construction" : "fix_flip"}
                   desiredRehabBudget={application.rehabBudget}
                   onUpdateRehabBudget={async (newBudget: number) => {
                     await apiRequest("PATCH", `/api/applications/${applicationId}`, { 

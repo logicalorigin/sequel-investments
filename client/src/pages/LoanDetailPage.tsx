@@ -94,7 +94,7 @@ import type {
   DrawPhoto,
   PhotoVerificationStatus
 } from "@shared/schema";
-import { calculateAmortizationSchedule, calculateInterestOnlyPayment, SCOPE_OF_WORK_CATEGORY_NAMES } from "@shared/schema";
+import { calculateAmortizationSchedule, calculateInterestOnlyPayment, SCOPE_OF_WORK_CATEGORY_NAMES, NEW_CONSTRUCTION_CATEGORY_NAMES } from "@shared/schema";
 
 const formatCurrency = (amount: number | null | undefined): string => {
   if (amount === null || amount === undefined) return "$0";
@@ -289,12 +289,12 @@ function DrawPhotoUpload({ draw, loanId, scopeOfWorkItems }: { draw: LoanDraw; l
         browserLongitude,
         scopeOfWorkItemId: selectedScopeItemId || undefined,
         caption: caption || undefined,
-      });
+      }) as unknown as DrawPhoto;
 
       setUploadProgress(100);
       return photo;
     },
-    onSuccess: (photo: DrawPhoto) => {
+    onSuccess: (photo) => {
       queryClient.invalidateQueries({ queryKey: ["/api/loan-draws", draw.id, "photos"] });
       setIsUploading(false);
       setUploadProgress(0);
@@ -896,6 +896,7 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
   const { toast } = useToast();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"scope" | "draws">("scope");
+  const categoryNames = loan.loanType === "new_construction" ? NEW_CONSTRUCTION_CATEGORY_NAMES : SCOPE_OF_WORK_CATEGORY_NAMES;
   const [newDrawOpen, setNewDrawOpen] = useState(false);
   const [newDrawDescription, setNewDrawDescription] = useState("");
   const [drawLineAmounts, setDrawLineAmounts] = useState<Record<string, number>>({});
@@ -1264,20 +1265,20 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
                           <div className="flex justify-between text-sm mb-2">
                             <span className="font-medium">Budget Remaining</span>
                             <span className={`font-medium ${
-                              remaining / (grandTotalBudget || loan.totalRehabBudget) > 0.5 
+                              remaining / (grandTotalBudget || loan.totalRehabBudget || 1) > 0.5 
                                 ? "text-emerald-500" 
-                                : remaining / (grandTotalBudget || loan.totalRehabBudget) > 0.25 
+                                : remaining / (grandTotalBudget || loan.totalRehabBudget || 1) > 0.25 
                                   ? "text-amber-500" 
                                   : "text-red-500"
                             }`}>
-                              {formatCurrency(remaining)} of {formatCurrency(grandTotalBudget || loan.totalRehabBudget)}
+                              {formatCurrency(remaining)} of {formatCurrency(grandTotalBudget || loan.totalRehabBudget || 0)}
                             </span>
                           </div>
                           <div className="h-3 w-full rounded-full overflow-hidden bg-muted">
                             <div 
                               className="h-full transition-all duration-300"
                               style={{
-                                width: `${Math.min(100, (remaining / (grandTotalBudget || loan.totalRehabBudget)) * 100)}%`,
+                                width: `${Math.min(100, (remaining / (grandTotalBudget || loan.totalRehabBudget || 1)) * 100)}%`,
                                 background: `linear-gradient(90deg, 
                                   hsl(0, 72%, 51%) 0%, 
                                   hsl(38, 92%, 50%) 50%, 
@@ -1287,7 +1288,7 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
                             />
                           </div>
                           <p className="text-xs text-muted-foreground mt-1">
-                            {((remaining / (grandTotalBudget || loan.totalRehabBudget)) * 100).toFixed(0)}% of budget remaining
+                            {((remaining / (grandTotalBudget || loan.totalRehabBudget || 1)) * 100).toFixed(0)}% of budget remaining
                           </p>
                         </div>
 
@@ -1296,7 +1297,7 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
                         <div className="space-y-4">
                           {categorySummaries.map((cs) => (
                             <div key={cs.category}>
-                              <h4 className="font-medium text-sm mb-2">{SCOPE_OF_WORK_CATEGORY_NAMES[cs.category]}</h4>
+                              <h4 className="font-medium text-sm mb-2">{categoryNames[cs.category]}</h4>
                               <div className="space-y-2">
                                 {cs.items.map((item) => {
                                   const itemRemaining = item.budgetAmount - item.totalFunded;
@@ -1366,6 +1367,7 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
                         <Button 
                           onClick={() => createDrawMutation.mutate({
                             requestedAmount: newDrawTotal,
+                            description: newDrawDescription,
                           })}
                           disabled={newDrawTotal === 0 || createDrawMutation.isPending}
                           data-testid="button-create-draw"
@@ -1385,7 +1387,7 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
                       <AccordionItem key={cs.category} value={cs.category} className="border rounded-lg">
                         <AccordionTrigger className="px-3 sm:px-4 hover:no-underline" data-testid={`accordion-category-${cs.category}`}>
                           <div className="flex items-center justify-between w-full pr-2 sm:pr-4 gap-2">
-                            <span className="font-medium text-sm sm:text-base truncate">{SCOPE_OF_WORK_CATEGORY_NAMES[cs.category]}</span>
+                            <span className="font-medium text-sm sm:text-base truncate">{categoryNames[cs.category]}</span>
                             <div className="flex items-center gap-2 sm:gap-4 shrink-0">
                               <div className="hidden sm:block w-24 md:w-32">
                                 <Progress value={categoryPercent} className="h-2" />
@@ -2067,6 +2069,7 @@ export default function LoanDetailPage() {
   const loan = loanDetails;
   const isHardMoney = isHardMoneyLoan(loan.loanType);
   const LoanIcon = getLoanTypeIcon(loan.loanType);
+  const categoryNames = loan.loanType === "new_construction" ? NEW_CONSTRUCTION_CATEGORY_NAMES : SCOPE_OF_WORK_CATEGORY_NAMES;
   
   const daysToMaturity = loan.maturityDate 
     ? differenceInDays(new Date(loan.maturityDate), new Date())
