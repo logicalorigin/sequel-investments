@@ -3717,3 +3717,711 @@ export const DEFAULT_HOME_PAGE_LAYOUT: Omit<InsertPageLayout, 'id'> = {
   ],
   isActive: true,
 };
+
+// ============================================
+// SECTION PRESETS (Pre-built Section Templates)
+// ============================================
+
+export type SectionPresetCategory = 
+  | "hero" 
+  | "trust" 
+  | "products" 
+  | "testimonials" 
+  | "faq" 
+  | "features" 
+  | "cta" 
+  | "content" 
+  | "map" 
+  | "form"
+  | "stats"
+  | "funded";
+
+export interface SectionPreset {
+  id: string;
+  name: string;
+  description: string;
+  type: typeof sectionTypes[number];
+  config: SectionConfig;
+  category: SectionPresetCategory;
+  thumbnail?: string;
+}
+
+export const SECTION_PRESETS: SectionPreset[] = [
+  // ========== HERO PRESETS ==========
+  {
+    id: "hero-standard",
+    name: "Standard Hero",
+    description: "Full-width hero with headline, subheadline, and CTA button",
+    type: "hero",
+    category: "hero",
+    config: {
+      variant: "carousel",
+      headline: "Fast, Flexible Real Estate Investment Loans",
+      subheadline: "Close in as few as 5 days with competitive rates and no prepayment penalties",
+      ctaText: "Get Your Quote",
+      ctaLink: "/get-quote",
+      showFundedDeals: true,
+    } as HeroSectionConfig,
+  },
+  {
+    id: "hero-minimal",
+    name: "Minimal Hero",
+    description: "Clean, minimal hero with centered text",
+    type: "hero",
+    category: "hero",
+    config: {
+      variant: "static",
+      headline: "Investment Loans Made Simple",
+      subheadline: "From application to closing in days, not months",
+      ctaText: "Apply Now",
+      ctaLink: "/get-quote",
+      showFundedDeals: false,
+    } as HeroSectionConfig,
+  },
+  {
+    id: "hero-rate-focused",
+    name: "Rate-Focused Hero",
+    description: "Hero highlighting current rates and terms",
+    type: "hero",
+    category: "hero",
+    config: {
+      variant: "split",
+      headline: "Rates Starting at 7.99%",
+      subheadline: "DSCR loans up to $5M with no income verification required",
+      ctaText: "Check Your Rate",
+      ctaLink: "/get-quote",
+      secondaryCtaText: "View Programs",
+      secondaryCtaLink: "/loan-programs",
+      showFundedDeals: true,
+    } as HeroSectionConfig,
+  },
+  {
+    id: "hero-dscr",
+    name: "DSCR Product Hero",
+    description: "Hero specifically for DSCR loan product page",
+    type: "hero",
+    category: "hero",
+    config: {
+      variant: "split",
+      headline: "DSCR Loans for Real Estate Investors",
+      subheadline: "Qualify based on property cash flow, not personal income. Perfect for building your rental portfolio.",
+      ctaText: "Get DSCR Quote",
+      ctaLink: "/get-quote?type=dscr",
+      showFundedDeals: false,
+    } as HeroSectionConfig,
+  },
+  {
+    id: "hero-fixflip",
+    name: "Fix & Flip Hero",
+    description: "Hero for fix & flip loan product page",
+    type: "hero",
+    category: "hero",
+    config: {
+      variant: "split",
+      headline: "Fix & Flip Financing That Moves Fast",
+      subheadline: "Close in as few as 5 days. Up to 90% LTC and 75% LTARV for your next flip.",
+      ctaText: "Get Fix & Flip Quote",
+      ctaLink: "/get-quote?type=fixflip",
+      showFundedDeals: false,
+    } as HeroSectionConfig,
+  },
+  {
+    id: "hero-construction",
+    name: "Construction Loan Hero",
+    description: "Hero for new construction loan product page",
+    type: "hero",
+    category: "hero",
+    config: {
+      variant: "split",
+      headline: "Ground-Up Construction Financing",
+      subheadline: "Build from the ground up with flexible draw schedules and competitive rates.",
+      ctaText: "Get Construction Quote",
+      ctaLink: "/get-quote?type=construction",
+      showFundedDeals: false,
+    } as HeroSectionConfig,
+  },
+
+  // ========== TRUST INDICATORS PRESETS ==========
+  {
+    id: "trust-full",
+    name: "Full Trust Bar",
+    description: "All trust indicators displayed",
+    type: "trust_indicators",
+    category: "trust",
+    config: {
+      showYearsInBusiness: true,
+      showTotalFunded: true,
+      showStatesServed: true,
+      showActiveLoans: true,
+    } as TrustIndicatorsSectionConfig,
+  },
+  {
+    id: "trust-compact",
+    name: "Compact Trust Bar",
+    description: "Minimal trust indicators - years and total funded",
+    type: "trust_indicators",
+    category: "trust",
+    config: {
+      showYearsInBusiness: true,
+      showTotalFunded: true,
+      showStatesServed: false,
+      showActiveLoans: false,
+    } as TrustIndicatorsSectionConfig,
+  },
+  {
+    id: "trust-custom",
+    name: "Custom Stats",
+    description: "Custom trust statistics",
+    type: "trust_indicators",
+    category: "trust",
+    config: {
+      showYearsInBusiness: false,
+      showTotalFunded: false,
+      showStatesServed: false,
+      showActiveLoans: false,
+      customStats: [
+        { label: "Average Close Time", value: "7 Days", icon: "Clock" },
+        { label: "Approval Rate", value: "94%", icon: "CheckCircle" },
+        { label: "Repeat Borrowers", value: "78%", icon: "Users" },
+        { label: "Properties Funded", value: "12,500+", icon: "Building" },
+      ],
+    } as TrustIndicatorsSectionConfig,
+  },
+
+  // ========== LOAN PRODUCTS PRESETS ==========
+  {
+    id: "products-all",
+    name: "All Loan Products",
+    description: "Display all three loan products",
+    type: "loan_products",
+    category: "products",
+    config: {
+      showDSCR: true,
+      showFixFlip: true,
+      showConstruction: true,
+      customTitle: "Our Loan Programs",
+      cardStyle: "default",
+    } as LoanProductsSectionConfig,
+  },
+  {
+    id: "products-dscr-only",
+    name: "DSCR Focus",
+    description: "Highlight DSCR loans only",
+    type: "loan_products",
+    category: "products",
+    config: {
+      showDSCR: true,
+      showFixFlip: false,
+      showConstruction: false,
+      customTitle: "DSCR Loan Programs",
+      cardStyle: "detailed",
+    } as LoanProductsSectionConfig,
+  },
+  {
+    id: "products-bridge",
+    name: "Bridge Loans Focus",
+    description: "Highlight Fix & Flip and Construction",
+    type: "loan_products",
+    category: "products",
+    config: {
+      showDSCR: false,
+      showFixFlip: true,
+      showConstruction: true,
+      customTitle: "Bridge Loan Programs",
+      cardStyle: "default",
+    } as LoanProductsSectionConfig,
+  },
+  {
+    id: "products-compact",
+    name: "Compact Product Cards",
+    description: "Smaller, compact product cards",
+    type: "loan_products",
+    category: "products",
+    config: {
+      showDSCR: true,
+      showFixFlip: true,
+      showConstruction: true,
+      customTitle: "Loan Programs",
+      cardStyle: "compact",
+    } as LoanProductsSectionConfig,
+  },
+
+  // ========== TESTIMONIALS PRESETS ==========
+  {
+    id: "testimonials-carousel",
+    name: "Testimonial Carousel",
+    description: "Auto-scrolling testimonial carousel",
+    type: "testimonials",
+    category: "testimonials",
+    config: {
+      layout: "carousel",
+      showRatings: true,
+    } as TestimonialsSectionConfig,
+  },
+  {
+    id: "testimonials-grid",
+    name: "Testimonial Grid",
+    description: "Static grid of testimonials",
+    type: "testimonials",
+    category: "testimonials",
+    config: {
+      layout: "grid",
+      showRatings: true,
+    } as TestimonialsSectionConfig,
+  },
+  {
+    id: "testimonials-featured",
+    name: "Featured Testimonials",
+    description: "Large featured testimonials list",
+    type: "testimonials",
+    category: "testimonials",
+    config: {
+      layout: "list",
+      showRatings: true,
+    } as TestimonialsSectionConfig,
+  },
+
+  // ========== FAQ PRESETS ==========
+  {
+    id: "faq-general",
+    name: "General FAQs",
+    description: "Common questions about the lending process",
+    type: "faq",
+    category: "faq",
+    config: {
+      title: "Frequently Asked Questions",
+      layout: "accordion",
+      items: [
+        { question: "How quickly can you close a loan?", answer: "We can close loans in as few as 5-7 business days for fix & flip and bridge loans. DSCR loans typically close in 14-21 days." },
+        { question: "What credit score do I need?", answer: "We work with borrowers with credit scores as low as 620. Higher scores may qualify for better rates and terms." },
+        { question: "Do you verify personal income?", answer: "For DSCR loans, we qualify based on property cash flow, not personal income. Fix & flip loans focus on the deal and experience rather than income." },
+        { question: "What states do you lend in?", answer: "We currently lend in 47 states. Contact us to confirm availability in your state." },
+        { question: "Is there a prepayment penalty?", answer: "Most of our bridge loan products have no prepayment penalty. DSCR loans may have prepayment terms depending on the program." },
+      ],
+    } as FAQSectionConfig,
+  },
+  {
+    id: "faq-dscr",
+    name: "DSCR Loan FAQs",
+    description: "Questions specific to DSCR loans",
+    type: "faq",
+    category: "faq",
+    config: {
+      title: "DSCR Loan Questions",
+      layout: "accordion",
+      items: [
+        { question: "What is a DSCR loan?", answer: "A Debt Service Coverage Ratio (DSCR) loan is a type of investment property loan where qualification is based on the property's rental income rather than the borrower's personal income." },
+        { question: "What DSCR ratio do I need?", answer: "We offer loans starting at 0.75 DSCR. A ratio of 1.0 or higher (where rent covers the mortgage) typically qualifies for the best rates." },
+        { question: "Can I use DSCR loans for short-term rentals?", answer: "Yes, we accept short-term rental income from platforms like Airbnb and VRBO with proper documentation of rental history." },
+        { question: "How many DSCR loans can I have?", answer: "There is no limit to the number of DSCR loans you can have with us. We encourage building your portfolio with our programs." },
+        { question: "What property types qualify for DSCR?", answer: "Single-family homes, 2-4 unit properties, condos, townhomes, and 5+ unit multifamily properties are all eligible." },
+      ],
+    } as FAQSectionConfig,
+  },
+  {
+    id: "faq-fixflip",
+    name: "Fix & Flip FAQs",
+    description: "Questions specific to fix & flip loans",
+    type: "faq",
+    category: "faq",
+    config: {
+      title: "Fix & Flip Loan Questions",
+      layout: "accordion",
+      items: [
+        { question: "How are rehab funds distributed?", answer: "Rehab funds are held in escrow and distributed in draws as work is completed. Inspections are typically done within 24-48 hours of a draw request." },
+        { question: "What is the maximum loan-to-cost (LTC)?", answer: "We offer up to 90% LTC on purchases and 100% of rehab costs for experienced flippers. New investors typically start at 85% LTC." },
+        { question: "Do I need flipping experience?", answer: "While we prefer experienced flippers, we work with first-time investors who have a solid team (contractor, real estate agent) in place." },
+        { question: "What is the typical loan term?", answer: "Fix & flip loans typically have 12-month terms with options to extend up to 18 or 24 months if needed." },
+        { question: "Can I use a fix & flip loan for a rental conversion?", answer: "Yes, we can structure bridge-to-DSCR financing where you can refinance into a long-term DSCR loan after renovations are complete." },
+      ],
+    } as FAQSectionConfig,
+  },
+  {
+    id: "faq-construction",
+    name: "Construction Loan FAQs",
+    description: "Questions specific to construction loans",
+    type: "faq",
+    category: "faq",
+    config: {
+      title: "Construction Loan Questions",
+      layout: "accordion",
+      items: [
+        { question: "What type of construction do you finance?", answer: "We finance ground-up new construction of residential properties including single-family homes, townhomes, and small multifamily projects." },
+        { question: "How do construction draws work?", answer: "Draws are released based on completion milestones outlined in your construction budget. Inspections are conducted before each draw release." },
+        { question: "Do I need permits before closing?", answer: "Yes, we require approved building permits prior to closing. We can provide pre-approval letters to help with your permit application." },
+        { question: "What experience is required?", answer: "We typically require at least 1-2 completed ground-up projects or significant renovation experience. Joint ventures with experienced builders are also considered." },
+        { question: "Can I include land acquisition in the loan?", answer: "Yes, we can include land acquisition or refinance existing land debt as part of the construction loan package." },
+      ],
+    } as FAQSectionConfig,
+  },
+
+  // ========== FEATURE HIGHLIGHTS PRESETS ==========
+  {
+    id: "features-why-us",
+    name: "Why Choose Us",
+    description: "Key differentiators and benefits",
+    type: "feature_highlights",
+    category: "features",
+    config: {
+      title: "Why Investors Choose Us",
+      layout: "grid",
+      columns: 3,
+      features: [
+        { icon: "Clock", title: "Fast Closings", description: "Close in as few as 5 days with our streamlined process" },
+        { icon: "Shield", title: "No Prepayment Penalty", description: "Pay off your loan early without additional fees" },
+        { icon: "Users", title: "Dedicated Support", description: "Work with a dedicated loan specialist from start to finish" },
+        { icon: "DollarSign", title: "Competitive Rates", description: "Rates starting at 7.99% with transparent pricing" },
+        { icon: "FileCheck", title: "Simple Process", description: "Minimal documentation with fast pre-approvals" },
+        { icon: "Building2", title: "Portfolio Lending", description: "In-house underwriting for faster, flexible decisions" },
+      ],
+    } as FeatureHighlightsSectionConfig,
+  },
+  {
+    id: "features-process",
+    name: "Loan Process Steps",
+    description: "Step-by-step loan process",
+    type: "feature_highlights",
+    category: "features",
+    config: {
+      title: "Simple 4-Step Process",
+      layout: "cards",
+      columns: 4,
+      features: [
+        { icon: "FileText", title: "1. Apply Online", description: "Complete our quick application in under 5 minutes" },
+        { icon: "Search", title: "2. Get Pre-Approved", description: "Receive your pre-approval within 24 hours" },
+        { icon: "ClipboardCheck", title: "3. Submit Documents", description: "Upload required documents through our secure portal" },
+        { icon: "Key", title: "4. Close & Fund", description: "Close your loan and receive funding" },
+      ],
+    } as FeatureHighlightsSectionConfig,
+  },
+  {
+    id: "features-dscr-benefits",
+    name: "DSCR Benefits",
+    description: "Key benefits of DSCR loans",
+    type: "feature_highlights",
+    category: "features",
+    config: {
+      title: "DSCR Loan Benefits",
+      layout: "list",
+      columns: 2,
+      features: [
+        { icon: "FileX", title: "No Income Verification", description: "Qualify based on property cash flow, not personal income" },
+        { icon: "Banknote", title: "Cash-Out Available", description: "Access up to 75% of property value for cash-out refinance" },
+        { icon: "Building", title: "Unlimited Properties", description: "No cap on the number of investment properties" },
+        { icon: "TrendingUp", title: "Interest-Only Options", description: "Improve cash flow with interest-only payment periods" },
+      ],
+    } as FeatureHighlightsSectionConfig,
+  },
+
+  // ========== CTA BANNER PRESETS ==========
+  {
+    id: "cta-standard",
+    name: "Standard CTA",
+    description: "Simple call-to-action with button",
+    type: "cta_banner",
+    category: "cta",
+    config: {
+      headline: "Ready to Get Started?",
+      description: "Get your personalized rate quote in minutes. No obligation, no impact to your credit.",
+      ctaText: "Get Your Quote",
+      ctaLink: "/get-quote",
+    } as CTABannerSectionConfig,
+  },
+  {
+    id: "cta-urgent",
+    name: "Urgency CTA",
+    description: "CTA with urgency messaging",
+    type: "cta_banner",
+    category: "cta",
+    config: {
+      headline: "Don't Miss Your Next Deal",
+      description: "Get pre-approved today so you're ready to move when the right opportunity comes.",
+      ctaText: "Get Pre-Approved Now",
+      ctaLink: "/get-quote",
+    } as CTABannerSectionConfig,
+  },
+  {
+    id: "cta-consultation",
+    name: "Consultation CTA",
+    description: "CTA for scheduling a consultation",
+    type: "cta_banner",
+    category: "cta",
+    config: {
+      headline: "Questions? Let's Talk.",
+      description: "Schedule a free consultation with one of our loan specialists to discuss your investment goals.",
+      ctaText: "Schedule Consultation",
+      ctaLink: "/contact",
+    } as CTABannerSectionConfig,
+  },
+  {
+    id: "cta-calculator",
+    name: "Calculator CTA",
+    description: "CTA promoting loan calculators",
+    type: "cta_banner",
+    category: "cta",
+    config: {
+      headline: "Crunch the Numbers",
+      description: "Use our free calculators to analyze your next deal and see potential returns.",
+      ctaText: "Try Our Calculators",
+      ctaLink: "/calculators",
+    } as CTABannerSectionConfig,
+  },
+
+  // ========== STATS BAR PRESETS ==========
+  {
+    id: "stats-lending",
+    name: "Lending Stats",
+    description: "Key lending statistics",
+    type: "stats_bar",
+    category: "stats",
+    config: {
+      stats: [
+        { value: "500", label: "Loans Closed Annually", suffix: "+" },
+        { value: "250", label: "Million Funded", prefix: "$", suffix: "M" },
+        { value: "7", label: "Day Average Close", suffix: " Days" },
+        { value: "47", label: "States Served" },
+      ],
+    } as StatsBarSectionConfig,
+  },
+  {
+    id: "stats-performance",
+    name: "Performance Stats",
+    description: "Performance and service metrics",
+    type: "stats_bar",
+    category: "stats",
+    config: {
+      stats: [
+        { value: "94", label: "Approval Rate", suffix: "%" },
+        { value: "4.9", label: "Customer Rating", suffix: "/5" },
+        { value: "78", label: "Repeat Borrowers", suffix: "%" },
+        { value: "24/7", label: "Online Portal Access", suffix: "" },
+      ],
+    } as StatsBarSectionConfig,
+  },
+
+  // ========== LEAD FORM PRESETS ==========
+  {
+    id: "lead-simple",
+    name: "Simple Lead Form",
+    description: "Basic contact form with essential fields",
+    type: "lead_form",
+    category: "form",
+    config: {
+      title: "Get Your Free Quote",
+      description: "Fill out the form below and we'll get back to you within 24 hours.",
+      ctaText: "Submit",
+      showPhone: true,
+      showLoanAmount: false,
+      showPropertyType: false,
+    } as LeadFormSectionConfig,
+  },
+  {
+    id: "lead-detailed",
+    name: "Detailed Lead Form",
+    description: "Comprehensive form with loan details",
+    type: "lead_form",
+    category: "form",
+    config: {
+      title: "Request Your Custom Quote",
+      description: "Provide details about your investment and we'll prepare a personalized quote.",
+      ctaText: "Get My Quote",
+      showPhone: true,
+      showLoanAmount: true,
+      showPropertyType: true,
+    } as LeadFormSectionConfig,
+  },
+
+  // ========== RECENTLY FUNDED PRESETS ==========
+  {
+    id: "funded-carousel",
+    name: "Funded Deals Carousel",
+    description: "Auto-scrolling showcase of recent deals",
+    type: "recently_funded",
+    category: "funded",
+    config: {
+      title: "Recently Funded Deals",
+      maxItems: 8,
+      showRate: true,
+      showCloseTime: true,
+      autoScroll: true,
+    } as RecentlyFundedSectionConfig,
+  },
+  {
+    id: "funded-grid",
+    name: "Funded Deals Grid",
+    description: "Static grid of recent deals",
+    type: "recently_funded",
+    category: "funded",
+    config: {
+      title: "Our Recent Closings",
+      maxItems: 6,
+      showRate: true,
+      showCloseTime: true,
+      autoScroll: false,
+    } as RecentlyFundedSectionConfig,
+  },
+
+  // ========== STATE MAP PRESETS ==========
+  {
+    id: "map-interactive",
+    name: "Interactive Lending Map",
+    description: "Interactive US map showing lending coverage",
+    type: "state_map",
+    category: "map",
+    config: {
+      title: "Where We Lend",
+      description: "We provide investment property loans in 47 states across the nation.",
+      showLoanVolume: true,
+    } as StateMapSectionConfig,
+  },
+  {
+    id: "map-simple",
+    name: "Simple Coverage Map",
+    description: "Simple map showing state coverage",
+    type: "state_map",
+    category: "map",
+    config: {
+      title: "Nationwide Coverage",
+      showLoanVolume: false,
+    } as StateMapSectionConfig,
+  },
+
+  // ========== CUSTOM CONTENT PRESETS ==========
+  {
+    id: "content-text-block",
+    name: "Text Block",
+    description: "Rich text content section",
+    type: "custom_content",
+    category: "content",
+    config: {
+      paddingTop: "4rem",
+      paddingBottom: "4rem",
+    } as CustomContentSectionConfig,
+  },
+];
+
+// ============================================
+// PAGE TEMPLATES (Recommended Layouts Per Page)
+// ============================================
+
+export type PageTemplateId = "home" | "dscr" | "fix_flip" | "construction" | "about" | "contact" | "resources";
+
+export interface PageTemplate {
+  id: PageTemplateId;
+  name: string;
+  description: string;
+  sections: PageSection[];
+}
+
+export const PAGE_TEMPLATES: Record<PageTemplateId, PageTemplate> = {
+  home: {
+    id: "home",
+    name: "Home Page",
+    description: "Complete homepage with all key sections",
+    sections: [
+      { id: "hero-1", type: "hero", title: "Hero Section", isVisible: true, order: 0, config: SECTION_PRESETS.find(p => p.id === "hero-standard")!.config },
+      { id: "trust-1", type: "trust_indicators", title: "Trust Indicators", isVisible: true, order: 1, config: SECTION_PRESETS.find(p => p.id === "trust-full")!.config },
+      { id: "products-1", type: "loan_products", title: "Loan Products", isVisible: true, order: 2, config: SECTION_PRESETS.find(p => p.id === "products-all")!.config },
+      { id: "features-1", type: "feature_highlights", title: "Why Choose Us", isVisible: true, order: 3, config: SECTION_PRESETS.find(p => p.id === "features-why-us")!.config },
+      { id: "testimonials-1", type: "testimonials", title: "Testimonials", isVisible: true, order: 4, config: SECTION_PRESETS.find(p => p.id === "testimonials-carousel")!.config },
+      { id: "funded-1", type: "recently_funded", title: "Recently Funded", isVisible: true, order: 5, config: SECTION_PRESETS.find(p => p.id === "funded-carousel")!.config },
+      { id: "map-1", type: "state_map", title: "Where We Lend", isVisible: true, order: 6, config: SECTION_PRESETS.find(p => p.id === "map-interactive")!.config },
+      { id: "faq-1", type: "faq", title: "FAQ", isVisible: true, order: 7, config: SECTION_PRESETS.find(p => p.id === "faq-general")!.config },
+      { id: "cta-1", type: "cta_banner", title: "Call to Action", isVisible: true, order: 8, config: SECTION_PRESETS.find(p => p.id === "cta-standard")!.config },
+    ],
+  },
+  dscr: {
+    id: "dscr",
+    name: "DSCR Loan Page",
+    description: "Dedicated page for DSCR loan products",
+    sections: [
+      { id: "hero-1", type: "hero", title: "DSCR Hero", isVisible: true, order: 0, config: SECTION_PRESETS.find(p => p.id === "hero-dscr")!.config },
+      { id: "stats-1", type: "stats_bar", title: "Stats Bar", isVisible: true, order: 1, config: SECTION_PRESETS.find(p => p.id === "stats-lending")!.config },
+      { id: "features-1", type: "feature_highlights", title: "DSCR Benefits", isVisible: true, order: 2, config: SECTION_PRESETS.find(p => p.id === "features-dscr-benefits")!.config },
+      { id: "process-1", type: "feature_highlights", title: "Process Steps", isVisible: true, order: 3, config: SECTION_PRESETS.find(p => p.id === "features-process")!.config },
+      { id: "testimonials-1", type: "testimonials", title: "Testimonials", isVisible: true, order: 4, config: SECTION_PRESETS.find(p => p.id === "testimonials-grid")!.config },
+      { id: "faq-1", type: "faq", title: "DSCR FAQ", isVisible: true, order: 5, config: SECTION_PRESETS.find(p => p.id === "faq-dscr")!.config },
+      { id: "cta-1", type: "cta_banner", title: "Call to Action", isVisible: true, order: 6, config: SECTION_PRESETS.find(p => p.id === "cta-standard")!.config },
+    ],
+  },
+  fix_flip: {
+    id: "fix_flip",
+    name: "Fix & Flip Page",
+    description: "Dedicated page for fix & flip loans",
+    sections: [
+      { id: "hero-1", type: "hero", title: "Fix & Flip Hero", isVisible: true, order: 0, config: SECTION_PRESETS.find(p => p.id === "hero-fixflip")!.config },
+      { id: "stats-1", type: "stats_bar", title: "Stats Bar", isVisible: true, order: 1, config: SECTION_PRESETS.find(p => p.id === "stats-lending")!.config },
+      { id: "features-1", type: "feature_highlights", title: "Why Choose Us", isVisible: true, order: 2, config: SECTION_PRESETS.find(p => p.id === "features-why-us")!.config },
+      { id: "process-1", type: "feature_highlights", title: "Process Steps", isVisible: true, order: 3, config: SECTION_PRESETS.find(p => p.id === "features-process")!.config },
+      { id: "funded-1", type: "recently_funded", title: "Recently Funded", isVisible: true, order: 4, config: SECTION_PRESETS.find(p => p.id === "funded-grid")!.config },
+      { id: "faq-1", type: "faq", title: "Fix & Flip FAQ", isVisible: true, order: 5, config: SECTION_PRESETS.find(p => p.id === "faq-fixflip")!.config },
+      { id: "cta-1", type: "cta_banner", title: "Call to Action", isVisible: true, order: 6, config: SECTION_PRESETS.find(p => p.id === "cta-urgent")!.config },
+    ],
+  },
+  construction: {
+    id: "construction",
+    name: "Construction Loan Page",
+    description: "Dedicated page for construction loans",
+    sections: [
+      { id: "hero-1", type: "hero", title: "Construction Hero", isVisible: true, order: 0, config: SECTION_PRESETS.find(p => p.id === "hero-construction")!.config },
+      { id: "stats-1", type: "stats_bar", title: "Stats Bar", isVisible: true, order: 1, config: SECTION_PRESETS.find(p => p.id === "stats-lending")!.config },
+      { id: "features-1", type: "feature_highlights", title: "Why Choose Us", isVisible: true, order: 2, config: SECTION_PRESETS.find(p => p.id === "features-why-us")!.config },
+      { id: "process-1", type: "feature_highlights", title: "Process Steps", isVisible: true, order: 3, config: SECTION_PRESETS.find(p => p.id === "features-process")!.config },
+      { id: "faq-1", type: "faq", title: "Construction FAQ", isVisible: true, order: 4, config: SECTION_PRESETS.find(p => p.id === "faq-construction")!.config },
+      { id: "cta-1", type: "cta_banner", title: "Call to Action", isVisible: true, order: 5, config: SECTION_PRESETS.find(p => p.id === "cta-standard")!.config },
+    ],
+  },
+  about: {
+    id: "about",
+    name: "About Page",
+    description: "Company about page with team and values",
+    sections: [
+      { id: "hero-1", type: "hero", title: "About Hero", isVisible: true, order: 0, config: { variant: "static", headline: "About Our Company", subheadline: "Empowering real estate investors with fast, flexible financing solutions." } as HeroSectionConfig },
+      { id: "trust-1", type: "trust_indicators", title: "Trust Indicators", isVisible: true, order: 1, config: SECTION_PRESETS.find(p => p.id === "trust-full")!.config },
+      { id: "features-1", type: "feature_highlights", title: "Our Values", isVisible: true, order: 2, config: SECTION_PRESETS.find(p => p.id === "features-why-us")!.config },
+      { id: "testimonials-1", type: "testimonials", title: "Testimonials", isVisible: true, order: 3, config: SECTION_PRESETS.find(p => p.id === "testimonials-featured")!.config },
+      { id: "cta-1", type: "cta_banner", title: "Call to Action", isVisible: true, order: 4, config: SECTION_PRESETS.find(p => p.id === "cta-consultation")!.config },
+    ],
+  },
+  contact: {
+    id: "contact",
+    name: "Contact Page",
+    description: "Contact page with lead form",
+    sections: [
+      { id: "hero-1", type: "hero", title: "Contact Hero", isVisible: true, order: 0, config: { variant: "static", headline: "Get In Touch", subheadline: "Our team is ready to help with your investment financing needs." } as HeroSectionConfig },
+      { id: "lead-1", type: "lead_form", title: "Contact Form", isVisible: true, order: 1, config: SECTION_PRESETS.find(p => p.id === "lead-detailed")!.config },
+      { id: "faq-1", type: "faq", title: "FAQ", isVisible: true, order: 2, config: SECTION_PRESETS.find(p => p.id === "faq-general")!.config },
+    ],
+  },
+  resources: {
+    id: "resources",
+    name: "Resources Page",
+    description: "Educational resources and tools",
+    sections: [
+      { id: "hero-1", type: "hero", title: "Resources Hero", isVisible: true, order: 0, config: { variant: "static", headline: "Investor Resources", subheadline: "Tools, guides, and insights to help you succeed in real estate investing." } as HeroSectionConfig },
+      { id: "cta-1", type: "cta_banner", title: "Calculator CTA", isVisible: true, order: 1, config: SECTION_PRESETS.find(p => p.id === "cta-calculator")!.config },
+      { id: "faq-1", type: "faq", title: "FAQ", isVisible: true, order: 2, config: SECTION_PRESETS.find(p => p.id === "faq-general")!.config },
+      { id: "cta-2", type: "cta_banner", title: "Quote CTA", isVisible: true, order: 3, config: SECTION_PRESETS.find(p => p.id === "cta-standard")!.config },
+    ],
+  },
+};
+
+// Helper to get a section preset by ID
+export function getSectionPreset(presetId: string): SectionPreset | undefined {
+  return SECTION_PRESETS.find(p => p.id === presetId);
+}
+
+// Helper to get all presets for a category
+export function getSectionPresetsByCategory(category: SectionPresetCategory): SectionPreset[] {
+  return SECTION_PRESETS.filter(p => p.category === category);
+}
+
+// Helper to get all presets for a section type
+export function getSectionPresetsByType(type: typeof sectionTypes[number]): SectionPreset[] {
+  return SECTION_PRESETS.filter(p => p.type === type);
+}
+
+// Helper to get page template by ID
+export function getPageTemplate(pageId: PageTemplateId): PageTemplate | undefined {
+  return PAGE_TEMPLATES[pageId];
+}
