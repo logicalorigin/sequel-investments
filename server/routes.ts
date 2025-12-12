@@ -6091,16 +6091,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const draws = await storage.getAllDraws();
       
-      // Fetch loan info for each draw
+      // Fetch loan info, borrower, line items, and photos for each draw
       const drawsWithLoanInfo = await Promise.all(draws.map(async (draw) => {
         const loan = await storage.getServicedLoan(draw.servicedLoanId);
         const borrower = loan ? await storage.getUser(loan.userId) : null;
+        const lineItems = await storage.getDrawLineItems(draw.id);
+        const photos = await storage.getDrawPhotos(draw.id);
+        
+        // Calculate line items summary
+        const lineItemsTotal = lineItems.reduce((sum, item) => sum + (item.requestedAmount || 0), 0);
+        const lineItemsApproved = lineItems.filter(item => item.status === 'approved').length;
+        
+        // Calculate photos summary
+        const verifiedPhotos = photos.filter(p => p.verificationStatus === 'verified' || p.verificationStatus === 'gps_match' || p.verificationStatus === 'manual_approved').length;
+        
         return {
           ...draw,
           loan: loan ? {
             id: loan.id,
             loanNumber: loan.loanNumber,
             propertyAddress: loan.propertyAddress,
+            propertyCity: loan.propertyCity,
+            propertyState: loan.propertyState,
             loanType: loan.loanType,
           } : null,
           borrower: borrower ? {
@@ -6109,8 +6121,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
             lastName: borrower.lastName,
             email: borrower.email,
           } : null,
+          lineItemsSummary: {
+            count: lineItems.length,
+            approved: lineItemsApproved,
+            total: lineItemsTotal,
+          },
+          photosSummary: {
+            count: photos.length,
+            verified: verifiedPhotos,
+          },
         };
       }));
+      
+      // Sort by requested date descending (newest first)
+      drawsWithLoanInfo.sort((a, b) => {
+        const dateA = a.requestedDate ? new Date(a.requestedDate).getTime() : 0;
+        const dateB = b.requestedDate ? new Date(b.requestedDate).getTime() : 0;
+        return dateB - dateA;
+      });
       
       return res.json(drawsWithLoanInfo);
     } catch (error) {
