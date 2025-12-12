@@ -125,23 +125,28 @@ export function PortalHeader({ user, title, titleExtra, backHref, hideTitleOnMob
     <header className="border-b bg-card sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 flex items-center justify-between gap-2 sm:gap-4">
         <div className="flex items-center gap-2 min-w-0 flex-1">
+          {/* Back button - leftmost when present */}
+          {backHref && (
+            <Link href={backHref}>
+              <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8" data-testid="button-back">
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            </Link>
+          )}
+          
+          {/* Logo */}
           <Link href="/">
-            <div className="flex items-center cursor-pointer hover-elevate active-elevate-2 px-1 py-1 rounded-md -ml-1 shrink-0">
+            <div className="flex items-center cursor-pointer hover-elevate active-elevate-2 px-1 py-1 rounded-md shrink-0">
               <span className="text-base sm:text-lg font-bold text-primary">SEQUEL</span>
               <span className="text-base sm:text-lg font-light text-foreground ml-1 hidden sm:inline">INVESTMENTS</span>
             </div>
           </Link>
           
+          {/* Page title with separator */}
           {title && (
-            <div className={`flex items-center gap-1.5 min-w-0 ${hideTitleOnMobile ? "hidden sm:flex" : ""}`}>
-              {backHref && (
-                <Link href={backHref}>
-                  <Button variant="ghost" size="icon" className="shrink-0 h-7 w-7" data-testid="button-back">
-                    <ArrowLeft className="h-4 w-4" />
-                  </Button>
-                </Link>
-              )}
-              <h1 className="text-xs sm:text-sm lg:text-lg font-bold truncate" data-testid="text-page-title">
+            <div className={`flex items-center gap-2 min-w-0 ${hideTitleOnMobile ? "hidden sm:flex" : ""}`}>
+              <span className="text-muted-foreground/50 hidden sm:inline">/</span>
+              <h1 className="text-sm sm:text-base font-semibold truncate" data-testid="text-page-title">
                 {title}
               </h1>
               {titleExtra && (
@@ -156,9 +161,9 @@ export function PortalHeader({ user, title, titleExtra, backHref, hideTitleOnMob
         <div className="flex items-center gap-1 sm:gap-2 shrink-0">
           <Link href="/portal">
             <Button 
-              variant="ghost" 
+              variant={isPortfolio ? "secondary" : "ghost"}
               size="sm" 
-              className={`hidden sm:flex ${isPortfolio ? "bg-primary/10" : ""}`} 
+              className="hidden sm:flex" 
               data-testid="link-portfolio"
             >
               Portfolio
@@ -166,26 +171,26 @@ export function PortalHeader({ user, title, titleExtra, backHref, hideTitleOnMob
           </Link>
           <Link href="/portal/messages">
             <Button 
-              variant="ghost" 
+              variant={isMessages ? "secondary" : "ghost"}
               size="icon"
-              className={`relative sm:w-auto sm:px-3 ${isMessages ? "bg-primary/10" : ""}`}
+              className="relative sm:w-auto sm:px-3"
               data-testid="link-messages"
             >
               <MessageSquare className="h-4 w-4 sm:mr-1" />
               <span className="hidden sm:inline text-sm">Messages</span>
               {(messageUnreadCount?.unreadCount ?? 0) > 0 && (
-                <span className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-xs font-bold">
+                <Badge className="absolute -top-1.5 -right-1.5 h-5 min-w-5 px-1 flex items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-bold border-2 border-card">
                   {(messageUnreadCount?.unreadCount ?? 0) > 9 ? "9+" : messageUnreadCount?.unreadCount}
-                </span>
+                </Badge>
               )}
             </Button>
           </Link>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button 
-                variant="ghost" 
+                variant={isAnalysis ? "secondary" : "ghost"}
                 size="icon"
-                className={`sm:w-auto sm:px-3 ${isAnalysis ? "bg-primary/10" : ""}`}
+                className="sm:w-auto sm:px-3"
                 data-testid="link-investment-analysis"
               >
                 <Calculator className="h-4 w-4 sm:mr-1" />
@@ -234,9 +239,9 @@ export function PortalHeader({ user, title, titleExtra, backHref, hideTitleOnMob
               >
                 <Bell className="h-5 w-5" />
                 {(unreadCount?.count ?? 0) > 0 && (
-                  <span className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-xs font-bold">
+                  <Badge className="absolute -top-1.5 -right-1.5 h-5 min-w-5 px-1 flex items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-bold border-2 border-card">
                     {(unreadCount?.count ?? 0) > 9 ? "9+" : unreadCount?.count}
-                  </span>
+                  </Badge>
                 )}
               </Button>
             </PopoverTrigger>
