@@ -47,6 +47,7 @@ import {
   applicationMessages,
   staffMessagePreferences,
   messageTemplates,
+  pageLayouts,
   type User, 
   type UpsertUser,
   type Lead, 
@@ -149,8 +150,12 @@ import {
   type MessageTemplate,
   type InsertMessageTemplate,
   type MessagePriority,
+  type PageLayout,
+  type InsertPageLayout,
+  type PageSection,
   DEFAULT_DOCUMENT_TYPES,
   DEFAULT_BUSINESS_HOURS,
+  DEFAULT_HOME_PAGE_LAYOUT,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, lte, gte, sql, or, ne, inArray } from "drizzle-orm";
@@ -508,6 +513,13 @@ export interface IStorage {
     unreadCount: number;
   }[]>;
   updateStaffLastNotified(staffUserId: string): Promise<void>;
+  
+  // Page layout operations (modular page builder)
+  getPageLayout(pageId: string): Promise<PageLayout | undefined>;
+  getAllPageLayouts(): Promise<PageLayout[]>;
+  upsertPageLayout(data: InsertPageLayout): Promise<PageLayout>;
+  updatePageLayoutSections(pageId: string, sections: PageSection[]): Promise<PageLayout | undefined>;
+  resetPageLayoutToDefault(pageId: string): Promise<PageLayout | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -3326,6 +3338,55 @@ export class DatabaseStorage implements IStorage {
     }
     
     return threads.map(t => ({ ...t, hasStarred: false, isArchived: false }));
+  }
+
+  // Page layout operations (modular page builder)
+  async getPageLayout(pageId: string): Promise<PageLayout | undefined> {
+    const [layout] = await db
+      .select()
+      .from(pageLayouts)
+      .where(eq(pageLayouts.pageId, pageId as any));
+    return layout;
+  }
+
+  async getAllPageLayouts(): Promise<PageLayout[]> {
+    return db.select().from(pageLayouts).orderBy(pageLayouts.pageId);
+  }
+
+  async upsertPageLayout(data: InsertPageLayout): Promise<PageLayout> {
+    const [layout] = await db
+      .insert(pageLayouts)
+      .values(data)
+      .onConflictDoUpdate({
+        target: pageLayouts.pageId,
+        set: {
+          ...data,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return layout;
+  }
+
+  async updatePageLayoutSections(pageId: string, sections: PageSection[]): Promise<PageLayout | undefined> {
+    const [layout] = await db
+      .update(pageLayouts)
+      .set({
+        sections,
+        updatedAt: new Date(),
+      })
+      .where(eq(pageLayouts.pageId, pageId as any))
+      .returning();
+    return layout;
+  }
+
+  async resetPageLayoutToDefault(pageId: string): Promise<PageLayout | undefined> {
+    if (pageId === "home") {
+      return this.upsertPageLayout(DEFAULT_HOME_PAGE_LAYOUT);
+    }
+    // For other pages, we'd have their defaults defined
+    // For now, just return undefined if no default exists
+    return undefined;
   }
 }
 

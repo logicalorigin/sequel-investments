@@ -8269,6 +8269,120 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============================================
+  // PAGE LAYOUT ROUTES (Modular Page Builder)
+  // ============================================
+  
+  // Page name mappings
+  const PAGE_NAME_MAP: Record<string, string> = {
+    home: "Home Page",
+    dscr: "DSCR Loan Page",
+    fix_flip: "Fix & Flip Page",
+    construction: "Construction Page",
+    about: "About Page",
+    contact: "Contact Page",
+    resources: "Resources Page",
+  };
+  
+  // Get layout for a specific page (public)
+  app.get("/api/page-layouts/:pageId", async (req: any, res) => {
+    try {
+      const { pageId } = req.params;
+      let layout = await storage.getPageLayout(pageId);
+      
+      // If no layout exists, create an empty one for valid page IDs
+      if (!layout && PAGE_NAME_MAP[pageId]) {
+        layout = await storage.upsertPageLayout({
+          pageId: pageId as any,
+          pageName: PAGE_NAME_MAP[pageId],
+          sections: [],
+          isActive: true,
+        });
+        
+        // For home page, also populate with default sections
+        if (pageId === "home") {
+          layout = await storage.resetPageLayoutToDefault("home");
+        }
+      }
+      
+      if (!layout) {
+        return res.status(404).json({ error: "Page layout not found" });
+      }
+      
+      return res.json(layout);
+    } catch (error) {
+      console.error("Error fetching page layout:", error);
+      return res.status(500).json({ error: "Failed to fetch page layout" });
+    }
+  });
+  
+  // Get all page layouts (admin only)
+  app.get("/api/admin/page-layouts", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const layouts = await storage.getAllPageLayouts();
+      return res.json(layouts);
+    } catch (error) {
+      console.error("Error fetching page layouts:", error);
+      return res.status(500).json({ error: "Failed to fetch page layouts" });
+    }
+  });
+  
+  // Update page layout sections (admin only)
+  app.put("/api/admin/page-layouts/:pageId", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { pageId } = req.params;
+      const { sections } = req.body;
+      
+      if (!Array.isArray(sections)) {
+        return res.status(400).json({ error: "Sections must be an array" });
+      }
+      
+      // Import validation schema dynamically to avoid circular dependencies
+      const { pageSectionsArraySchema } = await import("@shared/schema");
+      
+      // Validate sections array
+      const validationResult = pageSectionsArraySchema.safeParse(sections);
+      if (!validationResult.success) {
+        const validationError = fromZodError(validationResult.error);
+        return res.status(400).json({ 
+          error: "Invalid section data",
+          message: validationError.message,
+          details: validationResult.error.errors.map(e => ({
+            path: e.path.join('.'),
+            message: e.message
+          }))
+        });
+      }
+      
+      const layout = await storage.updatePageLayoutSections(pageId, validationResult.data);
+      if (!layout) {
+        return res.status(404).json({ error: "Page layout not found" });
+      }
+      
+      return res.json(layout);
+    } catch (error) {
+      console.error("Error updating page layout:", error);
+      return res.status(500).json({ error: "Failed to update page layout" });
+    }
+  });
+  
+  // Reset page layout to default (admin only)
+  app.post("/api/admin/page-layouts/:pageId/reset", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { pageId } = req.params;
+      const layout = await storage.resetPageLayoutToDefault(pageId);
+      
+      if (!layout) {
+        return res.status(400).json({ error: "No default layout available for this page" });
+      }
+      
+      return res.json(layout);
+    } catch (error) {
+      console.error("Error resetting page layout:", error);
+      return res.status(500).json({ error: "Failed to reset page layout" });
+    }
+  });
+
   // Register Stripe routes
   app.use('/api/stripe', stripeRoutes);
 

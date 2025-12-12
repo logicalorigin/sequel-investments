@@ -3370,6 +3370,226 @@ export const insertPageLayoutSchema = createInsertSchema(pageLayouts).omit({
   updatedAt: true,
 });
 
+// Zod schemas for section config validation
+export const heroSectionConfigSchema = z.object({
+  variant: z.enum(["carousel", "static", "video", "split"]).optional(),
+  headline: z.string().optional(),
+  subheadline: z.string().optional(),
+  ctaText: z.string().optional(),
+  ctaLink: z.string().optional(),
+  secondaryCtaText: z.string().optional(),
+  secondaryCtaLink: z.string().optional(),
+  backgroundImage: z.string().optional(),
+  backgroundVideo: z.string().optional(),
+  showFundedDeals: z.boolean().optional(),
+  overlayOpacity: z.number().optional(),
+}).passthrough();
+
+export const trustIndicatorsSectionConfigSchema = z.object({
+  showYearsInBusiness: z.boolean().optional(),
+  showTotalFunded: z.boolean().optional(),
+  showStatesServed: z.boolean().optional(),
+  showActiveLoans: z.boolean().optional(),
+  customStats: z.array(z.object({
+    label: z.string(),
+    value: z.string(),
+    icon: z.string().optional(),
+  })).optional(),
+}).passthrough();
+
+export const loanProductsSectionConfigSchema = z.object({
+  showDSCR: z.boolean().optional(),
+  showFixFlip: z.boolean().optional(),
+  showConstruction: z.boolean().optional(),
+  customTitle: z.string().optional(),
+  customDescription: z.string().optional(),
+  cardStyle: z.enum(["default", "compact", "detailed"]).optional(),
+}).passthrough();
+
+export const testimonialsSectionConfigSchema = z.object({
+  testimonials: z.array(z.object({
+    name: z.string(),
+    role: z.string().optional(),
+    company: z.string().optional(),
+    quote: z.string(),
+    image: z.string().optional(),
+    rating: z.number().optional(),
+  })).optional(),
+  layout: z.enum(["carousel", "grid", "list"]).optional(),
+  showRatings: z.boolean().optional(),
+}).passthrough();
+
+export const faqSectionConfigSchema = z.object({
+  title: z.string().optional(),
+  description: z.string().optional(),
+  items: z.array(z.object({
+    question: z.string(),
+    answer: z.string(),
+  })).optional(),
+  layout: z.enum(["accordion", "two-column"]).optional(),
+}).passthrough();
+
+export const featureHighlightsSectionConfigSchema = z.object({
+  title: z.string().optional(),
+  features: z.array(z.object({
+    icon: z.string().optional(),
+    title: z.string(),
+    description: z.string(),
+  })).optional(),
+  layout: z.enum(["grid", "list", "cards"]).optional(),
+  columns: z.union([z.literal(2), z.literal(3), z.literal(4)]).optional(),
+}).passthrough();
+
+export const ctaBannerSectionConfigSchema = z.object({
+  headline: z.string().optional(),
+  description: z.string().optional(),
+  ctaText: z.string().optional(),
+  ctaLink: z.string().optional(),
+  backgroundColor: z.string().optional(),
+  textColor: z.string().optional(),
+}).passthrough();
+
+// Generic config schema for other section types (passthrough for flexibility)
+export const genericSectionConfigSchema = z.object({}).passthrough();
+
+// Valid section types
+export const sectionTypes = [
+  "hero",
+  "trust_indicators",
+  "loan_products",
+  "testimonials",
+  "faq",
+  "lead_form",
+  "recently_funded",
+  "state_map",
+  "feature_highlights",
+  "cta_banner",
+  "custom_content",
+  "stats_bar",
+] as const;
+
+// Lead form config schema
+export const leadFormSectionConfigSchema = z.object({
+  title: z.string().optional(),
+  description: z.string().optional(),
+  ctaText: z.string().optional(),
+  showPhone: z.boolean().optional(),
+  showLoanAmount: z.boolean().optional(),
+  showPropertyType: z.boolean().optional(),
+  backgroundColor: z.string().optional(),
+}).passthrough();
+
+// Recently funded config schema
+export const recentlyFundedSectionConfigSchema = z.object({
+  title: z.string().optional(),
+  maxItems: z.number().optional(),
+  showRate: z.boolean().optional(),
+  showCloseTime: z.boolean().optional(),
+  autoScroll: z.boolean().optional(),
+}).passthrough();
+
+// State map config schema
+export const stateMapSectionConfigSchema = z.object({
+  title: z.string().optional(),
+  description: z.string().optional(),
+  highlightStates: z.array(z.string()).optional(),
+  showLoanVolume: z.boolean().optional(),
+}).passthrough();
+
+// Custom content config schema
+export const customContentSectionConfigSchema = z.object({
+  htmlContent: z.string().optional(),
+  cssClass: z.string().optional(),
+  paddingTop: z.string().optional(),
+  paddingBottom: z.string().optional(),
+}).passthrough();
+
+// Stats bar config schema
+export const statsBarSectionConfigSchema = z.object({
+  stats: z.array(z.object({
+    value: z.string(),
+    label: z.string(),
+    prefix: z.string().optional(),
+    suffix: z.string().optional(),
+  })).optional(),
+  backgroundColor: z.string().optional(),
+}).passthrough();
+
+// Base section fields shared across all section types
+const baseSectionFields = {
+  id: z.string().min(1, "Section ID is required"),
+  title: z.string().optional(),
+  isVisible: z.boolean(),
+  order: z.number().int().min(0),
+};
+
+// Discriminated union for page sections with type-specific config validation
+export const pageSectionSchema = z.discriminatedUnion("type", [
+  z.object({
+    ...baseSectionFields,
+    type: z.literal("hero"),
+    config: heroSectionConfigSchema,
+  }),
+  z.object({
+    ...baseSectionFields,
+    type: z.literal("trust_indicators"),
+    config: trustIndicatorsSectionConfigSchema,
+  }),
+  z.object({
+    ...baseSectionFields,
+    type: z.literal("loan_products"),
+    config: loanProductsSectionConfigSchema,
+  }),
+  z.object({
+    ...baseSectionFields,
+    type: z.literal("testimonials"),
+    config: testimonialsSectionConfigSchema,
+  }),
+  z.object({
+    ...baseSectionFields,
+    type: z.literal("faq"),
+    config: faqSectionConfigSchema,
+  }),
+  z.object({
+    ...baseSectionFields,
+    type: z.literal("lead_form"),
+    config: leadFormSectionConfigSchema,
+  }),
+  z.object({
+    ...baseSectionFields,
+    type: z.literal("recently_funded"),
+    config: recentlyFundedSectionConfigSchema,
+  }),
+  z.object({
+    ...baseSectionFields,
+    type: z.literal("state_map"),
+    config: stateMapSectionConfigSchema,
+  }),
+  z.object({
+    ...baseSectionFields,
+    type: z.literal("feature_highlights"),
+    config: featureHighlightsSectionConfigSchema,
+  }),
+  z.object({
+    ...baseSectionFields,
+    type: z.literal("cta_banner"),
+    config: ctaBannerSectionConfigSchema,
+  }),
+  z.object({
+    ...baseSectionFields,
+    type: z.literal("custom_content"),
+    config: customContentSectionConfigSchema,
+  }),
+  z.object({
+    ...baseSectionFields,
+    type: z.literal("stats_bar"),
+    config: statsBarSectionConfigSchema,
+  }),
+]);
+
+// Validate sections array schema
+export const pageSectionsArraySchema = z.array(pageSectionSchema);
+
 // Default homepage layout configuration
 export const DEFAULT_HOME_PAGE_LAYOUT: Omit<InsertPageLayout, 'id'> = {
   pageId: "home",
