@@ -496,6 +496,12 @@ export interface IStorage {
   upsertStaffMessagePreferences(data: InsertStaffMessagePreferences): Promise<StaffMessagePreferences>;
   updateStaffHeartbeat(staffUserId: string): Promise<void>;
   getOnlineStaff(thresholdMinutes?: number): Promise<User[]>;
+  getOfflineStaffForNotification(offlineThresholdMinutes?: number): Promise<{
+    user: User;
+    preferences: StaffMessagePreferences;
+    unreadCount: number;
+  }[]>;
+  updateStaffLastNotified(staffUserId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -3053,6 +3059,81 @@ export class DatabaseStorage implements IStorage {
       );
     
     return onlineStaff.map(row => row.user);
+  }
+  
+  async getOfflineStaffForNotification(offlineThresholdMinutes: number = 2): Promise<{
+    user: User;
+    preferences: StaffMessagePreferences;
+    unreadCount: number;
+  }[]> {
+    const thresholdTime = new Date(Date.now() - offlineThresholdMinutes * 60 * 1000);
+    
+    // First, get the total unread count - if zero, no need to notify anyone
+    const totalUnread = await this.getTotalUnreadCountForStaff();
+    if (totalUnread === 0) {
+      return [];
+    }
+    
+    // Get staff users who are offline (no recent heartbeat) with email notifications enabled
+    const offlineStaff = await db
+      .select({
+        user: users,
+        preferences: staffMessagePreferences,
+      })
+      .from(users)
+      .innerJoin(
+        staffMessagePreferences,
+        eq(users.id, staffMessagePreferences.staffUserId)
+      )
+      .where(
+        and(
+          or(eq(users.role, 'staff'), eq(users.role, 'admin')),
+          eq(staffMessagePreferences.emailNotificationsEnabled, true),
+          or(
+            sql`${staffMessagePreferences.lastHeartbeatAt} IS NULL`,
+            lte(staffMessagePreferences.lastHeartbeatAt, thresholdTime)
+          )
+        )
+      );
+    
+    // Shared inbox model: All staff share the same unread messages.
+    // Staff need notification if:
+    // 1. They've never been notified AND there are unread messages, OR
+    // 2. Their batch interval has passed AND there are still unread messages
+    // The batch interval acts as a "reminder" interval - if messages stay unread,
+    // staff get periodic reminders every batchIntervalMinutes.
+    const result: { user: User; preferences: StaffMessagePreferences; unreadCount: number }[] = [];
+    
+    for (const row of offlineStaff) {
+      const { user, preferences } = row;
+      const lastNotified = preferences.lastNotifiedAt;
+      const batchInterval = preferences.batchIntervalMinutes || 15;
+      
+      // If never notified, notify about all unread messages
+      if (!lastNotified) {
+        result.push({ user, preferences, unreadCount: totalUnread });
+        continue;
+      }
+      
+      // Check if batch interval has passed since last notification
+      const timeSinceNotified = (Date.now() - new Date(lastNotified).getTime()) / (1000 * 60);
+      if (timeSinceNotified >= batchInterval) {
+        // Batch interval passed and there are unread messages - send reminder
+        result.push({ user, preferences, unreadCount: totalUnread });
+      }
+    }
+    
+    return result;
+  }
+  
+  async updateStaffLastNotified(staffUserId: string): Promise<void> {
+    await db
+      .update(staffMessagePreferences)
+      .set({
+        lastNotifiedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(staffMessagePreferences.staffUserId, staffUserId));
   }
 }
 

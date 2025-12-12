@@ -4,6 +4,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { getStripeSync } from "./stripeClient";
 import { WebhookHandlers } from "./webhookHandlers";
+import { startMessageNotificationProcessor } from "./services/messageNotificationService";
 
 const app = express();
 
@@ -162,5 +163,8 @@ app.use((req, res, next) => {
     reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
+    
+    // Start background message notification processor (checks every minute)
+    startMessageNotificationProcessor(1);
   });
 })();
