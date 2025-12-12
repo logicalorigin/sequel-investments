@@ -969,6 +969,122 @@ export const SCOPE_OF_WORK_CATEGORY_NAMES: Record<ScopeOfWorkCategory, string> =
   exterior: "Exterior",
 };
 
+// New Construction category names (same enum values, different display for construction context)
+export const NEW_CONSTRUCTION_CATEGORY_NAMES: Record<ScopeOfWorkCategory, string> = {
+  soft_costs: "Pre-Construction & Soft Costs",
+  demo_foundation: "Site Work & Foundation",
+  hvac_plumbing_electrical: "MEP Rough-In",
+  interior: "Interior Finishes",
+  exterior: "Exterior & Site Completion",
+};
+
+// Default scope of work items template for New Construction
+export const NEW_CONSTRUCTION_SCOPE_OF_WORK_ITEMS: { category: ScopeOfWorkCategory; itemName: string; sortOrder: number }[] = [
+  // Pre-Construction & Soft Costs
+  { category: "soft_costs", itemName: "Permits & Fees", sortOrder: 1 },
+  { category: "soft_costs", itemName: "Architectural Plans", sortOrder: 2 },
+  { category: "soft_costs", itemName: "Structural Engineering", sortOrder: 3 },
+  { category: "soft_costs", itemName: "Civil Engineering", sortOrder: 4 },
+  { category: "soft_costs", itemName: "Survey", sortOrder: 5 },
+  { category: "soft_costs", itemName: "Geotechnical Report", sortOrder: 6 },
+  { category: "soft_costs", itemName: "Legal & Title", sortOrder: 7 },
+  { category: "soft_costs", itemName: "Project Management", sortOrder: 8 },
+  { category: "soft_costs", itemName: "Contingency", sortOrder: 9 },
+  { category: "soft_costs", itemName: "Other - Soft Costs", sortOrder: 10 },
+  
+  // Site Work & Foundation
+  { category: "demo_foundation", itemName: "Site Clearing & Grading", sortOrder: 20 },
+  { category: "demo_foundation", itemName: "Excavation", sortOrder: 21 },
+  { category: "demo_foundation", itemName: "Utilities Trenching", sortOrder: 22 },
+  { category: "demo_foundation", itemName: "Foundation Forms", sortOrder: 23 },
+  { category: "demo_foundation", itemName: "Rebar & Reinforcement", sortOrder: 24 },
+  { category: "demo_foundation", itemName: "Concrete Pour - Foundation", sortOrder: 25 },
+  { category: "demo_foundation", itemName: "Waterproofing", sortOrder: 26 },
+  { category: "demo_foundation", itemName: "Backfill & Compaction", sortOrder: 27 },
+  { category: "demo_foundation", itemName: "Slab on Grade", sortOrder: 28 },
+  { category: "demo_foundation", itemName: "Other - Foundation", sortOrder: 29 },
+  
+  // Framing & Structure (using exterior category for structural work)
+  { category: "exterior", itemName: "Floor Framing", sortOrder: 40 },
+  { category: "exterior", itemName: "Wall Framing", sortOrder: 41 },
+  { category: "exterior", itemName: "Roof Framing", sortOrder: 42 },
+  { category: "exterior", itemName: "Trusses", sortOrder: 43 },
+  { category: "exterior", itemName: "Sheathing", sortOrder: 44 },
+  { category: "exterior", itemName: "Windows & Exterior Doors", sortOrder: 45 },
+  { category: "exterior", itemName: "Roofing", sortOrder: 46 },
+  { category: "exterior", itemName: "House Wrap & Flashing", sortOrder: 47 },
+  { category: "exterior", itemName: "Siding", sortOrder: 48 },
+  { category: "exterior", itemName: "Stucco/Masonry", sortOrder: 49 },
+  { category: "exterior", itemName: "Exterior Trim", sortOrder: 50 },
+  { category: "exterior", itemName: "Exterior Paint", sortOrder: 51 },
+  { category: "exterior", itemName: "Garage Door", sortOrder: 52 },
+  { category: "exterior", itemName: "Gutters & Downspouts", sortOrder: 53 },
+  { category: "exterior", itemName: "Driveway & Flatwork", sortOrder: 54 },
+  { category: "exterior", itemName: "Landscaping", sortOrder: 55 },
+  { category: "exterior", itemName: "Irrigation", sortOrder: 56 },
+  { category: "exterior", itemName: "Fencing", sortOrder: 57 },
+  { category: "exterior", itemName: "Pool/Spa (if applicable)", sortOrder: 58 },
+  { category: "exterior", itemName: "Other - Exterior", sortOrder: 59 },
+  
+  // MEP Rough-In
+  { category: "hvac_plumbing_electrical", itemName: "Plumbing Rough-In", sortOrder: 60 },
+  { category: "hvac_plumbing_electrical", itemName: "Electrical Rough-In", sortOrder: 61 },
+  { category: "hvac_plumbing_electrical", itemName: "HVAC Rough-In", sortOrder: 62 },
+  { category: "hvac_plumbing_electrical", itemName: "Low Voltage Rough-In", sortOrder: 63 },
+  { category: "hvac_plumbing_electrical", itemName: "Solar Pre-Wire", sortOrder: 64 },
+  { category: "hvac_plumbing_electrical", itemName: "Plumbing Top Out", sortOrder: 65 },
+  { category: "hvac_plumbing_electrical", itemName: "HVAC Trim Out", sortOrder: 66 },
+  { category: "hvac_plumbing_electrical", itemName: "Electrical Trim Out", sortOrder: 67 },
+  { category: "hvac_plumbing_electrical", itemName: "Plumbing Fixtures", sortOrder: 68 },
+  { category: "hvac_plumbing_electrical", itemName: "Lighting Fixtures", sortOrder: 69 },
+  { category: "hvac_plumbing_electrical", itemName: "HVAC Equipment", sortOrder: 70 },
+  { category: "hvac_plumbing_electrical", itemName: "Water Heater", sortOrder: 71 },
+  { category: "hvac_plumbing_electrical", itemName: "Solar Panels (if applicable)", sortOrder: 72 },
+  { category: "hvac_plumbing_electrical", itemName: "Other - MEP", sortOrder: 73 },
+  
+  // Interior Finishes
+  { category: "interior", itemName: "Insulation", sortOrder: 80 },
+  { category: "interior", itemName: "Drywall Hang", sortOrder: 81 },
+  { category: "interior", itemName: "Drywall Tape & Texture", sortOrder: 82 },
+  { category: "interior", itemName: "Interior Doors", sortOrder: 83 },
+  { category: "interior", itemName: "Interior Trim & Millwork", sortOrder: 84 },
+  { category: "interior", itemName: "Stairs & Railings", sortOrder: 85 },
+  { category: "interior", itemName: "Interior Paint", sortOrder: 86 },
+  { category: "interior", itemName: "Kitchen Cabinets", sortOrder: 87 },
+  { category: "interior", itemName: "Kitchen Countertops", sortOrder: 88 },
+  { category: "interior", itemName: "Kitchen Appliances", sortOrder: 89 },
+  { category: "interior", itemName: "Kitchen Backsplash", sortOrder: 90 },
+  { category: "interior", itemName: "Bathroom Vanities", sortOrder: 91 },
+  { category: "interior", itemName: "Bathroom Countertops", sortOrder: 92 },
+  { category: "interior", itemName: "Shower/Tub Tile", sortOrder: 93 },
+  { category: "interior", itemName: "Shower Glass", sortOrder: 94 },
+  { category: "interior", itemName: "Mirrors", sortOrder: 95 },
+  { category: "interior", itemName: "Tile Flooring", sortOrder: 96 },
+  { category: "interior", itemName: "Wood Flooring", sortOrder: 97 },
+  { category: "interior", itemName: "Carpet", sortOrder: 98 },
+  { category: "interior", itemName: "Fireplace", sortOrder: 99 },
+  { category: "interior", itemName: "Hardware & Accessories", sortOrder: 100 },
+  { category: "interior", itemName: "Closet Systems", sortOrder: 101 },
+  { category: "interior", itemName: "Final Clean", sortOrder: 102 },
+  { category: "interior", itemName: "Other - Interior", sortOrder: 103 },
+];
+
+// Helper function to get appropriate SOW template based on loan type
+export function getSOWTemplateForLoanType(loanType: string): { category: ScopeOfWorkCategory; itemName: string; sortOrder: number }[] {
+  if (loanType === "New Construction" || loanType === "new_construction") {
+    return NEW_CONSTRUCTION_SCOPE_OF_WORK_ITEMS;
+  }
+  return DEFAULT_SCOPE_OF_WORK_ITEMS;
+}
+
+// Helper function to get category names based on loan type
+export function getCategoryNamesForLoanType(loanType: string): Record<ScopeOfWorkCategory, string> {
+  if (loanType === "New Construction" || loanType === "new_construction") {
+    return NEW_CONSTRUCTION_CATEGORY_NAMES;
+  }
+  return SCOPE_OF_WORK_CATEGORY_NAMES;
+}
+
 // ============================================
 // APPLICATION SCOPE OF WORK (For Fix & Flip / New Construction Applications)
 // ============================================
