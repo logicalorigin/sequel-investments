@@ -146,7 +146,7 @@ import {
   DEFAULT_BUSINESS_HOURS,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, lte, gte, sql, or, ne } from "drizzle-orm";
+import { eq, and, desc, lte, gte, sql, or, ne, inArray } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (required for Replit Auth)
@@ -470,6 +470,11 @@ export interface IStorage {
   markMessageRead(id: string): Promise<ApplicationMessage | undefined>;
   markAllMessagesRead(loanApplicationId: string, readerUserId: string): Promise<void>;
   getUnreadMessageCount(loanApplicationId: string, forUserId: string): Promise<number>;
+  getAllMessagesForUser(userId: string): Promise<{
+    message: ApplicationMessage;
+    loan: { id: string; propertyAddress: string | null; loanType: string; status: string };
+  }[]>;
+  getTotalUnreadCountForUser(userId: string): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2801,6 +2806,69 @@ export class DatabaseStorage implements IStorage {
         ne(applicationMessages.senderUserId, forUserId),
         eq(applicationMessages.isRead, false)
       ));
+    return result[0]?.count || 0;
+  }
+  
+  async getAllMessagesForUser(userId: string): Promise<{
+    message: ApplicationMessage;
+    loan: { id: string; propertyAddress: string | null; loanType: string; status: string };
+  }[]> {
+    // Get all applications for this user
+    const userApplications = await db
+      .select()
+      .from(loanApplications)
+      .where(eq(loanApplications.userId, userId));
+    
+    if (userApplications.length === 0) {
+      return [];
+    }
+    
+    const applicationIds = userApplications.map(app => app.id);
+    
+    // Get all messages for these applications
+    const messages = await db
+      .select()
+      .from(applicationMessages)
+      .where(inArray(applicationMessages.loanApplicationId, applicationIds))
+      .orderBy(desc(applicationMessages.createdAt));
+    
+    // Map messages to their loans
+    const appMap = new Map(userApplications.map(app => [app.id, app]));
+    
+    return messages.map(msg => ({
+      message: msg,
+      loan: {
+        id: appMap.get(msg.loanApplicationId)!.id,
+        propertyAddress: appMap.get(msg.loanApplicationId)!.propertyAddress,
+        loanType: appMap.get(msg.loanApplicationId)!.loanType,
+        status: appMap.get(msg.loanApplicationId)!.status,
+      }
+    }));
+  }
+  
+  async getTotalUnreadCountForUser(userId: string): Promise<number> {
+    // Get all applications for this user
+    const userApplications = await db
+      .select({ id: loanApplications.id })
+      .from(loanApplications)
+      .where(eq(loanApplications.userId, userId));
+    
+    if (userApplications.length === 0) {
+      return 0;
+    }
+    
+    const applicationIds = userApplications.map(app => app.id);
+    
+    // Count all unread messages not sent by this user across all their applications
+    const result = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(applicationMessages)
+      .where(and(
+        inArray(applicationMessages.loanApplicationId, applicationIds),
+        ne(applicationMessages.senderUserId, userId),
+        eq(applicationMessages.isRead, false)
+      ));
+    
     return result[0]?.count || 0;
   }
 }

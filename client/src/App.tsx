@@ -70,6 +70,7 @@ import MapCalibrationPage from "@/pages/admin/map-calibration";
 import BookConsultationPage from "@/pages/BookConsultationPage";
 import MyAppointmentsPage from "@/pages/MyAppointmentsPage";
 import SignDocumentPage from "@/pages/SignDocumentPage";
+import MessagesPage from "@/pages/MessagesPage";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -120,6 +121,7 @@ function Router() {
       <Route path="/admin/map-calibration" component={MapCalibrationPage} />
       <Route path="/portal/book-consultation" component={BookConsultationPage} />
       <Route path="/portal/appointments" component={MyAppointmentsPage} />
+      <Route path="/portal/messages" component={MessagesPage} />
       <Route path="/join/:token" component={JoinPage} />
       <Route path="/sign/:token" component={SignDocumentPage} />
       <Route path="/resources" component={ResourcesPage} />
