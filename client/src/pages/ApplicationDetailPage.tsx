@@ -7,6 +7,7 @@ import { Link, useParams } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -58,13 +59,18 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatDistanceToNow } from "date-fns";
-import type { LoanApplication, Document, DocumentType, ApplicationTimelineEvent, CoBorrower } from "@shared/schema";
+import type { LoanApplication, Document, DocumentType, ApplicationTimelineEvent, CoBorrower, RevisionRequest, ApplicationMessage } from "@shared/schema";
+import { Textarea } from "@/components/ui/textarea";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronDown, Paperclip } from "lucide-react";
 
 interface DocumentWithType extends Document {
   documentType?: DocumentType;
 }
 
 const processingStages = [
+  { key: "app_submitted", label: "App Submitted", shortLabel: "Submitted" },
   { key: "account_review", label: "Account Executive\nReview", shortLabel: "AE Review" },
   { key: "underwriting", label: "Underwriting", shortLabel: "Underwriting" },
   { key: "term_sheet", label: "Term Sheet Issued", shortLabel: "Term Sheet" },
@@ -77,6 +83,7 @@ const statusLabels: Record<string, string> = {
   draft: "Draft",
   submitted: "Submitted",
   in_review: "In Review",
+  revisions_requested: "Revisions Requested",
   approved: "Approved",
   funded: "Funded",
   denied: "Denied",
@@ -87,6 +94,7 @@ const statusColors: Record<string, string> = {
   draft: "bg-muted text-muted-foreground",
   submitted: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
   in_review: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
+  revisions_requested: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
   approved: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
   funded: "bg-primary/20 text-primary",
   denied: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
@@ -99,6 +107,16 @@ const docStatusConfig: Record<string, { label: string; color: string }> = {
   approved: { label: "Completed", color: "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300" },
   rejected: { label: "Revision Required", color: "bg-pink-100 text-pink-700 dark:bg-pink-900/50 dark:text-pink-300" },
   if_applicable: { label: "If Applicable", color: "bg-muted text-muted-foreground" },
+};
+
+const revisionSectionLabels: Record<string, string> = {
+  property_info: "Property Information",
+  financials: "Financials",
+  documents: "Documents",
+  borrower_info: "Borrower Information",
+  entity_info: "Entity Information",
+  loan_terms: "Loan Terms",
+  other: "Other",
 };
 
 export default function ApplicationDetailPage() {
@@ -142,6 +160,46 @@ export default function ApplicationDetailPage() {
   const { data: coBorrowers = [], isLoading: coBorrowersLoading } = useQuery<CoBorrower[]>({
     queryKey: ["/api/applications", applicationId, "co-borrowers"],
     enabled: isAuthenticated && !!applicationId,
+  });
+
+  const { data: pendingRevisionRequests = [], isLoading: revisionsLoading } = useQuery<RevisionRequest[]>({
+    queryKey: ["/api/applications", applicationId, "revision-requests", "pending"],
+    enabled: isAuthenticated && !!applicationId && application?.status === "revisions_requested",
+  });
+
+  const { data: messages = [], isLoading: messagesLoading } = useQuery<ApplicationMessage[]>({
+    queryKey: ["/api/applications", applicationId, "messages"],
+    enabled: isAuthenticated && !!applicationId,
+  });
+
+  const { data: unreadCount = 0 } = useQuery<number>({
+    queryKey: ["/api/applications", applicationId, "messages", "unread-count"],
+    enabled: isAuthenticated && !!applicationId,
+  });
+
+  const [newMessage, setNewMessage] = useState("");
+  const [messagesExpanded, setMessagesExpanded] = useState(true);
+
+  const sendMessageMutation = useMutation({
+    mutationFn: async (content: string) => {
+      return apiRequest("POST", `/api/applications/${applicationId}/messages`, { content });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/applications", applicationId, "messages"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/applications", applicationId, "messages", "unread-count"] });
+      setNewMessage("");
+      toast({
+        title: "Message sent",
+        description: "Your message has been sent successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Failed to send",
+        description: "Could not send your message. Please try again.",
+        variant: "destructive",
+      });
+    },
   });
 
   const [showInviteDialog, setShowInviteDialog] = useState(false);
@@ -285,6 +343,50 @@ export default function ApplicationDetailPage() {
     },
     onSettled: () => {
       setPayingFeeType(null);
+    },
+  });
+
+  const resolveRevisionMutation = useMutation({
+    mutationFn: async (revisionId: string) => {
+      return apiRequest("PATCH", `/api/revision-requests/${revisionId}/resolve`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/applications", applicationId, "revision-requests", "pending"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/applications", applicationId, "timeline"] });
+      toast({
+        title: "Item Addressed",
+        description: "The revision request has been marked as addressed.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Could not mark as addressed. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const resubmitMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", `/api/applications/${applicationId}/resubmit`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/applications", applicationId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/applications", applicationId, "revision-requests", "pending"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/applications", applicationId, "timeline"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/applications"] });
+      toast({
+        title: "Application Resubmitted",
+        description: "Your application has been resubmitted for review. Our team will continue processing.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Resubmit Failed",
+        description: "Could not resubmit the application. Please ensure all revision requests are addressed.",
+        variant: "destructive",
+      });
     },
   });
 
@@ -573,6 +675,93 @@ export default function ApplicationDetailPage() {
             </div>
           </CardContent>
         </Card>
+
+        {application.status === "revisions_requested" && (
+          <div className="mb-4 sm:mb-8 space-y-4">
+            <Alert 
+              className="border-orange-300 bg-orange-50 dark:border-orange-700 dark:bg-orange-950/50"
+              data-testid="banner-revisions-requested"
+            >
+              <AlertCircle className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+              <AlertTitle className="text-orange-800 dark:text-orange-200 font-semibold">
+                Action Required
+              </AlertTitle>
+              <AlertDescription className="text-orange-700 dark:text-orange-300">
+                Your application has been returned for corrections. Please review and address the items below.
+              </AlertDescription>
+            </Alert>
+
+            {revisionsLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : pendingRevisionRequests.length > 0 ? (
+              <div className="space-y-3">
+                {pendingRevisionRequests.map((revision) => (
+                  <Card 
+                    key={revision.id} 
+                    className="border-orange-200 dark:border-orange-800"
+                    data-testid={`revision-request-card-${revision.section}`}
+                  >
+                    <CardContent className="py-4">
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                        <div className="flex-1 space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Badge className="bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300">
+                              {revisionSectionLabels[revision.section] || revision.section}
+                            </Badge>
+                          </div>
+                          <p className="text-sm">{revision.notes}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Requested by {revision.requestedByName || "Staff"} on {formatDate(revision.createdAt)}
+                          </p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => resolveRevisionMutation.mutate(revision.id)}
+                          disabled={resolveRevisionMutation.isPending}
+                          data-testid={`button-resolve-${revision.section}`}
+                        >
+                          {resolveRevisionMutation.isPending ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <Check className="h-4 w-4 mr-2" />
+                          )}
+                          Mark as Addressed
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <Card className="border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/20">
+                <CardContent className="py-4">
+                  <div className="flex items-center gap-2 text-green-700 dark:text-green-300">
+                    <CheckCircle2 className="h-5 w-5" />
+                    <span className="font-medium">All revision requests have been addressed</span>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            <div className="flex justify-end">
+              <Button
+                onClick={() => resubmitMutation.mutate()}
+                disabled={pendingRevisionRequests.length > 0 || resubmitMutation.isPending}
+                data-testid="button-resubmit-application"
+              >
+                {resubmitMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4 mr-2" />
+                )}
+                Resubmit Application
+              </Button>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
           <div className="lg:col-span-2 space-y-4 sm:space-y-6">
@@ -1510,6 +1699,148 @@ export default function ApplicationDetailPage() {
                   </div>
                 )}
               </CardContent>
+            </Card>
+
+            <Card data-testid="messages-section">
+              <Collapsible open={messagesExpanded} onOpenChange={setMessagesExpanded}>
+                <CardHeader className="flex flex-row items-center justify-between gap-2 pb-3">
+                  <CollapsibleTrigger className="flex items-center gap-2 hover:opacity-80">
+                    <CardTitle className="flex items-center gap-2">
+                      <MessageSquare className="h-5 w-5 text-primary" />
+                      Messages
+                    </CardTitle>
+                    {unreadCount > 0 && (
+                      <Badge 
+                        className="bg-red-500 text-white text-xs px-1.5 py-0.5 min-w-[18px] h-[18px] flex items-center justify-center"
+                        data-testid="badge-unread-messages"
+                      >
+                        {unreadCount}
+                      </Badge>
+                    )}
+                    <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${messagesExpanded ? "rotate-180" : ""}`} />
+                  </CollapsibleTrigger>
+                </CardHeader>
+                <CollapsibleContent>
+                  <CardContent className="pt-0">
+                    {messagesLoading ? (
+                      <div className="animate-pulse space-y-3">
+                        {[1, 2, 3].map(i => (
+                          <div key={i} className="flex gap-3">
+                            <div className="h-8 w-8 bg-muted rounded-full" />
+                            <div className="flex-1 space-y-1">
+                              <div className="h-3 bg-muted rounded w-1/2" />
+                              <div className="h-4 bg-muted rounded w-3/4" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <>
+                        <ScrollArea className="h-[300px] pr-4 mb-4">
+                          {messages.length > 0 ? (
+                            <div className="space-y-4">
+                              {[...messages].sort((a, b) => 
+                                new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+                              ).map((message) => {
+                                const isOwnMessage = message.senderUserId === user?.id;
+                                return (
+                                  <div 
+                                    key={message.id} 
+                                    className={`flex ${isOwnMessage ? "justify-end" : "justify-start"}`}
+                                    data-testid={`message-${message.id}`}
+                                  >
+                                    <div className={`max-w-[85%] ${isOwnMessage ? "items-end" : "items-start"}`}>
+                                      <div className="flex items-center gap-2 mb-1">
+                                        {!isOwnMessage && (
+                                          <span className="text-xs font-medium">{message.senderName}</span>
+                                        )}
+                                        <Badge 
+                                          className={`text-[10px] px-1.5 py-0 ${
+                                            message.senderRole === "admin" 
+                                              ? "bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300" 
+                                              : message.senderRole === "staff" 
+                                              ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
+                                              : "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"
+                                          }`}
+                                        >
+                                          {message.senderRole === "admin" ? "Admin" : message.senderRole === "staff" ? "Staff" : "Borrower"}
+                                        </Badge>
+                                        {isOwnMessage && (
+                                          <span className="text-xs font-medium">You</span>
+                                        )}
+                                      </div>
+                                      <div className={`rounded-lg px-3 py-2 ${
+                                        isOwnMessage 
+                                          ? "bg-primary text-primary-foreground" 
+                                          : "bg-muted"
+                                      }`}>
+                                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                                        {message.attachments && Array.isArray(message.attachments) && message.attachments.length > 0 && (
+                                          <div className="mt-2 pt-2 border-t border-current/20 space-y-1">
+                                            {message.attachments.map((attachment, idx) => (
+                                              <a 
+                                                key={idx}
+                                                href={attachment.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center gap-1 text-xs hover:underline"
+                                              >
+                                                <Paperclip className="h-3 w-3" />
+                                                {attachment.name}
+                                              </a>
+                                            ))}
+                                          </div>
+                                        )}
+                                      </div>
+                                      <p className="text-[10px] text-muted-foreground mt-1">
+                                        {formatDistanceToNow(new Date(message.createdAt), { addSuffix: true })}
+                                      </p>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <div className="text-center py-8">
+                              <MessageSquare className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
+                              <p className="text-sm text-muted-foreground">No messages yet</p>
+                              <p className="text-xs text-muted-foreground mt-1">Start a conversation with your loan team</p>
+                            </div>
+                          )}
+                        </ScrollArea>
+
+                        <div className="space-y-2">
+                          <Textarea
+                            placeholder="Type your message..."
+                            value={newMessage}
+                            onChange={(e) => setNewMessage(e.target.value)}
+                            className="resize-none min-h-[80px]"
+                            data-testid="input-message"
+                          />
+                          <div className="flex justify-end">
+                            <Button
+                              onClick={() => {
+                                if (newMessage.trim()) {
+                                  sendMessageMutation.mutate(newMessage.trim());
+                                }
+                              }}
+                              disabled={!newMessage.trim() || sendMessageMutation.isPending}
+                              data-testid="button-send-message"
+                            >
+                              {sendMessageMutation.isPending ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              ) : (
+                                <Send className="h-4 w-4 mr-2" />
+                              )}
+                              Send
+                            </Button>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </CardContent>
+                </CollapsibleContent>
+              </Collapsible>
             </Card>
           </div>
         </div>

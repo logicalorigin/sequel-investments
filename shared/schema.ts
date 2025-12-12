@@ -43,10 +43,11 @@ export type User = typeof users.$inferSelect;
 export const documentStatusEnum = pgEnum("document_status", ["pending", "uploaded", "approved", "rejected", "if_applicable"]);
 
 // Loan application status enum
-export const loanApplicationStatusEnum = pgEnum("loan_application_status", ["draft", "submitted", "in_review", "approved", "funded", "denied", "withdrawn"]);
+export const loanApplicationStatusEnum = pgEnum("loan_application_status", ["draft", "submitted", "in_review", "revisions_requested", "approved", "funded", "denied", "withdrawn"]);
 
 // Processing stage enum (for progress stepper)
 export const processingStageEnum = pgEnum("processing_stage", [
+  "app_submitted",
   "account_review",
   "underwriting", 
   "term_sheet",
@@ -54,6 +55,20 @@ export const processingStageEnum = pgEnum("processing_stage", [
   "docs_out",
   "closed"
 ]);
+
+// Revision request section enum
+export const revisionSectionEnum = pgEnum("revision_section", [
+  "property_info",
+  "financials",
+  "documents",
+  "borrower_info",
+  "entity_info",
+  "loan_terms",
+  "other"
+]);
+
+// Revision request status enum
+export const revisionStatusEnum = pgEnum("revision_status", ["pending", "resolved", "cancelled"]);
 
 // Product variant enum (for DSCR loan types)
 export const productVariantEnum = pgEnum("product_variant", [
@@ -75,7 +90,7 @@ export const loanApplications = pgTable("loan_applications", {
   propertyZip: text("property_zip"),
   loanAmount: integer("loan_amount"),
   status: loanApplicationStatusEnum("status").default("draft").notNull(),
-  processingStage: processingStageEnum("processing_stage").default("account_review"),
+  processingStage: processingStageEnum("processing_stage").default("app_submitted"),
   
   // Property & Deal Details
   purchasePrice: integer("purchase_price"),
@@ -153,6 +168,8 @@ export const loanApplicationsRelations = relations(loanApplications, ({ one, man
   applicationScopeItems: many(applicationScopeItems),
   stageHistory: many(applicationStageHistory),
   assignments: many(loanAssignments),
+  revisionRequests: many(revisionRequests),
+  messages: many(applicationMessages),
 }));
 
 export type LoanApplication = typeof loanApplications.$inferSelect;
@@ -212,6 +229,108 @@ export type InsertApplicationStageHistory = typeof applicationStageHistory.$infe
 export const insertApplicationStageHistorySchema = createInsertSchema(applicationStageHistory).omit({
   id: true,
   createdAt: true,
+});
+
+// ============================================
+// REVISION REQUESTS (Return to Borrower)
+// ============================================
+export const revisionRequests = pgTable("revision_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  loanApplicationId: varchar("loan_application_id").notNull().references(() => loanApplications.id),
+  
+  // Which section needs revision
+  section: revisionSectionEnum("section").notNull(),
+  
+  // Details
+  notes: text("notes").notNull(), // Admin instructions for what needs to be fixed
+  status: revisionStatusEnum("status").default("pending").notNull(),
+  
+  // Who requested the revision
+  requestedByUserId: varchar("requested_by_user_id").notNull().references(() => users.id),
+  requestedByName: text("requested_by_name"),
+  
+  // Resolution tracking
+  resolvedByUserId: varchar("resolved_by_user_id").references(() => users.id),
+  resolvedAt: timestamp("resolved_at"),
+  resolutionNotes: text("resolution_notes"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_revision_requests_app").on(table.loanApplicationId),
+  index("idx_revision_requests_status").on(table.status),
+]);
+
+export const revisionRequestsRelations = relations(revisionRequests, ({ one }) => ({
+  loanApplication: one(loanApplications, {
+    fields: [revisionRequests.loanApplicationId],
+    references: [loanApplications.id],
+  }),
+  requestedBy: one(users, {
+    fields: [revisionRequests.requestedByUserId],
+    references: [users.id],
+  }),
+  resolvedBy: one(users, {
+    fields: [revisionRequests.resolvedByUserId],
+    references: [users.id],
+  }),
+}));
+
+export type RevisionRequest = typeof revisionRequests.$inferSelect;
+export type InsertRevisionRequest = typeof revisionRequests.$inferInsert;
+
+export const insertRevisionRequestSchema = createInsertSchema(revisionRequests).omit({
+  id: true,
+  createdAt: true,
+  resolvedAt: true,
+});
+
+// ============================================
+// APPLICATION MESSAGES (Admin-Borrower Communication)
+// ============================================
+export const applicationMessages = pgTable("application_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  loanApplicationId: varchar("loan_application_id").notNull().references(() => loanApplications.id),
+  
+  // Sender information
+  senderUserId: varchar("sender_user_id").notNull().references(() => users.id),
+  senderName: text("sender_name").notNull(),
+  senderRole: userRoleEnum("sender_role").notNull(), // borrower, staff, admin
+  
+  // Message content
+  content: text("content").notNull(),
+  
+  // Attachments (file URLs and names)
+  attachments: jsonb("attachments").$type<Array<{ url: string; name: string; type: string; size: number }>>(),
+  
+  // Read tracking
+  isRead: boolean("is_read").default(false).notNull(),
+  readAt: timestamp("read_at"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_app_messages_app").on(table.loanApplicationId),
+  index("idx_app_messages_sender").on(table.senderUserId),
+  index("idx_app_messages_created").on(table.createdAt),
+]);
+
+export const applicationMessagesRelations = relations(applicationMessages, ({ one }) => ({
+  loanApplication: one(loanApplications, {
+    fields: [applicationMessages.loanApplicationId],
+    references: [loanApplications.id],
+  }),
+  sender: one(users, {
+    fields: [applicationMessages.senderUserId],
+    references: [users.id],
+  }),
+}));
+
+export type ApplicationMessage = typeof applicationMessages.$inferSelect;
+export type InsertApplicationMessage = typeof applicationMessages.$inferInsert;
+
+export const insertApplicationMessageSchema = createInsertSchema(applicationMessages).omit({
+  id: true,
+  createdAt: true,
+  readAt: true,
 });
 
 // ============================================
@@ -2145,7 +2264,9 @@ export const emailTypeEnum = pgEnum("email_type", [
   "document_request",
   "draw_approved",
   "payment_reminder",
-  "payoff_statement"
+  "payoff_statement",
+  "revisions_requested",
+  "application_resubmitted"
 ]);
 
 export const emailLogs = pgTable("email_logs", {

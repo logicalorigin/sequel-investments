@@ -43,6 +43,8 @@ import {
   verificationWorkflows,
   applicationStageHistory,
   loanAssignments,
+  revisionRequests,
+  applicationMessages,
   type User, 
   type UpsertUser,
   type Lead, 
@@ -136,6 +138,10 @@ import {
   type LoanAssignment,
   type InsertLoanAssignment,
   type LoanAssignmentRole,
+  type RevisionRequest,
+  type InsertRevisionRequest,
+  type ApplicationMessage,
+  type InsertApplicationMessage,
   DEFAULT_DOCUMENT_TYPES,
   DEFAULT_BUSINESS_HOURS,
 } from "@shared/schema";
@@ -448,6 +454,22 @@ export interface IStorage {
   updateLoanAssignment(id: string, data: Partial<InsertLoanAssignment>): Promise<LoanAssignment | undefined>;
   deactivateLoanAssignment(id: string): Promise<LoanAssignment | undefined>;
   getPrimaryAssignee(loanApplicationId: string, role: LoanAssignmentRole): Promise<LoanAssignment | undefined>;
+  
+  // Revision request operations (return to borrower)
+  getRevisionRequests(loanApplicationId: string): Promise<RevisionRequest[]>;
+  getPendingRevisionRequests(loanApplicationId: string): Promise<RevisionRequest[]>;
+  getRevisionRequest(id: string): Promise<RevisionRequest | undefined>;
+  createRevisionRequest(data: InsertRevisionRequest): Promise<RevisionRequest>;
+  updateRevisionRequest(id: string, data: Partial<InsertRevisionRequest>): Promise<RevisionRequest | undefined>;
+  resolveRevisionRequest(id: string, resolvedByUserId: string, resolutionNotes?: string): Promise<RevisionRequest | undefined>;
+  
+  // Application message operations (admin-borrower communication)
+  getApplicationMessages(loanApplicationId: string): Promise<ApplicationMessage[]>;
+  getApplicationMessage(id: string): Promise<ApplicationMessage | undefined>;
+  createApplicationMessage(data: InsertApplicationMessage): Promise<ApplicationMessage>;
+  markMessageRead(id: string): Promise<ApplicationMessage | undefined>;
+  markAllMessagesRead(loanApplicationId: string, readerUserId: string): Promise<void>;
+  getUnreadMessageCount(loanApplicationId: string, forUserId: string): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2662,6 +2684,124 @@ export class DatabaseStorage implements IStorage {
         eq(loanAssignments.isActive, true)
       ));
     return assignment;
+  }
+  
+  // Revision request operations
+  async getRevisionRequests(loanApplicationId: string): Promise<RevisionRequest[]> {
+    return db
+      .select()
+      .from(revisionRequests)
+      .where(eq(revisionRequests.loanApplicationId, loanApplicationId))
+      .orderBy(desc(revisionRequests.createdAt));
+  }
+  
+  async getPendingRevisionRequests(loanApplicationId: string): Promise<RevisionRequest[]> {
+    return db
+      .select()
+      .from(revisionRequests)
+      .where(and(
+        eq(revisionRequests.loanApplicationId, loanApplicationId),
+        eq(revisionRequests.status, "pending")
+      ))
+      .orderBy(desc(revisionRequests.createdAt));
+  }
+  
+  async getRevisionRequest(id: string): Promise<RevisionRequest | undefined> {
+    const [request] = await db
+      .select()
+      .from(revisionRequests)
+      .where(eq(revisionRequests.id, id));
+    return request;
+  }
+  
+  async createRevisionRequest(data: InsertRevisionRequest): Promise<RevisionRequest> {
+    const [request] = await db
+      .insert(revisionRequests)
+      .values(data)
+      .returning();
+    return request;
+  }
+  
+  async updateRevisionRequest(id: string, data: Partial<InsertRevisionRequest>): Promise<RevisionRequest | undefined> {
+    const [updated] = await db
+      .update(revisionRequests)
+      .set(data)
+      .where(eq(revisionRequests.id, id))
+      .returning();
+    return updated;
+  }
+  
+  async resolveRevisionRequest(id: string, resolvedByUserId: string, resolutionNotes?: string): Promise<RevisionRequest | undefined> {
+    const [updated] = await db
+      .update(revisionRequests)
+      .set({
+        status: "resolved",
+        resolvedByUserId,
+        resolvedAt: new Date(),
+        resolutionNotes,
+      })
+      .where(eq(revisionRequests.id, id))
+      .returning();
+    return updated;
+  }
+  
+  // Application message operations
+  async getApplicationMessages(loanApplicationId: string): Promise<ApplicationMessage[]> {
+    return db
+      .select()
+      .from(applicationMessages)
+      .where(eq(applicationMessages.loanApplicationId, loanApplicationId))
+      .orderBy(applicationMessages.createdAt);
+  }
+  
+  async getApplicationMessage(id: string): Promise<ApplicationMessage | undefined> {
+    const [message] = await db
+      .select()
+      .from(applicationMessages)
+      .where(eq(applicationMessages.id, id));
+    return message;
+  }
+  
+  async createApplicationMessage(data: InsertApplicationMessage): Promise<ApplicationMessage> {
+    const [message] = await db
+      .insert(applicationMessages)
+      .values(data)
+      .returning();
+    return message;
+  }
+  
+  async markMessageRead(id: string): Promise<ApplicationMessage | undefined> {
+    const [updated] = await db
+      .update(applicationMessages)
+      .set({ isRead: true, readAt: new Date() })
+      .where(eq(applicationMessages.id, id))
+      .returning();
+    return updated;
+  }
+  
+  async markAllMessagesRead(loanApplicationId: string, readerUserId: string): Promise<void> {
+    // Mark all messages from OTHER users as read (messages you didn't send)
+    await db
+      .update(applicationMessages)
+      .set({ isRead: true, readAt: new Date() })
+      .where(and(
+        eq(applicationMessages.loanApplicationId, loanApplicationId),
+        ne(applicationMessages.senderUserId, readerUserId),
+        eq(applicationMessages.isRead, false)
+      ));
+  }
+  
+  async getUnreadMessageCount(loanApplicationId: string, forUserId: string): Promise<number> {
+    // Count unread messages that were NOT sent by this user
+    const result = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(applicationMessages)
+      .where(and(
+        eq(applicationMessages.loanApplicationId, loanApplicationId),
+        ne(applicationMessages.senderUserId, forUserId),
+        eq(applicationMessages.isRead, false)
+      ));
+    return result[0]?.count || 0;
   }
 }
 
