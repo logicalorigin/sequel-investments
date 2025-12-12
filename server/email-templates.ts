@@ -673,4 +673,113 @@ export const emailTemplates = {
     
     return baseTemplate(content);
   },
+
+  revisionsRequested: (data: {
+    borrowerName: string;
+    loanType: string;
+    propertyAddress?: string;
+    applicationId: string;
+    sections: string[];
+    notes?: string;
+    portalUrl: string;
+  }) => {
+    const sectionLabels: Record<string, string> = {
+      property_info: "Property Information",
+      financials: "Financials",
+      documents: "Documents",
+      borrower_info: "Borrower Information",
+      entity_info: "Entity Information",
+      loan_terms: "Loan Terms",
+      other: "Other",
+    };
+
+    const sectionList = data.sections
+      .map(s => `<li style="margin-bottom: 8px; color: ${TEXT_SECONDARY};">${sectionLabels[s] || s}</li>`)
+      .join("");
+
+    const content = `
+      <div style="text-align: center; margin-bottom: 25px;">
+        <div style="display: inline-block; width: 60px; height: 60px; background-color: #f59e0b; border-radius: 50%; line-height: 60px;">
+          <span style="font-size: 28px; color: ${DARK_BG};">!</span>
+        </div>
+      </div>
+      
+      <h2 style="margin: 0 0 20px; font-size: 24px; color: ${TEXT_PRIMARY}; font-weight: 600; text-align: center;">
+        Action Required: Application Returned
+      </h2>
+      <p style="margin: 0 0 15px; font-size: 16px; color: ${TEXT_PRIMARY}; line-height: 1.6;">
+        Hello ${data.borrowerName},
+      </p>
+      <p style="margin: 0 0 20px; font-size: 16px; color: ${TEXT_SECONDARY}; line-height: 1.6;">
+        Your <strong style="color: ${BRAND_COLOR};">${data.loanType}</strong> loan application${data.propertyAddress ? ` for <strong style="color: ${TEXT_PRIMARY};">${data.propertyAddress}</strong>` : ''} requires additional information or corrections before we can proceed.
+      </p>
+      
+      <div style="background-color: ${DARK_BG}; border-radius: 8px; padding: 25px; margin: 25px 0; border-left: 4px solid #f59e0b;">
+        <p style="margin: 0 0 12px; font-size: 13px; color: ${TEXT_SECONDARY}; text-transform: uppercase; letter-spacing: 1px;">Sections Requiring Attention</p>
+        <ul style="margin: 0; padding-left: 20px; list-style-type: disc;">
+          ${sectionList}
+        </ul>
+        ${data.notes ? `
+        <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #333;">
+          <p style="margin: 0 0 8px; font-size: 13px; color: ${TEXT_SECONDARY}; text-transform: uppercase; letter-spacing: 1px;">Notes from Underwriting</p>
+          <p style="margin: 0; font-size: 15px; color: ${TEXT_PRIMARY}; line-height: 1.6;">${data.notes}</p>
+        </div>
+        ` : ''}
+      </div>
+      
+      <p style="margin: 0 0 20px; font-size: 16px; color: ${TEXT_SECONDARY}; line-height: 1.6;">
+        Please log in to your borrower portal to review the requested changes and resubmit your application.
+      </p>
+      
+      ${button("Review & Resubmit", `${data.portalUrl}/portal/application/${data.applicationId}`)}
+      
+      <p style="margin: 25px 0 0; font-size: 14px; color: ${TEXT_SECONDARY};">
+        If you have questions about the requested changes, you can send a message through your portal or contact your loan officer directly.
+      </p>
+    `;
+    
+    return baseTemplate(content);
+  },
+
+  applicationResubmitted: (data: {
+    staffName: string;
+    borrowerName: string;
+    loanType: string;
+    propertyAddress?: string;
+    applicationId: string;
+    portalUrl: string;
+  }) => {
+    const content = `
+      <div style="text-align: center; margin-bottom: 25px;">
+        <div style="display: inline-block; width: 60px; height: 60px; background-color: #3b82f6; border-radius: 50%; line-height: 60px;">
+          <span style="font-size: 28px; color: #ffffff;">&#8635;</span>
+        </div>
+      </div>
+      
+      <h2 style="margin: 0 0 20px; font-size: 24px; color: ${TEXT_PRIMARY}; font-weight: 600; text-align: center;">
+        Application Resubmitted
+      </h2>
+      <p style="margin: 0 0 15px; font-size: 16px; color: ${TEXT_PRIMARY}; line-height: 1.6;">
+        Hello ${data.staffName},
+      </p>
+      <p style="margin: 0 0 20px; font-size: 16px; color: ${TEXT_SECONDARY}; line-height: 1.6;">
+        The borrower <strong style="color: ${BRAND_COLOR};">${data.borrowerName}</strong> has addressed the requested revisions and resubmitted their <strong style="color: ${BRAND_COLOR};">${data.loanType}</strong> loan application${data.propertyAddress ? ` for <strong style="color: ${TEXT_PRIMARY};">${data.propertyAddress}</strong>` : ''}.
+      </p>
+      
+      <div style="background-color: ${DARK_BG}; border-radius: 8px; padding: 25px; margin: 25px 0; border-left: 4px solid #3b82f6;">
+        <p style="margin: 0 0 8px; font-size: 13px; color: ${TEXT_SECONDARY}; text-transform: uppercase; letter-spacing: 1px;">Status Update</p>
+        <p style="margin: 0; font-size: 16px; color: ${TEXT_PRIMARY}; line-height: 1.6;">
+          The application is now back in the pipeline and ready for your review.
+        </p>
+      </div>
+      
+      ${button("Review Application", `${data.portalUrl}/admin/applications/${data.applicationId}`)}
+      
+      <p style="margin: 25px 0 0; font-size: 14px; color: ${TEXT_SECONDARY};">
+        Please review the updates at your earliest convenience.
+      </p>
+    `;
+    
+    return baseTemplate(content);
+  },
 };

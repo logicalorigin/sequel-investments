@@ -4933,6 +4933,368 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // ============================================
+  // REVISION REQUESTS (Return to Borrower)
+  // ============================================
+  
+  // Get revision requests for an application
+  app.get("/api/applications/:id/revision-requests", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const application = await storage.getLoanApplication(req.params.id);
+      
+      if (!application) {
+        return res.status(404).json({ error: "Application not found" });
+      }
+      
+      // Borrowers can only see their own application revision requests
+      if (user?.role === "borrower" && application.userId !== userId) {
+        return res.status(403).json({ error: "Not authorized to view this application" });
+      }
+      
+      const requests = await storage.getRevisionRequests(req.params.id);
+      return res.json(requests);
+    } catch (error) {
+      console.error("Error fetching revision requests:", error);
+      return res.status(500).json({ error: "Failed to fetch revision requests" });
+    }
+  });
+  
+  // Get pending revision requests only
+  app.get("/api/applications/:id/revision-requests/pending", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const application = await storage.getLoanApplication(req.params.id);
+      
+      if (!application) {
+        return res.status(404).json({ error: "Application not found" });
+      }
+      
+      // Borrowers can only see their own application revision requests
+      if (user?.role === "borrower" && application.userId !== userId) {
+        return res.status(403).json({ error: "Not authorized to view this application" });
+      }
+      
+      const requests = await storage.getPendingRevisionRequests(req.params.id);
+      return res.json(requests);
+    } catch (error) {
+      console.error("Error fetching pending revision requests:", error);
+      return res.status(500).json({ error: "Failed to fetch pending revision requests" });
+    }
+  });
+  
+  // Create revision request (staff only) - sends application back to borrower
+  app.post("/api/admin/applications/:id/revision-requests", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const application = await storage.getLoanApplication(req.params.id);
+      
+      if (!application) {
+        return res.status(404).json({ error: "Application not found" });
+      }
+      
+      const { sections } = req.body; // Array of { section, notes }
+      if (!Array.isArray(sections) || sections.length === 0) {
+        return res.status(400).json({ error: "At least one section with notes is required" });
+      }
+      
+      // Validate sections
+      const validSections = ['property_info', 'financials', 'documents', 'borrower_info', 'entity_info', 'loan_terms', 'other'];
+      for (const item of sections) {
+        if (!validSections.includes(item.section)) {
+          return res.status(400).json({ error: `Invalid section: ${item.section}` });
+        }
+        if (!item.notes || item.notes.trim() === '') {
+          return res.status(400).json({ error: `Notes are required for section: ${item.section}` });
+        }
+      }
+      
+      // Create revision requests for each section
+      const createdRequests = [];
+      for (const item of sections) {
+        const request = await storage.createRevisionRequest({
+          loanApplicationId: req.params.id,
+          section: item.section,
+          notes: item.notes.trim(),
+          requestedByUserId: userId,
+          requestedByName: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email || user.username : undefined,
+        });
+        createdRequests.push(request);
+      }
+      
+      // Update application status to revisions_requested
+      await storage.updateLoanApplication(req.params.id, {
+        status: "revisions_requested",
+      });
+      
+      // Log to stage history
+      await storage.createStageHistoryEntry({
+        loanApplicationId: req.params.id,
+        fromStatus: application.status,
+        toStatus: "revisions_requested",
+        fromStage: application.processingStage,
+        toStage: application.processingStage,
+        changedByUserId: userId,
+        changedByName: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email : undefined,
+        notes: `Revisions requested for: ${sections.map(s => s.section).join(', ')}`,
+        isAutomated: false,
+      });
+      
+      // Send email notification to borrower
+      try {
+        const borrower = await storage.getUser(application.userId);
+        if (borrower?.email && await shouldSendEmail(application.userId)) {
+          const sectionNotes = sections.map((s: any) => s.notes).join(" ");
+          const emailHtml = emailTemplates.revisionsRequested({
+            borrowerName: borrower.firstName || borrower.username || "Borrower",
+            loanType: application.loanType || "Loan",
+            propertyAddress: application.propertyAddress || undefined,
+            applicationId: req.params.id,
+            sections: sections.map((s: any) => s.section),
+            notes: sectionNotes.length > 200 ? sectionNotes.substring(0, 200) + "..." : sectionNotes,
+            portalUrl: getPortalUrl(),
+          });
+          
+          await sendEmail({
+            to: borrower.email,
+            subject: "Action Required: Your Loan Application Needs Attention",
+            html: emailHtml,
+            text: `Hello ${borrower.firstName || "Borrower"}, your loan application requires additional information or corrections. Please log in to your portal to review the requested changes and resubmit your application.`,
+            userId: borrower.id,
+            emailType: "revisions_requested",
+            relatedApplicationId: req.params.id,
+          });
+        }
+      } catch (emailError) {
+        console.error("Error sending revision request email:", emailError);
+        // Don't fail the request if email fails
+      }
+      
+      return res.status(201).json({ requests: createdRequests, message: "Revision requests created and application status updated" });
+    } catch (error) {
+      console.error("Error creating revision requests:", error);
+      return res.status(500).json({ error: "Failed to create revision requests" });
+    }
+  });
+  
+  // Resolve a revision request (borrower resubmitting)
+  app.patch("/api/revision-requests/:id/resolve", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const request = await storage.getRevisionRequest(req.params.id);
+      
+      if (!request) {
+        return res.status(404).json({ error: "Revision request not found" });
+      }
+      
+      const application = await storage.getLoanApplication(request.loanApplicationId);
+      if (!application) {
+        return res.status(404).json({ error: "Application not found" });
+      }
+      
+      // Only the borrower who owns the application can resolve
+      if (application.userId !== userId) {
+        return res.status(403).json({ error: "Not authorized to resolve this revision request" });
+      }
+      
+      const { resolutionNotes } = req.body;
+      const resolved = await storage.resolveRevisionRequest(req.params.id, userId, resolutionNotes);
+      
+      return res.json(resolved);
+    } catch (error) {
+      console.error("Error resolving revision request:", error);
+      return res.status(500).json({ error: "Failed to resolve revision request" });
+    }
+  });
+  
+  // Resubmit application after making corrections (borrower)
+  app.post("/api/applications/:id/resubmit", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const application = await storage.getLoanApplication(req.params.id);
+      
+      if (!application) {
+        return res.status(404).json({ error: "Application not found" });
+      }
+      
+      if (application.userId !== userId) {
+        return res.status(403).json({ error: "Not authorized to resubmit this application" });
+      }
+      
+      if (application.status !== "revisions_requested") {
+        return res.status(400).json({ error: "Application is not in revisions requested status" });
+      }
+      
+      // Check if all pending revision requests are resolved
+      const pendingRequests = await storage.getPendingRevisionRequests(req.params.id);
+      if (pendingRequests.length > 0) {
+        return res.status(400).json({ 
+          error: "All revision requests must be addressed before resubmitting",
+          pendingCount: pendingRequests.length,
+          pendingSections: pendingRequests.map(r => r.section)
+        });
+      }
+      
+      // Update application status back to in_review
+      await storage.updateLoanApplication(req.params.id, {
+        status: "in_review",
+      });
+      
+      // Log to stage history
+      await storage.createStageHistoryEntry({
+        loanApplicationId: req.params.id,
+        fromStatus: "revisions_requested",
+        toStatus: "in_review",
+        fromStage: application.processingStage,
+        toStage: application.processingStage,
+        changedByUserId: userId,
+        changedByName: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email : undefined,
+        notes: "Application resubmitted after corrections",
+        isAutomated: false,
+      });
+      
+      // Send email notification to assigned staff members
+      try {
+        const assignments = await storage.getActiveAssignmentsForApplication(req.params.id);
+        const borrowerName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email || "Borrower" : "Borrower";
+        
+        for (const assignment of assignments) {
+          const staffUser = await storage.getUser(assignment.assignedToUserId);
+          if (staffUser?.email && await shouldSendEmail(staffUser.id)) {
+            const emailHtml = emailTemplates.applicationResubmitted({
+              staffName: staffUser.firstName || staffUser.username || "Team Member",
+              borrowerName,
+              loanType: application.loanType || "Loan",
+              propertyAddress: application.propertyAddress || undefined,
+              applicationId: req.params.id,
+              portalUrl: getPortalUrl(),
+            });
+            
+            await sendEmail({
+              to: staffUser.email,
+              subject: `Application Resubmitted: ${borrowerName} - ${application.loanType || "Loan Application"}`,
+              html: emailHtml,
+              text: `Hello ${staffUser.firstName || "Team Member"}, borrower ${borrowerName} has addressed the requested revisions and resubmitted their loan application. Please review the updates in the admin portal.`,
+              userId: staffUser.id,
+              emailType: "application_resubmitted",
+              relatedApplicationId: req.params.id,
+            });
+          }
+        }
+      } catch (emailError) {
+        console.error("Error sending resubmission email:", emailError);
+        // Don't fail the request if email fails
+      }
+      
+      return res.json({ message: "Application resubmitted successfully", status: "in_review" });
+    } catch (error) {
+      console.error("Error resubmitting application:", error);
+      return res.status(500).json({ error: "Failed to resubmit application" });
+    }
+  });
+  
+  // ============================================
+  // APPLICATION MESSAGES (Admin-Borrower Communication)
+  // ============================================
+  
+  // Get messages for an application
+  app.get("/api/applications/:id/messages", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const application = await storage.getLoanApplication(req.params.id);
+      
+      if (!application) {
+        return res.status(404).json({ error: "Application not found" });
+      }
+      
+      // Borrowers can only see their own application messages
+      if (user?.role === "borrower" && application.userId !== userId) {
+        return res.status(403).json({ error: "Not authorized to view messages for this application" });
+      }
+      
+      const messages = await storage.getApplicationMessages(req.params.id);
+      
+      // Mark messages as read automatically
+      await storage.markAllMessagesRead(req.params.id, userId);
+      
+      return res.json(messages);
+    } catch (error) {
+      console.error("Error fetching application messages:", error);
+      return res.status(500).json({ error: "Failed to fetch messages" });
+    }
+  });
+  
+  // Get unread message count
+  app.get("/api/applications/:id/messages/unread-count", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const application = await storage.getLoanApplication(req.params.id);
+      
+      if (!application) {
+        return res.status(404).json({ error: "Application not found" });
+      }
+      
+      // Borrowers can only see their own application message counts
+      if (user?.role === "borrower" && application.userId !== userId) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      
+      const count = await storage.getUnreadMessageCount(req.params.id, userId);
+      return res.json({ unreadCount: count });
+    } catch (error) {
+      console.error("Error fetching unread message count:", error);
+      return res.status(500).json({ error: "Failed to fetch unread count" });
+    }
+  });
+  
+  // Send a message (both staff and borrowers can send)
+  app.post("/api/applications/:id/messages", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const application = await storage.getLoanApplication(req.params.id);
+      
+      if (!application) {
+        return res.status(404).json({ error: "Application not found" });
+      }
+      
+      // Borrowers can only send messages on their own applications
+      if (user?.role === "borrower" && application.userId !== userId) {
+        return res.status(403).json({ error: "Not authorized to send messages for this application" });
+      }
+      
+      const { content, attachments } = req.body;
+      if (!content || content.trim() === '') {
+        return res.status(400).json({ error: "Message content is required" });
+      }
+      
+      // Validate attachments if provided
+      if (attachments && !Array.isArray(attachments)) {
+        return res.status(400).json({ error: "Attachments must be an array" });
+      }
+      
+      const message = await storage.createApplicationMessage({
+        loanApplicationId: req.params.id,
+        senderUserId: userId,
+        senderName: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email || user.username || 'Unknown' : 'Unknown',
+        senderRole: user?.role || 'borrower',
+        content: content.trim(),
+        attachments: attachments || null,
+      });
+      
+      return res.status(201).json(message);
+    } catch (error) {
+      console.error("Error creating message:", error);
+      return res.status(500).json({ error: "Failed to send message" });
+    }
+  });
+  
+  // ============================================
   // ADMIN VERIFICATION PHOTO ROUTES
   // ============================================
   

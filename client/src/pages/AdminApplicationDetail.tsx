@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams, useLocation, Link } from "wouter";
+import { useForm, useFieldArray } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +21,17 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { 
   ArrowLeft,
   Building2,
@@ -38,6 +52,7 @@ import {
   MessageSquare,
   CalendarIcon,
   AlertCircle,
+  RotateCcw,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -47,7 +62,11 @@ import { useToast } from "@/hooks/use-toast";
 import { DocumentReviewPanel } from "@/components/DocumentReviewPanel";
 import { SignatureRequestsSection } from "@/components/SignatureRequestsSection";
 import { PhotoVerificationReview } from "@/components/PhotoVerificationReview";
-import type { LoanApplication, Document, ApplicationTimelineEvent, User as UserType } from "@shared/schema";
+import type { LoanApplication, Document, ApplicationTimelineEvent, User as UserType, ApplicationMessage } from "@shared/schema";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronDown, Send, Paperclip } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 
 type BrokerInfo = {
   id: string;
@@ -71,6 +90,7 @@ const statusColors: Record<string, string> = {
   draft: "bg-gray-500/10 text-gray-600 border-gray-500/30",
   submitted: "bg-blue-500/10 text-blue-600 border-blue-500/30",
   in_review: "bg-yellow-500/10 text-yellow-600 border-yellow-500/30",
+  revisions_requested: "bg-orange-500/10 text-orange-600 border-orange-500/30",
   approved: "bg-green-500/10 text-green-600 border-green-500/30",
   funded: "bg-emerald-500/10 text-emerald-600 border-emerald-500/30",
   denied: "bg-red-500/10 text-red-600 border-red-500/30",
@@ -81,6 +101,7 @@ const statusLabels: Record<string, string> = {
   draft: "Draft",
   submitted: "Submitted",
   in_review: "In Review",
+  revisions_requested: "Revisions Requested",
   approved: "Approved",
   funded: "Funded",
   denied: "Denied",
@@ -88,6 +109,7 @@ const statusLabels: Record<string, string> = {
 };
 
 const processingStages = [
+  { key: "app_submitted", label: "App Submitted" },
   { key: "account_review", label: "Account Review" },
   { key: "underwriting", label: "Underwriting" },
   { key: "term_sheet", label: "Term Sheet" },
@@ -114,11 +136,43 @@ const documentStatusLabels: Record<string, string> = {
   if_applicable: "If Applicable",
 };
 
+const revisionSections = [
+  { key: "property_info", label: "Property Info" },
+  { key: "financials", label: "Financials" },
+  { key: "documents", label: "Documents" },
+  { key: "borrower_info", label: "Borrower Info" },
+  { key: "entity_info", label: "Entity Info" },
+  { key: "loan_terms", label: "Loan Terms" },
+  { key: "other", label: "Other" },
+] as const;
+
+type RevisionSection = typeof revisionSections[number]["key"];
+
+const revisionFormSchema = z.object({
+  sections: z.array(z.object({
+    section: z.string(),
+    notes: z.string().min(1, "Notes are required for selected sections"),
+  })).min(1, "Please select at least one section"),
+});
+
+type RevisionFormData = z.infer<typeof revisionFormSchema>;
+
 export default function AdminApplicationDetail() {
   const { id } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
+  const [showRevisionDialog, setShowRevisionDialog] = useState(false);
+  const [selectedSections, setSelectedSections] = useState<Set<RevisionSection>>(new Set());
+  const [sectionNotes, setSectionNotes] = useState<Record<RevisionSection, string>>({
+    property_info: "",
+    financials: "",
+    documents: "",
+    borrower_info: "",
+    entity_info: "",
+    loan_terms: "",
+    other: "",
+  });
 
   const { data: currentUser } = useQuery<UserType>({
     queryKey: ["/api/auth/user"],
@@ -132,6 +186,41 @@ export default function AdminApplicationDetail() {
   const { data: verificationPhotos = [] } = useQuery<any[]>({
     queryKey: ["/api/applications", id, "verification-photos"],
     enabled: !!id && (currentUser?.role === "staff" || currentUser?.role === "admin"),
+  });
+
+  const { data: messages = [], isLoading: messagesLoading } = useQuery<ApplicationMessage[]>({
+    queryKey: ["/api/applications", id, "messages"],
+    enabled: !!id && (currentUser?.role === "staff" || currentUser?.role === "admin"),
+  });
+
+  const { data: unreadCount = 0 } = useQuery<number>({
+    queryKey: ["/api/applications", id, "messages", "unread-count"],
+    enabled: !!id && (currentUser?.role === "staff" || currentUser?.role === "admin"),
+  });
+
+  const [newMessage, setNewMessage] = useState("");
+  const [messagesExpanded, setMessagesExpanded] = useState(true);
+
+  const sendMessageMutation = useMutation({
+    mutationFn: async (content: string) => {
+      return apiRequest("POST", `/api/applications/${id}/messages`, { content });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/applications", id, "messages"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/applications", id, "messages", "unread-count"] });
+      setNewMessage("");
+      toast({
+        title: "Message sent",
+        description: "Your message has been sent successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Failed to send",
+        description: "Could not send your message. Please try again.",
+        variant: "destructive",
+      });
+    },
   });
 
   const updateMutation = useMutation({
@@ -155,6 +244,69 @@ export default function AdminApplicationDetail() {
       });
     },
   });
+
+  const revisionRequestMutation = useMutation({
+    mutationFn: async (data: { sections: { section: string; notes: string }[] }) => {
+      const res = await apiRequest("POST", `/api/admin/applications/${id}/revision-requests`, data);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/applications", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/applications"] });
+      setShowRevisionDialog(false);
+      setSelectedSections(new Set());
+      setSectionNotes({
+        property_info: "",
+        financials: "",
+        documents: "",
+        borrower_info: "",
+        entity_info: "",
+        loan_terms: "",
+        other: "",
+      });
+      toast({
+        title: "Revision requested",
+        description: "The borrower has been notified about the required revisions.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Request failed",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleRevisionSubmit = () => {
+    const sectionsToSubmit = Array.from(selectedSections)
+      .filter(section => sectionNotes[section].trim())
+      .map(section => ({
+        section,
+        notes: sectionNotes[section].trim(),
+      }));
+    
+    if (sectionsToSubmit.length === 0) {
+      toast({
+        title: "Invalid request",
+        description: "Please select at least one section and provide notes.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    revisionRequestMutation.mutate({ sections: sectionsToSubmit });
+  };
+
+  const toggleSection = (section: RevisionSection) => {
+    const newSections = new Set(selectedSections);
+    if (newSections.has(section)) {
+      newSections.delete(section);
+    } else {
+      newSections.add(section);
+    }
+    setSelectedSections(newSections);
+  };
 
   if (!currentUser || (currentUser.role !== "staff" && currentUser.role !== "admin")) {
     return null;
@@ -498,6 +650,7 @@ export default function AdminApplicationDetail() {
                       <SelectItem value="draft">Draft</SelectItem>
                       <SelectItem value="submitted">Submitted</SelectItem>
                       <SelectItem value="in_review">In Review</SelectItem>
+                      <SelectItem value="revisions_requested">Revisions Requested</SelectItem>
                       <SelectItem value="approved">Approved</SelectItem>
                       <SelectItem value="funded">Funded</SelectItem>
                       <SelectItem value="denied">Denied</SelectItem>
@@ -627,6 +780,17 @@ export default function AdminApplicationDetail() {
                   <DollarSign className="h-4 w-4 mr-2" />
                   Mark as Funded
                 </Button>
+                {(application.status === "in_review" || application.status === "submitted") && (
+                  <Button 
+                    className="w-full" 
+                    variant="outline"
+                    onClick={() => setShowRevisionDialog(true)}
+                    data-testid="button-request-revisions"
+                  >
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Request Revisions
+                  </Button>
+                )}
               </CardContent>
             </Card>
 
@@ -692,9 +856,216 @@ export default function AdminApplicationDetail() {
                 </div>
               </CardContent>
             </Card>
+
+            <Card data-testid="messages-section">
+              <Collapsible open={messagesExpanded} onOpenChange={setMessagesExpanded}>
+                <CardHeader className="flex flex-row items-center justify-between gap-2 pb-3">
+                  <CollapsibleTrigger className="flex items-center gap-2 hover:opacity-80">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <MessageSquare className="h-5 w-5" />
+                      Messages
+                    </CardTitle>
+                    {unreadCount > 0 && (
+                      <Badge 
+                        className="bg-red-500 text-white text-xs px-1.5 py-0.5 min-w-[18px] h-[18px] flex items-center justify-center"
+                        data-testid="badge-unread-messages"
+                      >
+                        {unreadCount}
+                      </Badge>
+                    )}
+                    <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${messagesExpanded ? "rotate-180" : ""}`} />
+                  </CollapsibleTrigger>
+                </CardHeader>
+                <CollapsibleContent>
+                  <CardContent className="pt-0">
+                    {messagesLoading ? (
+                      <div className="animate-pulse space-y-3">
+                        {[1, 2, 3].map(i => (
+                          <div key={i} className="flex gap-3">
+                            <div className="h-8 w-8 bg-muted rounded-full" />
+                            <div className="flex-1 space-y-1">
+                              <div className="h-3 bg-muted rounded w-1/2" />
+                              <div className="h-4 bg-muted rounded w-3/4" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <>
+                        <ScrollArea className="h-[300px] pr-4 mb-4">
+                          {messages.length > 0 ? (
+                            <div className="space-y-4">
+                              {[...messages].sort((a, b) => 
+                                new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+                              ).map((message) => {
+                                const isOwnMessage = message.senderUserId === currentUser?.id;
+                                return (
+                                  <div 
+                                    key={message.id} 
+                                    className={`flex ${isOwnMessage ? "justify-end" : "justify-start"}`}
+                                    data-testid={`message-${message.id}`}
+                                  >
+                                    <div className={`max-w-[85%] ${isOwnMessage ? "items-end" : "items-start"}`}>
+                                      <div className="flex items-center gap-2 mb-1">
+                                        {!isOwnMessage && (
+                                          <span className="text-xs font-medium">{message.senderName}</span>
+                                        )}
+                                        <Badge 
+                                          className={`text-[10px] px-1.5 py-0 ${
+                                            message.senderRole === "admin" 
+                                              ? "bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300" 
+                                              : message.senderRole === "staff" 
+                                              ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
+                                              : "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"
+                                          }`}
+                                        >
+                                          {message.senderRole === "admin" ? "Admin" : message.senderRole === "staff" ? "Staff" : "Borrower"}
+                                        </Badge>
+                                        {isOwnMessage && (
+                                          <span className="text-xs font-medium">You</span>
+                                        )}
+                                      </div>
+                                      <div className={`rounded-lg px-3 py-2 ${
+                                        isOwnMessage 
+                                          ? "bg-primary text-primary-foreground" 
+                                          : "bg-muted"
+                                      }`}>
+                                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                                        {message.attachments && Array.isArray(message.attachments) && message.attachments.length > 0 && (
+                                          <div className="mt-2 pt-2 border-t border-current/20 space-y-1">
+                                            {message.attachments.map((attachment, idx) => (
+                                              <a 
+                                                key={idx}
+                                                href={attachment.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center gap-1 text-xs hover:underline"
+                                              >
+                                                <Paperclip className="h-3 w-3" />
+                                                {attachment.name}
+                                              </a>
+                                            ))}
+                                          </div>
+                                        )}
+                                      </div>
+                                      <p className="text-[10px] text-muted-foreground mt-1">
+                                        {formatDistanceToNow(new Date(message.createdAt), { addSuffix: true })}
+                                      </p>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <div className="text-center py-8">
+                              <MessageSquare className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
+                              <p className="text-sm text-muted-foreground">No messages yet</p>
+                              <p className="text-xs text-muted-foreground mt-1">Start a conversation with the borrower</p>
+                            </div>
+                          )}
+                        </ScrollArea>
+
+                        <div className="space-y-2">
+                          <Textarea
+                            placeholder="Type your message..."
+                            value={newMessage}
+                            onChange={(e) => setNewMessage(e.target.value)}
+                            className="resize-none min-h-[80px]"
+                            data-testid="input-message"
+                          />
+                          <div className="flex justify-end">
+                            <Button
+                              onClick={() => {
+                                if (newMessage.trim()) {
+                                  sendMessageMutation.mutate(newMessage.trim());
+                                }
+                              }}
+                              disabled={!newMessage.trim() || sendMessageMutation.isPending}
+                              data-testid="button-send-message"
+                            >
+                              {sendMessageMutation.isPending ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              ) : (
+                                <Send className="h-4 w-4 mr-2" />
+                              )}
+                              Send
+                            </Button>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </CardContent>
+                </CollapsibleContent>
+              </Collapsible>
+            </Card>
           </div>
         </div>
       </main>
+
+      {/* Request Revisions Dialog */}
+      <Dialog open={showRevisionDialog} onOpenChange={setShowRevisionDialog}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Request Revisions</DialogTitle>
+            <DialogDescription>
+              Select the sections that need revisions and provide notes for the borrower.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {revisionSections.map((section) => (
+              <div key={section.key} className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`checkbox-${section.key}`}
+                    checked={selectedSections.has(section.key)}
+                    onCheckedChange={() => toggleSection(section.key)}
+                    data-testid={`checkbox-section-${section.key}`}
+                  />
+                  <Label 
+                    htmlFor={`checkbox-${section.key}`}
+                    className="text-sm font-medium cursor-pointer"
+                  >
+                    {section.label}
+                  </Label>
+                </div>
+                {selectedSections.has(section.key) && (
+                  <Textarea
+                    placeholder={`Notes for ${section.label}...`}
+                    value={sectionNotes[section.key]}
+                    onChange={(e) => setSectionNotes(prev => ({
+                      ...prev,
+                      [section.key]: e.target.value
+                    }))}
+                    className="min-h-[80px]"
+                    data-testid={`textarea-notes-${section.key}`}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowRevisionDialog(false)}
+              data-testid="button-cancel-revisions"
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleRevisionSubmit}
+              disabled={revisionRequestMutation.isPending || selectedSections.size === 0}
+              data-testid="button-submit-revisions"
+            >
+              {revisionRequestMutation.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <RotateCcw className="h-4 w-4 mr-2" />
+              )}
+              Submit Revision Request
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Document Review Panel */}
       <Sheet open={!!selectedDocument} onOpenChange={(open) => !open && setSelectedDocument(null)}>
