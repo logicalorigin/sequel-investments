@@ -209,6 +209,8 @@ export interface IStorage {
   
   // Loan draw operations (for hard money loans)
   getLoanDraws(servicedLoanId: string): Promise<LoanDraw[]>;
+  getAllDraws(): Promise<LoanDraw[]>;
+  getPendingDrawsCount(): Promise<number>;
   getLoanDraw(id: string): Promise<LoanDraw | undefined>;
   createLoanDraw(draw: InsertLoanDraw): Promise<LoanDraw>;
   updateLoanDraw(id: string, data: Partial<InsertLoanDraw>): Promise<LoanDraw | undefined>;
@@ -840,6 +842,21 @@ export class DatabaseStorage implements IStorage {
       .from(loanDraws)
       .where(eq(loanDraws.servicedLoanId, servicedLoanId))
       .orderBy(desc(loanDraws.drawNumber));
+  }
+
+  async getAllDraws(): Promise<LoanDraw[]> {
+    return await db
+      .select()
+      .from(loanDraws)
+      .orderBy(desc(loanDraws.requestedDate));
+  }
+
+  async getPendingDrawsCount(): Promise<number> {
+    const result = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(loanDraws)
+      .where(inArray(loanDraws.status, ["submitted", "inspection_scheduled", "inspection_complete"]));
+    return Number(result[0]?.count || 0);
   }
 
   async getLoanDraw(id: string): Promise<LoanDraw | undefined> {

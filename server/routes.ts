@@ -6083,6 +6083,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // =====================
+  // Admin Draw Requests Routes
+  // =====================
+
+  // Get all draw requests with loan info (admin)
+  app.get("/api/admin/draw-requests", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const draws = await storage.getAllDraws();
+      
+      // Fetch loan info for each draw
+      const drawsWithLoanInfo = await Promise.all(draws.map(async (draw) => {
+        const loan = await storage.getServicedLoan(draw.servicedLoanId);
+        const borrower = loan ? await storage.getUser(loan.userId) : null;
+        return {
+          ...draw,
+          loan: loan ? {
+            id: loan.id,
+            loanNumber: loan.loanNumber,
+            propertyAddress: loan.propertyAddress,
+            loanType: loan.loanType,
+          } : null,
+          borrower: borrower ? {
+            id: borrower.id,
+            firstName: borrower.firstName,
+            lastName: borrower.lastName,
+            email: borrower.email,
+          } : null,
+        };
+      }));
+      
+      return res.json(drawsWithLoanInfo);
+    } catch (error) {
+      console.error("Error fetching draw requests:", error);
+      return res.status(500).json({ error: "Failed to fetch draw requests" });
+    }
+  });
+
+  // Get pending draw requests count (admin) - for sidebar badge
+  app.get("/api/admin/draw-requests/pending-count", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const count = await storage.getPendingDrawsCount();
+      return res.json({ count });
+    } catch (error) {
+      console.error("Error fetching pending draw count:", error);
+      return res.status(500).json({ error: "Failed to fetch pending draw count" });
+    }
+  });
+
+  // =====================
   // Funded Deals Routes
   // =====================
   

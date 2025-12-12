@@ -29,6 +29,8 @@ import {
   Building2,
   Webhook,
   Users,
+  ArrowLeft,
+  HardHat,
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { User as UserType } from "@shared/schema";
@@ -46,6 +48,7 @@ const mainNavItems = [
 
 const operationsNavItems = [
   { title: "Loan Servicing", href: "/admin/servicing", icon: DollarSign },
+  { title: "Draw Requests", href: "/admin/draw-requests", icon: HardHat, hasBadge: true },
   { title: "Appointments", href: "/admin/appointments", icon: Calendar },
   { title: "Financials", href: "/admin/financials", icon: CreditCard },
   { title: "Messages", href: "/admin/messages", icon: MessageSquare },
@@ -59,6 +62,10 @@ const settingsNavItems = [
 
 function AdminSidebar() {
   const [location] = useLocation();
+
+  const { data: pendingDrawCount } = useQuery<{ count: number }>({
+    queryKey: ["/api/admin/draw-requests/pending-count"],
+  });
 
   const isActive = (href: string) => {
     if (href === "/admin") {
@@ -112,9 +119,16 @@ function AdminSidebar() {
                     isActive={isActive(item.href)}
                     data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, '-')}`}
                   >
-                    <Link href={item.href}>
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
+                    <Link href={item.href} className="flex items-center justify-between w-full">
+                      <span className="flex items-center gap-2">
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.title}</span>
+                      </span>
+                      {item.hasBadge && (pendingDrawCount?.count ?? 0) > 0 && (
+                        <Badge variant="destructive" className="text-xs h-5 min-w-5 flex items-center justify-center" data-testid="badge-pending-draws">
+                          {pendingDrawCount.count}
+                        </Badge>
+                      )}
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -163,11 +177,15 @@ function AdminSidebar() {
 }
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
 
   const { data: currentUser } = useQuery<UserType>({
     queryKey: ["/api/auth/user"],
   });
+
+  // Show back button on detail pages (pages with IDs or deeper paths)
+  const showBackButton = /\/admin\/(application|servicing|borrower|users)\/\d+/.test(location) ||
+    (location !== "/admin" && location.split("/").length > 3);
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
@@ -192,6 +210,22 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           <header className="flex items-center justify-between px-4 py-2 border-b bg-card shrink-0">
             <div className="flex items-center gap-2">
               <SidebarTrigger data-testid="button-sidebar-toggle" />
+              {showBackButton && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    if (window.history.length > 1) {
+                      window.history.back();
+                    } else {
+                      navigate("/admin");
+                    }
+                  }}
+                  data-testid="button-back"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+              )}
               <span className="text-sm font-medium text-muted-foreground hidden sm:inline">
                 {currentUser?.role === "admin" ? "Administrator" : "Staff"} Portal
               </span>
