@@ -39,7 +39,6 @@ import {
   ChevronRight,
   AlertCircle,
   UserCheck,
-  ArrowLeft,
 } from "lucide-react";
 
 type Appointment = {
@@ -249,28 +248,9 @@ export default function AdminAppointmentsPage() {
   ).length;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="h-full">
       <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center gap-4 mb-6">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setLocation("/admin")}
-            data-testid="button-back"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground" data-testid="text-page-title">
-              Appointments
-            </h1>
-            <p className="text-muted-foreground">
-              Manage scheduled consultations with borrowers
-            </p>
-          </div>
-        </div>
-
-      <div className="space-y-6">
+        <div className="space-y-6">
 
         <div className="grid gap-4 md:grid-cols-3">
           <Card>

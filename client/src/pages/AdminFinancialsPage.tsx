@@ -827,35 +827,21 @@ export default function AdminFinancialsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b">
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" onClick={() => navigate("/admin")} data-testid="button-back">
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-              <div>
-                <h1 className="text-xl font-bold">Financials & Portfolio</h1>
-                <p className="text-sm text-muted-foreground">Analytics dashboard</p>
-              </div>
-            </div>
-            <Select value={dateRange} onValueChange={setDateRange}>
-              <SelectTrigger className="w-40" data-testid="select-date-range">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Time</SelectItem>
-                <SelectItem value="30d">Last 30 Days</SelectItem>
-                <SelectItem value="90d">Last 90 Days</SelectItem>
-                <SelectItem value="ytd">Year to Date</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+    <div className="h-full">
+      <div className="container mx-auto px-4 py-6">
+        <div className="flex items-center justify-end mb-4">
+          <Select value={dateRange} onValueChange={setDateRange}>
+            <SelectTrigger className="w-40" data-testid="select-date-range">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Time</SelectItem>
+              <SelectItem value="30d">Last 30 Days</SelectItem>
+              <SelectItem value="90d">Last 90 Days</SelectItem>
+              <SelectItem value="ytd">Year to Date</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-      </header>
-
-      <main className="container mx-auto px-4 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-4 mb-6" data-testid="tabs-financials">
             <TabsTrigger value="pipeline" className="gap-2" data-testid="tab-pipeline">
@@ -889,7 +875,7 @@ export default function AdminFinancialsPage() {
             <ServicingTab />
           </TabsContent>
         </Tabs>
-      </main>
+      </div>
     </div>
   );
 }

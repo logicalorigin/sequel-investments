@@ -9,9 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Palette, Building2, Phone, Mail, MapPin, Type, RotateCcw, Save, Eye, ArrowLeft, Image } from "lucide-react";
-import { Navigation } from "@/components/Navigation";
-import { Footer } from "@/components/Footer";
+import { Palette, Building2, Phone, Mail, MapPin, Type, RotateCcw, Save, Eye, Image } from "lucide-react";
 import type { WhiteLabelSettings } from "@shared/schema";
 
 interface WhiteLabelSettingsWithMeta extends Partial<WhiteLabelSettings> {
@@ -117,59 +115,33 @@ export default function AdminWhiteLabelPage() {
 
   if (authLoading || settingsLoading) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navigation />
-        <div className="max-w-4xl mx-auto px-6 py-12">
-          <div className="flex items-center justify-center">
-            <div className="animate-pulse text-muted-foreground">Loading...</div>
-          </div>
-        </div>
-        <Footer />
+      <div className="h-full flex items-center justify-center">
+        <div className="animate-pulse text-muted-foreground">Loading...</div>
       </div>
     );
   }
 
   if (!isAuthenticated || (user?.role !== "admin" && user?.role !== "staff")) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navigation />
-        <div className="max-w-4xl mx-auto px-6 py-12">
-          <Card>
-            <CardHeader>
-              <CardTitle>Access Denied</CardTitle>
-              <CardDescription>You must be an admin to access this page.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button onClick={() => navigate("/admin/login")} data-testid="button-admin-login">
-                Go to Admin Login
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-        <Footer />
+      <div className="h-full flex items-center justify-center">
+        <Card className="max-w-md">
+          <CardHeader>
+            <CardTitle>Access Denied</CardTitle>
+            <CardDescription>You must be an admin to access this page.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => navigate("/admin/login")} data-testid="button-admin-login">
+              Go to Admin Login
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navigation />
+    <div className="h-full">
       <div className="max-w-5xl mx-auto px-6 py-12">
-        <div className="flex items-center gap-4 mb-8">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => navigate("/admin")}
-            data-testid="button-back-admin"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">White-Label Settings</h1>
-            <p className="text-muted-foreground">Customize branding for broker demonstrations</p>
-          </div>
-        </div>
-
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <form onSubmit={handleSubmit} className="space-y-6">
             <Card>
@@ -464,7 +436,6 @@ export default function AdminWhiteLabelPage() {
           </div>
         </div>
       </div>
-      <Footer />
     </div>
   );
 }

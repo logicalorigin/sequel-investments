@@ -1,11 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { useLocation, Link } from "wouter";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  ArrowLeft,
   TrendingUp,
   TrendingDown,
   DollarSign,
@@ -14,12 +13,6 @@ import {
   PieChart,
   MapPin,
   Users,
-  FileText,
-  Briefcase,
-  LogOut,
-  LayoutGrid,
-  Settings,
-  Webhook,
 } from "lucide-react";
 import {
   BarChart,
@@ -140,61 +133,6 @@ function StatCard({
   );
 }
 
-function AdminSidebar() {
-  const [location] = useLocation();
-  
-  const navItems = [
-    { href: "/admin", label: "Dashboard", icon: LayoutGrid },
-    { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
-    { href: "/admin/servicing", label: "Loan Servicing", icon: Briefcase },
-  ];
-  
-  const handleLogout = async () => {
-    try {
-      await apiRequest("POST", "/api/staff/logout");
-      window.location.href = "/admin/login";
-    } catch (error) {
-      console.error("Logout failed:", error);
-    }
-  };
-  
-  return (
-    <div className="w-64 bg-card border-r flex flex-col h-screen">
-      <div className="p-4 border-b">
-        <h1 className="text-xl font-bold" style={{ color: GOLD_COLOR }}>Sequel Admin</h1>
-      </div>
-      <nav className="flex-1 p-4 space-y-1">
-        {navItems.map((item) => (
-          <Link key={item.href} href={item.href}>
-            <a
-              className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
-                location === item.href
-                  ? "bg-primary/10 text-primary"
-                  : "hover:bg-muted"
-              }`}
-              data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
-            >
-              <item.icon className="h-4 w-4" />
-              <span>{item.label}</span>
-            </a>
-          </Link>
-        ))}
-      </nav>
-      <div className="p-4 border-t">
-        <Button
-          variant="ghost"
-          className="w-full justify-start gap-3"
-          onClick={handleLogout}
-          data-testid="button-logout"
-        >
-          <LogOut className="h-4 w-4" />
-          Logout
-        </Button>
-      </div>
-    </div>
-  );
-}
-
 export default function AdminAnalyticsPage() {
   const [, navigate] = useLocation();
   
@@ -249,24 +187,9 @@ export default function AdminAnalyticsPage() {
     : 0;
   
   return (
-    <div className="flex min-h-screen bg-background">
-      <AdminSidebar />
-      
-      <div className="flex-1 flex flex-col">
-        <header className="h-14 border-b flex items-center px-6 gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate("/admin")}
-            data-testid="button-back"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <h1 className="text-lg font-semibold">Analytics Dashboard</h1>
-        </header>
-        
-        <ScrollArea className="flex-1">
-          <div className="p-6 space-y-6">
+    <div className="h-full">
+      <ScrollArea className="h-full">
+        <div className="p-6 space-y-6">
             {isLoading ? (
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -534,9 +457,8 @@ export default function AdminAnalyticsPage() {
                 </Card>
               </>
             ) : null}
-          </div>
-        </ScrollArea>
-      </div>
+        </div>
+      </ScrollArea>
     </div>
   );
 }
