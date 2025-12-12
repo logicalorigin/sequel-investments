@@ -46,6 +46,7 @@ import {
   revisionRequests,
   applicationMessages,
   staffMessagePreferences,
+  messageTemplates,
   type User, 
   type UpsertUser,
   type Lead, 
@@ -145,6 +146,9 @@ import {
   type InsertApplicationMessage,
   type StaffMessagePreferences,
   type InsertStaffMessagePreferences,
+  type MessageTemplate,
+  type InsertMessageTemplate,
+  type MessagePriority,
   DEFAULT_DOCUMENT_TYPES,
   DEFAULT_BUSINESS_HOURS,
 } from "@shared/schema";
@@ -3134,6 +3138,177 @@ export class DatabaseStorage implements IStorage {
         updatedAt: new Date(),
       })
       .where(eq(staffMessagePreferences.staffUserId, staffUserId));
+  }
+  
+  // Message property updates (star, archive, priority, read)
+  async updateMessageProperties(id: string, updates: {
+    isStarred?: boolean;
+    isArchived?: boolean;
+    isRead?: boolean;
+    priority?: MessagePriority;
+  }): Promise<ApplicationMessage | undefined> {
+    const setData: any = { ...updates };
+    if (updates.isRead === true) {
+      setData.readAt = new Date();
+    }
+    const [updated] = await db
+      .update(applicationMessages)
+      .set(setData)
+      .where(eq(applicationMessages.id, id))
+      .returning();
+    return updated;
+  }
+  
+  async bulkUpdateMessages(ids: string[], updates: {
+    isStarred?: boolean;
+    isArchived?: boolean;
+    isRead?: boolean;
+    priority?: MessagePriority;
+  }): Promise<number> {
+    if (ids.length === 0) return 0;
+    const setData: any = { ...updates };
+    if (updates.isRead === true) {
+      setData.readAt = new Date();
+    }
+    const result = await db
+      .update(applicationMessages)
+      .set(setData)
+      .where(inArray(applicationMessages.id, ids));
+    return ids.length;
+  }
+  
+  // Message templates CRUD
+  async getMessageTemplates(userId?: string): Promise<MessageTemplate[]> {
+    if (userId) {
+      return db
+        .select()
+        .from(messageTemplates)
+        .where(
+          or(
+            eq(messageTemplates.isGlobal, true),
+            eq(messageTemplates.createdByUserId, userId)
+          )
+        )
+        .orderBy(messageTemplates.category, messageTemplates.name);
+    }
+    return db
+      .select()
+      .from(messageTemplates)
+      .where(eq(messageTemplates.isGlobal, true))
+      .orderBy(messageTemplates.category, messageTemplates.name);
+  }
+  
+  async getMessageTemplate(id: string): Promise<MessageTemplate | undefined> {
+    const [template] = await db
+      .select()
+      .from(messageTemplates)
+      .where(eq(messageTemplates.id, id));
+    return template;
+  }
+  
+  async createMessageTemplate(data: InsertMessageTemplate): Promise<MessageTemplate> {
+    const [template] = await db
+      .insert(messageTemplates)
+      .values(data)
+      .returning();
+    return template;
+  }
+  
+  async updateMessageTemplate(id: string, data: Partial<InsertMessageTemplate>): Promise<MessageTemplate | undefined> {
+    const [updated] = await db
+      .update(messageTemplates)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(messageTemplates.id, id))
+      .returning();
+    return updated;
+  }
+  
+  async deleteMessageTemplate(id: string): Promise<boolean> {
+    const result = await db
+      .delete(messageTemplates)
+      .where(eq(messageTemplates.id, id));
+    return true;
+  }
+  
+  async incrementTemplateUsage(id: string): Promise<void> {
+    await db
+      .update(messageTemplates)
+      .set({
+        usageCount: sql`${messageTemplates.usageCount} + 1`,
+        lastUsedAt: new Date(),
+      })
+      .where(eq(messageTemplates.id, id));
+  }
+  
+  // Search messages for staff (with filters)
+  async searchMessagesForStaff(options: {
+    filter?: 'all' | 'unread' | 'starred' | 'archived';
+    search?: string;
+    applicationId?: string;
+  }): Promise<{
+    applicationId: string;
+    propertyAddress: string | null;
+    loanType: string;
+    status: string;
+    borrowerName: string;
+    borrowerEmail: string | null;
+    latestMessage: ApplicationMessage | null;
+    unreadCount: number;
+    totalMessages: number;
+    hasStarred: boolean;
+    isArchived: boolean;
+  }[]> {
+    // Get base threads first
+    let threads = await this.getMessageThreadsForStaff();
+    
+    // Apply filters
+    if (options.filter === 'unread') {
+      threads = threads.filter(t => t.unreadCount > 0);
+    } else if (options.filter === 'starred') {
+      // Need to check if any message in thread is starred
+      const threadsWithStarred = [];
+      for (const thread of threads) {
+        const starredMessages = await db
+          .select()
+          .from(applicationMessages)
+          .where(and(
+            eq(applicationMessages.loanApplicationId, thread.applicationId),
+            eq(applicationMessages.isStarred, true)
+          ))
+          .limit(1);
+        if (starredMessages.length > 0) {
+          threadsWithStarred.push({ ...thread, hasStarred: true, isArchived: false });
+        }
+      }
+      return threadsWithStarred;
+    } else if (options.filter === 'archived') {
+      // Get threads where latest message is archived
+      const archivedThreads = [];
+      for (const thread of threads) {
+        if (thread.latestMessage?.isArchived) {
+          archivedThreads.push({ ...thread, hasStarred: false, isArchived: true });
+        }
+      }
+      return archivedThreads;
+    }
+    
+    // Apply search
+    if (options.search) {
+      const searchLower = options.search.toLowerCase();
+      threads = threads.filter(t =>
+        t.borrowerName.toLowerCase().includes(searchLower) ||
+        t.propertyAddress?.toLowerCase().includes(searchLower) ||
+        t.latestMessage?.content.toLowerCase().includes(searchLower) ||
+        t.latestMessage?.subject?.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    // Apply applicationId filter
+    if (options.applicationId) {
+      threads = threads.filter(t => t.applicationId === options.applicationId);
+    }
+    
+    return threads.map(t => ({ ...t, hasStarred: false, isArchived: false }));
   }
 }
 
