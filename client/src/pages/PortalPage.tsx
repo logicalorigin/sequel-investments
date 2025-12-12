@@ -267,13 +267,16 @@ export default function PortalPage() {
         </div>
 
         {/* Analyze a New Deal Section */}
-        <div className="mb-6 sm:mb-10">
-          <h2 className="text-lg sm:text-xl font-bold mb-2 sm:mb-4">Analyze a New Deal</h2>
-          <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
+        <section className="mb-8 sm:mb-12" data-testid="section-analyze-deal">
+          <div className="flex items-center gap-2 mb-3 sm:mb-4">
+            <Calculator className="h-5 w-5 text-primary" />
+            <h2 className="text-lg sm:text-xl font-bold">Analyze a New Deal</h2>
+          </div>
+          <p className="text-xs sm:text-sm text-muted-foreground mb-4 sm:mb-5">
             Select a loan type to begin analyzing your next investment opportunity.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-            <Card className="hover-elevate cursor-pointer flex flex-col h-full" onClick={() => setLocation("/portal/dscr-analyzer")} data-testid="card-analyze-dscr">
+            <Card className="hover-elevate cursor-pointer flex flex-col h-full border-primary/20" onClick={() => setLocation("/portal/dscr-analyzer")} data-testid="card-analyze-dscr">
               <CardHeader className="p-4 pb-2 flex-1">
                 <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
                   <Home className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0" />
@@ -289,7 +292,7 @@ export default function PortalPage() {
               </CardContent>
             </Card>
 
-            <Card className="hover-elevate cursor-pointer flex flex-col h-full" onClick={() => setLocation("/portal/fixflip-analyzer")} data-testid="card-analyze-fixflip">
+            <Card className="hover-elevate cursor-pointer flex flex-col h-full border-primary/20" onClick={() => setLocation("/portal/fixflip-analyzer")} data-testid="card-analyze-fixflip">
               <CardHeader className="p-4 pb-2 flex-1">
                 <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
                   <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0" />
@@ -305,7 +308,7 @@ export default function PortalPage() {
               </CardContent>
             </Card>
 
-            <Card className="hover-elevate cursor-pointer flex flex-col h-full" onClick={() => setLocation("/portal/construction-analyzer")} data-testid="card-analyze-construction">
+            <Card className="hover-elevate cursor-pointer flex flex-col h-full border-primary/20" onClick={() => setLocation("/portal/construction-analyzer")} data-testid="card-analyze-construction">
               <CardHeader className="p-4 pb-2 flex-1">
                 <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
                   <Building2 className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0" />
@@ -321,12 +324,15 @@ export default function PortalPage() {
               </CardContent>
             </Card>
           </div>
-        </div>
+        </section>
 
         {/* Active Loans Section */}
-        <div className="mb-6 sm:mb-10">
-          <div className="flex items-center justify-between mb-2 sm:mb-4">
-            <h2 className="text-lg sm:text-xl font-bold">Active Loans</h2>
+        <section className="mb-8 sm:mb-12" data-testid="section-active-loans">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <div className="flex items-center gap-2">
+              <Banknote className="h-5 w-5 text-primary" />
+              <h2 className="text-lg sm:text-xl font-bold">Active Loans</h2>
+            </div>
             {servicedLoans && servicedLoans.length > 0 && (
               <Button variant="ghost" size="sm" onClick={() => setLocation("/portal/loans")} data-testid="button-view-all-loans">
                 View All
@@ -395,11 +401,14 @@ export default function PortalPage() {
               </CardContent>
             </Card>
           )}
-        </div>
+        </section>
 
         {/* Your Previous Applications Section */}
-        <div>
-          <h2 className="text-lg sm:text-xl font-bold mb-2 sm:mb-4">Your Previous Applications</h2>
+        <section data-testid="section-applications">
+          <div className="flex items-center gap-2 mb-3 sm:mb-4">
+            <FileText className="h-5 w-5 text-primary" />
+            <h2 className="text-lg sm:text-xl font-bold">Your Applications</h2>
+          </div>
           
           {appsLoading ? (
             <div className="animate-pulse space-y-3 sm:space-y-4">
@@ -468,7 +477,7 @@ export default function PortalPage() {
               </CardContent>
             </Card>
           )}
-        </div>
+        </section>
       </main>
 
       {/* Delete Confirmation Dialog */}

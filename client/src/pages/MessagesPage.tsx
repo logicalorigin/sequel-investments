@@ -18,7 +18,8 @@ import {
   ChevronRight,
   Search,
   Building2,
-  Clock
+  Clock,
+  ArrowLeft
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import type { ApplicationMessage } from "@shared/schema";
@@ -155,8 +156,8 @@ export default function MessagesPage() {
           </Card>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Conversations List */}
-            <div className="lg:col-span-1">
+            {/* Conversations List - Hidden on mobile when a conversation is selected */}
+            <div className={`lg:col-span-1 ${selectedLoanId ? 'hidden lg:block' : ''}`}>
               <Card>
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between gap-2">
@@ -249,24 +250,36 @@ export default function MessagesPage() {
               </Card>
             </div>
 
-            {/* Message Thread */}
-            <div className="lg:col-span-2">
+            {/* Message Thread - Full width on mobile when selected */}
+            <div className={`lg:col-span-2 ${!selectedLoanId ? 'hidden lg:block' : ''}`}>
               <Card className="h-full">
                 {selectedGroup ? (
                   <>
                     <CardHeader className="pb-3 border-b">
                       <div className="flex items-center justify-between gap-2">
-                        <div>
-                          <CardTitle className="text-lg">
-                            {selectedGroup.loan.propertyAddress || "Property TBD"}
-                          </CardTitle>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {loanTypeLabels[selectedGroup.loan.loanType] || selectedGroup.loan.loanType} Loan
-                          </p>
+                        <div className="flex items-center gap-3">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="lg:hidden shrink-0"
+                            onClick={() => setSelectedLoanId(null)}
+                            data-testid="button-back-to-list"
+                          >
+                            <ArrowLeft className="h-5 w-5" />
+                          </Button>
+                          <div>
+                            <CardTitle className="text-lg">
+                              {selectedGroup.loan.propertyAddress || "Property TBD"}
+                            </CardTitle>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {loanTypeLabels[selectedGroup.loan.loanType] || selectedGroup.loan.loanType} Loan
+                            </p>
+                          </div>
                         </div>
                         <Link href={`/portal/application/${selectedGroup.loan.id}`}>
                           <Button variant="outline" size="sm" data-testid="button-view-application">
-                            View Application
+                            <span className="hidden sm:inline">View Application</span>
+                            <span className="sm:hidden">View</span>
                             <ChevronRight className="h-4 w-4 ml-1" />
                           </Button>
                         </Link>
