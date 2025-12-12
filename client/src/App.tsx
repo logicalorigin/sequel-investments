@@ -74,6 +74,8 @@ import SignDocumentPage from "@/pages/SignDocumentPage";
 import MessagesPage from "@/pages/MessagesPage";
 import AdminMessagesPage from "@/pages/AdminMessagesPage";
 import AdminDrawRequestsPage from "@/pages/AdminDrawRequestsPage";
+import AdminUsersPage from "@/pages/AdminUsersPage";
+import AdminWebhooksPage from "@/pages/AdminWebhooksPage";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -124,6 +126,8 @@ function Router() {
       <Route path="/admin/map-calibration">{() => <AdminLayout><MapCalibrationPage /></AdminLayout>}</Route>
       <Route path="/admin/messages">{() => <AdminLayout><AdminMessagesPage /></AdminLayout>}</Route>
       <Route path="/admin/draw-requests">{() => <AdminLayout><AdminDrawRequestsPage /></AdminLayout>}</Route>
+      <Route path="/admin/users">{() => <AdminLayout><AdminUsersPage /></AdminLayout>}</Route>
+      <Route path="/admin/webhooks">{() => <AdminLayout><AdminWebhooksPage /></AdminLayout>}</Route>
       <Route path="/portal/book-consultation" component={BookConsultationPage} />
       <Route path="/portal/appointments" component={MyAppointmentsPage} />
       <Route path="/portal/messages" component={MessagesPage} />
