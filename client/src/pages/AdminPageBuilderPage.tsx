@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import {
   GripVertical,
@@ -25,6 +26,8 @@ import {
   Loader2,
   LayoutTemplate,
   X,
+  Plus,
+  FileText,
 } from "lucide-react";
 import type {
   PageLayout,
@@ -36,7 +39,9 @@ import type {
   FAQSectionConfig,
   FeatureHighlightsSectionConfig,
   CTABannerSectionConfig,
+  PageTemplateId,
 } from "@shared/schema";
+import { SECTION_PRESETS, PAGE_TEMPLATES, type SectionPresetCategory } from "@shared/schema";
 
 const SECTION_TYPE_LABELS: Record<string, string> = {
   hero: "Hero Section",
@@ -62,6 +67,156 @@ const PAGE_LABELS: Record<string, string> = {
   contact: "Contact Page",
   resources: "Resources Page",
 };
+
+const PRESET_CATEGORY_LABELS: Record<SectionPresetCategory, string> = {
+  hero: "Hero Sections",
+  trust: "Trust Indicators",
+  products: "Loan Products",
+  testimonials: "Testimonials",
+  faq: "FAQ Sections",
+  features: "Feature Highlights",
+  cta: "Call to Action",
+  content: "Custom Content",
+  map: "Maps",
+  form: "Lead Forms",
+  stats: "Stats Bars",
+  funded: "Recently Funded",
+};
+
+interface AddSectionDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onAddSection: (preset: typeof SECTION_PRESETS[number]) => void;
+}
+
+function AddSectionDialog({ open, onOpenChange, onAddSection }: AddSectionDialogProps) {
+  const [selectedCategory, setSelectedCategory] = useState<SectionPresetCategory | "all">("all");
+
+  const filteredPresets = selectedCategory === "all"
+    ? SECTION_PRESETS
+    : SECTION_PRESETS.filter((p) => p.category === selectedCategory);
+
+  const categories: (SectionPresetCategory | "all")[] = ["all", "hero", "trust", "products", "testimonials", "faq", "features", "cta", "stats", "form", "funded", "map", "content"];
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl max-h-[80vh]">
+        <DialogHeader>
+          <DialogTitle>Add Section</DialogTitle>
+          <DialogDescription>Choose a pre-built section to add to your page</DialogDescription>
+        </DialogHeader>
+        <div className="flex gap-4">
+          <div className="w-48 shrink-0">
+            <ScrollArea className="h-[400px]">
+              <div className="space-y-1 pr-2">
+                {categories.map((cat) => (
+                  <Button
+                    key={cat}
+                    variant={selectedCategory === cat ? "secondary" : "ghost"}
+                    className="w-full justify-start text-sm"
+                    onClick={() => setSelectedCategory(cat)}
+                    data-testid={`button-category-${cat}`}
+                  >
+                    {cat === "all" ? "All Sections" : PRESET_CATEGORY_LABELS[cat]}
+                  </Button>
+                ))}
+              </div>
+            </ScrollArea>
+          </div>
+          <div className="flex-1">
+            <ScrollArea className="h-[400px]">
+              <div className="grid grid-cols-1 gap-3 pr-4">
+                {filteredPresets.map((preset) => (
+                  <Card
+                    key={preset.id}
+                    className="cursor-pointer hover-elevate"
+                    onClick={() => {
+                      onAddSection(preset);
+                      onOpenChange(false);
+                    }}
+                    data-testid={`card-preset-${preset.id}`}
+                  >
+                    <CardHeader className="p-4 pb-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <CardTitle className="text-sm">{preset.name}</CardTitle>
+                        <Badge variant="outline" className="text-xs shrink-0">
+                          {SECTION_TYPE_LABELS[preset.type]}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-0">
+                      <CardDescription className="text-xs">{preset.description}</CardDescription>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </ScrollArea>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+interface ApplyTemplateDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  currentPageId: string;
+  onApplyTemplate: (template: typeof PAGE_TEMPLATES[PageTemplateId]) => void;
+}
+
+function ApplyTemplateDialog({ open, onOpenChange, currentPageId, onApplyTemplate }: ApplyTemplateDialogProps) {
+  const template = PAGE_TEMPLATES[currentPageId as PageTemplateId];
+
+  if (!template) {
+    return null;
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Apply Recommended Template</DialogTitle>
+          <DialogDescription>
+            This will replace all current sections with the recommended layout for this page.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <Card>
+            <CardHeader className="p-4">
+              <CardTitle className="text-sm">{template.name}</CardTitle>
+              <CardDescription className="text-xs">{template.description}</CardDescription>
+            </CardHeader>
+            <CardContent className="p-4 pt-0">
+              <div className="text-xs text-muted-foreground mb-2">Includes {template.sections.length} sections:</div>
+              <div className="flex flex-wrap gap-1">
+                {template.sections.map((s) => (
+                  <Badge key={s.id} variant="secondary" className="text-xs">
+                    {SECTION_TYPE_LABELS[s.type]}
+                  </Badge>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)} data-testid="button-cancel-template">
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                onApplyTemplate(template);
+                onOpenChange(false);
+              }}
+              data-testid="button-confirm-template"
+            >
+              Apply Template
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 function HeroConfigPanel({ config, onChange }: { config: HeroSectionConfig; onChange: (config: HeroSectionConfig) => void }) {
   return (
@@ -483,6 +638,8 @@ export default function AdminPageBuilderPage() {
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const [localSections, setLocalSections] = useState<PageSection[] | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
+  const [addSectionOpen, setAddSectionOpen] = useState(false);
+  const [applyTemplateOpen, setApplyTemplateOpen] = useState(false);
 
   const { data: layout, isLoading } = useQuery<PageLayout>({
     queryKey: ["/api/page-layouts", selectedPageId],
@@ -570,6 +727,32 @@ export default function AdminPageBuilderPage() {
     setHasChanges(true);
   }, [layout?.sections]);
 
+  const addSection = useCallback((preset: typeof SECTION_PRESETS[number]) => {
+    const newSection: PageSection = {
+      id: `${preset.type}-${Date.now()}`,
+      type: preset.type,
+      title: preset.name,
+      isVisible: true,
+      order: sections.length,
+      config: { ...preset.config },
+    };
+    setLocalSections((prev) => [...(prev ?? layout?.sections ?? []), newSection]);
+    setHasChanges(true);
+    toast({ title: "Section added", description: `Added "${preset.name}" to the page.` });
+  }, [sections.length, layout?.sections, toast]);
+
+  const applyTemplate = useCallback((template: typeof PAGE_TEMPLATES[PageTemplateId]) => {
+    const normalizedSections = template.sections.map((s, i) => ({
+      ...s,
+      id: `${s.type}-${Date.now()}-${i}`,
+      order: i,
+      isVisible: true,
+    }));
+    setLocalSections(normalizedSections);
+    setHasChanges(true);
+    toast({ title: "Template applied", description: `Applied "${template.name}" template.` });
+  }, [toast]);
+
   const handlePageChange = (pageId: string) => {
     if (hasChanges) {
       if (!confirm("You have unsaved changes. Are you sure you want to switch pages?")) {
@@ -626,6 +809,14 @@ export default function AdminPageBuilderPage() {
               <RotateCcw className="h-4 w-4 mr-2" />
             )}
             Reset to Default
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setAddSectionOpen(true)}
+            data-testid="button-add-section"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Section
           </Button>
           <Button
             onClick={handleSave}
@@ -772,6 +963,15 @@ export default function AdminPageBuilderPage() {
                         <X className="h-4 w-4 mr-2" />
                         Collapse All Panels
                       </Button>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start"
+                        onClick={() => setApplyTemplateOpen(true)}
+                        data-testid="button-apply-template"
+                      >
+                        <FileText className="h-4 w-4 mr-2" />
+                        Apply Template
+                      </Button>
                     </CardContent>
                   </Card>
                 </div>
@@ -780,6 +980,18 @@ export default function AdminPageBuilderPage() {
           </TabsContent>
         ))}
       </Tabs>
+
+      <AddSectionDialog
+        open={addSectionOpen}
+        onOpenChange={setAddSectionOpen}
+        onAddSection={addSection}
+      />
+      <ApplyTemplateDialog
+        open={applyTemplateOpen}
+        onOpenChange={setApplyTemplateOpen}
+        currentPageId={selectedPageId}
+        onApplyTemplate={applyTemplate}
+      />
     </div>
   );
 }
