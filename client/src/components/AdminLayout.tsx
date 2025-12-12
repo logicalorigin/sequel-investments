@@ -57,7 +57,7 @@ const operationsNavItems = [
 const settingsNavItems = [
   { title: "Users", href: "/admin/users", icon: Users },
   { title: "Webhooks", href: "/admin/webhooks", icon: Webhook },
-  { title: "White Label", href: "/admin/white-label", icon: Settings },
+  { title: "Customize Site", href: "/admin/white-label", icon: Settings },
 ];
 
 function AdminSidebar() {

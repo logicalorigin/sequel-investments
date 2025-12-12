@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { useRoute, Link, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { compressBlob } from "@/lib/imageCompression";
 import { Camera, Video, X, Check, ChevronLeft, ChevronRight, Trash2, Play, Pause, RotateCcw, Image as ImageIcon, Film, Loader2, Menu, DollarSign, CheckCircle2, Circle, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -226,7 +227,7 @@ export default function DrawMediaCapturePage() {
     };
   }, [stopCamera]);
   
-  const capturePhoto = useCallback(() => {
+  const capturePhoto = useCallback(async () => {
     if (!videoRef.current || !canvasRef.current) return;
     
     setIsCapturing(true);
@@ -239,15 +240,23 @@ export default function DrawMediaCapturePage() {
     const ctx = canvas.getContext("2d");
     if (ctx) {
       ctx.drawImage(video, 0, 0);
-      canvas.toBlob((blob) => {
+      canvas.toBlob(async (blob) => {
         if (blob) {
           const id = `capture-${Date.now()}`;
-          const file = new File([blob], `photo-${Date.now()}.jpg`, { type: "image/jpeg" });
-          const previewUrl = URL.createObjectURL(blob);
+          
+          // Compress the captured photo
+          const compressedFile = await compressBlob(blob, `photo-${Date.now()}.jpg`, {
+            maxWidth: 1920,
+            maxHeight: 1440,
+            quality: 0.8,
+            maxFileSizeMB: 1,
+          });
+          
+          const previewUrl = URL.createObjectURL(compressedFile);
           
           setCapturedMedia(prev => [...prev, {
             id,
-            file,
+            file: compressedFile,
             type: "photo",
             category: selectedCategory,
             previewUrl,
