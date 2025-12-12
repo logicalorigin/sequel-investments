@@ -5294,6 +5294,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get all messages across all applications for the logged-in borrower (master messages hub)
+  app.get("/api/my-messages", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.role !== "borrower") {
+        return res.status(403).json({ error: "Only borrowers can access this endpoint" });
+      }
+      
+      const messagesWithLoans = await storage.getAllMessagesForUser(userId);
+      
+      // Group messages by loan application for the master hub
+      const groupedByLoan: Record<string, {
+        loan: { id: string; propertyAddress: string | null; loanType: string; status: string };
+        messages: typeof messagesWithLoans[0]['message'][];
+        unreadCount: number;
+        latestMessage: typeof messagesWithLoans[0]['message'] | null;
+      }> = {};
+      
+      for (const item of messagesWithLoans) {
+        const loanId = item.loan.id;
+        if (!groupedByLoan[loanId]) {
+          groupedByLoan[loanId] = {
+            loan: item.loan,
+            messages: [],
+            unreadCount: 0,
+            latestMessage: null
+          };
+        }
+        groupedByLoan[loanId].messages.push(item.message);
+        
+        // Count unread messages not sent by this user
+        if (!item.message.isRead && item.message.senderUserId !== userId) {
+          groupedByLoan[loanId].unreadCount++;
+        }
+        
+        // Track latest message (first one since sorted by desc)
+        if (!groupedByLoan[loanId].latestMessage) {
+          groupedByLoan[loanId].latestMessage = item.message;
+        }
+      }
+      
+      // Convert to array and sort by latest message
+      const result = Object.values(groupedByLoan).sort((a, b) => {
+        const aTime = a.latestMessage ? new Date(a.latestMessage.createdAt).getTime() : 0;
+        const bTime = b.latestMessage ? new Date(b.latestMessage.createdAt).getTime() : 0;
+        return bTime - aTime;
+      });
+      
+      return res.json(result);
+    } catch (error) {
+      console.error("Error fetching all messages for user:", error);
+      return res.status(500).json({ error: "Failed to fetch messages" });
+    }
+  });
+  
+  // Get total unread message count across all applications for logged-in borrower
+  app.get("/api/my-messages/unread-count", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.role !== "borrower") {
+        return res.status(403).json({ error: "Only borrowers can access this endpoint" });
+      }
+      
+      const totalUnread = await storage.getTotalUnreadCountForUser(userId);
+      return res.json({ unreadCount: totalUnread });
+    } catch (error) {
+      console.error("Error fetching total unread count:", error);
+      return res.status(500).json({ error: "Failed to fetch unread count" });
+    }
+  });
+  
   // ============================================
   // ADMIN VERIFICATION PHOTO ROUTES
   // ============================================

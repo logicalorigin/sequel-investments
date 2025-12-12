@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LogOut, User, Calculator, ChevronDown, Home, Hammer, HardHat, Bell, Check, FileText, AlertCircle, Users, DollarSign, X, ArrowLeft } from "lucide-react";
+import { LogOut, User, Calculator, ChevronDown, Home, Hammer, HardHat, Bell, Check, FileText, AlertCircle, Users, DollarSign, X, ArrowLeft, MessageSquare } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -83,6 +83,7 @@ export function PortalHeader({ user, title, titleExtra, backHref, hideTitleOnMob
     location === "/portal/fixflip-analyzer" || 
     location === "/portal/construction-analyzer";
   const isProfile = location === "/portal/profile";
+  const isMessages = location === "/portal/messages";
 
   const { data: notifications = [] } = useQuery<Notification[]>({
     queryKey: ["/api/notifications"],
@@ -90,6 +91,10 @@ export function PortalHeader({ user, title, titleExtra, backHref, hideTitleOnMob
 
   const { data: unreadCount } = useQuery<{ count: number }>({
     queryKey: ["/api/notifications/unread-count"],
+  });
+  
+  const { data: messageUnreadCount } = useQuery<{ unreadCount: number }>({
+    queryKey: ["/api/my-messages/unread-count"],
   });
 
   const markReadMutation = useMutation({
@@ -157,6 +162,22 @@ export function PortalHeader({ user, title, titleExtra, backHref, hideTitleOnMob
               data-testid="link-portfolio"
             >
               Portfolio
+            </Button>
+          </Link>
+          <Link href="/portal/messages">
+            <Button 
+              variant="ghost" 
+              size="icon"
+              className={`relative sm:w-auto sm:px-3 ${isMessages ? "bg-primary/10" : ""}`}
+              data-testid="link-messages"
+            >
+              <MessageSquare className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline text-sm">Messages</span>
+              {(messageUnreadCount?.unreadCount ?? 0) > 0 && (
+                <span className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-xs font-bold">
+                  {(messageUnreadCount?.unreadCount ?? 0) > 9 ? "9+" : messageUnreadCount?.unreadCount}
+                </span>
+              )}
             </Button>
           </Link>
           <DropdownMenu>
