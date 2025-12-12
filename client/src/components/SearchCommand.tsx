@@ -129,7 +129,7 @@ export function SearchCommand({ context = "public", open, onOpenChange }: Search
     setQuery(suggestion);
   };
 
-  const groupedResults = results?.results.reduce((acc, result) => {
+  const groupedResults = results?.results?.reduce((acc, result) => {
     const group = result.type;
     if (!acc[group]) {
       acc[group] = [];
@@ -163,7 +163,7 @@ export function SearchCommand({ context = "public", open, onOpenChange }: Search
           </div>
         )}
         
-        {!isLoading && query.length >= 2 && (!results || results.results.length === 0) && (
+        {!isLoading && query.length >= 2 && (!results || !results.results || results.results.length === 0) && (
           <CommandEmpty>No results found for "{query}"</CommandEmpty>
         )}
 
