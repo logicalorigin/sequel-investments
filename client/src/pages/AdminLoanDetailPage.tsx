@@ -83,7 +83,7 @@ import { useState } from "react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { ServicedLoan, LoanPayment, LoanDraw, ScopeOfWorkItem, DrawLineItem, ScopeOfWorkCategory, DrawPhoto, PropertyLocation, PhotoVerificationStatus } from "@shared/schema";
-import { SCOPE_OF_WORK_CATEGORY_NAMES } from "@shared/schema";
+import { SCOPE_OF_WORK_CATEGORY_NAMES, NEW_CONSTRUCTION_CATEGORY_NAMES } from "@shared/schema";
 
 type EnrichedServicedLoan = ServicedLoan & {
   borrowerName: string;
@@ -470,6 +470,7 @@ export default function AdminLoanDetailPage() {
   const statusCfg = statusConfig[loan.loanStatus as keyof typeof statusConfig] || statusConfig.current;
   const TypeIcon = typeConfig.icon;
   const isHardMoney = loan.loanType !== "dscr";
+  const categoryNames = loan.loanType === "new_construction" ? NEW_CONSTRUCTION_CATEGORY_NAMES : SCOPE_OF_WORK_CATEGORY_NAMES;
   
   const rehabRemaining = isHardMoney 
     ? (loan.totalRehabBudget || 0) - (loan.totalDrawsFunded || 0) 
@@ -866,7 +867,7 @@ export default function AdminLoanDetailPage() {
                                     <AccordionItem key={cs.category} value={cs.category} className="border rounded-lg">
                                       <AccordionTrigger className="px-4 hover:no-underline" data-testid={`accordion-category-${cs.category}`}>
                                         <div className="flex items-center justify-between w-full pr-4">
-                                          <span className="font-medium">{SCOPE_OF_WORK_CATEGORY_NAMES[cs.category]}</span>
+                                          <span className="font-medium">{categoryNames[cs.category]}</span>
                                           <div className="flex items-center gap-4">
                                             <div className="w-32">
                                               <Progress value={categoryPercent} className="h-2" />
@@ -985,7 +986,7 @@ export default function AdminLoanDetailPage() {
                                       <div className="space-y-4">
                                         {categorySummaries.map((cs) => (
                                           <div key={cs.category}>
-                                            <h4 className="font-medium text-sm mb-2">{SCOPE_OF_WORK_CATEGORY_NAMES[cs.category]}</h4>
+                                            <h4 className="font-medium text-sm mb-2">{categoryNames[cs.category]}</h4>
                                             <div className="space-y-2">
                                               {cs.items.map((item) => {
                                                 const itemRemaining = item.budgetAmount - item.totalFunded;
