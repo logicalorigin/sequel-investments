@@ -461,6 +461,14 @@ export default function ApplicationDetailPage() {
                             (application.debtServicing || 0) + 
                             totalFees;
 
+  const analyzerUrl = application.analyzerType && application.analyzerData
+    ? `/portal/${
+        String(application.analyzerType) === "dscr" ? "dscr-analyzer" : 
+        String(application.analyzerType) === "fixflip" ? "fixflip-analyzer" : 
+        "construction-analyzer"
+      }?applicationId=${application.id}`
+    : null;
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card sticky top-0 z-50">
@@ -530,12 +538,8 @@ export default function ApplicationDetailPage() {
             </div>
           </div>
           <div className="flex items-center gap-2 overflow-x-auto max-w-full -mr-3 pr-3 sm:mr-0 sm:pr-0">
-            {application.analyzerType && application.analyzerData && (
-              <Link href={`/portal/${
-                application.analyzerType === "dscr" ? "dscr-analyzer" : 
-                application.analyzerType === "fixflip" ? "fixflip-analyzer" : 
-                "construction-analyzer"
-              }?applicationId=${application.id}`}>
+            {analyzerUrl && (
+              <Link href={analyzerUrl}>
                 <Button variant="outline" size="sm" className="shrink-0 text-xs sm:text-sm" data-testid="button-view-analyzer">
                   <Calculator className="h-4 w-4 sm:mr-2" />
                   <span className="hidden sm:inline">View Analysis</span>
