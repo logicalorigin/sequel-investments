@@ -4425,3 +4425,34 @@ export function getSectionPresetsByType(type: typeof sectionTypes[number]): Sect
 export function getPageTemplate(pageId: PageTemplateId): PageTemplate | undefined {
   return PAGE_TEMPLATES[pageId];
 }
+
+// ============================================
+// AI-POWERED SEARCH TYPES
+// ============================================
+
+export type SearchContext = "public" | "borrower" | "admin";
+
+export interface SearchIntent {
+  type: "navigate" | "filter" | "entity" | "question";
+  confidence: number;
+  route?: string;
+  filters?: Record<string, any>;
+  entityType?: string;
+  query: string;
+}
+
+export interface SearchResult {
+  id: string;
+  type: "page" | "product" | "resource" | "faq" | "application" | "document" | "user";
+  title: string;
+  description?: string;
+  url?: string;
+  icon?: string;
+  metadata?: Record<string, any>;
+}
+
+export interface SearchResponse {
+  intent: SearchIntent;
+  results: SearchResult[];
+  suggestions: string[];
+}

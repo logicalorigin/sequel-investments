@@ -49,6 +49,8 @@ import { smsTemplates } from "./sms-templates";
 import stripeRoutes from "./stripe-routes";
 import multer from "multer";
 import { parseSOWTemplate, parseSOWWithAI, type SOWParseResult } from "./services/sowParsingService";
+import { performSearch } from "./services/aiSearchService";
+import { z } from "zod";
 
 const sowUpload = multer({
   storage: multer.memoryStorage(),
@@ -218,6 +220,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({
         error: "Internal server error",
         message: "Failed to fetch leads.",
+      });
+    }
+  });
+
+  // AI-Powered Search endpoint
+  const searchRequestSchema = z.object({
+    query: z.string().min(1).max(500),
+    context: z.enum(["public", "borrower", "admin"]).default("public"),
+  });
+
+  app.post("/api/search", async (req: any, res) => {
+    try {
+      const validationResult = searchRequestSchema.safeParse(req.body);
+      
+      if (!validationResult.success) {
+        return res.status(400).json({
+          error: "Invalid request",
+          message: "Query is required and must be between 1-500 characters",
+        });
+      }
+
+      const { query, context } = validationResult.data;
+      
+      // Get user ID if authenticated (for borrower/admin portal search)
+      const userId = req.user?.claims?.sub || req.user?.id;
+      
+      // Perform context-appropriate search
+      const results = await performSearch(query, context, userId, storage);
+      
+      return res.json(results);
+    } catch (error) {
+      console.error("Search error:", error);
+      return res.status(500).json({
+        error: "Search failed",
+        message: "An error occurred while searching. Please try again.",
       });
     }
   });
