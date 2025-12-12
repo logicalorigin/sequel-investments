@@ -54,6 +54,14 @@ I prefer simple language. I want iterative development. Ask before making major 
     - **Application Messaging**: Threaded messaging between staff and borrowers per application. Messages show sender role badges, timestamps, and support file attachments. Unread count indicators on both portals.
     - **Email Notifications**: Automatic emails sent when staff request revisions (to borrower) and when borrower resubmits (to assigned staff members).
     - **API Endpoints**: `/api/applications/:id/revision-requests`, `/api/applications/:id/revision-requests/pending`, `/api/admin/applications/:id/revision-requests`, `/api/revision-requests/:id/resolve`, `/api/applications/:id/resubmit`, `/api/applications/:id/messages`, `/api/applications/:id/messages/unread-count`.
+- **Modular Page Builder** (Admin Feature):
+    - **Visual Section Editor**: Admin interface at `/admin/page-builder` for customizing website pages (home, dscr, fix_flip, construction, about, contact, resources).
+    - **Section Types**: Hero, Trust Indicators, Loan Products, Testimonials, FAQ, Lead Form, Recently Funded, State Map, Feature Highlights, CTA Banner, Custom Content, Stats Bar.
+    - **Configuration Panels**: Per-section config with variants, layouts, visibility toggles, and type-specific options.
+    - **Drag-Reorder**: Sections can be reordered with up/down buttons; order normalized on save.
+    - **API Endpoints**: `GET /api/page-layouts/:pageId`, `PUT /api/admin/page-layouts/:pageId`, `POST /api/admin/page-layouts/:pageId/reset`.
+    - **Zod Validation**: Discriminated union schema validates section configs by type, preventing malformed data.
+    - **Auto-Create Layouts**: Empty layouts auto-created for all valid page IDs on first access; home page gets default sections.
 - **SaaS Features**:
     - **Admin Analytics Dashboard**: Pipeline metrics and visualization.
     - **White-Label Demo Mode**: Customizable company branding, colors, and contact information.
