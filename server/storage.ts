@@ -45,6 +45,7 @@ import {
   loanAssignments,
   revisionRequests,
   applicationMessages,
+  staffMessagePreferences,
   type User, 
   type UpsertUser,
   type Lead, 
@@ -142,6 +143,8 @@ import {
   type InsertRevisionRequest,
   type ApplicationMessage,
   type InsertApplicationMessage,
+  type StaffMessagePreferences,
+  type InsertStaffMessagePreferences,
   DEFAULT_DOCUMENT_TYPES,
   DEFAULT_BUSINESS_HOURS,
 } from "@shared/schema";
@@ -475,6 +478,24 @@ export interface IStorage {
     loan: { id: string; propertyAddress: string | null; loanType: string; status: string };
   }[]>;
   getTotalUnreadCountForUser(userId: string): Promise<number>;
+  getMessageThreadsForStaff(): Promise<{
+    applicationId: string;
+    propertyAddress: string | null;
+    loanType: string;
+    status: string;
+    borrowerName: string;
+    borrowerEmail: string | null;
+    latestMessage: ApplicationMessage | null;
+    unreadCount: number;
+    totalMessages: number;
+  }[]>;
+  getTotalUnreadCountForStaff(): Promise<number>;
+  
+  // Staff message preferences operations
+  getStaffMessagePreferences(staffUserId: string): Promise<StaffMessagePreferences | undefined>;
+  upsertStaffMessagePreferences(data: InsertStaffMessagePreferences): Promise<StaffMessagePreferences>;
+  updateStaffHeartbeat(staffUserId: string): Promise<void>;
+  getOnlineStaff(thresholdMinutes?: number): Promise<User[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2870,6 +2891,168 @@ export class DatabaseStorage implements IStorage {
       ));
     
     return result[0]?.count || 0;
+  }
+  
+  async getMessageThreadsForStaff(): Promise<{
+    applicationId: string;
+    propertyAddress: string | null;
+    loanType: string;
+    status: string;
+    borrowerName: string;
+    borrowerEmail: string | null;
+    latestMessage: ApplicationMessage | null;
+    unreadCount: number;
+    totalMessages: number;
+  }[]> {
+    // Get all applications that have at least one message
+    const appsWithMessages = await db
+      .selectDistinct({ applicationId: applicationMessages.loanApplicationId })
+      .from(applicationMessages);
+    
+    if (appsWithMessages.length === 0) {
+      return [];
+    }
+    
+    const threads = [];
+    
+    for (const { applicationId } of appsWithMessages) {
+      const app = await db
+        .select()
+        .from(loanApplications)
+        .where(eq(loanApplications.id, applicationId))
+        .limit(1);
+      
+      if (!app[0]) continue;
+      
+      const borrower = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, app[0].userId))
+        .limit(1);
+      
+      // Get latest message
+      const latestMessages = await db
+        .select()
+        .from(applicationMessages)
+        .where(eq(applicationMessages.loanApplicationId, applicationId))
+        .orderBy(desc(applicationMessages.createdAt))
+        .limit(1);
+      
+      // Count unread messages from borrowers (messages staff hasn't read)
+      const unreadResult = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(applicationMessages)
+        .where(and(
+          eq(applicationMessages.loanApplicationId, applicationId),
+          eq(applicationMessages.senderRole, 'borrower'),
+          eq(applicationMessages.isRead, false)
+        ));
+      
+      // Count total messages
+      const totalResult = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(applicationMessages)
+        .where(eq(applicationMessages.loanApplicationId, applicationId));
+      
+      const user = borrower[0];
+      threads.push({
+        applicationId,
+        propertyAddress: app[0].propertyAddress,
+        loanType: app[0].loanType,
+        status: app[0].status,
+        borrowerName: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email || 'Unknown' : 'Unknown',
+        borrowerEmail: user?.email || null,
+        latestMessage: latestMessages[0] || null,
+        unreadCount: unreadResult[0]?.count || 0,
+        totalMessages: totalResult[0]?.count || 0,
+      });
+    }
+    
+    // Sort by latest message date
+    threads.sort((a, b) => {
+      const dateA = a.latestMessage?.createdAt ? new Date(a.latestMessage.createdAt).getTime() : 0;
+      const dateB = b.latestMessage?.createdAt ? new Date(b.latestMessage.createdAt).getTime() : 0;
+      return dateB - dateA;
+    });
+    
+    return threads;
+  }
+  
+  async getTotalUnreadCountForStaff(): Promise<number> {
+    // Count all unread messages from borrowers
+    const result = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(applicationMessages)
+      .where(and(
+        eq(applicationMessages.senderRole, 'borrower'),
+        eq(applicationMessages.isRead, false)
+      ));
+    
+    return result[0]?.count || 0;
+  }
+  
+  // Staff message preferences operations
+  async getStaffMessagePreferences(staffUserId: string): Promise<StaffMessagePreferences | undefined> {
+    const [prefs] = await db
+      .select()
+      .from(staffMessagePreferences)
+      .where(eq(staffMessagePreferences.staffUserId, staffUserId));
+    return prefs;
+  }
+  
+  async upsertStaffMessagePreferences(data: InsertStaffMessagePreferences): Promise<StaffMessagePreferences> {
+    const [prefs] = await db
+      .insert(staffMessagePreferences)
+      .values(data)
+      .onConflictDoUpdate({
+        target: staffMessagePreferences.staffUserId,
+        set: {
+          ...data,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return prefs;
+  }
+  
+  async updateStaffHeartbeat(staffUserId: string): Promise<void> {
+    // Upsert the heartbeat - create preferences if they don't exist
+    await db
+      .insert(staffMessagePreferences)
+      .values({
+        staffUserId,
+        lastHeartbeatAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: staffMessagePreferences.staffUserId,
+        set: {
+          lastHeartbeatAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
+  }
+  
+  async getOnlineStaff(thresholdMinutes: number = 2): Promise<User[]> {
+    const thresholdTime = new Date(Date.now() - thresholdMinutes * 60 * 1000);
+    
+    // Get all staff users who have a heartbeat within the threshold
+    const onlineStaff = await db
+      .select({
+        user: users,
+      })
+      .from(users)
+      .innerJoin(
+        staffMessagePreferences,
+        eq(users.id, staffMessagePreferences.staffUserId)
+      )
+      .where(
+        and(
+          or(eq(users.role, 'staff'), eq(users.role, 'admin')),
+          gte(staffMessagePreferences.lastHeartbeatAt, thresholdTime)
+        )
+      );
+    
+    return onlineStaff.map(row => row.user);
   }
 }
 

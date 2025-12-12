@@ -3047,3 +3047,48 @@ export const insertVerificationPhotoSchema = createInsertSchema(verificationPhot
   createdAt: true,
   updatedAt: true,
 });
+
+// Staff Message Preferences - controls email notification behavior for offline staff
+export const staffMessagePreferences = pgTable("staff_message_preferences", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  staffUserId: varchar("staff_user_id").notNull().references(() => users.id).unique(),
+  
+  // Notification settings
+  emailNotificationsEnabled: boolean("email_notifications_enabled").default(true).notNull(),
+  
+  // Quiet hours (times when no notifications are sent)
+  quietHoursEnabled: boolean("quiet_hours_enabled").default(false).notNull(),
+  quietHoursStart: text("quiet_hours_start"), // e.g., "22:00" (10 PM)
+  quietHoursEnd: text("quiet_hours_end"), // e.g., "08:00" (8 AM)
+  quietHoursTimezone: text("quiet_hours_timezone").default("America/New_York"), // User's timezone
+  
+  // Batching settings (how often to send digest emails when offline)
+  batchIntervalMinutes: integer("batch_interval_minutes").default(15).notNull(), // 0 = instant, 15/30/60 = batched
+  
+  // Tracking timestamps
+  lastNotifiedAt: timestamp("last_notified_at"), // When staff was last emailed about new messages
+  lastSeenAt: timestamp("last_seen_at"), // When staff was last active in admin messenger
+  lastHeartbeatAt: timestamp("last_heartbeat_at"), // For presence detection (online/offline)
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_staff_message_prefs_user").on(table.staffUserId),
+  index("idx_staff_message_prefs_heartbeat").on(table.lastHeartbeatAt),
+]);
+
+export const staffMessagePreferencesRelations = relations(staffMessagePreferences, ({ one }) => ({
+  staff: one(users, {
+    fields: [staffMessagePreferences.staffUserId],
+    references: [users.id],
+  }),
+}));
+
+export type StaffMessagePreferences = typeof staffMessagePreferences.$inferSelect;
+export type InsertStaffMessagePreferences = typeof staffMessagePreferences.$inferInsert;
+
+export const insertStaffMessagePreferencesSchema = createInsertSchema(staffMessagePreferences).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
