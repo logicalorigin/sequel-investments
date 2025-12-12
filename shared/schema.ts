@@ -2266,7 +2266,8 @@ export const emailTypeEnum = pgEnum("email_type", [
   "payment_reminder",
   "payoff_statement",
   "revisions_requested",
-  "application_resubmitted"
+  "application_resubmitted",
+  "message_notification"
 ]);
 
 export const emailLogs = pgTable("email_logs", {

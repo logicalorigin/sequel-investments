@@ -782,4 +782,43 @@ export const emailTemplates = {
     
     return baseTemplate(content);
   },
+
+  newMessagesDigest: (data: {
+    staffName: string;
+    unreadCount: number;
+    portalUrl: string;
+  }) => {
+    const content = `
+      <div style="text-align: center; margin-bottom: 25px;">
+        <div style="display: inline-block; width: 60px; height: 60px; background-color: ${BRAND_COLOR}; border-radius: 50%; line-height: 60px;">
+          <span style="font-size: 28px; color: #ffffff;">&#9993;</span>
+        </div>
+      </div>
+      
+      <h2 style="margin: 0 0 20px; font-size: 24px; color: ${TEXT_PRIMARY}; font-weight: 600; text-align: center;">
+        New Messages Waiting
+      </h2>
+      <p style="margin: 0 0 15px; font-size: 16px; color: ${TEXT_PRIMARY}; line-height: 1.6;">
+        Hello ${data.staffName},
+      </p>
+      <p style="margin: 0 0 20px; font-size: 16px; color: ${TEXT_SECONDARY}; line-height: 1.6;">
+        You have <strong style="color: ${BRAND_COLOR};">${data.unreadCount}</strong> unread message${data.unreadCount > 1 ? 's' : ''} from borrowers waiting for your response.
+      </p>
+      
+      <div style="background-color: ${DARK_BG}; border-radius: 8px; padding: 25px; margin: 25px 0; border-left: 4px solid ${BRAND_COLOR};">
+        <p style="margin: 0 0 8px; font-size: 13px; color: ${TEXT_SECONDARY}; text-transform: uppercase; letter-spacing: 1px;">Action Required</p>
+        <p style="margin: 0; font-size: 16px; color: ${TEXT_PRIMARY}; line-height: 1.6;">
+          Please log in to the admin portal to review and respond to these messages.
+        </p>
+      </div>
+      
+      ${button("View Messages", `${data.portalUrl}/admin`)}
+      
+      <p style="margin: 25px 0 0; font-size: 14px; color: ${TEXT_SECONDARY};">
+        You're receiving this notification because you have email notifications enabled. You can adjust your notification preferences in the admin messenger settings.
+      </p>
+    `;
+    
+    return baseTemplate(content);
+  },
 };
