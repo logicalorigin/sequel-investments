@@ -1,0 +1,266 @@
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Link, useLocation } from "wouter";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarGroupContent,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarProvider,
+  SidebarTrigger,
+  SidebarHeader,
+  SidebarFooter,
+} from "@/components/ui/sidebar";
+import {
+  LayoutGrid,
+  BarChart3,
+  Briefcase,
+  DollarSign,
+  Calendar,
+  CreditCard,
+  Settings,
+  Mail,
+  MessageSquare,
+  LogOut,
+  ChevronDown,
+  Building2,
+  Webhook,
+  Shield,
+  Users,
+  FileText,
+  MapPin,
+} from "lucide-react";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import type { User as UserType } from "@shared/schema";
+
+interface AdminLayoutProps {
+  children: React.ReactNode;
+}
+
+const mainNavItems = [
+  { title: "Dashboard", href: "/admin", icon: LayoutGrid },
+  { title: "Analytics", href: "/admin/analytics", icon: BarChart3 },
+  { title: "Portfolio", href: "/admin/portfolio", icon: Briefcase },
+];
+
+const operationsNavItems = [
+  { title: "Loan Servicing", href: "/admin/servicing", icon: DollarSign },
+  { title: "Appointments", href: "/admin/appointments", icon: Calendar },
+  { title: "Financials", href: "/admin/financials", icon: CreditCard },
+];
+
+const settingsNavItems = [
+  { title: "White Label", href: "/admin/white-label", icon: Settings },
+  { title: "Email Log", href: "/admin/email-log", icon: Mail },
+  { title: "SMS Log", href: "/admin/sms-log", icon: MessageSquare },
+  { title: "Map Calibration", href: "/admin/map-calibration", icon: MapPin },
+];
+
+function AdminSidebar() {
+  const [location] = useLocation();
+
+  const isActive = (href: string) => {
+    if (href === "/admin") {
+      return location === "/admin";
+    }
+    return location.startsWith(href);
+  };
+
+  return (
+    <Sidebar>
+      <SidebarHeader className="border-b px-4 py-3">
+        <Link href="/">
+          <div className="flex items-center gap-2 cursor-pointer">
+            <Building2 className="h-6 w-6 text-primary" />
+            <span className="font-bold text-lg">Sequel Admin</span>
+          </div>
+        </Link>
+      </SidebarHeader>
+      
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel>Main</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {mainNavItems.map((item) => (
+                <SidebarMenuItem key={item.href}>
+                  <SidebarMenuButton 
+                    asChild 
+                    isActive={isActive(item.href)}
+                    data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, '-')}`}
+                  >
+                    <Link href={item.href}>
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Operations</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {operationsNavItems.map((item) => (
+                <SidebarMenuItem key={item.href}>
+                  <SidebarMenuButton 
+                    asChild 
+                    isActive={isActive(item.href)}
+                    data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, '-')}`}
+                  >
+                    <Link href={item.href}>
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Settings</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {settingsNavItems.map((item) => (
+                <SidebarMenuItem key={item.href}>
+                  <SidebarMenuButton 
+                    asChild 
+                    isActive={isActive(item.href)}
+                    data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, '-')}`}
+                  >
+                    <Link href={item.href}>
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+
+      <SidebarFooter className="border-t p-2">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild data-testid="nav-back-to-site">
+              <Link href="/">
+                <Building2 className="h-4 w-4" />
+                <span>Back to Site</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
+    </Sidebar>
+  );
+}
+
+export default function AdminLayout({ children }: AdminLayoutProps) {
+  const [, navigate] = useLocation();
+
+  const { data: currentUser } = useQuery<UserType>({
+    queryKey: ["/api/auth/user"],
+  });
+
+  const logoutMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("POST", "/api/logout");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries();
+      navigate("/admin/login");
+    },
+  });
+
+  const sidebarStyle = {
+    "--sidebar-width": "16rem",
+    "--sidebar-width-icon": "3rem",
+  } as React.CSSProperties;
+
+  return (
+    <SidebarProvider style={sidebarStyle}>
+      <div className="flex h-screen w-full bg-background">
+        <AdminSidebar />
+        <div className="flex flex-col flex-1 overflow-hidden">
+          <header className="flex items-center justify-between px-4 py-2 border-b bg-card shrink-0">
+            <div className="flex items-center gap-2">
+              <SidebarTrigger data-testid="button-sidebar-toggle" />
+              <span className="text-sm font-medium text-muted-foreground hidden sm:inline">
+                {currentUser?.role === "admin" ? "Administrator" : "Staff"} Portal
+              </span>
+            </div>
+            
+            <div className="flex items-center gap-2 sm:gap-3">
+              {currentUser?.role === "admin" && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-8 gap-1" data-testid="button-settings-dropdown">
+                      <Settings className="h-4 w-4" />
+                      <span className="hidden sm:inline text-xs">Settings</span>
+                      <ChevronDown className="h-3 w-3" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel>Admin Settings</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem data-testid="dropdown-webhooks">
+                      <Webhook className="h-4 w-4 mr-2" />
+                      Webhooks
+                    </DropdownMenuItem>
+                    <DropdownMenuItem data-testid="dropdown-simulation">
+                      <BarChart3 className="h-4 w-4 mr-2" />
+                      Loan Simulation
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+              
+              <div className="flex items-center gap-1.5 pl-2 border-l">
+                <Badge variant="outline" className="capitalize text-xs">
+                  {currentUser?.role || "staff"}
+                </Badge>
+                <span className="text-xs sm:text-sm text-muted-foreground hidden sm:inline">
+                  {currentUser?.firstName} {currentUser?.lastName}
+                </span>
+              </div>
+              
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => logoutMutation.mutate()}
+                disabled={logoutMutation.isPending}
+                data-testid="button-logout"
+              >
+                <LogOut className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Logout</span>
+              </Button>
+            </div>
+          </header>
+          
+          <main className="flex-1 overflow-auto">
+            {children}
+          </main>
+        </div>
+      </div>
+    </SidebarProvider>
+  );
+}

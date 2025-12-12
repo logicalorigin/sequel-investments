@@ -762,80 +762,9 @@ export default function AdminDashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="bg-card sticky top-0 z-50">
-        <div className="border-b">
-          <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 sm:gap-4">
-              <Link href="/">
-                <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" data-testid="button-back-home">
-                  <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
-                </Button>
-              </Link>
-              <div>
-                <h1 className="text-lg sm:text-xl md:text-2xl font-bold" data-testid="text-admin-title">Admin Dashboard</h1>
-                <p className="text-muted-foreground text-xs sm:text-sm hidden sm:block">
-                  {currentUser.role === "admin" ? "Administrator" : "Staff"} Portal
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 sm:gap-3">
-              {currentUser.role === "admin" && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-8 gap-1" data-testid="button-settings-dropdown">
-                      <Settings className="h-4 w-4" />
-                      <span className="hidden sm:inline text-xs">Settings</span>
-                      <ChevronDown className="h-3 w-3" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuLabel>Admin Settings</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem 
-                      onClick={() => setShowWebhookDialog(true)}
-                      data-testid="dropdown-webhooks"
-                    >
-                      <Webhook className="h-4 w-4 mr-2" />
-                      Webhooks
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={() => {
-                        setShowSimulationSection(true);
-                        setTimeout(() => scrollToSection(simulationRef), 100);
-                      }}
-                      data-testid="dropdown-simulation"
-                    >
-                      <BarChart3 className="h-4 w-4 mr-2" />
-                      Loan Simulation
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
-              <div className="flex items-center gap-1.5 pl-2 border-l">
-                <Badge variant="outline" className="capitalize text-xs">
-                  {currentUser.role}
-                </Badge>
-                <span className="text-xs sm:text-sm text-muted-foreground hidden sm:inline">
-                  {currentUser.firstName} {currentUser.lastName}
-                </span>
-              </div>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-8 gap-1"
-                onClick={() => logoutMutation.mutate()}
-                data-testid="button-logout"
-              >
-                <LogOut className="h-4 w-4" />
-                <span className="hidden sm:inline text-xs">Logout</span>
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        {/* Jump Navigation - now inside header for unified sticky behavior */}
-        <nav className="border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
+    <div className="h-full">
+      {/* Jump Navigation */}
+      <nav className="sticky top-0 z-40 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
         <div className="max-w-7xl mx-auto px-3 sm:px-6">
           <div className="flex items-center gap-1 sm:gap-2 py-2 overflow-x-auto">
             <Button
@@ -930,10 +859,9 @@ export default function AdminDashboard() {
             )}
           </div>
         </div>
-        </nav>
-      </header>
+      </nav>
 
-      <main className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-8">
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-8 overflow-auto">
         {/* Stats Overview */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
           <Card 
