@@ -47,6 +47,27 @@ import { sendEmail, emailTemplates, getPortalUrl, shouldSendEmail } from "./emai
 import { sendSMSIfEnabled, isSMSConfigured } from "./sms";
 import { smsTemplates } from "./sms-templates";
 import stripeRoutes from "./stripe-routes";
+import multer from "multer";
+import { parseSOWTemplate, parseSOWWithAI, type SOWParseResult } from "./services/sowParsingService";
+
+const sowUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = [
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "application/vnd.ms-excel",
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Invalid file type. Please upload Excel, PDF, or Word documents."));
+    }
+  },
+});
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Serve state map SVGs statically
@@ -1250,6 +1271,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error deleting application scope item:", error);
       return res.status(500).json({ error: "Failed to delete application scope item" });
     }
+  });
+
+  // ============================================
+  // SOW FILE UPLOAD & PARSING ROUTES
+  // ============================================
+  
+  // Parse SOW file (returns parsed items for preview, doesn't save yet)
+  app.post("/api/sow/parse", isAuthenticated, sowUpload.single("file"), async (req: any, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      const { parseMethod = "auto", loanType = "fix_flip" } = req.body;
+      
+      let result: SOWParseResult;
+      
+      if (parseMethod === "ai") {
+        result = await parseSOWWithAI(req.file.buffer, req.file.mimetype);
+      } else {
+        result = await parseSOWTemplate(req.file.buffer, req.file.mimetype);
+      }
+      
+      return res.json({
+        ...result,
+        fileName: req.file.originalname,
+        fileSize: req.file.size,
+        loanType,
+      });
+    } catch (error) {
+      console.error("Error parsing SOW file:", error);
+      return res.status(500).json({ 
+        error: "Failed to parse file", 
+        message: error instanceof Error ? error.message : "Unknown error" 
+      });
+    }
+  });
+
+  // Download SOW template
+  app.get("/api/sow/template", (req, res) => {
+    const templatePath = path.join(process.cwd(), "public", "templates", "scope_of_work_template.xlsx");
+    res.download(templatePath, "Sequel_SOW_Template.xlsx", (err) => {
+      if (err) {
+        console.error("Error downloading SOW template:", err);
+        res.status(404).json({ error: "Template not found" });
+      }
+    });
   });
 
   // Batch endpoint to get all draw line items for a loan (solves N+1 query problem)
