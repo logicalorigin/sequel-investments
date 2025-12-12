@@ -29,7 +29,6 @@ interface SmsLog {
 }
 
 export default function AdminSmsLogPage() {
-  const [, navigate] = useLocation();
   const [searchPhone, setSearchPhone] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");

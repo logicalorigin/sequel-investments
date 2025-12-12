@@ -1,86 +1,32 @@
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { useLocation, Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { 
-  Users, 
-  FileText, 
-  Clock, 
-  CheckCircle2, 
+  FileText,
+  Clock,
+  CheckCircle2,
   AlertCircle,
-  ArrowLeft,
-  Plus,
-  Mail,
-  Shield,
-  UserPlus,
-  Building2,
   DollarSign,
   Loader2,
-  Copy,
-  ExternalLink,
-  Trash2,
-  Edit,
-  Eye,
-  EyeOff,
-  Webhook,
-  Settings,
-  LayoutGrid,
-  List,
-  MapPin,
-  Search,
-  User,
+  Users,
+  TrendingUp,
+  MessageSquare,
   Calendar,
   ChevronRight,
-  ChevronDown,
-  ChevronLeft,
-  LogOut,
-  Briefcase,
   BarChart3,
-  CreditCard,
+  Briefcase,
 } from "lucide-react";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-import { useState, useRef } from "react";
-import type { LoanApplication, User as UserType, StaffInvite, FundedDeal, WebhookEndpoint } from "@shared/schema";
+import type { LoanApplication, User as UserType, CalendarAppointment } from "@shared/schema";
+
+type EnrichedApplication = LoanApplication & {
+  borrowerName: string;
+  borrowerEmail?: string;
+};
 
 type EnrichedUser = UserType & {
   applicationCount: number;
@@ -88,9 +34,30 @@ type EnrichedUser = UserType & {
   fundedLoans: number;
 };
 
-type EnrichedApplication = LoanApplication & {
-  borrowerName: string;
-  borrowerEmail?: string;
+type DashboardStats = {
+  totalApplications: number;
+  submittedCount: number;
+  inReviewCount: number;
+  approvedCount: number;
+  fundedCount: number;
+  draftCount: number;
+  deniedCount: number;
+  totalBorrowers: number;
+  activeBorrowers: number;
+  totalLoanVolume: number;
+  avgLoanSize: number;
+  conversionRate: number;
+  pendingMessages: number;
+};
+
+type RecentActivity = {
+  id: string;
+  type: "application_submitted" | "status_change" | "message" | "document_upload" | "payment";
+  title: string;
+  description: string;
+  timestamp: string;
+  userId?: string;
+  userName?: string;
 };
 
 const statusColors: Record<string, string> = {
@@ -113,20 +80,22 @@ const statusLabels: Record<string, string> = {
   withdrawn: "Withdrawn",
 };
 
-const stageLabels: Record<string, string> = {
-  account_review: "Account Review",
-  underwriting: "Underwriting",
-  term_sheet: "Term Sheet",
-  processing: "Processing",
-  docs_out: "Docs Out",
-  closed: "Closed",
-};
-
-type FundedViewStyle = "list" | "cards";
-
-const ITEMS_PER_PAGE = 10;
-
 function formatCurrency(value: number): string {
+  if (value >= 1000000) {
+    return `$${(value / 1000000).toFixed(1)}M`;
+  }
+  if (value >= 1000) {
+    return `$${(value / 1000).toFixed(0)}K`;
+  }
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function formatFullCurrency(value: number): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
@@ -143,116 +112,31 @@ function formatDate(dateString: string | Date): string {
   });
 }
 
-function Pagination({ 
-  currentPage, 
-  totalPages, 
-  onPageChange,
-  totalItems,
-  itemsPerPage,
-}: { 
-  currentPage: number; 
-  totalPages: number; 
-  onPageChange: (page: number) => void;
-  totalItems: number;
-  itemsPerPage: number;
-}) {
-  const startItem = (currentPage - 1) * itemsPerPage + 1;
-  const endItem = Math.min(currentPage * itemsPerPage, totalItems);
+function formatRelativeTime(dateString: string | Date): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
 
-  return (
-    <div className="flex items-center justify-between px-4 py-3 border-t">
-      <p className="text-xs text-muted-foreground">
-        Showing {startItem}-{endItem} of {totalItems}
-      </p>
-      <div className="flex items-center gap-1">
-        <Button
-          variant="outline"
-          size="icon"
-          className="h-8 w-8"
-          disabled={currentPage === 1}
-          onClick={() => onPageChange(currentPage - 1)}
-          data-testid="button-prev-page"
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        <span className="text-sm px-2 min-w-[80px] text-center">
-          Page {currentPage} of {totalPages}
-        </span>
-        <Button
-          variant="outline"
-          size="icon"
-          className="h-8 w-8"
-          disabled={currentPage === totalPages}
-          onClick={() => onPageChange(currentPage + 1)}
-          data-testid="button-next-page"
-        >
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      </div>
-    </div>
-  );
+  if (diffMins < 1) return "Just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return formatDate(dateString);
+}
+
+function getInitials(name: string): string {
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
 }
 
 export default function AdminDashboard() {
-  const [, navigate] = useLocation();
-  const { toast } = useToast();
-  const [fundedViewStyle, setFundedViewStyle] = useState<FundedViewStyle>("list");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [loanTypeFilter, setLoanTypeFilter] = useState<string>("all");
-  const [borrowerSearch, setBorrowerSearch] = useState("");
-  const [borrowerRoleFilter, setBorrowerRoleFilter] = useState<string>("all");
-  const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState<"staff" | "admin">("staff");
-  const [showInviteDialog, setShowInviteDialog] = useState(false);
-  const [newInviteLink, setNewInviteLink] = useState<string | null>(null);
-  
-  const [applicationsPage, setApplicationsPage] = useState(1);
-  const [borrowersPage, setBorrowersPage] = useState(1);
-  const [fundedPage, setFundedPage] = useState(1);
-  const [staffPage, setStaffPage] = useState(1);
-  
-  const [showDealDialog, setShowDealDialog] = useState(false);
-  const [editingDeal, setEditingDeal] = useState<FundedDeal | null>(null);
-  const [dealForm, setDealForm] = useState({
-    location: "",
-    state: "",
-    propertyType: "Single Family",
-    loanType: "DSCR",
-    loanSubtype: "",
-    loanAmount: "",
-    rate: "",
-    ltv: "",
-    ltc: "",
-    closeTime: "30 days",
-    imageUrl: "",
-    isVisible: true,
-  });
-  
-  const loanSubtypeOptions: Record<string, string[]> = {
-    "DSCR": ["Purchase", "Cash Out Refi", "Rate and Term Refi"],
-    "Fix & Flip": ["Fix & Flip", "New Construction", "Bridge to Sale"],
-    "New Construction": ["Ground Up", "ADU/Conversion", "Spec Build"],
-  };
-  
-  const [showWebhookDialog, setShowWebhookDialog] = useState(false);
-  const [webhookForm, setWebhookForm] = useState({
-    name: "",
-    targetUrl: "",
-    subscribedEvents: ["fundedDeal.created", "fundedDeal.updated", "fundedDeal.deleted"] as string[],
-  });
-  const [newWebhookSecret, setNewWebhookSecret] = useState<string | null>(null);
-  const [showSimulationSection, setShowSimulationSection] = useState(false);
-
-  const applicationsRef = useRef<HTMLElement>(null);
-  const borrowersRef = useRef<HTMLElement>(null);
-  const fundedRef = useRef<HTMLElement>(null);
-  const staffRef = useRef<HTMLElement>(null);
-  const simulationRef = useRef<HTMLElement>(null);
-
-  const scrollToSection = (ref: React.RefObject<HTMLElement | null>) => {
-    ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
-
   const { data: currentUser } = useQuery<UserType>({
     queryKey: ["/api/auth/user"],
   });
@@ -262,1991 +146,526 @@ export default function AdminDashboard() {
     enabled: currentUser?.role === "staff" || currentUser?.role === "admin",
   });
 
-  const { data: users, isLoading: usersLoading } = useQuery<EnrichedUser[]>({
-    queryKey: ["/api/admin/users"],
-    enabled: currentUser?.role === "admin",
-  });
-
-  const { data: borrowersList, isLoading: borrowersLoading } = useQuery<EnrichedUser[]>({
+  const { data: borrowersList } = useQuery<EnrichedUser[]>({
     queryKey: ["/api/admin/borrowers"],
     enabled: currentUser?.role === "staff" || currentUser?.role === "admin",
   });
 
-  const { data: invites } = useQuery<StaffInvite[]>({
-    queryKey: ["/api/admin/invites"],
-    enabled: currentUser?.role === "admin",
-  });
-
-  const { data: fundedDeals, isLoading: dealsLoading } = useQuery<FundedDeal[]>({
-    queryKey: ["/api/admin/funded-deals"],
+  const { data: appointments } = useQuery<CalendarAppointment[]>({
+    queryKey: ["/api/admin/appointments"],
     enabled: currentUser?.role === "staff" || currentUser?.role === "admin",
   });
 
-  const { data: webhookEndpoints, isLoading: webhooksLoading } = useQuery<WebhookEndpoint[]>({
-    queryKey: ["/api/admin/webhooks/endpoints"],
-    enabled: currentUser?.role === "admin",
-  });
-
-  // Simulation status query
-  type SimulationStatus = {
-    isRunning: boolean;
-    loansCreated: number;
-    totalLoans: number;
-    currentBatch: number;
-    totalBatches: number;
-    percentComplete: number;
-    startedAt?: string;
-    estimatedCompletion?: string;
-  };
-  
-  const { data: simulationStatus, isLoading: simulationLoading, refetch: refetchSimulation } = useQuery<SimulationStatus>({
-    queryKey: ["/api/admin/simulation/status"],
-    enabled: currentUser?.role === "admin" && showSimulationSection,
-    refetchInterval: (query) => query.state.data?.isRunning ? 5000 : false, // Poll every 5s while running
-  });
-
-  const startSimulationMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/admin/simulation/start");
-      return await res.json();
-    },
-    onSuccess: (data) => {
-      refetchSimulation();
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/applications"] });
-      toast({
-        title: "Simulation Started",
-        description: data.message || "Creating 100 test loans over the next hour",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Failed to start simulation",
-        description: error.message || "Please try again",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const stopSimulationMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/admin/simulation/stop");
-      return await res.json();
-    },
-    onSuccess: (data) => {
-      refetchSimulation();
-      toast({
-        title: "Simulation Stopped",
-        description: data.message || "Simulation has been stopped",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Failed to stop simulation",
-        description: error.message || "Please try again",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Lifecycle engine status query
-  type LifecycleStatus = {
-    isRunning: boolean;
-    loansAdvanced: number;
-    loansDenied: number;
-    startedAt?: string;
-  };
-  
-  const { data: lifecycleStatus, refetch: refetchLifecycle } = useQuery<LifecycleStatus>({
-    queryKey: ["/api/admin/lifecycle/status"],
-    enabled: currentUser?.role === "admin" && showSimulationSection,
-    refetchInterval: (query) => query.state.data?.isRunning ? 10000 : false, // Poll every 10s while running
-  });
-
-  const startLifecycleMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/admin/lifecycle/start");
-      return await res.json();
-    },
-    onSuccess: (data) => {
-      refetchLifecycle();
-      toast({
-        title: "Lifecycle Engine Started",
-        description: data.message || "Loans will now progress through stages automatically",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Failed to start lifecycle engine",
-        description: error.message || "Please try again",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const stopLifecycleMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/admin/lifecycle/stop");
-      return await res.json();
-    },
-    onSuccess: (data) => {
-      refetchLifecycle();
-      toast({
-        title: "Lifecycle Engine Stopped",
-        description: data.message || "Automatic progression has been stopped",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Failed to stop lifecycle engine",
-        description: error.message || "Please try again",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const logoutMutation = useMutation({
-    mutationFn: async () => {
-      await apiRequest("POST", "/api/admin/logout");
-    },
-    onSuccess: () => {
-      queryClient.clear();
-      window.location.href = "/admin";
-    },
-  });
-
-  const createDealMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", "/api/admin/funded-deals", data);
-      return await res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/funded-deals"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/funded-deals"] });
-      setShowDealDialog(false);
-      resetDealForm();
-      toast({
-        title: "Deal added",
-        description: "The funded deal has been added successfully",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Failed to add deal",
-        description: error.message || "Please try again",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const updateDealMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: any }) => {
-      const res = await apiRequest("PATCH", `/api/admin/funded-deals/${id}`, data);
-      return await res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/funded-deals"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/funded-deals"] });
-      setShowDealDialog(false);
-      setEditingDeal(null);
-      resetDealForm();
-      toast({
-        title: "Deal updated",
-        description: "The funded deal has been updated successfully",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Failed to update deal",
-        description: error.message || "Please try again",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const deleteDealMutation = useMutation({
-    mutationFn: async (id: string) => {
-      await apiRequest("DELETE", `/api/admin/funded-deals/${id}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/funded-deals"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/funded-deals"] });
-      toast({
-        title: "Deal deleted",
-        description: "The funded deal has been removed",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Failed to delete deal",
-        description: error.message || "Please try again",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const createWebhookMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", "/api/admin/webhooks/endpoints", data);
-      return await res.json();
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/webhooks/endpoints"] });
-      setNewWebhookSecret(data.secret);
-      toast({
-        title: "Webhook created",
-        description: "Don't forget to save the secret!",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Failed to create webhook",
-        description: error.message || "Please try again",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const deleteWebhookMutation = useMutation({
-    mutationFn: async (id: string) => {
-      await apiRequest("DELETE", `/api/admin/webhooks/endpoints/${id}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/webhooks/endpoints"] });
-      toast({
-        title: "Webhook deleted",
-        description: "The webhook endpoint has been removed",
-      });
-    },
-  });
-
-  const resetDealForm = () => {
-    setDealForm({
-      location: "",
-      state: "",
-      propertyType: "Single Family",
-      loanType: "DSCR",
-      loanSubtype: "",
-      loanAmount: "",
-      rate: "",
-      ltv: "",
-      ltc: "",
-      closeTime: "30 days",
-      imageUrl: "",
-      isVisible: true,
-    });
+  const stats: DashboardStats = {
+    totalApplications: applications?.length || 0,
+    submittedCount: applications?.filter((a) => a.status === "submitted").length || 0,
+    inReviewCount: applications?.filter((a) => a.status === "in_review").length || 0,
+    approvedCount: applications?.filter((a) => a.status === "approved").length || 0,
+    fundedCount: applications?.filter((a) => a.status === "funded").length || 0,
+    draftCount: applications?.filter((a) => a.status === "draft").length || 0,
+    deniedCount: applications?.filter((a) => a.status === "denied").length || 0,
+    totalBorrowers: borrowersList?.length || 0,
+    activeBorrowers: borrowersList?.filter((b) => b.activeApplications > 0).length || 0,
+    totalLoanVolume: applications?.filter((a) => a.status === "funded").reduce((sum, a) => sum + (a.loanAmount || 0), 0) || 0,
+    avgLoanSize: (() => {
+      const funded = applications?.filter((a) => a.status === "funded") || [];
+      if (funded.length === 0) return 0;
+      return funded.reduce((sum, a) => sum + (a.loanAmount || 0), 0) / funded.length;
+    })(),
+    conversionRate: (() => {
+      const total = applications?.length || 0;
+      const funded = applications?.filter((a) => a.status === "funded").length || 0;
+      if (total === 0) return 0;
+      return (funded / total) * 100;
+    })(),
+    pendingMessages: 0,
   };
 
-  const openEditDeal = (deal: FundedDeal) => {
-    setEditingDeal(deal);
-    setDealForm({
-      location: deal.location,
-      state: deal.state,
-      propertyType: deal.propertyType,
-      loanType: deal.loanType,
-      loanSubtype: deal.loanSubtype || "",
-      loanAmount: deal.loanAmount.toString(),
-      rate: deal.rate,
-      ltv: deal.ltv?.toString() || "",
-      ltc: deal.ltc?.toString() || "",
-      closeTime: deal.closeTime,
-      imageUrl: deal.imageUrl || "",
-      isVisible: deal.isVisible,
-    });
-    setShowDealDialog(true);
-  };
+  const pipelineActive = stats.submittedCount + stats.inReviewCount + stats.approvedCount;
+  const pipelineTotal = stats.totalApplications - stats.draftCount;
 
-  const handleDealSubmit = () => {
-    const data = {
-      location: dealForm.location,
-      state: dealForm.state,
-      propertyType: dealForm.propertyType,
-      loanType: dealForm.loanType,
-      loanSubtype: dealForm.loanSubtype || null,
-      loanAmount: parseInt(dealForm.loanAmount),
-      rate: dealForm.rate,
-      ltv: dealForm.ltv ? parseInt(dealForm.ltv) : null,
-      ltc: dealForm.ltc ? parseInt(dealForm.ltc) : null,
-      closeTime: dealForm.closeTime,
-      imageUrl: dealForm.imageUrl || null,
-      isVisible: dealForm.isVisible,
-    };
+  const recentApplications = applications
+    ?.filter((a) => a.status !== "draft")
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 5) || [];
 
-    if (editingDeal) {
-      updateDealMutation.mutate({ id: editingDeal.id, data });
-    } else {
-      createDealMutation.mutate(data);
-    }
-  };
+  const urgentApplications = applications?.filter(
+    (a) => a.status === "submitted" || a.status === "in_review"
+  ).slice(0, 3) || [];
 
-  const handleWebhookSubmit = () => {
-    createWebhookMutation.mutate({
-      name: webhookForm.name,
-      targetUrl: webhookForm.targetUrl,
-      subscribedEvents: webhookForm.subscribedEvents,
-    });
-  };
+  const upcomingAppointments = appointments
+    ?.filter((a) => new Date(a.startTime) > new Date())
+    .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+    .slice(0, 3) || [];
 
-  const createInviteMutation = useMutation({
-    mutationFn: async (data: { email: string; role: string }) => {
-      const res = await apiRequest("POST", "/api/admin/invites", data);
-      return await res.json();
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/invites"] });
-      setNewInviteLink(window.location.origin + data.invite.inviteLink);
-      setInviteEmail("");
-      toast({
-        title: "Invite sent!",
-        description: `Invitation sent to ${data.invite.email}`,
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Failed to send invite",
-        description: error.message || "Please try again",
-        variant: "destructive",
-      });
-    },
+  const today = new Date();
+  const formattedDate = today.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
   });
 
-  const updateRoleMutation = useMutation({
-    mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
-      const res = await apiRequest("PATCH", `/api/admin/users/${userId}/role`, { role });
-      return await res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
-      toast({
-        title: "Role updated",
-        description: "User role has been updated successfully",
-      });
-    },
-  });
-
-  if (!currentUser || (currentUser.role !== "staff" && currentUser.role !== "admin")) {
+  if (appsLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-destructive" />
-              Access Denied
-            </CardTitle>
-            <CardDescription>
-              You don't have permission to access this page. Please sign in with a staff account.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Link href="/admin/login">
-              <Button className="w-full" data-testid="button-staff-login">
-                <Shield className="h-4 w-4 mr-2" />
-                Staff Login
-              </Button>
-            </Link>
-            <Link href="/">
-              <Button variant="outline" className="w-full" data-testid="button-back-home">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Home
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
+      <div className="flex items-center justify-center h-full">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
-  const filteredApplications = applications?.filter((app) => {
-    if (statusFilter !== "all" && app.status !== statusFilter) return false;
-    if (loanTypeFilter !== "all" && app.loanType !== loanTypeFilter) return false;
-    return true;
-  }) || [];
-
-  const loanTypes = Array.from(new Set(applications?.map((app) => app.loanType) || []));
-
-  const borrowers = borrowersList || [];
-  const staffMembers = users?.filter(u => u.role === "staff" || u.role === "admin") || [];
-
-  const filteredBorrowers = borrowers.filter((user) => {
-    const searchLower = borrowerSearch.toLowerCase();
-    const matchesSearch = !borrowerSearch || 
-      `${user.firstName} ${user.lastName}`.toLowerCase().includes(searchLower) ||
-      user.email?.toLowerCase().includes(searchLower);
-    
-    if (borrowerRoleFilter === "active") {
-      return matchesSearch && user.activeApplications > 0;
-    }
-    if (borrowerRoleFilter === "funded") {
-      return matchesSearch && user.fundedLoans > 0;
-    }
-    return matchesSearch;
-  });
-
-  const stats = {
-    total: applications?.length || 0,
-    submitted: applications?.filter((a) => a.status === "submitted").length || 0,
-    inReview: applications?.filter((a) => a.status === "in_review").length || 0,
-    approved: applications?.filter((a) => a.status === "approved").length || 0,
-    funded: applications?.filter((a) => a.status === "funded").length || 0,
-    totalDeals: fundedDeals?.length || 0,
-    totalBorrowers: borrowers.length,
-    activeBorrowers: borrowers.filter(b => b.activeApplications > 0).length,
-  };
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast({
-      title: "Copied!",
-      description: "Copied to clipboard",
-    });
-  };
-
-  const renderDynamicDealFields = () => {
-    if (dealForm.loanType === "DSCR") {
-      return (
-        <div className="space-y-2">
-          <Label>LTV (%) - Loan-to-Value</Label>
-          <Input
-            type="number"
-            placeholder="75"
-            value={dealForm.ltv}
-            onChange={(e) => setDealForm({ ...dealForm, ltv: e.target.value })}
-            data-testid="input-ltv"
-          />
-          <p className="text-xs text-muted-foreground">Standard metric for DSCR rental property loans</p>
-        </div>
-      );
-    }
-    
-    return (
-      <div className="space-y-2">
-        <Label>LTC (%) - Loan-to-Cost</Label>
-        <Input
-          type="number"
-          placeholder="85"
-          value={dealForm.ltc}
-          onChange={(e) => setDealForm({ ...dealForm, ltc: e.target.value })}
-          data-testid="input-ltc"
-        />
-        <p className="text-xs text-muted-foreground">
-          {dealForm.loanType === "Fix & Flip" 
-            ? "Standard metric for fix & flip renovation loans"
-            : "Standard metric for ground-up construction loans"
-          }
-        </p>
-      </div>
-    );
-  };
-
-  const applicationsTotalPages = Math.ceil(filteredApplications.length / ITEMS_PER_PAGE);
-  const paginatedApplications = filteredApplications.slice(
-    (applicationsPage - 1) * ITEMS_PER_PAGE,
-    applicationsPage * ITEMS_PER_PAGE
-  );
-
-  const borrowersTotalPages = Math.ceil(filteredBorrowers.length / ITEMS_PER_PAGE);
-  const paginatedBorrowers = filteredBorrowers.slice(
-    (borrowersPage - 1) * ITEMS_PER_PAGE,
-    borrowersPage * ITEMS_PER_PAGE
-  );
-
-  const fundedTotalPages = Math.ceil((fundedDeals?.length || 0) / ITEMS_PER_PAGE);
-  const paginatedDeals = fundedDeals?.slice(
-    (fundedPage - 1) * ITEMS_PER_PAGE,
-    fundedPage * ITEMS_PER_PAGE
-  ) || [];
-
-  const staffTotalPages = Math.ceil(staffMembers.length / ITEMS_PER_PAGE);
-  const paginatedStaff = staffMembers.slice(
-    (staffPage - 1) * ITEMS_PER_PAGE,
-    staffPage * ITEMS_PER_PAGE
-  );
-
   return (
-    <div className="h-full">
-      {/* Jump Navigation */}
-      <nav className="sticky top-0 z-40 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6">
-          <div className="flex items-center gap-1 sm:gap-2 py-2 overflow-x-auto">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 text-xs shrink-0"
-              onClick={() => scrollToSection(applicationsRef)}
-              data-testid="jump-applications"
-            >
-              <FileText className="h-3.5 w-3.5 mr-1.5" />
-              Applications
-              <Badge variant="secondary" className="ml-1.5 text-[10px] h-4 px-1">{stats.total}</Badge>
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 text-xs shrink-0"
-              onClick={() => scrollToSection(borrowersRef)}
-              data-testid="jump-borrowers"
-            >
-              <Users className="h-3.5 w-3.5 mr-1.5" />
-              Borrowers
-              <Badge variant="secondary" className="ml-1.5 text-[10px] h-4 px-1">{stats.totalBorrowers}</Badge>
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 text-xs shrink-0"
-              onClick={() => scrollToSection(fundedRef)}
-              data-testid="jump-recently-funded"
-            >
-              <DollarSign className="h-3.5 w-3.5 mr-1.5" />
-              Recently Funded
-              <Badge variant="secondary" className="ml-1.5 text-[10px] h-4 px-1">{stats.totalDeals}</Badge>
-            </Button>
-            <Link href="/admin/portfolio">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 text-xs shrink-0"
-                data-testid="link-portfolio"
-              >
-                <Building2 className="h-3.5 w-3.5 mr-1.5" />
-                Loan Portfolio
-              </Button>
-            </Link>
-            <Link href="/admin/servicing">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 text-xs shrink-0"
-                data-testid="link-servicing"
-              >
-                <Briefcase className="h-3.5 w-3.5 mr-1.5" />
-                Loan Servicing
-              </Button>
-            </Link>
-            <Link href="/admin/analytics">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 text-xs shrink-0"
-                data-testid="link-analytics"
-              >
-                <BarChart3 className="h-3.5 w-3.5 mr-1.5" />
-                Analytics
-              </Button>
-            </Link>
-            <Link href="/admin/financials">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 text-xs shrink-0"
-                data-testid="link-financials"
-              >
-                <CreditCard className="h-3.5 w-3.5 mr-1.5" />
-                Financials
-              </Button>
-            </Link>
-            {currentUser.role === "admin" && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 text-xs shrink-0"
-                onClick={() => scrollToSection(staffRef)}
-                data-testid="jump-staff"
-              >
-                <Shield className="h-3.5 w-3.5 mr-1.5" />
-                Staff & Invites
-                <Badge variant="secondary" className="ml-1.5 text-[10px] h-4 px-1">{staffMembers.length}</Badge>
-              </Button>
-            )}
+    <div className="h-full overflow-auto">
+      {/* Hero Strip */}
+      <div className="border-b bg-card">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold" data-testid="text-dashboard-title">
+                Welcome back, {currentUser?.firstName || "Admin"}
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1" data-testid="text-dashboard-date">
+                {formattedDate}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Link href="/admin/portfolio">
+                <Button variant="outline" size="sm" data-testid="button-view-pipeline">
+                  <Briefcase className="h-4 w-4 mr-2" />
+                  View Pipeline
+                </Button>
+              </Link>
+              <Link href="/admin/analytics">
+                <Button size="sm" data-testid="button-view-analytics">
+                  <BarChart3 className="h-4 w-4 mr-2" />
+                  Analytics
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
-      </nav>
+      </div>
 
-      <main className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-8 overflow-auto">
-        {/* Stats Overview */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+        {/* Primary Metrics Row */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Pipeline Funnel Card */}
+          <Card className="col-span-2" data-testid="card-pipeline-funnel">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between gap-2">
+                <CardTitle className="text-base font-medium">Loan Pipeline</CardTitle>
+                <Link href="/admin/portfolio">
+                  <Button variant="ghost" size="sm" className="h-8 text-xs">
+                    View All
+                    <ChevronRight className="h-3 w-3 ml-1" />
+                  </Button>
+                </Link>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-4 gap-2 mb-4">
+                <div className="text-center p-2 rounded-lg bg-blue-500/10">
+                  <p className="text-lg sm:text-2xl font-bold text-blue-600" data-testid="text-submitted-count">
+                    {stats.submittedCount}
+                  </p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Submitted</p>
+                </div>
+                <div className="text-center p-2 rounded-lg bg-yellow-500/10">
+                  <p className="text-lg sm:text-2xl font-bold text-yellow-600" data-testid="text-review-count">
+                    {stats.inReviewCount}
+                  </p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">In Review</p>
+                </div>
+                <div className="text-center p-2 rounded-lg bg-green-500/10">
+                  <p className="text-lg sm:text-2xl font-bold text-green-600" data-testid="text-approved-count">
+                    {stats.approvedCount}
+                  </p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Approved</p>
+                </div>
+                <div className="text-center p-2 rounded-lg bg-emerald-500/10">
+                  <p className="text-lg sm:text-2xl font-bold text-emerald-600" data-testid="text-funded-count">
+                    {stats.fundedCount}
+                  </p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Funded</p>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center justify-between gap-2 text-xs">
+                  <span className="text-muted-foreground">Active Pipeline</span>
+                  <span className="font-medium">{pipelineActive} of {pipelineTotal} applications</span>
+                </div>
+                <Progress value={pipelineTotal > 0 ? (pipelineActive / pipelineTotal) * 100 : 0} className="h-2" />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* KPI Cards */}
+          <Card data-testid="card-loan-volume">
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="text-xs text-muted-foreground">Total Loan Volume</p>
+                  <p className="text-xl sm:text-2xl font-bold mt-1" data-testid="text-loan-volume">
+                    {formatCurrency(stats.totalLoanVolume)}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {stats.fundedCount} funded loans
+                  </p>
+                </div>
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <DollarSign className="h-5 w-5 text-primary" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card data-testid="card-conversion-rate">
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="text-xs text-muted-foreground">Conversion Rate</p>
+                  <p className="text-xl sm:text-2xl font-bold mt-1" data-testid="text-conversion-rate">
+                    {stats.conversionRate.toFixed(1)}%
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Avg loan: {formatCurrency(stats.avgLoanSize)}
+                  </p>
+                </div>
+                <div className="p-2 bg-green-500/10 rounded-lg">
+                  <TrendingUp className="h-5 w-5 text-green-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Secondary Metrics */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <Card 
-            className="cursor-pointer transition-all hover-elevate"
-            onClick={() => { setStatusFilter("all"); setApplicationsPage(1); scrollToSection(applicationsRef); }}
-            data-testid="stat-card-applications"
+            className="cursor-pointer hover-elevate"
+            data-testid="card-total-applications"
           >
-            <CardContent className="p-3 sm:p-4">
+            <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-primary/10 rounded-lg shrink-0">
                   <FileText className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-2xl sm:text-3xl font-bold">{stats.total}</p>
-                  <p className="text-xs text-muted-foreground">Applications</p>
+                  <p className="text-2xl font-bold" data-testid="text-total-applications">
+                    {stats.totalApplications}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Total Applications</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card 
-            className="cursor-pointer transition-all hover-elevate"
-            onClick={() => { setStatusFilter("in_review"); setApplicationsPage(1); scrollToSection(applicationsRef); }}
-            data-testid="stat-card-in-review"
+            className="cursor-pointer hover-elevate"
+            data-testid="card-active-borrowers"
           >
-            <CardContent className="p-3 sm:p-4">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-500/10 rounded-lg shrink-0">
+                  <Users className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold" data-testid="text-active-borrowers">
+                    {stats.activeBorrowers}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Active Borrowers</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card 
+            className="cursor-pointer hover-elevate"
+            data-testid="card-pending-review"
+          >
+            <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-yellow-500/10 rounded-lg shrink-0">
                   <AlertCircle className="h-5 w-5 text-yellow-600" />
                 </div>
                 <div>
-                  <p className="text-2xl sm:text-3xl font-bold">{stats.inReview}</p>
-                  <p className="text-xs text-muted-foreground">In Review</p>
+                  <p className="text-2xl font-bold" data-testid="text-pending-review">
+                    {stats.inReviewCount}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Pending Review</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card 
-            className="cursor-pointer transition-all hover-elevate"
-            onClick={() => { setStatusFilter("submitted"); setApplicationsPage(1); scrollToSection(applicationsRef); }}
-            data-testid="stat-card-pending"
+            className="cursor-pointer hover-elevate"
+            data-testid="card-new-submissions"
           >
-            <CardContent className="p-3 sm:p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-500/10 rounded-lg shrink-0">
-                  <Clock className="h-5 w-5 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-2xl sm:text-3xl font-bold">{stats.submitted}</p>
-                  <p className="text-xs text-muted-foreground">Pending</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card 
-            className="cursor-pointer transition-all hover-elevate"
-            onClick={() => { setStatusFilter("approved"); setApplicationsPage(1); scrollToSection(applicationsRef); }}
-            data-testid="stat-card-approved"
-          >
-            <CardContent className="p-3 sm:p-4">
+            <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-green-500/10 rounded-lg shrink-0">
-                  <CheckCircle2 className="h-5 w-5 text-green-600" />
+                  <Clock className="h-5 w-5 text-green-600" />
                 </div>
                 <div>
-                  <p className="text-2xl sm:text-3xl font-bold">{stats.approved}</p>
-                  <p className="text-xs text-muted-foreground">Approved</p>
+                  <p className="text-2xl font-bold" data-testid="text-new-submissions">
+                    {stats.submittedCount}
+                  </p>
+                  <p className="text-xs text-muted-foreground">New Submissions</p>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Applications Section */}
-        <section ref={applicationsRef} id="applications" className="scroll-mt-32">
-          <Card>
-            <CardHeader className="p-3 sm:p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+        {/* Lower Grid - 3 Column Layout */}
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* Recent Applications */}
+          <Card className="lg:col-span-2" data-testid="card-recent-applications">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between gap-2">
                 <div>
-                  <CardTitle className="text-base sm:text-lg">Loan Applications</CardTitle>
-                  <CardDescription className="text-xs sm:text-sm">View and manage all loan applications</CardDescription>
+                  <CardTitle className="text-base font-medium">Recent Applications</CardTitle>
+                  <CardDescription className="text-xs">Latest loan applications</CardDescription>
                 </div>
-                <div className="flex gap-2">
-                  <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setApplicationsPage(1); }}>
-                    <SelectTrigger className="w-[110px] h-8 text-xs" data-testid="select-status-filter">
-                      <SelectValue placeholder="Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Status</SelectItem>
-                      <SelectItem value="draft">Draft</SelectItem>
-                      <SelectItem value="submitted">Submitted</SelectItem>
-                      <SelectItem value="in_review">In Review</SelectItem>
-                      <SelectItem value="approved">Approved</SelectItem>
-                      <SelectItem value="funded">Funded</SelectItem>
-                      <SelectItem value="denied">Denied</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Select value={loanTypeFilter} onValueChange={(v) => { setLoanTypeFilter(v); setApplicationsPage(1); }}>
-                    <SelectTrigger className="w-[120px] h-8 text-xs" data-testid="select-type-filter">
-                      <SelectValue placeholder="Loan Type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Types</SelectItem>
-                      {loanTypes.map((type) => (
-                        <SelectItem key={type} value={type}>{type}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <Link href="/admin/portfolio">
+                  <Button variant="ghost" size="sm" className="h-8 text-xs">
+                    View All
+                    <ChevronRight className="h-3 w-3 ml-1" />
+                  </Button>
+                </Link>
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              {appsLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                </div>
-              ) : filteredApplications.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground text-sm">
-                  No applications found
+              {recentApplications.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground text-sm">
+                  No recent applications
                 </div>
               ) : (
-                <>
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="text-xs">Borrower</TableHead>
-                          <TableHead className="text-xs hidden sm:table-cell">Loan Type</TableHead>
-                          <TableHead className="text-xs hidden md:table-cell">Amount</TableHead>
-                          <TableHead className="text-xs">Status</TableHead>
-                          <TableHead className="text-xs hidden md:table-cell">Fees</TableHead>
-                          <TableHead className="text-xs hidden lg:table-cell">Stage</TableHead>
-                          <TableHead className="text-xs hidden lg:table-cell">Date</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {paginatedApplications.map((app) => (
-                          <TableRow 
-                            key={app.id} 
-                            className="cursor-pointer hover-elevate"
-                            onClick={() => navigate(`/admin/application/${app.id}`)}
-                            data-testid={`row-app-${app.id}`}
-                          >
-                            <TableCell className="py-3">
-                              <div>
-                                <p className="font-medium text-sm">{app.borrowerName}</p>
-                                <p className="text-[10px] text-muted-foreground hidden sm:block">{app.borrowerEmail}</p>
-                              </div>
-                            </TableCell>
-                            <TableCell className="py-3 hidden sm:table-cell">
-                              <Badge variant="outline" className="text-[10px]">{app.loanType}</Badge>
-                            </TableCell>
-                            <TableCell className="py-3 hidden md:table-cell text-sm">
-                              {app.loanAmount ? formatCurrency(app.loanAmount) : "—"}
-                            </TableCell>
-                            <TableCell className="py-3">
-                              <Badge className={`text-[10px] ${statusColors[app.status]}`}>
+                <ScrollArea className="h-[280px]">
+                  <div className="divide-y">
+                    {recentApplications.map((app) => (
+                      <Link key={app.id} href={`/admin/application/${app.id}`}>
+                        <div
+                          className="p-4 flex items-center gap-4 hover-elevate cursor-pointer"
+                          data-testid={`row-recent-app-${app.id}`}
+                        >
+                          <Avatar className="h-9 w-9">
+                            <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                              {getInitials(app.borrowerName)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium text-sm truncate">{app.borrowerName}</p>
+                              <Badge className={`text-[10px] shrink-0 ${statusColors[app.status]}`}>
                                 {statusLabels[app.status]}
                               </Badge>
-                            </TableCell>
-                            <TableCell className="py-3 hidden md:table-cell">
-                              <div className="flex items-center gap-1">
-                                {app.applicationFeePaid || app.commitmentFeePaid || app.appraisalFeePaid ? (
-                                  <>
-                                    {app.applicationFeePaid && (
-                                      <Badge variant="outline" className="text-[9px] px-1 py-0 bg-green-50 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-400 dark:border-green-700">
-                                        App
-                                      </Badge>
-                                    )}
-                                    {app.commitmentFeePaid && (
-                                      <Badge variant="outline" className="text-[9px] px-1 py-0 bg-green-50 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-400 dark:border-green-700">
-                                        Com
-                                      </Badge>
-                                    )}
-                                    {app.appraisalFeePaid && (
-                                      <Badge variant="outline" className="text-[9px] px-1 py-0 bg-green-50 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-400 dark:border-green-700">
-                                        Apr
-                                      </Badge>
-                                    )}
-                                  </>
-                                ) : (
-                                  <span className="text-xs text-muted-foreground">—</span>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell className="py-3 hidden lg:table-cell">
-                              <span className="text-xs text-muted-foreground">{app.processingStage ? stageLabels[app.processingStage] : "—"}</span>
-                            </TableCell>
-                            <TableCell className="py-3 hidden lg:table-cell">
-                              <div className="flex items-center justify-between">
-                                <span className="text-xs text-muted-foreground">{formatDate(app.createdAt)}</span>
-                                <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                  {applicationsTotalPages > 1 && (
-                    <Pagination
-                      currentPage={applicationsPage}
-                      totalPages={applicationsTotalPages}
-                      onPageChange={setApplicationsPage}
-                      totalItems={filteredApplications.length}
-                      itemsPerPage={ITEMS_PER_PAGE}
-                    />
-                  )}
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </section>
-
-        {/* Borrowers Section */}
-        <section ref={borrowersRef} id="borrowers" className="scroll-mt-32">
-          <Card>
-            <CardHeader className="p-3 sm:p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <CardTitle className="text-base sm:text-lg">Borrowers</CardTitle>
-                  <CardDescription className="text-xs sm:text-sm">
-                    {stats.activeBorrowers} active, {stats.totalBorrowers} total
-                  </CardDescription>
-                </div>
-                <div className="flex gap-2">
-                  <div className="relative">
-                    <Search className="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      placeholder="Search..."
-                      className="pl-8 h-8 w-[150px] text-xs"
-                      value={borrowerSearch}
-                      onChange={(e) => { setBorrowerSearch(e.target.value); setBorrowersPage(1); }}
-                      data-testid="input-borrower-search"
-                    />
-                  </div>
-                  <Select value={borrowerRoleFilter} onValueChange={(v) => { setBorrowerRoleFilter(v); setBorrowersPage(1); }}>
-                    <SelectTrigger className="w-[100px] h-8 text-xs" data-testid="select-borrower-filter">
-                      <SelectValue placeholder="Filter" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All</SelectItem>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="funded">Funded</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              {borrowersLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                </div>
-              ) : filteredBorrowers.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground text-sm">
-                  No borrowers found
-                </div>
-              ) : (
-                <>
-                  <div className="divide-y">
-                    {paginatedBorrowers.map((user) => (
-                      <div 
-                        key={user.id} 
-                        className="p-3 sm:p-4 flex items-center gap-3 hover-elevate cursor-pointer" 
-                        onClick={() => navigate(`/admin/borrower/${user.id}`)}
-                        data-testid={`row-borrower-${user.id}`}
-                      >
-                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                          <User className="h-5 w-5 text-primary" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">
-                            {user.firstName} {user.lastName}
-                          </p>
-                          <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                        </div>
-                        <div className="flex flex-col items-end gap-1">
-                          <div className="flex gap-1">
-                            <Badge variant="outline" className="text-[10px]">{user.applicationCount || 0} apps</Badge>
-                            {(user.fundedLoans || 0) > 0 && (
-                              <Badge className="text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
-                                {user.fundedLoans} funded
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                        <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                      </div>
-                    ))}
-                  </div>
-                  {borrowersTotalPages > 1 && (
-                    <Pagination
-                      currentPage={borrowersPage}
-                      totalPages={borrowersTotalPages}
-                      onPageChange={setBorrowersPage}
-                      totalItems={filteredBorrowers.length}
-                      itemsPerPage={ITEMS_PER_PAGE}
-                    />
-                  )}
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </section>
-
-        {/* Recently Funded Section */}
-        <section ref={fundedRef} id="recently-funded" className="scroll-mt-32">
-          <Card>
-            <CardHeader className="p-3 sm:p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <CardTitle className="text-base sm:text-lg">Recently Funded</CardTitle>
-                  <CardDescription className="text-xs sm:text-sm">Manage deals displayed on the homepage and state pages</CardDescription>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center bg-muted rounded-lg p-1">
-                    <Button
-                      variant={fundedViewStyle === "list" ? "secondary" : "ghost"}
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => setFundedViewStyle("list")}
-                      data-testid="button-view-list"
-                    >
-                      <List className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant={fundedViewStyle === "cards" ? "secondary" : "ghost"}
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => setFundedViewStyle("cards")}
-                      data-testid="button-view-cards"
-                    >
-                      <LayoutGrid className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <Dialog open={showDealDialog} onOpenChange={(open) => {
-                    setShowDealDialog(open);
-                    if (!open) {
-                      setEditingDeal(null);
-                      resetDealForm();
-                    }
-                  }}>
-                    <DialogTrigger asChild>
-                      <Button size="sm" data-testid="button-add-deal">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Deal
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-                      <DialogHeader>
-                        <DialogTitle>{editingDeal ? "Edit Funded Deal" : "Add Funded Deal"}</DialogTitle>
-                        <DialogDescription>
-                          {editingDeal ? "Update the deal information" : "Add a new funded deal to showcase"}
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="grid gap-4 py-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label>Location</Label>
-                            <Input
-                              placeholder="Los Angeles, CA"
-                              value={dealForm.location}
-                              onChange={(e) => setDealForm({ ...dealForm, location: e.target.value })}
-                              data-testid="input-deal-location"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>State</Label>
-                            <Input
-                              placeholder="CA"
-                              maxLength={2}
-                              value={dealForm.state}
-                              onChange={(e) => setDealForm({ ...dealForm, state: e.target.value.toUpperCase() })}
-                              data-testid="input-deal-state"
-                            />
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label>Property Type</Label>
-                            <Select value={dealForm.propertyType} onValueChange={(v) => setDealForm({ ...dealForm, propertyType: v })}>
-                              <SelectTrigger data-testid="select-property-type">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="Single Family">Single Family</SelectItem>
-                                <SelectItem value="Multi-Family">Multi-Family</SelectItem>
-                                <SelectItem value="Mixed Use">Mixed Use</SelectItem>
-                                <SelectItem value="Commercial">Commercial</SelectItem>
-                                <SelectItem value="Townhouse">Townhouse</SelectItem>
-                                <SelectItem value="Condo">Condo</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Loan Type</Label>
-                            <Select value={dealForm.loanType} onValueChange={(v) => setDealForm({ ...dealForm, loanType: v, loanSubtype: "", ltv: "", ltc: "" })}>
-                              <SelectTrigger data-testid="select-loan-type">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="DSCR">DSCR</SelectItem>
-                                <SelectItem value="Fix & Flip">Fix & Flip</SelectItem>
-                                <SelectItem value="New Construction">New Construction</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Loan Subtype (from LendFlowPro)</Label>
-                          <Select 
-                            value={dealForm.loanSubtype} 
-                            onValueChange={(v) => setDealForm({ ...dealForm, loanSubtype: v })}
-                          >
-                            <SelectTrigger data-testid="select-loan-subtype">
-                              <SelectValue placeholder="Select subtype (optional)" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">None</SelectItem>
-                              {loanSubtypeOptions[dealForm.loanType]?.map((subtype) => (
-                                <SelectItem key={subtype} value={subtype}>{subtype}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <p className="text-xs text-muted-foreground">
-                            Categorizes the loan for display (e.g., DSCR: Long-term Rental, Bridge: Bridge to Sale)
-                          </p>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label>Loan Amount ($)</Label>
-                            <Input
-                              type="number"
-                              placeholder="500000"
-                              value={dealForm.loanAmount}
-                              onChange={(e) => setDealForm({ ...dealForm, loanAmount: e.target.value })}
-                              data-testid="input-loan-amount"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Rate (%)</Label>
-                            <Input
-                              placeholder="7.25%"
-                              value={dealForm.rate}
-                              onChange={(e) => setDealForm({ ...dealForm, rate: e.target.value })}
-                              data-testid="input-rate"
-                            />
-                          </div>
-                        </div>
-                        
-                        {renderDynamicDealFields()}
-
-                        <div className="space-y-2">
-                          <Label>Close Time</Label>
-                          <Input
-                            placeholder="30 days"
-                            value={dealForm.closeTime}
-                            onChange={(e) => setDealForm({ ...dealForm, closeTime: e.target.value })}
-                            data-testid="input-close-time"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Image URL (optional)</Label>
-                          <Input
-                            placeholder="https://..."
-                            value={dealForm.imageUrl}
-                            onChange={(e) => setDealForm({ ...dealForm, imageUrl: e.target.value })}
-                            data-testid="input-image-url"
-                          />
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Switch
-                            checked={dealForm.isVisible}
-                            onCheckedChange={(checked) => setDealForm({ ...dealForm, isVisible: checked })}
-                            data-testid="switch-visible"
-                          />
-                          <Label>Visible on website</Label>
-                        </div>
-                      </div>
-                      <DialogFooter>
-                        <Button
-                          onClick={handleDealSubmit}
-                          disabled={!dealForm.location || !dealForm.state || !dealForm.loanAmount || !dealForm.rate || createDealMutation.isPending || updateDealMutation.isPending}
-                          data-testid="button-submit-deal"
-                        >
-                          {(createDealMutation.isPending || updateDealMutation.isPending) && (
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          )}
-                          {editingDeal ? "Update Deal" : "Add Deal"}
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-3 sm:p-6 sm:pt-0">
-              {dealsLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                </div>
-              ) : fundedDeals?.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground text-sm">
-                  No funded deals yet. Add your first deal to showcase on the website.
-                </div>
-              ) : fundedViewStyle === "cards" ? (
-                <>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {paginatedDeals.map((deal) => (
-                      <Card key={deal.id} className="overflow-hidden" data-testid={`card-deal-${deal.id}`}>
-                        <div className="aspect-video relative bg-muted">
-                          {deal.imageUrl ? (
-                            <img
-                              src={deal.imageUrl}
-                              alt={`${deal.location} property`}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <Building2 className="h-12 w-12 text-muted-foreground/50" />
                             </div>
-                          )}
-                          <div className="absolute top-2 left-2 flex flex-col gap-1">
-                            <Badge className={`text-xs ${deal.loanType === "DSCR" ? "bg-blue-500" : deal.loanType === "Fix & Flip" ? "bg-amber-500" : "bg-green-500"}`}>
-                              {deal.loanType}
-                            </Badge>
-                            {deal.loanSubtype && (
-                              <Badge variant="secondary" className="text-[10px]">
-                                {deal.loanSubtype}
-                              </Badge>
-                            )}
-                          </div>
-                          {!deal.isVisible && (
-                            <Badge variant="secondary" className="absolute top-2 right-2 text-xs">
-                              <EyeOff className="h-3 w-3 mr-1" />
-                              Hidden
-                            </Badge>
-                          )}
-                        </div>
-                        <CardContent className="p-4">
-                          <div className="flex items-center gap-1 text-muted-foreground mb-2">
-                            <MapPin className="h-3.5 w-3.5" />
-                            <span className="text-sm font-medium">{deal.location}, {deal.state}</span>
-                          </div>
-                          <div className="grid grid-cols-3 gap-2 text-sm mb-3">
-                            <div>
-                              <p className="text-muted-foreground text-xs">Amount</p>
-                              <p className="font-semibold">{formatCurrency(deal.loanAmount)}</p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground text-xs">Rate</p>
-                              <p className="font-semibold">{deal.rate}</p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground text-xs">{deal.ltv ? "LTV" : "LTC"}</p>
-                              <p className="font-semibold">{deal.ltv || deal.ltc}%</p>
-                            </div>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="flex-1 h-7 text-xs"
-                              onClick={() => openEditDeal(deal)}
-                              data-testid={`button-edit-deal-${deal.id}`}
-                            >
-                              <Edit className="h-3 w-3 mr-1" />
-                              Edit
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-7 w-7"
-                              onClick={() => {
-                                if (confirm("Are you sure you want to delete this deal?")) {
-                                  deleteDealMutation.mutate(deal.id);
-                                }
-                              }}
-                              data-testid={`button-delete-deal-${deal.id}`}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                  {fundedTotalPages > 1 && (
-                    <div className="mt-4">
-                      <Pagination
-                        currentPage={fundedPage}
-                        totalPages={fundedTotalPages}
-                        onPageChange={setFundedPage}
-                        totalItems={fundedDeals?.length || 0}
-                        itemsPerPage={ITEMS_PER_PAGE}
-                      />
-                    </div>
-                  )}
-                </>
-              ) : (
-                <>
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="text-xs">Location</TableHead>
-                          <TableHead className="text-xs">Type</TableHead>
-                          <TableHead className="text-xs hidden sm:table-cell">Amount</TableHead>
-                          <TableHead className="text-xs hidden md:table-cell">Rate</TableHead>
-                          <TableHead className="text-xs hidden lg:table-cell">LTV/LTC</TableHead>
-                          <TableHead className="text-xs hidden lg:table-cell">Close</TableHead>
-                          <TableHead className="text-xs">Visible</TableHead>
-                          <TableHead className="text-xs text-right">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {paginatedDeals.map((deal) => (
-                          <TableRow key={deal.id} data-testid={`row-deal-${deal.id}`}>
-                            <TableCell className="py-2">
-                              <div className="flex items-center gap-2">
-                                <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                                <span className="text-sm font-medium">{deal.location}, {deal.state}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell className="py-2">
-                              <div className="flex flex-col gap-0.5">
-                                <Badge variant="outline" className="text-[10px]">{deal.loanType}</Badge>
-                                {deal.loanSubtype && (
-                                  <span className="text-[10px] text-muted-foreground">{deal.loanSubtype}</span>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell className="py-2 hidden sm:table-cell text-sm">
-                              {formatCurrency(deal.loanAmount)}
-                            </TableCell>
-                            <TableCell className="py-2 hidden md:table-cell text-sm">
-                              {deal.rate}
-                            </TableCell>
-                            <TableCell className="py-2 hidden lg:table-cell text-sm">
-                              {deal.ltv ? `${deal.ltv}% LTV` : `${deal.ltc}% LTC`}
-                            </TableCell>
-                            <TableCell className="py-2 hidden lg:table-cell text-sm text-muted-foreground">
-                              {deal.closeTime}
-                            </TableCell>
-                            <TableCell className="py-2">
-                              {deal.isVisible ? (
-                                <Eye className="h-4 w-4 text-green-600" />
-                              ) : (
-                                <EyeOff className="h-4 w-4 text-muted-foreground" />
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <Badge variant="outline" className="text-[10px]">{app.loanType}</Badge>
+                              {app.loanAmount && (
+                                <span className="text-xs text-muted-foreground">
+                                  {formatFullCurrency(app.loanAmount)}
+                                </span>
                               )}
-                            </TableCell>
-                            <TableCell className="py-2 text-right">
-                              <div className="flex items-center justify-end gap-1">
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-7 w-7"
-                                  onClick={() => openEditDeal(deal)}
-                                  data-testid={`button-edit-deal-${deal.id}`}
-                                >
-                                  <Edit className="h-3.5 w-3.5" />
-                                </Button>
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-7 w-7"
-                                  onClick={() => {
-                                    if (confirm("Are you sure you want to delete this deal?")) {
-                                      deleteDealMutation.mutate(deal.id);
-                                    }
-                                  }}
-                                  data-testid={`button-delete-deal-${deal.id}`}
-                                >
-                                  <Trash2 className="h-4 w-4 text-destructive" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className="text-xs text-muted-foreground">{formatRelativeTime(app.createdAt)}</p>
+                            <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto mt-1" />
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
                   </div>
-                  {fundedTotalPages > 1 && (
-                    <Pagination
-                      currentPage={fundedPage}
-                      totalPages={fundedTotalPages}
-                      onPageChange={setFundedPage}
-                      totalItems={fundedDeals?.length || 0}
-                      itemsPerPage={ITEMS_PER_PAGE}
-                    />
-                  )}
-                </>
+                </ScrollArea>
               )}
             </CardContent>
           </Card>
-        </section>
 
-        {/* Staff Section (Admin Only) */}
-        {currentUser.role === "admin" && (
-          <section ref={staffRef} id="staff" className="scroll-mt-32 space-y-6">
-            {/* All Accounts */}
-            <Card>
-              <CardHeader className="p-4 sm:p-6">
-                <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  All Accounts
-                </CardTitle>
-                <CardDescription className="text-xs sm:text-sm">
-                  Manage user roles and permissions
-                </CardDescription>
+          {/* Quick Actions & Upcoming */}
+          <div className="space-y-6">
+            {/* Quick Actions */}
+            <Card data-testid="card-quick-actions">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-medium">Quick Actions</CardTitle>
               </CardHeader>
-              <CardContent className="p-0">
-                {usersLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                  </div>
-                ) : (
-                  <ScrollArea className="h-[300px]">
-                    <div className="divide-y">
-                      {users?.map((user) => (
-                        <div key={user.id} className="p-3 flex items-center justify-between" data-testid={`row-user-${user.id}`}>
-                          <div className="flex items-center gap-3 min-w-0 flex-1">
-                            <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0">
-                              {user.role === "admin" ? (
-                                <Shield className="h-4 w-4 text-primary" />
-                              ) : user.role === "staff" ? (
-                                <Briefcase className="h-4 w-4 text-blue-500" />
-                              ) : (
-                                <User className="h-4 w-4 text-muted-foreground" />
-                              )}
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-sm font-medium truncate">{user.firstName} {user.lastName}</p>
-                              <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                            </div>
-                          </div>
-                          <Select
-                            value={user.role}
-                            onValueChange={(role) => updateRoleMutation.mutate({ userId: user.id, role })}
-                            disabled={user.id === currentUser.id}
-                          >
-                            <SelectTrigger className="w-[90px] h-7 text-xs shrink-0" data-testid={`select-user-role-${user.id}`}>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="borrower">Borrower</SelectItem>
-                              <SelectItem value="staff">Staff</SelectItem>
-                              <SelectItem value="admin">Admin</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                )}
+              <CardContent className="grid grid-cols-2 gap-2">
+                <Link href="/admin/portfolio">
+                  <Button variant="outline" className="w-full h-auto py-3 flex-col gap-1" data-testid="button-qa-pipeline">
+                    <Briefcase className="h-5 w-5" />
+                    <span className="text-xs">Pipeline</span>
+                  </Button>
+                </Link>
+                <Link href="/admin/messages">
+                  <Button variant="outline" className="w-full h-auto py-3 flex-col gap-1" data-testid="button-qa-messages">
+                    <MessageSquare className="h-5 w-5" />
+                    <span className="text-xs">Messages</span>
+                  </Button>
+                </Link>
+                <Link href="/admin/appointments">
+                  <Button variant="outline" className="w-full h-auto py-3 flex-col gap-1" data-testid="button-qa-appointments">
+                    <Calendar className="h-5 w-5" />
+                    <span className="text-xs">Appointments</span>
+                  </Button>
+                </Link>
+                <Link href="/admin/analytics">
+                  <Button variant="outline" className="w-full h-auto py-3 flex-col gap-1" data-testid="button-qa-analytics">
+                    <BarChart3 className="h-5 w-5" />
+                    <span className="text-xs">Analytics</span>
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
 
-            <div className="grid lg:grid-cols-2 gap-4">
-              {/* Staff Members */}
-              <Card>
-                <CardHeader className="p-4 sm:p-6">
-                  <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                    <Shield className="h-5 w-5" />
-                    Staff Members
+            {/* Needs Attention */}
+            <Card data-testid="card-needs-attention">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between gap-2">
+                  <CardTitle className="text-base font-medium flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 text-yellow-600" />
+                    Needs Attention
                   </CardTitle>
-                  <CardDescription className="text-xs sm:text-sm">
-                    {staffMembers.length} staff member{staffMembers.length !== 1 ? "s" : ""}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-0">
-                  {usersLoading ? (
-                    <div className="flex items-center justify-center py-8">
-                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                    </div>
-                  ) : (
-                    <>
-                      <div className="divide-y">
-                        {paginatedStaff.map((user) => (
-                          <div key={user.id} className="p-4 flex items-center justify-between" data-testid={`row-staff-${user.id}`}>
-                            <div className="flex items-center gap-3">
-                              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                                <Shield className="h-5 w-5 text-primary" />
-                              </div>
-                              <div>
-                                <p className="font-medium text-sm">{user.firstName} {user.lastName}</p>
-                                <p className="text-xs text-muted-foreground">{user.email}</p>
-                              </div>
-                            </div>
-                            <Select
-                              value={user.role}
-                              onValueChange={(role) => updateRoleMutation.mutate({ userId: user.id, role })}
-                              disabled={user.id === currentUser.id}
-                            >
-                              <SelectTrigger className="w-[100px] h-8 text-xs" data-testid={`select-role-${user.id}`}>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="staff">Staff</SelectItem>
-                                <SelectItem value="admin">Admin</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        ))}
-                      </div>
-                      {staffTotalPages > 1 && (
-                        <Pagination
-                          currentPage={staffPage}
-                          totalPages={staffTotalPages}
-                          onPageChange={setStaffPage}
-                          totalItems={staffMembers.length}
-                          itemsPerPage={ITEMS_PER_PAGE}
-                        />
-                      )}
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Staff Invites */}
-              <Card>
-                <CardHeader className="p-4 sm:p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                        <UserPlus className="h-5 w-5" />
-                        Invitations
-                      </CardTitle>
-                      <CardDescription className="text-xs sm:text-sm">
-                        Invite new team members
-                      </CardDescription>
-                    </div>
-                    <Dialog open={showInviteDialog} onOpenChange={(open) => {
-                      setShowInviteDialog(open);
-                      if (!open) setNewInviteLink(null);
-                    }}>
-                      <DialogTrigger asChild>
-                        <Button size="sm" data-testid="button-new-invite">
-                          <Plus className="h-3.5 w-3.5 mr-1" />
-                          Invite
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Invite Team Member</DialogTitle>
-                          <DialogDescription>
-                            Send an invitation to join your team
-                          </DialogDescription>
-                        </DialogHeader>
-                        {newInviteLink ? (
-                          <div className="space-y-4">
-                            <div className="p-4 bg-green-500/10 rounded-lg border border-green-500/30">
-                              <p className="text-sm text-green-700 mb-2">Invitation created successfully!</p>
-                              <p className="text-xs text-muted-foreground mb-2">Share this link with the invitee:</p>
-                              <div className="flex items-center gap-2">
-                                <Input value={newInviteLink} readOnly className="text-xs" />
-                                <Button size="icon" variant="outline" onClick={() => copyToClipboard(newInviteLink)}>
-                                  <Copy className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </div>
-                            <Button className="w-full" onClick={() => {
-                              setShowInviteDialog(false);
-                              setNewInviteLink(null);
-                            }}>
-                              Done
-                            </Button>
-                          </div>
-                        ) : (
-                          <>
-                            <div className="space-y-4">
-                              <div className="space-y-2">
-                                <Label>Email Address</Label>
-                                <Input
-                                  type="email"
-                                  placeholder="colleague@company.com"
-                                  value={inviteEmail}
-                                  onChange={(e) => setInviteEmail(e.target.value)}
-                                  data-testid="input-invite-email"
-                                />
-                              </div>
-                              <div className="space-y-2">
-                                <Label>Role</Label>
-                                <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as "staff" | "admin")}>
-                                  <SelectTrigger data-testid="select-invite-role">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="staff">Staff</SelectItem>
-                                    <SelectItem value="admin">Admin</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                            </div>
-                            <DialogFooter>
-                              <Button
-                                onClick={() => createInviteMutation.mutate({ email: inviteEmail, role: inviteRole })}
-                                disabled={!inviteEmail || createInviteMutation.isPending}
-                                data-testid="button-send-invite"
-                              >
-                                {createInviteMutation.isPending ? (
-                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                ) : (
-                                  <Mail className="h-4 w-4 mr-2" />
-                                )}
-                                Send Invite
-                              </Button>
-                            </DialogFooter>
-                          </>
-                        )}
-                      </DialogContent>
-                    </Dialog>
+                  <Badge variant="outline" className="text-[10px]">
+                    {urgentApplications.length}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                {urgentApplications.length === 0 ? (
+                  <div className="text-center py-6 text-muted-foreground text-xs">
+                    <CheckCircle2 className="h-8 w-8 mx-auto mb-2 text-green-500" />
+                    All caught up!
                   </div>
-                </CardHeader>
-                <CardContent className="p-0">
-                  {invites?.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground text-sm">
-                      No invitations sent yet
-                    </div>
-                  ) : (
-                    <div className="divide-y">
-                      {invites?.map((invite) => (
-                        <div key={invite.id} className="p-4 flex items-center justify-between" data-testid={`row-invite-${invite.id}`}>
-                          <div>
-                            <p className="text-sm font-medium">{invite.email}</p>
-                            <div className="flex items-center gap-2 mt-1">
-                              <Badge variant="outline" className="capitalize text-[10px]">{invite.role}</Badge>
+                ) : (
+                  <div className="divide-y">
+                    {urgentApplications.map((app) => (
+                      <Link key={app.id} href={`/admin/application/${app.id}`}>
+                        <div
+                          className="p-3 flex items-center gap-3 hover-elevate cursor-pointer"
+                          data-testid={`row-urgent-app-${app.id}`}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{app.borrowerName}</p>
+                            <div className="flex items-center gap-1 mt-0.5">
+                              <Badge className={`text-[9px] ${statusColors[app.status]}`}>
+                                {statusLabels[app.status]}
+                              </Badge>
                               <span className="text-[10px] text-muted-foreground">
-                                Expires {new Date(invite.expiresAt).toLocaleDateString()}
+                                {formatRelativeTime(app.createdAt)}
                               </span>
                             </div>
                           </div>
-                          <Badge
-                            className={`text-[10px] ${
-                              invite.status === "pending"
-                                ? "bg-yellow-500/10 text-yellow-600 border-yellow-500/30"
-                                : invite.status === "accepted"
-                                ? "bg-green-500/10 text-green-600 border-green-500/30"
-                                : "bg-red-500/10 text-red-600 border-red-500/30"
-                            }`}
-                          >
-                            {invite.status}
-                          </Badge>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </section>
-        )}
-
-        {/* Simulation Section (Admin Only) */}
-        {currentUser.role === "admin" && showSimulationSection && (
-          <section ref={simulationRef} id="simulation" className="scroll-mt-32">
-            <Card>
-              <CardHeader className="p-4 sm:p-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                      <BarChart3 className="h-5 w-5" />
-                      Loan Simulation
-                    </CardTitle>
-                    <CardDescription className="text-xs sm:text-sm">
-                      Generate 100 test loans with realistic data spread over ~1 hour
-                    </CardDescription>
+                      </Link>
+                    ))}
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute top-4 right-4"
-                    onClick={() => setShowSimulationSection(false)}
-                    data-testid="button-close-simulation"
-                  >
-                    <ChevronDown className="h-5 w-5" />
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="p-4 sm:p-6 pt-0 space-y-6">
-                {simulationLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                  </div>
-                ) : (
-                  <>
-                    {/* Status Display */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                      <div className="p-4 rounded-lg bg-muted/50">
-                        <p className="text-xs text-muted-foreground">Status</p>
-                        <p className="text-lg font-semibold flex items-center gap-2" data-testid="text-simulation-status">
-                          {simulationStatus?.isRunning ? (
-                            <>
-                              <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                              Running
-                            </>
-                          ) : (
-                            <>
-                              <span className="h-2 w-2 rounded-full bg-gray-400" />
-                              Idle
-                            </>
-                          )}
-                        </p>
-                      </div>
-                      <div className="p-4 rounded-lg bg-muted/50">
-                        <p className="text-xs text-muted-foreground">Loans Created</p>
-                        <p className="text-lg font-semibold" data-testid="text-loans-created">
-                          {simulationStatus?.loansCreated ?? 0} / {simulationStatus?.totalLoans ?? 100}
-                        </p>
-                      </div>
-                      <div className="p-4 rounded-lg bg-muted/50">
-                        <p className="text-xs text-muted-foreground">Progress</p>
-                        <p className="text-lg font-semibold" data-testid="text-simulation-progress">
-                          {simulationStatus?.percentComplete?.toFixed(0) ?? 0}%
-                        </p>
-                      </div>
-                      <div className="p-4 rounded-lg bg-muted/50">
-                        <p className="text-xs text-muted-foreground">Batch</p>
-                        <p className="text-lg font-semibold" data-testid="text-simulation-batch">
-                          {simulationStatus?.currentBatch ?? 0} / {simulationStatus?.totalBatches ?? 10}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Progress Bar */}
-                    {simulationStatus?.isRunning && (
-                      <div className="space-y-2">
-                        <div className="h-2 bg-muted rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-gradient-to-r from-amber-500 to-amber-600 transition-all duration-500"
-                            style={{ width: `${simulationStatus?.percentComplete ?? 0}%` }}
-                          />
-                        </div>
-                        {simulationStatus?.startedAt && (
-                          <p className="text-xs text-muted-foreground text-center">
-                            Started: {new Date(simulationStatus.startedAt).toLocaleTimeString()}
-                            {simulationStatus?.estimatedCompletion && (
-                              <> | Est. completion: {new Date(simulationStatus.estimatedCompletion).toLocaleTimeString()}</>
-                            )}
-                          </p>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Loan Distribution Info */}
-                    <div className="p-4 rounded-lg border bg-card">
-                      <h4 className="font-medium text-sm mb-3">Loan Distribution</h4>
-                      <div className="grid grid-cols-3 gap-4 text-center">
-                        <div>
-                          <p className="text-2xl font-bold text-amber-600">40</p>
-                          <p className="text-xs text-muted-foreground">DSCR Loans</p>
-                          <p className="text-[10px] text-muted-foreground">(16 Purchase, 16 Cash-Out, 8 Rate/Term)</p>
-                        </div>
-                        <div>
-                          <p className="text-2xl font-bold text-blue-600">35</p>
-                          <p className="text-xs text-muted-foreground">Fix & Flip</p>
-                        </div>
-                        <div>
-                          <p className="text-2xl font-bold text-green-600">25</p>
-                          <p className="text-xs text-muted-foreground">New Construction</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Simulation Action Buttons */}
-                    <div className="flex gap-3 justify-center">
-                      {simulationStatus?.isRunning ? (
-                        <Button 
-                          variant="destructive" 
-                          onClick={() => stopSimulationMutation.mutate()}
-                          disabled={stopSimulationMutation.isPending}
-                          data-testid="button-stop-simulation"
-                        >
-                          {stopSimulationMutation.isPending ? (
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          ) : (
-                            <AlertCircle className="h-4 w-4 mr-2" />
-                          )}
-                          Stop Simulation
-                        </Button>
-                      ) : (
-                        <Button 
-                          onClick={() => startSimulationMutation.mutate()}
-                          disabled={startSimulationMutation.isPending}
-                          className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700"
-                          data-testid="button-start-simulation"
-                        >
-                          {startSimulationMutation.isPending ? (
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          ) : (
-                            <BarChart3 className="h-4 w-4 mr-2" />
-                          )}
-                          Start Simulation
-                        </Button>
-                      )}
-                      <Button 
-                        variant="outline" 
-                        onClick={() => {
-                          refetchSimulation();
-                          queryClient.invalidateQueries({ queryKey: ["/api/admin/applications"] });
-                        }}
-                        data-testid="button-refresh-simulation"
-                      >
-                        Refresh
-                      </Button>
-                    </div>
-
-                    <Separator />
-
-                    {/* Lifecycle Engine Section */}
-                    <div className="space-y-4">
-                      <div>
-                        <h4 className="font-medium text-sm">Lifecycle Progression Engine</h4>
-                        <p className="text-xs text-muted-foreground">Automatically advances loans through stages over time</p>
-                      </div>
-                      
-                      {/* Lifecycle Status */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                        <div className="p-3 rounded-lg bg-muted/50">
-                          <p className="text-xs text-muted-foreground">Engine Status</p>
-                          <p className="text-sm font-semibold flex items-center gap-2" data-testid="text-lifecycle-status">
-                            {lifecycleStatus?.isRunning ? (
-                              <>
-                                <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                                Running
-                              </>
-                            ) : (
-                              <>
-                                <span className="h-2 w-2 rounded-full bg-gray-400" />
-                                Stopped
-                              </>
-                            )}
-                          </p>
-                        </div>
-                        <div className="p-3 rounded-lg bg-muted/50">
-                          <p className="text-xs text-muted-foreground">Loans Advanced</p>
-                          <p className="text-sm font-semibold text-green-600" data-testid="text-loans-advanced">
-                            {lifecycleStatus?.loansAdvanced ?? 0}
-                          </p>
-                        </div>
-                        <div className="p-3 rounded-lg bg-muted/50">
-                          <p className="text-xs text-muted-foreground">Loans Denied</p>
-                          <p className="text-sm font-semibold text-red-600" data-testid="text-loans-denied">
-                            {lifecycleStatus?.loansDenied ?? 0}
-                          </p>
-                        </div>
-                        <div className="p-3 rounded-lg bg-muted/50">
-                          <p className="text-xs text-muted-foreground">Started</p>
-                          <p className="text-sm font-semibold">
-                            {lifecycleStatus?.startedAt 
-                              ? new Date(lifecycleStatus.startedAt).toLocaleTimeString() 
-                              : "—"}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Lifecycle Action Buttons */}
-                      <div className="flex gap-3 justify-center">
-                        {lifecycleStatus?.isRunning ? (
-                          <Button 
-                            variant="destructive" 
-                            size="sm"
-                            onClick={() => stopLifecycleMutation.mutate()}
-                            disabled={stopLifecycleMutation.isPending}
-                            data-testid="button-stop-lifecycle"
-                          >
-                            {stopLifecycleMutation.isPending ? (
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            ) : (
-                              <AlertCircle className="h-4 w-4 mr-2" />
-                            )}
-                            Stop Engine
-                          </Button>
-                        ) : (
-                          <Button 
-                            size="sm"
-                            onClick={() => startLifecycleMutation.mutate()}
-                            disabled={startLifecycleMutation.isPending}
-                            className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
-                            data-testid="button-start-lifecycle"
-                          >
-                            {startLifecycleMutation.isPending ? (
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            ) : (
-                              <Clock className="h-4 w-4 mr-2" />
-                            )}
-                            Start Engine
-                          </Button>
-                        )}
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => refetchLifecycle()}
-                          data-testid="button-refresh-lifecycle"
-                        >
-                          Refresh
-                        </Button>
-                      </div>
-
-                      {/* Lifecycle Info */}
-                      <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/30">
-                        <p className="text-xs text-green-700">
-                          The lifecycle engine checks loans every 2 minutes. Loans that have been in their 
-                          current stage long enough have a 30% chance to advance each cycle. There's also a 
-                          2% chance of denial at each stage to simulate realistic outcomes.
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Warning */}
-                    <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
-                      <p className="text-xs text-amber-700">
-                        <strong>Note:</strong> This will create 100 test loans with simulated borrowers, properties, and stage histories.
-                        The simulation spreads data creation over approximately 1 hour (10 batches of 10 loans each).
-                        Loans will be in various stages and statuses for pipeline testing.
-                      </p>
-                    </div>
-                  </>
                 )}
               </CardContent>
             </Card>
-          </section>
-        )}
-      </main>
 
-      {/* Webhook Dialog (Admin Only) */}
-      {currentUser.role === "admin" && (
-        <Dialog open={showWebhookDialog} onOpenChange={(open) => {
-          setShowWebhookDialog(open);
-          if (!open) {
-            setNewWebhookSecret(null);
-            setWebhookForm({
-              name: "",
-              targetUrl: "",
-              subscribedEvents: ["fundedDeal.created", "fundedDeal.updated", "fundedDeal.deleted"],
-            });
-          }
-        }}>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Webhook className="h-5 w-5" />
-                Webhook Endpoints
-              </DialogTitle>
-              <DialogDescription>
-                Configure webhooks for CRM/LOS integrations
-              </DialogDescription>
-            </DialogHeader>
-            {newWebhookSecret ? (
-              <div className="space-y-4">
-                <div className="p-4 bg-green-500/10 rounded-lg border border-green-500/30">
-                  <p className="text-sm text-green-700 font-medium mb-2">Webhook Created!</p>
-                  <p className="text-xs text-muted-foreground mb-2">
-                    Save this secret - it won't be shown again:
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <Input value={newWebhookSecret} readOnly className="font-mono text-xs" />
-                    <Button size="icon" variant="outline" onClick={() => copyToClipboard(newWebhookSecret)}>
-                      <Copy className="h-4 w-4" />
+            {/* Upcoming Appointments */}
+            <Card data-testid="card-upcoming-appointments">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between gap-2">
+                  <CardTitle className="text-base font-medium flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    Upcoming
+                  </CardTitle>
+                  <Link href="/admin/appointments">
+                    <Button variant="ghost" size="sm" className="h-7 text-xs">
+                      View All
                     </Button>
-                  </div>
+                  </Link>
                 </div>
-                <Button className="w-full" onClick={() => {
-                  setShowWebhookDialog(false);
-                  setNewWebhookSecret(null);
-                }}>
-                  Done
-                </Button>
-              </div>
-            ) : (
-              <>
-                {webhooksLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </CardHeader>
+              <CardContent className="p-0">
+                {upcomingAppointments.length === 0 ? (
+                  <div className="text-center py-6 text-muted-foreground text-xs">
+                    No upcoming appointments
                   </div>
                 ) : (
-                  <>
-                    {webhookEndpoints && webhookEndpoints.length > 0 && (
-                      <div className="border rounded-lg divide-y max-h-[200px] overflow-y-auto mb-4">
-                        {webhookEndpoints.map((endpoint) => (
-                          <div key={endpoint.id} className="p-3 flex items-center justify-between" data-testid={`row-webhook-${endpoint.id}`}>
-                            <div className="min-w-0 flex-1">
-                              <p className="text-sm font-medium">{endpoint.name}</p>
-                              <p className="text-xs text-muted-foreground truncate max-w-[200px]">{endpoint.targetUrl}</p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Badge
-                                className={`text-[10px] ${
-                                  endpoint.isActive
-                                    ? "bg-green-500/10 text-green-600 border-green-500/30"
-                                    : "bg-gray-500/10 text-gray-600 border-gray-500/30"
-                                }`}
-                              >
-                                {endpoint.isActive ? "Active" : "Inactive"}
-                              </Badge>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-7 w-7"
-                                onClick={() => {
-                                  if (confirm("Delete this webhook endpoint?")) {
-                                    deleteWebhookMutation.mutate(endpoint.id);
-                                  }
-                                }}
-                                data-testid={`button-delete-webhook-${endpoint.id}`}
-                              >
-                                <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    <div className="space-y-4 border-t pt-4">
-                      <p className="text-sm font-medium">Add New Endpoint</p>
-                      <div className="space-y-2">
-                        <Label>Endpoint Name</Label>
-                        <Input
-                          placeholder="LendFlowPro Production"
-                          value={webhookForm.name}
-                          onChange={(e) => setWebhookForm({ ...webhookForm, name: e.target.value })}
-                          data-testid="input-webhook-name"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Webhook URL</Label>
-                        <Input
-                          placeholder="https://api.lendflowpro.com/webhooks/saf"
-                          value={webhookForm.targetUrl}
-                          onChange={(e) => setWebhookForm({ ...webhookForm, targetUrl: e.target.value })}
-                          data-testid="input-webhook-url"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-sm">Subscribed Events</Label>
-                        <div className="space-y-2">
-                          {["fundedDeal.created", "fundedDeal.updated", "fundedDeal.deleted"].map((event) => (
-                            <div key={event} className="flex items-center gap-2">
-                              <Checkbox
-                                id={event}
-                                checked={webhookForm.subscribedEvents.includes(event)}
-                                onCheckedChange={(checked) => {
-                                  if (checked) {
-                                    setWebhookForm({
-                                      ...webhookForm,
-                                      subscribedEvents: [...webhookForm.subscribedEvents, event],
-                                    });
-                                  } else {
-                                    setWebhookForm({
-                                      ...webhookForm,
-                                      subscribedEvents: webhookForm.subscribedEvents.filter((e) => e !== event),
-                                    });
-                                  }
-                                }}
-                              />
-                              <Label htmlFor={event} className="text-sm font-normal">
-                                {event}
-                              </Label>
-                            </div>
-                          ))}
+                  <div className="divide-y">
+                    {upcomingAppointments.map((apt) => (
+                      <div
+                        key={apt.id}
+                        className="p-3 flex items-center gap-3"
+                        data-testid={`row-appointment-${apt.id}`}
+                      >
+                        <div className="p-2 bg-primary/10 rounded-lg shrink-0">
+                          <Calendar className="h-4 w-4 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{apt.title}</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {new Date(apt.startTime).toLocaleDateString("en-US", {
+                              weekday: "short",
+                              month: "short",
+                              day: "numeric",
+                              hour: "numeric",
+                              minute: "2-digit",
+                            })}
+                          </p>
                         </div>
                       </div>
-                    </div>
-                    <DialogFooter>
-                      <Button
-                        onClick={handleWebhookSubmit}
-                        disabled={!webhookForm.name || !webhookForm.targetUrl || createWebhookMutation.isPending}
-                        data-testid="button-create-webhook"
-                      >
-                        {createWebhookMutation.isPending && (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        )}
-                        Create Endpoint
-                      </Button>
-                    </DialogFooter>
-                  </>
+                    ))}
+                  </div>
                 )}
-              </>
-            )}
-          </DialogContent>
-        </Dialog>
-      )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Performance Summary Row */}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card data-testid="card-perf-drafts">
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="p-2 bg-gray-500/10 rounded-lg">
+                <FileText className="h-5 w-5 text-gray-500" />
+              </div>
+              <div>
+                <p className="text-lg font-bold">{stats.draftCount}</p>
+                <p className="text-xs text-muted-foreground">Drafts</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card data-testid="card-perf-approved">
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="p-2 bg-green-500/10 rounded-lg">
+                <CheckCircle2 className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <p className="text-lg font-bold">{stats.approvedCount}</p>
+                <p className="text-xs text-muted-foreground">Approved</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card data-testid="card-perf-denied">
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="p-2 bg-red-500/10 rounded-lg">
+                <AlertCircle className="h-5 w-5 text-red-600" />
+              </div>
+              <div>
+                <p className="text-lg font-bold">{stats.deniedCount}</p>
+                <p className="text-xs text-muted-foreground">Denied</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card data-testid="card-perf-borrowers">
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="p-2 bg-blue-500/10 rounded-lg">
+                <Users className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-lg font-bold">{stats.totalBorrowers}</p>
+                <p className="text-xs text-muted-foreground">Total Borrowers</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </main>
     </div>
   );
 }
