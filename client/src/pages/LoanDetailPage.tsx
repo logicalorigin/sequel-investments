@@ -40,7 +40,10 @@ import {
   ShieldCheck,
   ShieldX,
   ShieldAlert,
-  Film
+  Film,
+  FileSpreadsheet,
+  Sparkles,
+  RefreshCw
 } from "lucide-react";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
@@ -78,6 +81,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { 
@@ -95,6 +99,20 @@ import type {
   PhotoVerificationStatus
 } from "@shared/schema";
 import { calculateAmortizationSchedule, calculateInterestOnlyPayment, SCOPE_OF_WORK_CATEGORY_NAMES, NEW_CONSTRUCTION_CATEGORY_NAMES } from "@shared/schema";
+
+// SOW Parse Result type
+interface SOWParseResult {
+  success: boolean;
+  items: Array<{
+    category: ScopeOfWorkCategory;
+    itemName: string;
+    budgetAmount: number;
+  }>;
+  totalBudget: number;
+  warnings: string[];
+  parsingMethod: "template" | "ai";
+  fileName: string;
+}
 
 const formatCurrency = (amount: number | null | undefined): string => {
   if (amount === null || amount === undefined) return "$0";
@@ -897,6 +915,7 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"scope" | "draws">("scope");
   const categoryNames = loan.loanType === "new_construction" ? NEW_CONSTRUCTION_CATEGORY_NAMES : SCOPE_OF_WORK_CATEGORY_NAMES;
+  const categoryOrder = Object.keys(categoryNames) as ScopeOfWorkCategory[];
   const [newDrawOpen, setNewDrawOpen] = useState(false);
   const [newDrawDescription, setNewDrawDescription] = useState("");
   const [drawLineAmounts, setDrawLineAmounts] = useState<Record<string, number>>({});
@@ -905,6 +924,15 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
   const [draftStatus, setDraftStatus] = useState<"saved" | "saving" | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pendingDataRef = useRef<{ description: string; lineAmounts: Record<string, number> } | null>(null);
+  
+  // SOW Upload state
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [parsedItems, setParsedItems] = useState<SOWParseResult["items"]>([]);
+  const [parseResult, setParseResult] = useState<SOWParseResult | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [isApplyingItems, setIsApplyingItems] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Auto-save draft key
   const draftKey = `draw_draft_${loan.id}`;
@@ -1093,6 +1121,150 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
     },
   });
 
+  // SOW file upload mutation
+  const uploadMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("loanType", loan.loanType === "new_construction" ? "new_construction" : "fix_flip");
+      
+      const response = await fetch("/api/sow/parse", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to parse file");
+      }
+      
+      return response.json() as Promise<SOWParseResult>;
+    },
+    onSuccess: (result) => {
+      setParseResult(result);
+      setParsedItems(result.items);
+      if (result.warnings.length > 0) {
+        toast({
+          title: "File Parsed with Warnings",
+          description: result.warnings[0],
+        });
+      }
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Upload Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+      setUploadedFile(null);
+    },
+  });
+
+  // Handle file selection
+  const handleFileSelect = useCallback((file: File) => {
+    const allowedTypes = [
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "application/vnd.ms-excel",
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ];
+    
+    if (!allowedTypes.includes(file.type)) {
+      toast({
+        title: "Invalid File Type",
+        description: "Please upload an Excel, PDF, or Word document.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (file.size > 10 * 1024 * 1024) {
+      toast({
+        title: "File Too Large",
+        description: "Maximum file size is 10MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setUploadedFile(file);
+    uploadMutation.mutate(file);
+  }, [uploadMutation, toast]);
+
+  // Handle drag and drop
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      handleFileSelect(file);
+    }
+  }, [handleFileSelect]);
+
+  // Apply parsed items to scope
+  const handleApplyParsedItems = async () => {
+    if (parsedItems.length === 0) return;
+    
+    setIsApplyingItems(true);
+    try {
+      // Bulk create scope items from parsed data
+      const itemsToCreate = parsedItems.map((item, index) => ({
+        category: item.category,
+        itemName: item.itemName,
+        sortOrder: index + 1,
+        budgetAmount: Math.round(item.budgetAmount),
+      }));
+      
+      await apiRequest("POST", `/api/serviced-loans/${loan.id}/scope-of-work/bulk`, {
+        items: itemsToCreate,
+      });
+      
+      queryClient.invalidateQueries({ 
+        queryKey: ["/api/serviced-loans", loan.id, "scope-of-work"] 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: ["/api/serviced-loans", loan.id, "scope-of-work-with-draws"] 
+      });
+      
+      toast({
+        title: "Scope Applied",
+        description: `${parsedItems.length} items imported successfully.`,
+      });
+      
+      // Reset upload state
+      setShowUploadDialog(false);
+      setUploadedFile(null);
+      setParsedItems([]);
+      setParseResult(null);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to apply scope items.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsApplyingItems(false);
+    }
+  };
+
+  // Download template
+  const handleDownloadTemplate = () => {
+    window.open("/api/sow/template", "_blank");
+  };
+
   const fundedDrawIds = draws.filter(d => d.status === "funded").map(d => d.id);
   const fundedLineItems = allDrawLineItems.filter(li => fundedDrawIds.includes(li.loanDrawId));
 
@@ -1103,7 +1275,6 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
     return { ...item, totalFunded };
   });
 
-  const categoryOrder: ScopeOfWorkCategory[] = ["soft_costs", "demo_foundation", "hvac_plumbing_electrical", "interior", "exterior"];
   const categorySummaries: CategorySummary[] = categoryOrder.map(category => {
     const items = scopeWithFunding.filter(i => i.category === category).sort((a, b) => a.sortOrder - b.sortOrder);
     return {
@@ -1212,18 +1383,69 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
                 <Skeleton className="h-12 w-full" />
               </div>
             ) : scopeOfWorkItems.length === 0 ? (
-              <div className="text-center py-8">
-                <HardHat className="h-10 w-10 mx-auto text-muted-foreground/50 mb-2" />
-                <p className="text-muted-foreground mb-2">No scope of work items defined</p>
-                <p className="text-xs text-muted-foreground mb-4">Initialize the scope of work to create default line items</p>
-                <Button
-                  onClick={() => initializeScopeMutation.mutate()}
-                  disabled={initializeScopeMutation.isPending}
-                  data-testid="button-initialize-scope"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Initialize Scope of Work
-                </Button>
+              <div className="space-y-6 py-4">
+                <div className="text-center">
+                  <HardHat className="h-10 w-10 mx-auto text-muted-foreground/50 mb-2" />
+                  <p className="text-muted-foreground mb-2">No scope of work items defined</p>
+                  <p className="text-xs text-muted-foreground mb-4">
+                    Start with a template or upload your own scope of work
+                  </p>
+                </div>
+                
+                <div className="grid md:grid-cols-2 gap-4">
+                  {/* Option 1: Start from template */}
+                  <Card 
+                    className="p-4 hover-elevate cursor-pointer" 
+                    onClick={() => initializeScopeMutation.mutate()}
+                  >
+                    <div className="flex flex-col items-center text-center gap-2">
+                      <div className="p-3 rounded-full bg-primary/10">
+                        <Plus className="h-6 w-6 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium">Start from Template</p>
+                        <p className="text-xs text-muted-foreground">
+                          Use our {loan.loanType === "new_construction" ? "New Construction" : "Fix & Flip"} template
+                        </p>
+                      </div>
+                      {initializeScopeMutation.isPending && (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      )}
+                    </div>
+                  </Card>
+
+                  {/* Option 2: Upload file */}
+                  <Card 
+                    className="p-4 hover-elevate cursor-pointer"
+                    onClick={() => setShowUploadDialog(true)}
+                    data-testid="button-upload-sow"
+                  >
+                    <div className="flex flex-col items-center text-center gap-2">
+                      <div className="p-3 rounded-full bg-primary/10">
+                        <Upload className="h-6 w-6 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium">Upload Your SOW</p>
+                        <p className="text-xs text-muted-foreground">
+                          Import from Excel, PDF, or Word
+                        </p>
+                      </div>
+                    </div>
+                  </Card>
+                </div>
+                
+                <div className="flex justify-center">
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={handleDownloadTemplate}
+                    className="text-xs"
+                    data-testid="button-download-template"
+                  >
+                    <Download className="h-3 w-3 mr-2" />
+                    Download Template
+                  </Button>
+                </div>
               </div>
             ) : (
               <>
@@ -1568,6 +1790,210 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
           </>
         )}
       </CardContent>
+
+      {/* SOW Upload Dialog */}
+      <Dialog open={showUploadDialog} onOpenChange={(open) => {
+        setShowUploadDialog(open);
+        if (!open) {
+          setUploadedFile(null);
+          setParsedItems([]);
+          setParseResult(null);
+        }
+      }}>
+        <DialogContent className="max-w-3xl max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Upload className="h-5 w-5" />
+              Upload Scope of Work
+            </DialogTitle>
+            <DialogDescription>
+              Upload your scope of work file to automatically import line items. 
+              Supports Excel, PDF, and Word documents.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {/* File upload zone */}
+            {!parseResult && (
+              <div
+                className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                  isDragOver 
+                    ? "border-primary bg-primary/5" 
+                    : "border-muted-foreground/25 hover:border-primary/50"
+                }`}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".xlsx,.xls,.pdf,.doc,.docx"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleFileSelect(file);
+                  }}
+                  data-testid="input-sow-file"
+                />
+                
+                {uploadMutation.isPending ? (
+                  <div className="flex flex-col items-center gap-3">
+                    <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                    <p className="text-muted-foreground">Analyzing your document...</p>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Sparkles className="h-4 w-4" />
+                      Using AI to extract scope items
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <FileSpreadsheet className="h-10 w-10 mx-auto text-muted-foreground/50 mb-3" />
+                    <p className="text-muted-foreground mb-2">
+                      Drag and drop your file here, or{" "}
+                      <button
+                        className="text-primary underline hover:no-underline"
+                        onClick={() => fileInputRef.current?.click()}
+                        data-testid="button-browse-files"
+                      >
+                        browse
+                      </button>
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Excel (.xlsx, .xls), PDF, or Word (.doc, .docx) - Max 10MB
+                    </p>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Parse results */}
+            {parseResult && (
+              <div className="space-y-4">
+                {/* Result summary */}
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                  <div className="flex items-center gap-3">
+                    {parseResult.success ? (
+                      <div className="p-2 rounded-full bg-green-100 dark:bg-green-900/30">
+                        <Check className="h-4 w-4 text-green-600" />
+                      </div>
+                    ) : (
+                      <div className="p-2 rounded-full bg-red-100 dark:bg-red-900/30">
+                        <AlertCircle className="h-4 w-4 text-red-600" />
+                      </div>
+                    )}
+                    <div>
+                      <p className="font-medium">
+                        {parseResult.success 
+                          ? `Found ${parsedItems.length} items`
+                          : "Parsing failed"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {parseResult.fileName} - Parsed using {parseResult.parsingMethod === "ai" ? "AI" : "template matching"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold text-lg">{formatCurrency(parseResult.totalBudget)}</p>
+                    <p className="text-xs text-muted-foreground">Total Budget</p>
+                  </div>
+                </div>
+
+                {/* Warnings */}
+                {parseResult.warnings.length > 0 && (
+                  <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
+                    <div className="flex items-center gap-2 mb-1">
+                      <AlertTriangle className="h-4 w-4 text-amber-500" />
+                      <p className="text-sm font-medium text-amber-700 dark:text-amber-300">Warnings</p>
+                    </div>
+                    <ul className="text-xs text-amber-600 dark:text-amber-400 space-y-1">
+                      {parseResult.warnings.map((w, i) => (
+                        <li key={i}>{w}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Parsed items preview */}
+                {parsedItems.length > 0 && (
+                  <div>
+                    <p className="text-sm font-medium mb-2">Preview Items</p>
+                    <ScrollArea className="h-[250px] rounded-md border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Category</TableHead>
+                            <TableHead>Item</TableHead>
+                            <TableHead className="text-right">Budget</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {parsedItems.map((item, index) => (
+                            <TableRow key={index}>
+                              <TableCell>
+                                <Badge variant="outline" className="text-xs">
+                                  {categoryNames[item.category] || item.category}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="font-medium">{item.itemName}</TableCell>
+                              <TableCell className="text-right">{formatCurrency(item.budgetAmount)}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </ScrollArea>
+                  </div>
+                )}
+
+                {/* Try again button */}
+                <div className="flex justify-center">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setUploadedFile(null);
+                      setParsedItems([]);
+                      setParseResult(null);
+                    }}
+                    data-testid="button-try-again"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Upload Different File
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Download template link */}
+            <div className="flex items-center justify-between pt-2 border-t">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleDownloadTemplate}
+                data-testid="button-download-template-dialog"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download Template
+              </Button>
+              
+              {parsedItems.length > 0 && (
+                <Button
+                  onClick={handleApplyParsedItems}
+                  disabled={isApplyingItems}
+                  data-testid="button-apply-sow"
+                >
+                  {isApplyingItems ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Check className="h-4 w-4 mr-2" />
+                  )}
+                  Apply {parsedItems.length} Items
+                </Button>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

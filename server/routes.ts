@@ -1105,6 +1105,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Bulk create scope of work items from uploaded file (borrowers can use for their own loans)
+  app.post("/api/serviced-loans/:loanId/scope-of-work/bulk", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      const loan = await storage.getServicedLoan(req.params.loanId);
+      
+      if (!loan) {
+        return res.status(404).json({ error: "Loan not found" });
+      }
+      
+      // Borrowers can only add scope items for their own loans
+      if (user?.role === "borrower" && loan.userId !== userId) {
+        return res.status(403).json({ error: "Not authorized to access this loan" });
+      }
+      
+      // Check if scope already has items - prevent duplicate initialization
+      const existingItems = await storage.getScopeOfWorkItems(loan.id);
+      if (existingItems.length > 0) {
+        return res.status(400).json({ error: "Scope of work already has items. Please clear existing items first." });
+      }
+      
+      // Validate items array
+      const { items } = req.body;
+      if (!Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({ error: "Items array is required and must not be empty" });
+      }
+      
+      // Create all scope items
+      const createdItems = [];
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        const validationResult = insertScopeOfWorkItemSchema.safeParse({
+          ...item,
+          servicedLoanId: loan.id,
+          sortOrder: item.sortOrder || i + 1,
+        });
+        
+        if (!validationResult.success) {
+          console.error(`Validation failed for item ${i}:`, validationResult.error);
+          continue; // Skip invalid items
+        }
+        
+        const created = await storage.createScopeOfWorkItem(validationResult.data);
+        createdItems.push(created);
+      }
+      
+      return res.status(201).json({ items: createdItems, count: createdItems.length });
+    } catch (error) {
+      console.error("Error bulk creating scope of work items:", error);
+      return res.status(500).json({ error: "Failed to create scope of work items" });
+    }
+  });
+
   app.patch("/api/scope-of-work-items/:id", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
