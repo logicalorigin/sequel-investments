@@ -287,6 +287,9 @@ export const insertRevisionRequestSchema = createInsertSchema(revisionRequests).
 // ============================================
 // APPLICATION MESSAGES (Admin-Borrower Communication)
 // ============================================
+export const messagePriorityEnum = pgEnum("message_priority", ["low", "normal", "high", "urgent"]);
+export type MessagePriority = "low" | "normal" | "high" | "urgent";
+
 export const applicationMessages = pgTable("application_messages", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   loanApplicationId: varchar("loan_application_id").notNull().references(() => loanApplications.id),
@@ -297,6 +300,7 @@ export const applicationMessages = pgTable("application_messages", {
   senderRole: userRoleEnum("sender_role").notNull(), // borrower, staff, admin
   
   // Message content
+  subject: text("subject"), // Optional subject line for email-like experience
   content: text("content").notNull(),
   
   // Attachments (file URLs and names)
@@ -306,11 +310,21 @@ export const applicationMessages = pgTable("application_messages", {
   isRead: boolean("is_read").default(false).notNull(),
   readAt: timestamp("read_at"),
   
+  // Email-like features
+  isStarred: boolean("is_starred").default(false).notNull(),
+  isArchived: boolean("is_archived").default(false).notNull(),
+  priority: messagePriorityEnum("priority").default("normal").notNull(),
+  
+  // Internal note (only visible to staff)
+  isInternalNote: boolean("is_internal_note").default(false).notNull(),
+  
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("idx_app_messages_app").on(table.loanApplicationId),
   index("idx_app_messages_sender").on(table.senderUserId),
   index("idx_app_messages_created").on(table.createdAt),
+  index("idx_app_messages_starred").on(table.isStarred),
+  index("idx_app_messages_archived").on(table.isArchived),
 ]);
 
 export const applicationMessagesRelations = relations(applicationMessages, ({ one }) => ({
@@ -331,6 +345,65 @@ export const insertApplicationMessageSchema = createInsertSchema(applicationMess
   id: true,
   createdAt: true,
   readAt: true,
+});
+
+// ============================================
+// MESSAGE TEMPLATES (Reusable Response Templates)
+// ============================================
+export const messageTemplateCategoryEnum = pgEnum("message_template_category", [
+  "general",
+  "status_update",
+  "document_request",
+  "follow_up",
+  "closing",
+  "custom"
+]);
+export type MessageTemplateCategory = "general" | "status_update" | "document_request" | "follow_up" | "closing" | "custom";
+
+export const messageTemplates = pgTable("message_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  
+  // Template metadata
+  name: text("name").notNull(),
+  category: messageTemplateCategoryEnum("category").default("general").notNull(),
+  subject: text("subject"),
+  content: text("content").notNull(),
+  
+  // Creator info
+  createdByUserId: varchar("created_by_user_id").references(() => users.id),
+  
+  // Visibility
+  isGlobal: boolean("is_global").default(false).notNull(), // Visible to all staff
+  isActive: boolean("is_active").default(true).notNull(),
+  
+  // Usage tracking
+  usageCount: integer("usage_count").default(0).notNull(),
+  lastUsedAt: timestamp("last_used_at"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_msg_templates_category").on(table.category),
+  index("idx_msg_templates_creator").on(table.createdByUserId),
+  index("idx_msg_templates_global").on(table.isGlobal),
+]);
+
+export const messageTemplatesRelations = relations(messageTemplates, ({ one }) => ({
+  createdBy: one(users, {
+    fields: [messageTemplates.createdByUserId],
+    references: [users.id],
+  }),
+}));
+
+export type MessageTemplate = typeof messageTemplates.$inferSelect;
+export type InsertMessageTemplate = typeof messageTemplates.$inferInsert;
+
+export const insertMessageTemplateSchema = createInsertSchema(messageTemplates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  usageCount: true,
+  lastUsedAt: true,
 });
 
 // ============================================
