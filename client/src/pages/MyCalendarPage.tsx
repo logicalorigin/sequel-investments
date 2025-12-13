@@ -56,7 +56,7 @@ type Appointment = {
   };
 };
 
-export default function MyAppointmentsPage() {
+export default function MyCalendarPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();

@@ -90,7 +90,7 @@ export default function BookConsultationPage() {
         title: "Consultation Scheduled",
         description: "Your consultation has been booked successfully. You will receive a confirmation email.",
       });
-      setLocation("/portal/appointments");
+      setLocation("/portal/calendar");
     },
     onError: (error: any) => {
       toast({

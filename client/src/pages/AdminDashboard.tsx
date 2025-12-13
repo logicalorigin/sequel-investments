@@ -504,10 +504,10 @@ export default function AdminDashboard() {
                     <span className="text-xs">Messages</span>
                   </Button>
                 </Link>
-                <Link href="/admin/appointments">
-                  <Button variant="outline" className="w-full h-auto py-3 flex-col gap-1" data-testid="button-qa-appointments">
+                <Link href="/admin/calendar">
+                  <Button variant="outline" className="w-full h-auto py-3 flex-col gap-1" data-testid="button-qa-calendar">
                     <Calendar className="h-5 w-5" />
-                    <span className="text-xs">Appointments</span>
+                    <span className="text-xs">Calendar</span>
                   </Button>
                 </Link>
                 <Link href="/admin/analytics">
@@ -574,7 +574,7 @@ export default function AdminDashboard() {
                     <Calendar className="h-4 w-4" />
                     Upcoming
                   </CardTitle>
-                  <Link href="/admin/appointments">
+                  <Link href="/admin/calendar">
                     <Button variant="ghost" size="sm" className="h-7 text-xs">
                       View All
                     </Button>
