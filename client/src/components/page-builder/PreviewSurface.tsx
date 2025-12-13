@@ -13,7 +13,6 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 import { Layout, GripVertical } from "lucide-react";
@@ -106,28 +105,18 @@ export function PreviewSurface({ className, onSectionDrop }: PreviewSurfaceProps
   const sortedSections = [...draftSections].sort((a, b) => a.order - b.order);
 
   return (
-    <div className={`flex flex-col h-full bg-muted/20 ${className}`}>
-      <div className="p-3 border-b bg-background flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <Layout className="h-4 w-4 text-muted-foreground" />
-          <h3 className="font-semibold text-sm">Live Preview</h3>
-        </div>
-        <Badge variant="outline" className="text-xs">
-          {draftSections.length} section{draftSections.length !== 1 ? "s" : ""}
-        </Badge>
-      </div>
-
-      <ScrollArea className="flex-1">
-        <div
-          ref={setNodeRef}
-          className={`min-h-full transition-colors ${
-            isOver ? "bg-primary/10" : ""
-          }`}
-          onClick={() => selectSection(null)}
-        >
-          {draftSections.length === 0 ? (
+    <div className={`h-full overflow-auto bg-background ${className}`}>
+      <div
+        ref={setNodeRef}
+        className={`min-h-full transition-colors ${
+          isOver ? "bg-primary/10" : ""
+        }`}
+        onClick={() => selectSection(null)}
+      >
+        {draftSections.length === 0 ? (
+          <div className="flex items-center justify-center min-h-[60vh]">
             <div
-              className={`m-4 border-2 border-dashed rounded-lg p-8 text-center ${
+              className={`max-w-md border-2 border-dashed rounded-lg p-8 text-center ${
                 isOver ? "border-primary bg-primary/5" : "border-muted-foreground/30"
               }`}
             >
@@ -139,7 +128,8 @@ export function PreviewSurface({ className, onSectionDrop }: PreviewSurfaceProps
                 Drag sections from the library to start building your page
               </p>
             </div>
-          ) : (
+          </div>
+        ) : (
             <EditorModeProvider isEditorMode={true}>
               <DndContext
                 sensors={sensors}
@@ -194,9 +184,8 @@ export function PreviewSurface({ className, onSectionDrop }: PreviewSurfaceProps
                 Drop section here to add at the end
               </p>
             </div>
-          )}
-        </div>
-      </ScrollArea>
+        )}
+      </div>
     </div>
   );
 }

@@ -271,10 +271,19 @@ export function EditorLayout({ pageId }: EditorLayoutProps) {
           </div>
         </div>
 
-        <div className="flex-1 flex min-h-0">
-          <SectionLibrary className="w-64 shrink-0" />
-          <PreviewSurface className="flex-1" onSectionDrop={handleSectionDrop} />
-          <PropertyInspector className="w-72 shrink-0" />
+        <div className="flex-1 relative min-h-0 overflow-hidden">
+          {/* Full-width live preview */}
+          <PreviewSurface className="absolute inset-0" onSectionDrop={handleSectionDrop} />
+          
+          {/* Floating section library on left */}
+          <div className="absolute top-3 left-3 bottom-3 z-10">
+            <SectionLibrary className="w-56 h-full bg-background/95 backdrop-blur-sm rounded-lg border shadow-lg" />
+          </div>
+          
+          {/* Floating property inspector on right */}
+          <div className="absolute top-3 right-3 bottom-3 z-10">
+            <PropertyInspector className="w-72 h-full bg-background/95 backdrop-blur-sm rounded-lg shadow-lg" />
+          </div>
         </div>
       </div>
     </DndContext>
