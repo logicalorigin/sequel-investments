@@ -30,6 +30,8 @@ const PUBLIC_PAGES: PageEntry[] = [
   { id: "flip-calculator", title: "Fix & Flip Calculator", url: "/resources/flip-calculator", description: "Analyze fix and flip deals - calculate ROI and profit", keywords: ["calculator", "calculators", "flip", "analyze", "tool", "calculate", "roi", "profit", "analysis"], priority: 10 },
   { id: "construction-calculator", title: "Construction Calculator", url: "/resources/construction-calculator", description: "Construction loan analysis - calculate draw schedules and costs", keywords: ["calculator", "calculators", "construction", "analyze", "tool", "calculate", "draw", "budget", "analysis"], priority: 10 },
   { id: "where-we-lend", title: "Where We Lend", url: "/where-we-lend", description: "See all states where we offer investment property loans", keywords: ["states", "locations", "where", "lend", "areas", "coverage", "map"], priority: 7 },
+  { id: "analyzers", title: "Deal Analyzers", url: "/portal/analyzers", description: "Investment analysis tools - DSCR, Fix & Flip, and Construction deal analyzers. Create an account to access.", keywords: ["analyzer", "analyzers", "deal", "analysis", "investment", "tools", "evaluate", "roi"], priority: 10 },
+  { id: "portal", title: "Client Portal", url: "/portal", description: "Access your loan applications, documents, and investment tools. Login or create an account.", keywords: ["portal", "login", "account", "dashboard", "my loans", "my applications", "sign in"], priority: 8 },
 ];
 
 const US_STATES = [
