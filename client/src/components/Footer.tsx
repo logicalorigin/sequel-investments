@@ -44,8 +44,8 @@ export function Footer() {
               />
             ) : (
               <div className="flex items-center">
-                <span className="text-base font-bold text-primary" data-testid="text-footer-company-first">{firstName}</span>
-                {restOfName && <span className="text-base font-light text-foreground ml-1" data-testid="text-footer-company-rest">{restOfName}</span>}
+                <span className="text-base font-bold text-foreground" data-testid="text-footer-company-first">{firstName}</span>
+                {restOfName && <span className="text-base font-light text-muted-foreground ml-1" data-testid="text-footer-company-rest">{restOfName}</span>}
               </div>
             )}
             <div className="flex gap-2">
@@ -82,11 +82,11 @@ export function Footer() {
           
           <div className="text-xs text-muted-foreground space-y-1" data-testid="footer-contact-info">
             <p className="flex items-center gap-1.5" data-testid="text-footer-phone">
-              <Phone className="h-3 w-3 text-primary" />
+              <Phone className="h-3 w-3 text-muted-foreground" />
               {contactPhone}
             </p>
             <p className="flex items-center gap-1.5" data-testid="text-footer-email">
-              <MailOpen className="h-3 w-3 text-primary" />
+              <MailOpen className="h-3 w-3 text-muted-foreground" />
               {contactEmail}
             </p>
           </div>
@@ -105,8 +105,8 @@ export function Footer() {
                 />
               ) : (
                 <>
-                  <span className="text-lg font-bold text-primary">{firstName}</span>
-                  {restOfName && <span className="text-lg font-light text-foreground ml-1">{restOfName}</span>}
+                  <span className="text-lg font-bold text-foreground">{firstName}</span>
+                  {restOfName && <span className="text-lg font-light text-muted-foreground ml-1">{restOfName}</span>}
                 </>
               )}
             </div>
@@ -115,11 +115,11 @@ export function Footer() {
             </p>
             <div className="text-xs sm:text-sm text-muted-foreground space-y-1.5 mb-3 sm:mb-4" data-testid="footer-contact-info-desktop">
               <p className="flex items-center gap-2" data-testid="text-footer-phone-desktop">
-                <Phone className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
+                <Phone className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
                 {contactPhone}
               </p>
               <p className="flex items-center gap-2" data-testid="text-footer-email-desktop">
-                <MailOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
+                <MailOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
                 {contactEmail}
               </p>
               <p data-testid="text-footer-address">{addressLine1}</p>
@@ -240,7 +240,7 @@ export function Footer() {
             <p className="text-muted-foreground text-[10px] sm:text-sm text-center sm:text-left" data-testid="text-footer-copyright">
               © {new Date().getFullYear()} {isDemoMode ? companyName : "Sequel Investments"}. All rights reserved.
               {isDemoMode && (
-                <span className="ml-2 text-primary" data-testid="text-powered-by-footer">
+                <span className="ml-2 text-muted-foreground" data-testid="text-powered-by-footer">
                   Powered by Sequel Investments
                 </span>
               )}
