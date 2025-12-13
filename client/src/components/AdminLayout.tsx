@@ -61,7 +61,7 @@ const settingsNavItems = [
   { title: "Users", href: "/admin/users", icon: Users },
   { title: "Webhooks", href: "/admin/webhooks", icon: Webhook },
   { title: "Page Builder", href: "/admin/page-builder", icon: LayoutTemplate },
-  { title: "Customize Site", href: "/admin/white-label", icon: Settings },
+  { title: "Customize Site", href: "/admin/customize-site", icon: Settings },
 ];
 
 function AdminSidebar() {
