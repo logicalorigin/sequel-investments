@@ -1,3 +1,18 @@
+export interface SocialLinks {
+  facebook?: string;
+  twitter?: string;
+  linkedin?: string;
+  instagram?: string;
+  youtube?: string;
+}
+
+export interface HeroSettings {
+  style: "gradient" | "image" | "pattern" | "solid";
+  imageUrl?: string;
+  patternType?: "dots" | "grid" | "waves" | "geometric";
+  overlayOpacity?: number; // 0-100
+}
+
 export interface SiteTemplate {
   id: string;
   name: string;
@@ -16,7 +31,31 @@ export interface SiteTemplate {
     headingWeight: string;
   };
   borderRadius: string;
+  buttonStyle: "rounded" | "square" | "pill";
+  themePreference: "light" | "dark";
+  heroSettings: HeroSettings;
+  socialLinks?: SocialLinks;
+  favicon?: string;
 }
+
+// Google Fonts that work well for professional/financial sites
+export const availableFonts = [
+  { id: "Inter", name: "Inter", category: "sans-serif" },
+  { id: "Roboto", name: "Roboto", category: "sans-serif" },
+  { id: "Open Sans", name: "Open Sans", category: "sans-serif" },
+  { id: "Lato", name: "Lato", category: "sans-serif" },
+  { id: "Montserrat", name: "Montserrat", category: "sans-serif" },
+  { id: "Poppins", name: "Poppins", category: "sans-serif" },
+  { id: "Source Sans 3", name: "Source Sans 3", category: "sans-serif" },
+  { id: "Nunito", name: "Nunito", category: "sans-serif" },
+  { id: "Raleway", name: "Raleway", category: "sans-serif" },
+  { id: "Work Sans", name: "Work Sans", category: "sans-serif" },
+  { id: "DM Sans", name: "DM Sans", category: "sans-serif" },
+  { id: "Plus Jakarta Sans", name: "Plus Jakarta Sans", category: "sans-serif" },
+  { id: "Playfair Display", name: "Playfair Display", category: "serif" },
+  { id: "Merriweather", name: "Merriweather", category: "serif" },
+  { id: "Libre Baskerville", name: "Libre Baskerville", category: "serif" },
+];
 
 export const siteTemplates: SiteTemplate[] = [
   {
@@ -37,6 +76,12 @@ export const siteTemplates: SiteTemplate[] = [
       headingWeight: "600",
     },
     borderRadius: "0.5rem",
+    buttonStyle: "rounded",
+    themePreference: "light",
+    heroSettings: {
+      style: "gradient",
+      overlayOpacity: 60,
+    },
   },
   {
     id: "ember",
@@ -52,10 +97,16 @@ export const siteTemplates: SiteTemplate[] = [
       card: "#171717",
     },
     typography: {
-      fontFamily: "Inter",
+      fontFamily: "Montserrat",
       headingWeight: "700",
     },
     borderRadius: "0.375rem",
+    buttonStyle: "rounded",
+    themePreference: "dark",
+    heroSettings: {
+      style: "gradient",
+      overlayOpacity: 70,
+    },
   },
   {
     id: "terrain",
@@ -71,10 +122,17 @@ export const siteTemplates: SiteTemplate[] = [
       card: "#fffbeb",
     },
     typography: {
-      fontFamily: "Inter",
+      fontFamily: "Lato",
       headingWeight: "500",
     },
     borderRadius: "0.75rem",
+    buttonStyle: "rounded",
+    themePreference: "light",
+    heroSettings: {
+      style: "pattern",
+      patternType: "geometric",
+      overlayOpacity: 50,
+    },
   },
   {
     id: "obsidian",
@@ -94,6 +152,12 @@ export const siteTemplates: SiteTemplate[] = [
       headingWeight: "600",
     },
     borderRadius: "0.5rem",
+    buttonStyle: "rounded",
+    themePreference: "dark",
+    heroSettings: {
+      style: "gradient",
+      overlayOpacity: 80,
+    },
   },
   {
     id: "pulse",
@@ -109,10 +173,17 @@ export const siteTemplates: SiteTemplate[] = [
       card: "#1e293b",
     },
     typography: {
-      fontFamily: "Inter",
+      fontFamily: "DM Sans",
       headingWeight: "600",
     },
     borderRadius: "0.75rem",
+    buttonStyle: "pill",
+    themePreference: "dark",
+    heroSettings: {
+      style: "pattern",
+      patternType: "waves",
+      overlayOpacity: 60,
+    },
   },
   {
     id: "canvas",
@@ -128,10 +199,16 @@ export const siteTemplates: SiteTemplate[] = [
       card: "#fafafa",
     },
     typography: {
-      fontFamily: "Inter",
+      fontFamily: "Work Sans",
       headingWeight: "500",
     },
     borderRadius: "0.25rem",
+    buttonStyle: "square",
+    themePreference: "light",
+    heroSettings: {
+      style: "solid",
+      overlayOpacity: 0,
+    },
   },
 ];
 

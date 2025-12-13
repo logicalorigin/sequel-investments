@@ -9,11 +9,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Palette, Building2, Phone, Mail, MapPin, Type, RotateCcw, Save, Eye, Image, LayoutTemplate, Sparkles, Monitor } from "lucide-react";
+import { Palette, Building2, Phone, Mail, MapPin, Type, RotateCcw, Save, Eye, Image, LayoutTemplate, Sparkles, Monitor, Link2, Sun, Moon, Share2, Globe, Sliders, RectangleHorizontal } from "lucide-react";
 import { EditorLayout } from "@/components/page-builder/EditorLayout";
-import { siteTemplates, type SiteTemplate } from "@/data/siteTemplates";
+import { siteTemplates, availableFonts, type SiteTemplate } from "@/data/siteTemplates";
 import { LiveSitePreview } from "@/components/admin/LiveSitePreview";
 import type { WhiteLabelSettings } from "@shared/schema";
 
@@ -54,6 +56,18 @@ export default function AdminCustomizeSitePage() {
     contactEmail: "josh@fundwithsequel.com",
     contactAddress: "800 5th Avenue, Suite 4100, Miami Beach, FL 33139",
     footerText: "",
+    buttonStyle: "rounded" as "rounded" | "square" | "pill",
+    themePreference: "dark" as "light" | "dark",
+    heroStyle: "gradient" as "gradient" | "image" | "pattern" | "solid",
+    heroImageUrl: "",
+    heroPatternType: "" as "" | "dots" | "grid" | "waves" | "geometric",
+    heroOverlayOpacity: 80,
+    favicon: "",
+    socialFacebook: "",
+    socialTwitter: "",
+    socialLinkedin: "",
+    socialInstagram: "",
+    socialYoutube: "",
   });
 
   const { data: settings, isLoading: settingsLoading } = useQuery<WhiteLabelSettingsWithMeta>({
@@ -80,6 +94,18 @@ export default function AdminCustomizeSitePage() {
         contactEmail: settings.contactEmail || "josh@fundwithsequel.com",
         contactAddress: settings.contactAddress || "800 5th Avenue, Suite 4100, Miami Beach, FL 33139",
         footerText: settings.footerText || "",
+        buttonStyle: (settings.buttonStyle as "rounded" | "square" | "pill") || "rounded",
+        themePreference: (settings.themePreference as "light" | "dark") || "dark",
+        heroStyle: (settings.heroStyle as "gradient" | "image" | "pattern" | "solid") || "gradient",
+        heroImageUrl: settings.heroImageUrl || "",
+        heroPatternType: (settings.heroPatternType as "" | "dots" | "grid" | "waves" | "geometric") || "",
+        heroOverlayOpacity: settings.heroOverlayOpacity ?? 80,
+        favicon: settings.favicon || "",
+        socialFacebook: settings.socialFacebook || "",
+        socialTwitter: settings.socialTwitter || "",
+        socialLinkedin: settings.socialLinkedin || "",
+        socialInstagram: settings.socialInstagram || "",
+        socialYoutube: settings.socialYoutube || "",
       });
     }
   }, [settings]);
@@ -127,6 +153,18 @@ export default function AdminCustomizeSitePage() {
         contactEmail: "josh@fundwithsequel.com",
         contactAddress: "800 5th Avenue, Suite 4100, Miami Beach, FL 33139",
         footerText: "",
+        buttonStyle: "rounded",
+        themePreference: "dark",
+        heroStyle: "gradient",
+        heroImageUrl: "",
+        heroPatternType: "",
+        heroOverlayOpacity: 80,
+        favicon: "",
+        socialFacebook: "",
+        socialTwitter: "",
+        socialLinkedin: "",
+        socialInstagram: "",
+        socialYoutube: "",
       });
       toast({
         title: "Settings Reset",
@@ -166,6 +204,12 @@ export default function AdminCustomizeSitePage() {
       fontFamily: template.typography.fontFamily,
       headingWeight: template.typography.headingWeight,
       borderRadius: template.borderRadius,
+      buttonStyle: template.buttonStyle,
+      themePreference: template.themePreference,
+      heroStyle: template.heroSettings.style,
+      heroImageUrl: template.heroSettings.imageUrl || "",
+      heroPatternType: template.heroSettings.patternType || "",
+      heroOverlayOpacity: template.heroSettings.overlayOpacity ?? 80,
     }));
     toast({
       title: "Template Applied",
@@ -378,6 +422,304 @@ export default function AdminCustomizeSitePage() {
                           />
                         </div>
                       </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Type className="h-5 w-5" />
+                      Typography
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="fontFamily">Font Family</Label>
+                        <Select
+                          value={formData.fontFamily}
+                          onValueChange={(value) => setFormData({ ...formData, fontFamily: value })}
+                        >
+                          <SelectTrigger id="fontFamily" data-testid="select-font-family">
+                            <SelectValue placeholder="Select font" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableFonts.map((font) => (
+                              <SelectItem key={font.id} value={font.id}>
+                                {font.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="headingWeight">Heading Weight</Label>
+                        <Select
+                          value={formData.headingWeight}
+                          onValueChange={(value) => setFormData({ ...formData, headingWeight: value })}
+                        >
+                          <SelectTrigger id="headingWeight" data-testid="select-heading-weight">
+                            <SelectValue placeholder="Select weight" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="400">Regular (400)</SelectItem>
+                            <SelectItem value="500">Medium (500)</SelectItem>
+                            <SelectItem value="600">Semibold (600)</SelectItem>
+                            <SelectItem value="700">Bold (700)</SelectItem>
+                            <SelectItem value="800">Extrabold (800)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <RectangleHorizontal className="h-5 w-5" />
+                      Button Style
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <RadioGroup
+                      value={formData.buttonStyle}
+                      onValueChange={(value) => setFormData({ ...formData, buttonStyle: value as "rounded" | "square" | "pill" })}
+                      className="flex gap-4"
+                      data-testid="radio-button-style"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="rounded" id="btn-rounded" />
+                        <Label htmlFor="btn-rounded" className="cursor-pointer">Rounded</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="square" id="btn-square" />
+                        <Label htmlFor="btn-square" className="cursor-pointer">Square</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="pill" id="btn-pill" />
+                        <Label htmlFor="btn-pill" className="cursor-pointer">Pill</Label>
+                      </div>
+                    </RadioGroup>
+                    <div className="mt-4 flex gap-3">
+                      <Button
+                        type="button"
+                        size="sm"
+                        style={{
+                          backgroundColor: formData.primaryColor,
+                          borderRadius: formData.buttonStyle === "pill" ? "9999px" : formData.buttonStyle === "square" ? "0" : "0.375rem",
+                        }}
+                        data-testid="preview-button-style"
+                      >
+                        Preview Button
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      {formData.themePreference === "dark" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+                      Theme Preference
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <RadioGroup
+                      value={formData.themePreference}
+                      onValueChange={(value) => setFormData({ ...formData, themePreference: value as "light" | "dark" })}
+                      className="flex gap-4"
+                      data-testid="radio-theme-preference"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="light" id="theme-light" />
+                        <Label htmlFor="theme-light" className="cursor-pointer flex items-center gap-2">
+                          <Sun className="h-4 w-4" /> Light
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="dark" id="theme-dark" />
+                        <Label htmlFor="theme-dark" className="cursor-pointer flex items-center gap-2">
+                          <Moon className="h-4 w-4" /> Dark
+                        </Label>
+                      </div>
+                    </RadioGroup>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Sliders className="h-5 w-5" />
+                      Hero Settings
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="heroStyle">Hero Style</Label>
+                      <Select
+                        value={formData.heroStyle}
+                        onValueChange={(value) => setFormData({ ...formData, heroStyle: value as "gradient" | "image" | "pattern" | "solid" })}
+                      >
+                        <SelectTrigger id="heroStyle" data-testid="select-hero-style">
+                          <SelectValue placeholder="Select style" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="gradient">Gradient</SelectItem>
+                          <SelectItem value="image">Image</SelectItem>
+                          <SelectItem value="pattern">Pattern</SelectItem>
+                          <SelectItem value="solid">Solid</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {formData.heroStyle === "image" && (
+                      <div className="space-y-2">
+                        <Label htmlFor="heroImageUrl">Hero Image URL</Label>
+                        <Input
+                          id="heroImageUrl"
+                          value={formData.heroImageUrl}
+                          onChange={(e) => setFormData({ ...formData, heroImageUrl: e.target.value })}
+                          placeholder="https://example.com/hero-image.jpg"
+                          data-testid="input-hero-image-url"
+                        />
+                      </div>
+                    )}
+
+                    {formData.heroStyle === "pattern" && (
+                      <div className="space-y-2">
+                        <Label htmlFor="heroPatternType">Pattern Type</Label>
+                        <Select
+                          value={formData.heroPatternType || "dots"}
+                          onValueChange={(value) => setFormData({ ...formData, heroPatternType: value as "dots" | "grid" | "waves" | "geometric" })}
+                        >
+                          <SelectTrigger id="heroPatternType" data-testid="select-hero-pattern">
+                            <SelectValue placeholder="Select pattern" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="dots">Dots</SelectItem>
+                            <SelectItem value="grid">Grid</SelectItem>
+                            <SelectItem value="waves">Waves</SelectItem>
+                            <SelectItem value="geometric">Geometric</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
+                    <div className="space-y-2">
+                      <Label>Overlay Opacity: {formData.heroOverlayOpacity}%</Label>
+                      <Slider
+                        value={[formData.heroOverlayOpacity]}
+                        onValueChange={(value) => setFormData({ ...formData, heroOverlayOpacity: value[0] })}
+                        min={0}
+                        max={100}
+                        step={5}
+                        className="w-full"
+                        data-testid="slider-hero-overlay"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Controls the dark overlay on hero backgrounds for text readability
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Share2 className="h-5 w-5" />
+                      Social Links
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="socialFacebook">Facebook</Label>
+                        <Input
+                          id="socialFacebook"
+                          value={formData.socialFacebook}
+                          onChange={(e) => setFormData({ ...formData, socialFacebook: e.target.value })}
+                          placeholder="https://facebook.com/..."
+                          data-testid="input-social-facebook"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="socialTwitter">Twitter / X</Label>
+                        <Input
+                          id="socialTwitter"
+                          value={formData.socialTwitter}
+                          onChange={(e) => setFormData({ ...formData, socialTwitter: e.target.value })}
+                          placeholder="https://twitter.com/..."
+                          data-testid="input-social-twitter"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="socialLinkedin">LinkedIn</Label>
+                        <Input
+                          id="socialLinkedin"
+                          value={formData.socialLinkedin}
+                          onChange={(e) => setFormData({ ...formData, socialLinkedin: e.target.value })}
+                          placeholder="https://linkedin.com/..."
+                          data-testid="input-social-linkedin"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="socialInstagram">Instagram</Label>
+                        <Input
+                          id="socialInstagram"
+                          value={formData.socialInstagram}
+                          onChange={(e) => setFormData({ ...formData, socialInstagram: e.target.value })}
+                          placeholder="https://instagram.com/..."
+                          data-testid="input-social-instagram"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="socialYoutube">YouTube</Label>
+                      <Input
+                        id="socialYoutube"
+                        value={formData.socialYoutube}
+                        onChange={(e) => setFormData({ ...formData, socialYoutube: e.target.value })}
+                        placeholder="https://youtube.com/..."
+                        data-testid="input-social-youtube"
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Globe className="h-5 w-5" />
+                      Favicon
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <Label htmlFor="favicon">Favicon URL</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="favicon"
+                          value={formData.favicon}
+                          onChange={(e) => setFormData({ ...formData, favicon: e.target.value })}
+                          placeholder="https://example.com/favicon.ico"
+                          data-testid="input-favicon"
+                        />
+                        {formData.favicon && (
+                          <div className="h-9 w-9 flex items-center justify-center border rounded-md bg-muted">
+                            <img 
+                              src={formData.favicon} 
+                              alt="Favicon preview" 
+                              className="h-5 w-5 object-contain"
+                              onError={(e) => (e.currentTarget.style.display = 'none')}
+                            />
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        The small icon that appears in browser tabs (recommended: 32x32 or 64x64 pixels)
+                      </p>
                     </div>
                   </CardContent>
                 </Card>

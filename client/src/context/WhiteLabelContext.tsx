@@ -32,6 +32,18 @@ const defaultSettings: WhiteLabelSettingsWithMeta = {
   footerText: null,
   isActive: false,
   isDemoMode: false,
+  buttonStyle: "rounded",
+  themePreference: "dark",
+  heroStyle: "gradient",
+  heroImageUrl: null,
+  heroPatternType: null,
+  heroOverlayOpacity: 80,
+  favicon: null,
+  socialFacebook: null,
+  socialTwitter: null,
+  socialLinkedin: null,
+  socialInstagram: null,
+  socialYoutube: null,
 };
 
 const WhiteLabelContext = createContext<WhiteLabelContextType>({
@@ -74,6 +86,49 @@ function hexToHSL(hex: string): string {
   return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
 }
 
+function getButtonBorderRadius(buttonStyle: string | null | undefined): string {
+  switch (buttonStyle) {
+    case "square":
+      return "0";
+    case "pill":
+      return "9999px";
+    case "rounded":
+    default:
+      return "0.375rem";
+  }
+}
+
+function loadGoogleFont(fontFamily: string): void {
+  const fontId = `google-font-${fontFamily.replace(/\s+/g, "-").toLowerCase()}`;
+  
+  if (document.getElementById(fontId)) {
+    return;
+  }
+  
+  const link = document.createElement("link");
+  link.id = fontId;
+  link.rel = "stylesheet";
+  link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(fontFamily)}:wght@400;500;600;700;800&display=swap`;
+  document.head.appendChild(link);
+}
+
+function updateFavicon(faviconUrl: string | null | undefined): void {
+  const existingFavicon = document.querySelector("link[rel='icon']") as HTMLLinkElement;
+  
+  if (faviconUrl) {
+    if (existingFavicon) {
+      existingFavicon.href = faviconUrl;
+    } else {
+      const link = document.createElement("link");
+      link.rel = "icon";
+      link.href = faviconUrl;
+      document.head.appendChild(link);
+    }
+  } else if (existingFavicon) {
+    existingFavicon.href = "/favicon.png";
+  }
+}
+
 export function WhiteLabelProvider({ children }: { children: React.ReactNode }) {
   const [cssApplied, setCssApplied] = useState(false);
 
@@ -87,11 +142,12 @@ export function WhiteLabelProvider({ children }: { children: React.ReactNode }) 
   }, [data]);
 
   const isDemoMode = settings?.isDemoMode || false;
+  const isWhiteLabelActive = settings?.isActive || isDemoMode;
 
   useEffect(() => {
     const root = document.documentElement;
     
-    if (isDemoMode && settings) {
+    if (isWhiteLabelActive && settings) {
       root.setAttribute("data-white-label", "true");
       
       if (settings.primaryColor) {
@@ -116,7 +172,8 @@ export function WhiteLabelProvider({ children }: { children: React.ReactNode }) 
         root.style.setProperty("--wl-card", hexToHSL(settings.cardColor));
       }
       if (settings.fontFamily) {
-        root.style.setProperty("--wl-font-family", settings.fontFamily);
+        loadGoogleFont(settings.fontFamily);
+        root.style.setProperty("--wl-font-family", `"${settings.fontFamily}", sans-serif`);
       }
       if (settings.headingWeight) {
         root.style.setProperty("--wl-heading-weight", settings.headingWeight);
@@ -125,8 +182,23 @@ export function WhiteLabelProvider({ children }: { children: React.ReactNode }) 
         root.style.setProperty("--wl-radius", settings.borderRadius);
       }
       
+      root.style.setProperty("--wl-button-radius", getButtonBorderRadius(settings.buttonStyle));
+      
+      if (settings.heroOverlayOpacity !== undefined && settings.heroOverlayOpacity !== null) {
+        root.style.setProperty("--wl-hero-overlay-opacity", String(settings.heroOverlayOpacity / 100));
+      }
+      
+      // Apply theme preference (light/dark mode)
+      if (settings.themePreference === "light") {
+        root.classList.remove("dark");
+      } else {
+        root.classList.add("dark");
+      }
+      
+      updateFavicon(settings.favicon);
+      
       setCssApplied(true);
-    } else if (!isDemoMode && cssApplied) {
+    } else if (!isWhiteLabelActive && cssApplied) {
       root.removeAttribute("data-white-label");
       root.style.removeProperty("--wl-primary");
       root.style.removeProperty("--wl-secondary");
@@ -138,9 +210,14 @@ export function WhiteLabelProvider({ children }: { children: React.ReactNode }) 
       root.style.removeProperty("--wl-font-family");
       root.style.removeProperty("--wl-heading-weight");
       root.style.removeProperty("--wl-radius");
+      root.style.removeProperty("--wl-button-radius");
+      root.style.removeProperty("--wl-hero-overlay-opacity");
+      
+      updateFavicon(null);
+      
       setCssApplied(false);
     }
-  }, [settings, isDemoMode, cssApplied]);
+  }, [settings, isWhiteLabelActive, cssApplied]);
 
   const handleRefetch = useCallback(() => {
     refetch();

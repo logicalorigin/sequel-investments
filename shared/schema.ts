@@ -2303,6 +2303,20 @@ export const whiteLabelSettings = pgTable("white_label_settings", {
   contactEmail: text("contact_email"),
   contactAddress: text("contact_address"),
   footerText: text("footer_text"),
+  // New customization fields
+  buttonStyle: text("button_style"), // "rounded" | "square" | "pill"
+  themePreference: text("theme_preference"), // "light" | "dark"
+  heroStyle: text("hero_style"), // "gradient" | "image" | "pattern" | "solid"
+  heroImageUrl: text("hero_image_url"),
+  heroPatternType: text("hero_pattern_type"), // "dots" | "grid" | "waves" | "geometric"
+  heroOverlayOpacity: integer("hero_overlay_opacity"), // 0-100
+  favicon: text("favicon"),
+  // Social links
+  socialFacebook: text("social_facebook"),
+  socialTwitter: text("social_twitter"),
+  socialLinkedin: text("social_linkedin"),
+  socialInstagram: text("social_instagram"),
+  socialYoutube: text("social_youtube"),
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -2335,6 +2349,19 @@ export const DEFAULT_WHITE_LABEL_SETTINGS: Omit<InsertWhiteLabelSettings, 'id'> 
   contactEmail: "josh@fundwithsequel.com",
   contactAddress: "800 5th Avenue, Suite 4100, Miami Beach, FL 33139",
   footerText: null,
+  // New customization defaults
+  buttonStyle: "rounded",
+  themePreference: "dark",
+  heroStyle: "gradient",
+  heroImageUrl: null,
+  heroPatternType: null,
+  heroOverlayOpacity: 80,
+  favicon: null,
+  socialFacebook: null,
+  socialTwitter: null,
+  socialLinkedin: null,
+  socialInstagram: null,
+  socialYoutube: null,
   isActive: false,
 };
 
