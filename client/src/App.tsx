@@ -80,6 +80,7 @@ import DSCRCalculatorPage from "@/pages/DSCRCalculatorPage";
 import FlipCalculatorPage from "@/pages/FlipCalculatorPage";
 import ConstructionCalculatorPage from "@/pages/ConstructionCalculatorPage";
 import NotFound from "@/pages/not-found";
+import SummitCapitalSandboxPage from "@/pages/SummitCapitalSandboxPage";
 
 function Router() {
   return (
@@ -146,6 +147,7 @@ function Router() {
       <Route path="/resources/flip-calculator" component={FlipCalculatorPage} />
       <Route path="/resources/construction-calculator" component={ConstructionCalculatorPage} />
       <Route path="/resources/:slug" component={ArticlePage} />
+      <Route path="/sandbox/summit-capital" component={SummitCapitalSandboxPage} />
       <Route component={NotFound} />
     </Switch>
   );
