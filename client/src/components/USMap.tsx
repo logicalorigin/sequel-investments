@@ -152,7 +152,7 @@ export default function USMap({ onStateClick }: USMapProps) {
     }
     
     // Unselected states use muted-foreground with opacity for theme-aware subtle appearance
-    return "hsl(var(--muted-foreground) / 0.25)";
+    return "hsl(var(--muted-foreground) / 0.4)";
   };
 
   const getTooltipTransform = () => {
