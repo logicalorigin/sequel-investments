@@ -359,6 +359,47 @@ export const siteTemplates: SiteTemplate[] = [
       accentPattern: "lines",
     },
   },
+  {
+    id: "upcrunch",
+    name: "Upcrunch",
+    description: "Clean, professional lending design with structured product comparisons and trust-building elements",
+    isPremium: true,
+    tagline: "Outside-the-box funding",
+    colors: {
+      primary: "#2563eb",
+      secondary: "#0f172a",
+      accent: "#10b981",
+      background: "#ffffff",
+      foreground: "#1e293b",
+      muted: "#f1f5f9",
+      card: "#ffffff",
+    },
+    typography: {
+      fontFamily: "Inter",
+      headingWeight: "700",
+    },
+    borderRadius: "0.5rem",
+    buttonStyle: "rounded",
+    themePreference: "light",
+    heroSettings: {
+      style: "solid",
+      overlayOpacity: 0,
+    },
+    layoutModules: {
+      heroVariant: "split",
+      showTrustBlock: true,
+      showProcessSteps: true,
+      showTestimonials: true,
+      showPartnerLogos: true,
+      showCalculators: false,
+      showStatsBanner: true,
+    },
+    mediaPresets: {
+      iconSet: "lucide",
+      imageStyle: "illustration",
+      accentPattern: "none",
+    },
+  },
 ];
 
 export function getTemplateById(id: string): SiteTemplate | undefined {

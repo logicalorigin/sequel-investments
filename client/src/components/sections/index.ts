@@ -10,3 +10,6 @@ export { LeadFormSection } from "./LeadFormSection";
 export { RecentlyFundedSection } from "./RecentlyFundedSection";
 export { StateMapSection } from "./StateMapSection";
 export { CustomContentSection } from "./CustomContentSection";
+export { ProcessStepsSection } from "./ProcessStepsSection";
+export { ProductComparisonSection } from "./ProductComparisonSection";
+export { PartnerBadgesSection } from "./PartnerBadgesSection";
