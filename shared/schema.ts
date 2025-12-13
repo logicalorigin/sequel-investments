@@ -2495,12 +2495,23 @@ export const appointmentStatusEnum = pgEnum("appointment_status", [
 ]);
 export type AppointmentStatus = "scheduled" | "completed" | "cancelled" | "no_show";
 
+export const consultationTypeEnum = pgEnum("consultation_type", [
+  "initial_call",
+  "follow_up",
+  "loan_review",
+  "document_review",
+  "closing",
+  "other"
+]);
+export type ConsultationType = "initial_call" | "follow_up" | "loan_review" | "document_review" | "closing" | "other";
+
 export const appointments = pgTable("appointments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   borrowerUserId: varchar("borrower_user_id").notNull().references(() => users.id),
   staffUserId: varchar("staff_user_id").notNull().references(() => users.id),
   title: text("title").notNull(),
   description: text("description"),
+  consultationType: consultationTypeEnum("consultation_type").default("other"),
   scheduledAt: timestamp("scheduled_at").notNull(),
   durationMinutes: integer("duration_minutes").default(30).notNull(),
   status: appointmentStatusEnum("status").default("scheduled").notNull(),
