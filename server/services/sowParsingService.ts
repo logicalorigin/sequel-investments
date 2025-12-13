@@ -272,7 +272,7 @@ Document content:
 ${textContent.slice(0, 15000)}`;
 
     const response = await geminiClient.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-2.0-flash",
       contents: prompt,
     });
     
