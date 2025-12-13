@@ -1704,7 +1704,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      let exifData: { latitude?: number; longitude?: number; timestamp?: Date; cameraModel?: string } = {};
+      let exifData: { latitude?: number | null; longitude?: number | null; timestamp?: Date | null; cameraModel?: string } = {};
       let verificationStatus: "pending" | "verified" | "outside_geofence" | "stale_timestamp" | "metadata_missing" = "pending";
       let distanceFromPropertyMeters: number | undefined;
       let verificationDetails: string | undefined;
@@ -1732,9 +1732,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           if (propertyLocation) {
             const verification = verifyPhotoLocation(
-              exifData.latitude,
-              exifData.longitude,
-              exifData.timestamp,
+              exifData.latitude ?? null,
+              exifData.longitude ?? null,
+              exifData.timestamp ?? null,
               parseFloat(propertyLocation.latitude),
               parseFloat(propertyLocation.longitude),
               propertyLocation.geofenceRadiusMeters,
@@ -1770,9 +1770,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         durationSeconds: mediaType === "video" ? durationSeconds : undefined,
         thumbnailUrl: mediaType === "video" ? thumbnailUrl : undefined,
         // Only set EXIF fields for photos (videos don't have EXIF data)
-        exifLatitude: mediaType === "photo" && exifData.latitude ? exifData.latitude.toString() : undefined,
-        exifLongitude: mediaType === "photo" && exifData.longitude ? exifData.longitude.toString() : undefined,
-        exifTimestamp: mediaType === "photo" && exifData.timestamp ? exifData.timestamp : undefined,
+        exifLatitude: mediaType === "photo" && exifData.latitude != null ? exifData.latitude.toString() : undefined,
+        exifLongitude: mediaType === "photo" && exifData.longitude != null ? exifData.longitude.toString() : undefined,
+        exifTimestamp: mediaType === "photo" && exifData.timestamp != null ? exifData.timestamp : undefined,
         exifCameraModel: mediaType === "photo" ? exifData.cameraModel : undefined,
         browserLatitude,
         browserLongitude,
@@ -2111,7 +2111,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         browserGPS,
         exifGPS,
         propertyGPS,
-        exifData.timestamp
+        exifData.timestamp ?? undefined
       );
       
       const photo = await storage.createVerificationPhoto({
@@ -2157,6 +2157,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!photo) {
         return res.status(404).json({ error: "Photo not found" });
+      }
+      
+      if (!photo.loanApplicationId) {
+        return res.status(400).json({ error: "Photo has no associated application" });
       }
       
       const application = await storage.getLoanApplication(photo.loanApplicationId);
@@ -3082,27 +3086,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Send signature request email - use token-based URL for security
       const signingUrl = `${getPortalUrl()}/sign/${accessToken}`;
       
-      if (shouldSendEmail()) {
+      if (signerUserId && await shouldSendEmail(signerUserId)) {
         try {
           await sendEmail({
             to: signerEmail,
-            subject: `Signature Requested: ${docType?.name || document.name || "Document"}`,
+            subject: `Signature Requested: ${docType?.name || document.fileName || "Document"}`,
             html: emailTemplates.signatureRequested({
               signerName,
-              documentName: docType?.name || document.name || "Loan Document",
+              documentName: docType?.name || document.fileName || "Loan Document",
               requestedByName: `${user.firstName || ""} ${user.lastName || ""}`.trim() || "Sequel Investments",
               signingUrl,
               expiresAt,
               propertyAddress: application.propertyAddress || undefined,
             }),
+            emailType: "document_request",
           });
 
           // Log the email
           await storage.createEmailLog({
             recipientEmail: signerEmail,
             recipientUserId: signerUserId || null,
-            templateName: "signatureRequested",
-            subject: `Signature Requested: ${docType?.name || document.name || "Document"}`,
+            emailType: "document_request",
+            subject: `Signature Requested: ${docType?.name || document.fileName || "Document"}`,
             status: "sent",
             relatedApplicationId: loanApplicationId,
           });
@@ -3117,7 +3122,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userId: signerUserId,
           type: "general",
           title: "Signature Required",
-          message: `Please sign "${docType?.name || document.name || "a document"}" for your loan application`,
+          message: `Please sign "${docType?.name || document.fileName || "a document"}" for your loan application`,
           linkUrl: signingUrl,
           relatedApplicationId: loanApplicationId,
         });
@@ -3249,23 +3254,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const docType = document ? docTypes.find(dt => dt.id === document.documentTypeId) : null;
 
       // Send confirmation email
-      if (shouldSendEmail()) {
+      if (request.signerUserId && await shouldSendEmail(request.signerUserId)) {
         try {
           await sendEmail({
             to: request.signerEmail,
-            subject: `Document Signed: ${docType?.name || document?.name || "Document"}`,
+            subject: `Document Signed: ${docType?.name || document?.fileName || "Document"}`,
             html: emailTemplates.signatureCompleted({
               signerName: request.signerName,
-              documentName: docType?.name || document?.name || "Loan Document",
+              documentName: docType?.name || document?.fileName || "Loan Document",
               signedAt: new Date(),
             }),
+            emailType: "document_request",
           });
 
           await storage.createEmailLog({
             recipientEmail: request.signerEmail,
             recipientUserId: request.signerUserId || null,
-            templateName: "signatureCompleted",
-            subject: `Document Signed: ${docType?.name || document?.name || "Document"}`,
+            emailType: "document_request",
+            subject: `Document Signed: ${docType?.name || document?.fileName || "Document"}`,
             status: "sent",
             relatedApplicationId: request.loanApplicationId,
           });
@@ -3281,7 +3287,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userId: request.requestedByUserId,
           type: "general",
           title: "Document Signed",
-          message: `${request.signerName} has signed "${docType?.name || document?.name || "the document"}"`,
+          message: `${request.signerName} has signed "${docType?.name || document?.fileName || "the document"}"`,
           linkUrl: `/admin/applications/${request.loanApplicationId}`,
           relatedApplicationId: request.loanApplicationId,
         });
@@ -3326,7 +3332,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: request.requestedByUserId,
         type: "general",
         title: "Signature Declined",
-        message: `${request.signerName} has declined to sign "${docType?.name || document?.name || "the document"}"${reason ? `: ${reason}` : ""}`,
+        message: `${request.signerName} has declined to sign "${docType?.name || document?.fileName || "the document"}"${reason ? `: ${reason}` : ""}`,
         linkUrl: `/admin/applications/${request.loanApplicationId}`,
         relatedApplicationId: request.loanApplicationId,
       });
@@ -3369,7 +3375,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...request,
         document: document ? {
           id: document.id,
-          name: document.name,
+          name: document.fileName,
           typeName: docType?.name,
           description: docType?.description,
         } : null,
@@ -3438,23 +3444,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const docType = document ? docTypes.find(dt => dt.id === document.documentTypeId) : null;
 
       // Send confirmation email
-      if (shouldSendEmail()) {
+      if (request.signerUserId && await shouldSendEmail(request.signerUserId)) {
         try {
           await sendEmail({
             to: request.signerEmail,
-            subject: `Document Signed: ${docType?.name || document?.name || "Document"}`,
+            subject: `Document Signed: ${docType?.name || document?.fileName || "Document"}`,
             html: emailTemplates.signatureCompleted({
               signerName: request.signerName,
-              documentName: docType?.name || document?.name || "Loan Document",
+              documentName: docType?.name || document?.fileName || "Loan Document",
               signedAt: new Date(),
             }),
+            emailType: "document_request",
           });
 
           await storage.createEmailLog({
             recipientEmail: request.signerEmail,
             recipientUserId: request.signerUserId || null,
-            templateName: "signatureCompleted",
-            subject: `Document Signed: ${docType?.name || document?.name || "Document"}`,
+            emailType: "document_request",
+            subject: `Document Signed: ${docType?.name || document?.fileName || "Document"}`,
             status: "sent",
             relatedApplicationId: request.loanApplicationId,
           });
@@ -3470,7 +3477,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userId: request.requestedByUserId,
           type: "general",
           title: "Document Signed",
-          message: `${request.signerName} has signed "${docType?.name || document?.name || "the document"}"`,
+          message: `${request.signerName} has signed "${docType?.name || document?.fileName || "the document"}"`,
           linkUrl: `/admin/applications/${request.loanApplicationId}`,
           relatedApplicationId: request.loanApplicationId,
         });
@@ -3518,7 +3525,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: request.requestedByUserId,
         type: "general",
         title: "Signature Declined",
-        message: `${request.signerName} has declined to sign "${docType?.name || document?.name || "the document"}"${reason ? `: ${reason}` : ""}`,
+        message: `${request.signerName} has declined to sign "${docType?.name || document?.fileName || "the document"}"${reason ? `: ${reason}` : ""}`,
         linkUrl: `/admin/applications/${request.loanApplicationId}`,
         relatedApplicationId: request.loanApplicationId,
       });
@@ -3559,7 +3566,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ...request,
           document: document ? {
             id: document.id,
-            name: document.name,
+            name: document.fileName,
             typeName: docType?.name,
           } : null,
           requestedBy: requestedBy ? {
@@ -3615,25 +3622,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Send new email
       const signingUrl = `${getPortalUrl()}/sign/${request.id}?token=${newAccessToken}`;
       
-      if (shouldSendEmail()) {
+      if (request.signerUserId && await shouldSendEmail(request.signerUserId)) {
         await sendEmail({
           to: request.signerEmail,
-          subject: `Reminder: Signature Requested - ${docType?.name || document?.name || "Document"}`,
+          subject: `Reminder: Signature Requested - ${docType?.name || document?.fileName || "Document"}`,
           html: emailTemplates.signatureRequested({
             signerName: request.signerName,
-            documentName: docType?.name || document?.name || "Loan Document",
+            documentName: docType?.name || document?.fileName || "Loan Document",
             requestedByName: `${user.firstName || ""} ${user.lastName || ""}`.trim() || "Sequel Investments",
             signingUrl,
             expiresAt: newExpiresAt,
             propertyAddress: application?.propertyAddress || undefined,
           }),
+          emailType: "document_request",
         });
 
         await storage.createEmailLog({
           recipientEmail: request.signerEmail,
           recipientUserId: request.signerUserId || null,
-          templateName: "signatureRequested",
-          subject: `Reminder: Signature Requested - ${docType?.name || document?.name || "Document"}`,
+          emailType: "document_request",
+          subject: `Reminder: Signature Requested - ${docType?.name || document?.fileName || "Document"}`,
           status: "sent",
           relatedApplicationId: request.loanApplicationId,
         });
@@ -4951,10 +4959,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Enrich with application details
       const enriched = await Promise.all(assignments.map(async (assignment) => {
         const application = await storage.getLoanApplication(assignment.loanApplicationId);
+        const borrower = application ? await storage.getUser(application.userId) : null;
+        const borrowerName = borrower ? `${borrower.firstName || ''} ${borrower.lastName || ''}`.trim() || borrower.email : undefined;
         return {
           ...assignment,
           loanType: application?.loanType,
-          borrowerName: application?.borrowerName,
+          borrowerName,
           propertyAddress: application?.propertyAddress,
           loanAmount: application?.loanAmount,
           applicationStatus: application?.status,
@@ -5194,7 +5204,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Send email notification to assigned staff members
       try {
-        const assignments = await storage.getActiveAssignmentsForApplication(req.params.id);
+        const assignments = await storage.getLoanAssignments(req.params.id);
         const borrowerName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email || "Borrower" : "Borrower";
         
         for (const assignment of assignments) {
@@ -6136,7 +6146,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Calculate line items summary
         const lineItemsTotal = lineItems.reduce((sum, item) => sum + (item.requestedAmount || 0), 0);
-        const lineItemsApproved = lineItems.filter(item => item.status === 'approved').length;
+        const lineItemsApproved = lineItems.filter(item => item.approvedAmount != null && item.approvedAmount > 0).length;
         
         // Calculate photos summary
         const verifiedPhotos = photos.filter(p => p.verificationStatus === 'verified' || p.verificationStatus === 'gps_match' || p.verificationStatus === 'manual_approved').length;
@@ -8058,7 +8068,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Send confirmation email to borrower
-      if (user.email && shouldSendEmail(user)) {
+      if (user.email && await shouldSendEmail(user.id)) {
         try {
           const emailHtml = emailTemplates.appointmentConfirmation({
             borrowerName: user.firstName || "Valued Client",
@@ -8073,7 +8083,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             to: user.email,
             subject: "Appointment Confirmed - Easy Street Capital",
             html: emailHtml,
-          }, storage, { userId: user.id, relatedApplicationId: relatedApplicationId || undefined });
+            emailType: "general",
+            userId: user.id,
+            relatedApplicationId: relatedApplicationId || undefined,
+          });
         } catch (emailError) {
           console.error("Failed to send appointment confirmation email:", emailError);
         }
@@ -8082,16 +8095,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Send SMS to borrower if enabled
       if (user.phone && user.smsNotificationsEnabled) {
         try {
-          await sendSMSIfEnabled(
-            user.phone,
-            smsTemplates.appointmentBooked(
+          await sendSMSIfEnabled(user.id, {
+            message: smsTemplates.appointmentBooked(
               new Date(scheduledAt).toLocaleDateString(),
               new Date(scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             ),
-            user.id,
-            storage,
-            { relatedApplicationId: relatedApplicationId || undefined, smsType: "general" }
-          );
+            smsType: "general",
+            applicationId: relatedApplicationId || undefined,
+          });
         } catch (smsError) {
           console.error("Failed to send appointment confirmation SMS:", smsError);
         }
