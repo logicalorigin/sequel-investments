@@ -3718,6 +3718,493 @@ export const DEFAULT_HOME_PAGE_LAYOUT: Omit<InsertPageLayout, 'id'> = {
   isActive: true,
 };
 
+// Default DSCR page layout configuration
+export const DEFAULT_DSCR_PAGE_LAYOUT: Omit<InsertPageLayout, 'id'> = {
+  pageId: "dscr",
+  pageName: "DSCR Loan Page",
+  sections: [
+    {
+      id: "dscr-hero-1",
+      type: "hero",
+      title: "Hero Section",
+      isVisible: true,
+      order: 0,
+      config: {
+        variant: "standard",
+        headline: "DSCR Loans for Rental Property Investors",
+        subheadline: "No tax returns required. Qualify based on property cash flow, not personal income.",
+        ctaText: "Get Your DSCR Quote",
+        ctaLink: "/get-quote",
+        showFundedDeals: false,
+      } as HeroSectionConfig,
+    },
+    {
+      id: "dscr-trust-1",
+      type: "trust_indicators",
+      title: "Trust Indicators",
+      isVisible: true,
+      order: 1,
+      config: {
+        showYearsInBusiness: true,
+        showTotalFunded: true,
+        showStatesServed: true,
+        showActiveLoans: true,
+      } as TrustIndicatorsSectionConfig,
+    },
+    {
+      id: "dscr-features-1",
+      type: "feature_highlights",
+      title: "DSCR Loan Benefits",
+      isVisible: true,
+      order: 2,
+      config: {
+        title: "Why Choose DSCR Loans?",
+        layout: "grid",
+        columns: 3,
+        features: [
+          { icon: "FileX", title: "No Tax Returns", description: "Qualify based on rental income, not personal income" },
+          { icon: "Building", title: "Up to 80% LTV", description: "Finance up to 80% of property value" },
+          { icon: "Calendar", title: "30-Year Terms", description: "Long-term fixed rate financing available" },
+          { icon: "Clock", title: "Fast Closings", description: "Close in as few as 14 days" },
+          { icon: "Home", title: "1-4 Unit Properties", description: "Single family, condos, townhomes, and small multi-family" },
+          { icon: "TrendingUp", title: "Cash-Out Available", description: "Access equity for your next investment" },
+        ],
+      } as FeatureHighlightsSectionConfig,
+    },
+    {
+      id: "dscr-stats-1",
+      type: "stats_bar",
+      title: "Program Stats",
+      isVisible: true,
+      order: 3,
+      config: {
+        stats: [
+          { label: "Min DSCR", value: "1.0" },
+          { label: "Max LTV", value: "80%" },
+          { label: "Min Credit Score", value: "660" },
+          { label: "Loan Range", value: "$75K - $3M" },
+        ],
+      } as StatsBarSectionConfig,
+    },
+    {
+      id: "dscr-faq-1",
+      type: "faq",
+      title: "DSCR FAQ",
+      isVisible: true,
+      order: 4,
+      config: {
+        title: "DSCR Loan FAQs",
+        layout: "accordion",
+        items: [
+          { question: "What is a DSCR loan?", answer: "A DSCR (Debt Service Coverage Ratio) loan qualifies borrowers based on the rental income of the property rather than personal income. If the property's rent covers the mortgage payment, you can qualify." },
+          { question: "What DSCR ratio do I need?", answer: "We offer programs starting at 1.0 DSCR, meaning the property's rental income just needs to cover the monthly payment. Higher DSCR ratios may qualify for better rates." },
+          { question: "Can I use projected rent?", answer: "Yes! For properties without current tenants, we can use market rent estimates from an appraisal to qualify the property." },
+          { question: "Are there prepayment penalties?", answer: "We offer flexible prepayment options including no prepay on select programs. Standard options include 3-2-1 and 5-4-3-2-1 step-down structures." },
+        ],
+      } as FAQSectionConfig,
+    },
+    {
+      id: "dscr-cta-1",
+      type: "cta_banner",
+      title: "Call to Action",
+      isVisible: true,
+      order: 5,
+      config: {
+        headline: "Ready to Finance Your Rental Property?",
+        description: "Get a customized DSCR loan quote in minutes",
+        ctaText: "Get Your Quote",
+        ctaLink: "/get-quote",
+      } as CTABannerSectionConfig,
+    },
+  ],
+  isActive: true,
+};
+
+// Default Fix & Flip page layout configuration
+export const DEFAULT_FIX_FLIP_PAGE_LAYOUT: Omit<InsertPageLayout, 'id'> = {
+  pageId: "fix_flip",
+  pageName: "Fix & Flip Page",
+  sections: [
+    {
+      id: "flip-hero-1",
+      type: "hero",
+      title: "Hero Section",
+      isVisible: true,
+      order: 0,
+      config: {
+        variant: "standard",
+        headline: "Fix & Flip Loans for Real Estate Investors",
+        subheadline: "Fast funding for your next renovation project. Close in as few as 5 days.",
+        ctaText: "Get Your Flip Quote",
+        ctaLink: "/get-quote",
+        showFundedDeals: false,
+      } as HeroSectionConfig,
+    },
+    {
+      id: "flip-features-1",
+      type: "feature_highlights",
+      title: "Fix & Flip Benefits",
+      isVisible: true,
+      order: 1,
+      config: {
+        title: "Why Choose Our Fix & Flip Loans?",
+        layout: "grid",
+        columns: 3,
+        features: [
+          { icon: "Zap", title: "Close in 5 Days", description: "Quick funding to secure your deal" },
+          { icon: "Hammer", title: "100% Rehab Financing", description: "Finance your entire renovation budget" },
+          { icon: "Percent", title: "Up to 90% LTC", description: "Maximize your leverage on each project" },
+          { icon: "DollarSign", title: "No Prepay Options", description: "Pay off early without penalties" },
+          { icon: "Users", title: "New Investors Welcome", description: "Programs for first-time flippers" },
+          { icon: "RefreshCw", title: "Quick Draw Process", description: "Get rehab funds released fast" },
+        ],
+      } as FeatureHighlightsSectionConfig,
+    },
+    {
+      id: "flip-stats-1",
+      type: "stats_bar",
+      title: "Program Stats",
+      isVisible: true,
+      order: 2,
+      config: {
+        stats: [
+          { label: "Max LTC", value: "90%" },
+          { label: "Max ARV", value: "75%" },
+          { label: "Loan Range", value: "$75K - $3M" },
+          { label: "Terms", value: "12-24 mo" },
+        ],
+      } as StatsBarSectionConfig,
+    },
+    {
+      id: "flip-funded-1",
+      type: "recently_funded",
+      title: "Recently Funded Flips",
+      isVisible: true,
+      order: 3,
+      config: {
+        title: "Recently Funded Fix & Flip Projects",
+        maxItems: 6,
+        showRate: true,
+        showCloseTime: true,
+        autoScroll: true,
+      } as RecentlyFundedSectionConfig,
+    },
+    {
+      id: "flip-faq-1",
+      type: "faq",
+      title: "Fix & Flip FAQ",
+      isVisible: true,
+      order: 4,
+      config: {
+        title: "Fix & Flip Loan FAQs",
+        layout: "accordion",
+        items: [
+          { question: "How fast can you close?", answer: "We can close in as few as 5 business days for experienced investors with clean deals. Most loans close within 10-14 days." },
+          { question: "How do rehab draws work?", answer: "After your initial purchase closes, we release rehab funds in draws as work is completed. Our inspectors typically approve draws within 24-48 hours." },
+          { question: "What experience do I need?", answer: "We have programs for investors of all experience levels. First-time flippers can qualify with slightly lower leverage and may require additional documentation." },
+          { question: "Can I refinance into a rental loan?", answer: "Yes! Many of our flip clients refinance completed projects into our DSCR program for long-term hold. We make this transition seamless." },
+        ],
+      } as FAQSectionConfig,
+    },
+    {
+      id: "flip-cta-1",
+      type: "cta_banner",
+      title: "Call to Action",
+      isVisible: true,
+      order: 5,
+      config: {
+        headline: "Ready to Fund Your Next Flip?",
+        description: "Get pre-approved and close faster than the competition",
+        ctaText: "Get Your Quote",
+        ctaLink: "/get-quote",
+      } as CTABannerSectionConfig,
+    },
+  ],
+  isActive: true,
+};
+
+// Default Construction page layout configuration
+export const DEFAULT_CONSTRUCTION_PAGE_LAYOUT: Omit<InsertPageLayout, 'id'> = {
+  pageId: "construction",
+  pageName: "Construction Page",
+  sections: [
+    {
+      id: "const-hero-1",
+      type: "hero",
+      title: "Hero Section",
+      isVisible: true,
+      order: 0,
+      config: {
+        variant: "standard",
+        headline: "Ground-Up Construction Loans",
+        subheadline: "Build your vision from the ground up with flexible construction financing.",
+        ctaText: "Get Your Construction Quote",
+        ctaLink: "/get-quote",
+        showFundedDeals: false,
+      } as HeroSectionConfig,
+    },
+    {
+      id: "const-features-1",
+      type: "feature_highlights",
+      title: "Construction Benefits",
+      isVisible: true,
+      order: 1,
+      config: {
+        title: "Why Choose Our Construction Loans?",
+        layout: "grid",
+        columns: 3,
+        features: [
+          { icon: "Building2", title: "Ground-Up Financing", description: "From lot acquisition through vertical build" },
+          { icon: "Layers", title: "Flexible Draw Schedule", description: "Draws based on your construction timeline" },
+          { icon: "Percent", title: "Up to 85% LTC", description: "Maximize leverage on your build projects" },
+          { icon: "Home", title: "Spec & Pre-Sold", description: "Programs for both speculative and pre-sold builds" },
+          { icon: "Users", title: "Builder-Friendly", description: "Work with your preferred contractors" },
+          { icon: "ArrowRightLeft", title: "Easy Exit Options", description: "Refinance to DSCR or sell upon completion" },
+        ],
+      } as FeatureHighlightsSectionConfig,
+    },
+    {
+      id: "const-stats-1",
+      type: "stats_bar",
+      title: "Program Stats",
+      isVisible: true,
+      order: 2,
+      config: {
+        stats: [
+          { label: "Max LTC", value: "85%" },
+          { label: "Max ARV", value: "70%" },
+          { label: "Loan Range", value: "$150K - $5M" },
+          { label: "Terms", value: "12-24 mo" },
+        ],
+      } as StatsBarSectionConfig,
+    },
+    {
+      id: "const-faq-1",
+      type: "faq",
+      title: "Construction FAQ",
+      isVisible: true,
+      order: 3,
+      config: {
+        title: "Construction Loan FAQs",
+        layout: "accordion",
+        items: [
+          { question: "What types of construction do you finance?", answer: "We finance ground-up single family, townhomes, and small multi-family (2-4 units). Both spec builds and pre-sold projects qualify." },
+          { question: "How do construction draws work?", answer: "Funds are released in stages based on completed construction milestones. Our draw process is designed to keep your project moving with quick inspections and approvals." },
+          { question: "Do I need permits before applying?", answer: "You can apply before permits are in hand, but permits and approved plans are required before closing. We can issue a term sheet while you finalize permits." },
+          { question: "What happens when construction is complete?", answer: "You can sell the property, refinance into a permanent loan like our DSCR program, or pay off the loan. We offer streamlined refinance options for completed projects." },
+        ],
+      } as FAQSectionConfig,
+    },
+    {
+      id: "const-cta-1",
+      type: "cta_banner",
+      title: "Call to Action",
+      isVisible: true,
+      order: 4,
+      config: {
+        headline: "Ready to Build?",
+        description: "Get financing for your next construction project",
+        ctaText: "Get Your Quote",
+        ctaLink: "/get-quote",
+      } as CTABannerSectionConfig,
+    },
+  ],
+  isActive: true,
+};
+
+// Default About page layout configuration
+export const DEFAULT_ABOUT_PAGE_LAYOUT: Omit<InsertPageLayout, 'id'> = {
+  pageId: "about",
+  pageName: "About Page",
+  sections: [
+    {
+      id: "about-hero-1",
+      type: "hero",
+      title: "Hero Section",
+      isVisible: true,
+      order: 0,
+      config: {
+        variant: "standard",
+        headline: "About Sequel Investments",
+        subheadline: "A lender built by investors, for investors. We understand your deals because we've done them ourselves.",
+        ctaText: "Get Started",
+        ctaLink: "/get-quote",
+        showFundedDeals: false,
+      } as HeroSectionConfig,
+    },
+    {
+      id: "about-trust-1",
+      type: "trust_indicators",
+      title: "Trust Indicators",
+      isVisible: true,
+      order: 1,
+      config: {
+        showYearsInBusiness: true,
+        showTotalFunded: true,
+        showStatesServed: true,
+        showActiveLoans: true,
+      } as TrustIndicatorsSectionConfig,
+    },
+    {
+      id: "about-features-1",
+      type: "feature_highlights",
+      title: "Our Values",
+      isVisible: true,
+      order: 2,
+      config: {
+        title: "What Sets Us Apart",
+        layout: "grid",
+        columns: 3,
+        features: [
+          { icon: "Handshake", title: "Investor-First Mindset", description: "We're investors too—we understand your timelines and needs" },
+          { icon: "Zap", title: "Speed & Reliability", description: "Fast decisions and consistent execution on every deal" },
+          { icon: "MessageSquare", title: "Transparent Communication", description: "Clear terms, no hidden fees, responsive team" },
+          { icon: "Target", title: "Tailored Solutions", description: "Loan programs designed for real investment strategies" },
+          { icon: "Shield", title: "Proven Track Record", description: "Hundreds of millions funded across the country" },
+          { icon: "Users", title: "Dedicated Support", description: "Your own loan specialist from application to close" },
+        ],
+      } as FeatureHighlightsSectionConfig,
+    },
+    {
+      id: "about-testimonials-1",
+      type: "testimonials",
+      title: "Client Testimonials",
+      isVisible: true,
+      order: 3,
+      config: {
+        layout: "carousel",
+        showRatings: true,
+      } as TestimonialsSectionConfig,
+    },
+    {
+      id: "about-cta-1",
+      type: "cta_banner",
+      title: "Call to Action",
+      isVisible: true,
+      order: 4,
+      config: {
+        headline: "Ready to Work Together?",
+        description: "Experience the difference of a lender who understands investors",
+        ctaText: "Contact Us",
+        ctaLink: "/contact",
+      } as CTABannerSectionConfig,
+    },
+  ],
+  isActive: true,
+};
+
+// Default Contact page layout configuration
+export const DEFAULT_CONTACT_PAGE_LAYOUT: Omit<InsertPageLayout, 'id'> = {
+  pageId: "contact",
+  pageName: "Contact Page",
+  sections: [
+    {
+      id: "contact-hero-1",
+      type: "hero",
+      title: "Hero Section",
+      isVisible: true,
+      order: 0,
+      config: {
+        variant: "standard",
+        headline: "Contact Us",
+        subheadline: "Have questions? Our team is here to help. Reach out and we'll get back to you quickly.",
+        ctaText: "Call Now",
+        ctaLink: "tel:+1234567890",
+        showFundedDeals: false,
+      } as HeroSectionConfig,
+    },
+    {
+      id: "contact-form-1",
+      type: "lead_form",
+      title: "Contact Form",
+      isVisible: true,
+      order: 1,
+      config: {
+        title: "Send Us a Message",
+        description: "Fill out the form below and a member of our team will reach out within one business day.",
+        formType: "contact",
+        showPhoneField: true,
+        showPropertyAddress: false,
+        showLoanAmount: false,
+      } as LeadFormSectionConfig,
+    },
+    {
+      id: "contact-faq-1",
+      type: "faq",
+      title: "Contact FAQ",
+      isVisible: true,
+      order: 2,
+      config: {
+        title: "Common Questions",
+        layout: "accordion",
+        items: [
+          { question: "What are your business hours?", answer: "Our team is available Monday through Friday, 9 AM to 6 PM Eastern Time. You can submit inquiries anytime through our website." },
+          { question: "How quickly will I hear back?", answer: "We typically respond to all inquiries within one business day. For urgent matters, we recommend calling our office directly." },
+          { question: "Can I schedule a call?", answer: "Yes! You can book a consultation through our borrower portal or request a callback through the contact form." },
+        ],
+      } as FAQSectionConfig,
+    },
+  ],
+  isActive: true,
+};
+
+// Default Resources page layout configuration
+export const DEFAULT_RESOURCES_PAGE_LAYOUT: Omit<InsertPageLayout, 'id'> = {
+  pageId: "resources",
+  pageName: "Resources Page",
+  sections: [
+    {
+      id: "resources-hero-1",
+      type: "hero",
+      title: "Hero Section",
+      isVisible: true,
+      order: 0,
+      config: {
+        variant: "standard",
+        headline: "Investor Resources",
+        subheadline: "Tools, guides, and calculators to help you analyze deals and make smarter investment decisions.",
+        ctaText: "Browse Resources",
+        ctaLink: "#resources",
+        showFundedDeals: false,
+      } as HeroSectionConfig,
+    },
+    {
+      id: "resources-features-1",
+      type: "feature_highlights",
+      title: "Resource Categories",
+      isVisible: true,
+      order: 1,
+      config: {
+        title: "Explore Our Resources",
+        layout: "grid",
+        columns: 3,
+        features: [
+          { icon: "Calculator", title: "Deal Calculators", description: "DSCR, Fix & Flip, and Construction calculators to analyze your deals" },
+          { icon: "BookOpen", title: "Investment Guides", description: "In-depth guides on loan programs and investment strategies" },
+          { icon: "TrendingUp", title: "Market Insights", description: "Data and trends to inform your investment decisions" },
+          { icon: "FileText", title: "Loan Programs", description: "Detailed information on all our financing options" },
+          { icon: "Map", title: "State Resources", description: "Market data and lending info for each state we serve" },
+          { icon: "HelpCircle", title: "FAQs", description: "Answers to common questions about our loan programs" },
+        ],
+      } as FeatureHighlightsSectionConfig,
+    },
+    {
+      id: "resources-cta-1",
+      type: "cta_banner",
+      title: "Call to Action",
+      isVisible: true,
+      order: 2,
+      config: {
+        headline: "Ready to Analyze Your Next Deal?",
+        description: "Use our free calculators to evaluate your investment",
+        ctaText: "Try Our Calculators",
+        ctaLink: "/resources/dscr-calculator",
+      } as CTABannerSectionConfig,
+    },
+  ],
+  isActive: true,
+};
+
 // ============================================
 // SECTION PRESETS (Pre-built Section Templates)
 // ============================================
