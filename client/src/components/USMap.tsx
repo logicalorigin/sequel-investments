@@ -143,16 +143,16 @@ export default function USMap({ onStateClick }: USMapProps) {
     
     // If selected, return bright theme color
     if (isSelected && stateData?.isEligible) {
-      return "#D4A01D"; // Theme gold color for selected
+      return "hsl(var(--primary))"; // Theme primary color for selected
     }
     
     // If hovered and eligible, return slightly lighter theme color
     if (isHovered && stateData?.isEligible) {
-      return "#e8b82e"; // Lighter gold for hover
+      return "hsl(var(--primary) / 0.7)"; // Lighter primary for hover
     }
     
-    // All states are grey by default
-    return "#d1d5db";
+    // Unselected states use muted-foreground with opacity for theme-aware subtle appearance
+    return "hsl(var(--muted-foreground) / 0.25)";
   };
 
   const getTooltipTransform = () => {
@@ -191,7 +191,7 @@ export default function USMap({ onStateClick }: USMapProps) {
               <path
                 d={path}
                 fill={getStateColor(stateAbbr, isHovered)}
-                stroke="#ffffff"
+                stroke="hsl(var(--background))"
                 strokeWidth="1"
                 className={`transition-all duration-200 ${isEligible ? 'cursor-pointer' : 'cursor-default'}`}
                 onMouseEnter={(e) => handleMouseEnter(e, stateAbbr)}
