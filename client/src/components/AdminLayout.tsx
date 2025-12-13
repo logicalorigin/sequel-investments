@@ -34,7 +34,7 @@ import {
   LayoutTemplate,
   Search,
 } from "lucide-react";
-import { SearchTrigger } from "@/components/SearchCommand";
+import { InlineSearch } from "@/components/InlineSearch";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { User as UserType } from "@shared/schema";
 import AdminMessenger from "./AdminMessenger";
@@ -236,7 +236,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             </div>
             
             <div className="flex items-center gap-2 sm:gap-3">
-              <SearchTrigger context="admin" />
+              <InlineSearch context="admin" className="hidden sm:block w-48 lg:w-64" placeholder="Search..." />
               <div className="flex items-center gap-1.5">
                 <Badge variant="outline" className="capitalize text-xs">
                   {currentUser?.role || "staff"}
