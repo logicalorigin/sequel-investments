@@ -3910,7 +3910,7 @@ export const DEFAULT_DSCR_PAGE_LAYOUT: Omit<InsertPageLayout, 'id'> = {
       isVisible: true,
       order: 0,
       config: {
-        variant: "standard",
+        variant: "static",
         headline: "DSCR Loans for Rental Property Investors",
         subheadline: "No tax returns required. Qualify based on property cash flow, not personal income.",
         ctaText: "Get Your DSCR Quote",
@@ -4012,7 +4012,7 @@ export const DEFAULT_FIX_FLIP_PAGE_LAYOUT: Omit<InsertPageLayout, 'id'> = {
       isVisible: true,
       order: 0,
       config: {
-        variant: "standard",
+        variant: "static",
         headline: "Fix & Flip Loans for Real Estate Investors",
         subheadline: "Fast funding for your next renovation project. Close in as few as 5 days.",
         ctaText: "Get Your Flip Quote",
@@ -4115,7 +4115,7 @@ export const DEFAULT_CONSTRUCTION_PAGE_LAYOUT: Omit<InsertPageLayout, 'id'> = {
       isVisible: true,
       order: 0,
       config: {
-        variant: "standard",
+        variant: "static",
         headline: "Ground-Up Construction Loans",
         subheadline: "Build your vision from the ground up with flexible construction financing.",
         ctaText: "Get Your Construction Quote",
@@ -4204,7 +4204,7 @@ export const DEFAULT_ABOUT_PAGE_LAYOUT: Omit<InsertPageLayout, 'id'> = {
       isVisible: true,
       order: 0,
       config: {
-        variant: "standard",
+        variant: "static",
         headline: "About Sequel Investments",
         subheadline: "A lender built by investors, for investors. We understand your deals because we've done them ourselves.",
         ctaText: "Get Started",
@@ -4285,7 +4285,7 @@ export const DEFAULT_CONTACT_PAGE_LAYOUT: Omit<InsertPageLayout, 'id'> = {
       isVisible: true,
       order: 0,
       config: {
-        variant: "standard",
+        variant: "static",
         headline: "Contact Us",
         subheadline: "Have questions? Our team is here to help. Reach out and we'll get back to you quickly.",
         ctaText: "Call Now",
@@ -4340,7 +4340,7 @@ export const DEFAULT_RESOURCES_PAGE_LAYOUT: Omit<InsertPageLayout, 'id'> = {
       isVisible: true,
       order: 0,
       config: {
-        variant: "standard",
+        variant: "static",
         headline: "Investor Resources",
         subheadline: "Tools, guides, and calculators to help you analyze deals and make smarter investment decisions.",
         ctaText: "Browse Resources",
