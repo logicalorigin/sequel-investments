@@ -13,10 +13,30 @@ export interface HeroSettings {
   overlayOpacity?: number; // 0-100
 }
 
+// Premium template layout modules - suggest which sections to highlight
+export interface LayoutModules {
+  heroVariant?: "centered" | "split" | "fullscreen" | "minimal";
+  showTrustBlock?: boolean;
+  showProcessSteps?: boolean;
+  showTestimonials?: boolean;
+  showPartnerLogos?: boolean;
+  showCalculators?: boolean;
+  showStatsBanner?: boolean;
+}
+
+// Premium template media presets
+export interface MediaPresets {
+  iconSet?: "lucide" | "heroicons" | "phosphor" | "feather";
+  imageStyle?: "photography" | "illustration" | "abstract" | "minimal";
+  accentPattern?: "none" | "dots" | "lines" | "curves" | "geometric";
+}
+
 export interface SiteTemplate {
   id: string;
   name: string;
   description: string;
+  isPremium?: boolean;
+  previewImage?: string;
   colors: {
     primary: string;
     secondary: string;
@@ -36,6 +56,10 @@ export interface SiteTemplate {
   heroSettings: HeroSettings;
   socialLinks?: SocialLinks;
   favicon?: string;
+  // Premium-only properties
+  layoutModules?: LayoutModules;
+  mediaPresets?: MediaPresets;
+  tagline?: string; // Suggested tagline style
 }
 
 // Google Fonts that work well for professional/financial sites
@@ -210,8 +234,141 @@ export const siteTemplates: SiteTemplate[] = [
       overlayOpacity: 0,
     },
   },
+  // Premium Templates
+  {
+    id: "nestly",
+    name: "Nestly",
+    description: "Modern mortgage experience with soft neutrals and guided step-by-step process flow",
+    isPremium: true,
+    tagline: "Your home journey starts here",
+    colors: {
+      primary: "#2563eb",
+      secondary: "#64748b",
+      accent: "#0ea5e9",
+      background: "#f8fafc",
+      foreground: "#0f172a",
+      muted: "#e2e8f0",
+      card: "#ffffff",
+    },
+    typography: {
+      fontFamily: "Plus Jakarta Sans",
+      headingWeight: "700",
+    },
+    borderRadius: "1rem",
+    buttonStyle: "pill",
+    themePreference: "light",
+    heroSettings: {
+      style: "gradient",
+      overlayOpacity: 20,
+    },
+    layoutModules: {
+      heroVariant: "split",
+      showTrustBlock: true,
+      showProcessSteps: true,
+      showTestimonials: true,
+      showPartnerLogos: true,
+      showCalculators: true,
+      showStatsBanner: true,
+    },
+    mediaPresets: {
+      iconSet: "lucide",
+      imageStyle: "photography",
+      accentPattern: "curves",
+    },
+  },
+  {
+    id: "summit_capital",
+    name: "Summit Capital",
+    description: "Luxury high-contrast design with bold statistics and premium investor appeal",
+    isPremium: true,
+    tagline: "Elevate your investments",
+    colors: {
+      primary: "#7c3aed",
+      secondary: "#1e1b4b",
+      accent: "#a855f7",
+      background: "#030712",
+      foreground: "#f9fafb",
+      muted: "#111827",
+      card: "#1f2937",
+    },
+    typography: {
+      fontFamily: "DM Sans",
+      headingWeight: "800",
+    },
+    borderRadius: "0.75rem",
+    buttonStyle: "rounded",
+    themePreference: "dark",
+    heroSettings: {
+      style: "pattern",
+      patternType: "geometric",
+      overlayOpacity: 85,
+    },
+    layoutModules: {
+      heroVariant: "fullscreen",
+      showTrustBlock: true,
+      showProcessSteps: false,
+      showTestimonials: true,
+      showPartnerLogos: true,
+      showCalculators: true,
+      showStatsBanner: true,
+    },
+    mediaPresets: {
+      iconSet: "phosphor",
+      imageStyle: "abstract",
+      accentPattern: "geometric",
+    },
+  },
+  {
+    id: "blueprint_pro",
+    name: "Blueprint Pro",
+    description: "Builder and contractor focused with calculator-forward design and construction themes",
+    isPremium: true,
+    tagline: "Build your future",
+    colors: {
+      primary: "#ea580c",
+      secondary: "#1c1917",
+      accent: "#f97316",
+      background: "#fafaf9",
+      foreground: "#1c1917",
+      muted: "#e7e5e4",
+      card: "#ffffff",
+    },
+    typography: {
+      fontFamily: "Montserrat",
+      headingWeight: "700",
+    },
+    borderRadius: "0.5rem",
+    buttonStyle: "square",
+    themePreference: "light",
+    heroSettings: {
+      style: "image",
+      overlayOpacity: 70,
+    },
+    layoutModules: {
+      heroVariant: "split",
+      showTrustBlock: true,
+      showProcessSteps: true,
+      showTestimonials: false,
+      showPartnerLogos: false,
+      showCalculators: true,
+      showStatsBanner: true,
+    },
+    mediaPresets: {
+      iconSet: "lucide",
+      imageStyle: "photography",
+      accentPattern: "lines",
+    },
+  },
 ];
 
 export function getTemplateById(id: string): SiteTemplate | undefined {
   return siteTemplates.find((template) => template.id === id);
+}
+
+export function getBasicTemplates(): SiteTemplate[] {
+  return siteTemplates.filter((template) => !template.isPremium);
+}
+
+export function getPremiumTemplates(): SiteTemplate[] {
+  return siteTemplates.filter((template) => template.isPremium);
 }

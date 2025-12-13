@@ -13,9 +13,10 @@ import { Slider } from "@/components/ui/slider";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Palette, Building2, Phone, Mail, MapPin, Type, RotateCcw, Save, Eye, Image, LayoutTemplate, Sparkles, Monitor, Link2, Sun, Moon, Share2, Globe, Sliders, RectangleHorizontal } from "lucide-react";
+import { Palette, Building2, Phone, Mail, MapPin, Type, RotateCcw, Save, Eye, Image, LayoutTemplate, Sparkles, Monitor, Link2, Sun, Moon, Share2, Globe, Sliders, RectangleHorizontal, Crown } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { EditorLayout } from "@/components/page-builder/EditorLayout";
-import { siteTemplates, availableFonts, type SiteTemplate } from "@/data/siteTemplates";
+import { siteTemplates, availableFonts, getBasicTemplates, getPremiumTemplates, type SiteTemplate } from "@/data/siteTemplates";
 import { LiveSitePreview } from "@/components/admin/LiveSitePreview";
 import type { WhiteLabelSettings } from "@shared/schema";
 
@@ -273,51 +274,120 @@ export default function AdminCustomizeSitePage() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {siteTemplates.map((template) => (
-                      <Card 
-                        key={template.id} 
-                        className="hover-elevate"
-                        data-testid={`card-template-${template.id}`}
-                      >
-                        <CardHeader className="pb-3">
-                          <CardTitle className="text-base">{template.name}</CardTitle>
-                          <CardDescription className="text-xs">
-                            {template.description}
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent className="pb-3">
-                          <div className="flex items-center gap-2">
-                            <div
-                              className="w-6 h-6 rounded-full border shadow-sm"
-                              style={{ backgroundColor: template.colors.primary }}
-                              title="Primary"
-                            />
-                            <div
-                              className="w-6 h-6 rounded-full border shadow-sm"
-                              style={{ backgroundColor: template.colors.secondary }}
-                              title="Secondary"
-                            />
-                            <div
-                              className="w-6 h-6 rounded-full border shadow-sm"
-                              style={{ backgroundColor: template.colors.accent }}
-                              title="Accent"
-                            />
-                          </div>
-                        </CardContent>
-                        <CardContent className="pt-0">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="w-full"
-                            onClick={() => handleApplyTemplate(template)}
-                            data-testid={`button-apply-template-${template.id}`}
+                  <div className="space-y-6">
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2">
+                        <Crown className="h-5 w-5 text-amber-500" />
+                        <span className="font-semibold">Premium Templates</span>
+                        <Badge className="bg-gradient-to-r from-amber-500 to-yellow-400 text-black border-0 text-xs">
+                          Pro
+                        </Badge>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {getPremiumTemplates().map((template) => (
+                          <Card 
+                            key={template.id} 
+                            className="hover-elevate relative ring-1 ring-amber-500/30 shadow-[0_0_15px_rgba(251,191,36,0.15)]"
+                            data-testid={`card-template-${template.id}`}
                           >
-                            Apply
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    ))}
+                            <Badge 
+                              className="absolute top-2 right-2 bg-gradient-to-r from-amber-500 to-yellow-400 text-black border-0 text-xs px-1.5 py-0.5"
+                            >
+                              <Crown className="h-3 w-3" />
+                            </Badge>
+                            <CardHeader className="pb-3">
+                              <CardTitle className="text-base">{template.name}</CardTitle>
+                              <CardDescription className="text-xs">
+                                {template.description}
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent className="pb-3">
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className="w-6 h-6 rounded-full border shadow-sm"
+                                  style={{ backgroundColor: template.colors.primary }}
+                                  title="Primary"
+                                />
+                                <div
+                                  className="w-6 h-6 rounded-full border shadow-sm"
+                                  style={{ backgroundColor: template.colors.secondary }}
+                                  title="Secondary"
+                                />
+                                <div
+                                  className="w-6 h-6 rounded-full border shadow-sm"
+                                  style={{ backgroundColor: template.colors.accent }}
+                                  title="Accent"
+                                />
+                              </div>
+                            </CardContent>
+                            <CardContent className="pt-0">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full"
+                                onClick={() => handleApplyTemplate(template)}
+                                data-testid={`button-apply-template-${template.id}`}
+                              >
+                                Apply
+                              </Button>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="h-5 w-5 text-muted-foreground" />
+                        <span className="font-semibold">Basic Templates</span>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {getBasicTemplates().map((template) => (
+                          <Card 
+                            key={template.id} 
+                            className="hover-elevate"
+                            data-testid={`card-template-${template.id}`}
+                          >
+                            <CardHeader className="pb-3">
+                              <CardTitle className="text-base">{template.name}</CardTitle>
+                              <CardDescription className="text-xs">
+                                {template.description}
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent className="pb-3">
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className="w-6 h-6 rounded-full border shadow-sm"
+                                  style={{ backgroundColor: template.colors.primary }}
+                                  title="Primary"
+                                />
+                                <div
+                                  className="w-6 h-6 rounded-full border shadow-sm"
+                                  style={{ backgroundColor: template.colors.secondary }}
+                                  title="Secondary"
+                                />
+                                <div
+                                  className="w-6 h-6 rounded-full border shadow-sm"
+                                  style={{ backgroundColor: template.colors.accent }}
+                                  title="Accent"
+                                />
+                              </div>
+                            </CardContent>
+                            <CardContent className="pt-0">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full"
+                                onClick={() => handleApplyTemplate(template)}
+                                data-testid={`button-apply-template-${template.id}`}
+                              >
+                                Apply
+                              </Button>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                   
                   <div className="space-y-3">
