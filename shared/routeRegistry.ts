@@ -493,11 +493,11 @@ export const ADMIN_ROUTES: RouteEntry[] = [
     isDynamic: true
   },
   { 
-    id: "admin-white-label", 
-    path: "/admin/white-label", 
-    title: "White Label Settings", 
-    description: "Configure white label branding", 
-    keywords: ["white label", "branding", "customize", "logo"], 
+    id: "admin-customize-site", 
+    path: "/admin/customize-site", 
+    title: "Customize Site", 
+    description: "Configure site branding and customization", 
+    keywords: ["customize", "site", "branding", "white label", "logo"], 
     priority: 5,
     context: "admin"
   },

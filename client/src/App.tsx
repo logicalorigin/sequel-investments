@@ -121,7 +121,7 @@ function Router() {
       <Route path="/admin/servicing">{() => <AdminLayout><AdminServicingPage /></AdminLayout>}</Route>
       <Route path="/admin/servicing/:id">{() => <AdminLayout><AdminLoanDetailPage /></AdminLayout>}</Route>
       <Route path="/admin/borrower/:id">{() => <AdminLayout><BorrowerProfilePage /></AdminLayout>}</Route>
-      <Route path="/admin/white-label">{() => <AdminLayout><AdminWhiteLabelPage /></AdminLayout>}</Route>
+      <Route path="/admin/customize-site">{() => <AdminLayout><AdminWhiteLabelPage /></AdminLayout>}</Route>
       <Route path="/admin/email-log">{() => <AdminLayout><AdminEmailLogPage /></AdminLayout>}</Route>
       <Route path="/admin/sms-log">{() => <AdminLayout><AdminSmsLogPage /></AdminLayout>}</Route>
       <Route path="/admin/appointments">{() => <AdminLayout><AdminAppointmentsPage /></AdminLayout>}</Route>
