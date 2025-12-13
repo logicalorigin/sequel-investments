@@ -77,6 +77,9 @@ import AdminDrawRequestsPage from "@/pages/AdminDrawRequestsPage";
 import AdminUsersPage from "@/pages/AdminUsersPage";
 import AdminWebhooksPage from "@/pages/AdminWebhooksPage";
 import AdminPageBuilderPage from "@/pages/AdminPageBuilderPage";
+import DSCRCalculatorPage from "@/pages/DSCRCalculatorPage";
+import FlipCalculatorPage from "@/pages/FlipCalculatorPage";
+import ConstructionCalculatorPage from "@/pages/ConstructionCalculatorPage";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -141,6 +144,9 @@ function Router() {
       <Route path="/resources/what-investors-should-know-about-adus" component={ADUGuidePage} />
       <Route path="/resources/top-renovations-to-maximize-profits" component={RenovationsGuidePage} />
       <Route path="/resources/scope-of-work-guide" component={ScopeOfWorkGuidePage} />
+      <Route path="/resources/dscr-calculator" component={DSCRCalculatorPage} />
+      <Route path="/resources/flip-calculator" component={FlipCalculatorPage} />
+      <Route path="/resources/construction-calculator" component={ConstructionCalculatorPage} />
       <Route path="/resources/:slug" component={ArticlePage} />
       <Route component={NotFound} />
     </Switch>
