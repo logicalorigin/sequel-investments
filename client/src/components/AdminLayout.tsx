@@ -31,8 +31,6 @@ import {
   Users,
   ArrowLeft,
   HardHat,
-  LayoutTemplate,
-  Search,
 } from "lucide-react";
 import { InlineSearch } from "@/components/InlineSearch";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -60,7 +58,6 @@ const operationsNavItems = [
 const settingsNavItems = [
   { title: "Users", href: "/admin/users", icon: Users },
   { title: "Webhooks", href: "/admin/webhooks", icon: Webhook },
-  { title: "Page Builder", href: "/admin/page-builder", icon: LayoutTemplate },
   { title: "Customize Site", href: "/admin/customize-site", icon: Settings },
 ];
 
