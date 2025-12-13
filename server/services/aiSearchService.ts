@@ -156,7 +156,7 @@ Respond with ONLY valid JSON in this exact format:
 
   try {
     const response = await geminiClient.models.generateContent({
-      model: "gemini-2.0-flash",
+      model: "gemini-2.5-flash-preview-05-20",
       contents: prompt,
     });
 
