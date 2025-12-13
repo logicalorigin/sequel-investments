@@ -127,7 +127,7 @@ export function Navigation() {
             <Link href="/portal" data-testid="link-nav-portal">
               <Button 
                 size="default"
-                className="bg-primary text-primary-foreground hover:bg-primary/90"
+                className="bg-primary text-white hover:bg-primary/90"
                 data-testid="button-client-portal"
               >
                 Client Portal
