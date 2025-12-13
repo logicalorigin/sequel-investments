@@ -2454,16 +2454,12 @@ export class DatabaseStorage implements IStorage {
     city: string,
     state: string
   ): Promise<PropertyLocation | undefined> {
+    // Search by combining address components to match against geocodedAddress
+    const fullAddress = `${address}, ${city}, ${state}`;
     const [location] = await db
       .select()
       .from(propertyLocations)
-      .where(
-        and(
-          eq(propertyLocations.address, address),
-          eq(propertyLocations.city, city),
-          eq(propertyLocations.state, state)
-        )
-      );
+      .where(eq(propertyLocations.geocodedAddress, fullAddress));
     return location;
   }
 
