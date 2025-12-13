@@ -2,36 +2,22 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import express from "express";
 import path from "path";
-import passport from "passport";
 import bcrypt from "bcryptjs";
 import { storage } from "./storage";
 import { 
   insertLeadSchema, 
-  insertLoanApplicationSchema,
-  insertNotificationSchema,
-  insertSavedScenarioSchema,
-  insertUserPreferencesSchema,
-  insertConnectedEntitySchema,
-  insertDocumentSignatureSchema,
-  insertSignatureRequestSchema,
-  insertCoBorrowerSchema,
-  insertApplicationTimelineEventSchema,
   insertFundedDealSchema,
   insertWebhookEndpointSchema,
   insertDocumentReviewSchema,
   insertCommentAttachmentSchema,
-  insertNotificationQueueItemSchema,
   insertDocumentCommentSchema,
   insertWhiteLabelSettingsSchema,
-  insertAppointmentSchema,
   insertScopeOfWorkItemSchema,
   insertApplicationScopeItemSchema,
   insertDrawLineItemSchema,
   getStateBySlug,
-  type UserRole,
   type StaffRole,
   type AppointmentStatus,
-  type SignatureRequestStatus,
   type ServicedLoan,
   STAFF_ROLE_COLORS,
   DEFAULT_WHITE_LABEL_SETTINGS,
