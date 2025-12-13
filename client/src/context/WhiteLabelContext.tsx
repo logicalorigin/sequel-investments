@@ -98,6 +98,32 @@ function getButtonBorderRadius(buttonStyle: string | null | undefined): string {
   }
 }
 
+// Calculate relative luminance of a hex color to determine if it's light or dark
+// Uses the WCAG formula for relative luminance
+function getRelativeLuminance(hex: string): number {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (!result) return 0.5;
+
+  const r = parseInt(result[1], 16) / 255;
+  const g = parseInt(result[2], 16) / 255;
+  const b = parseInt(result[3], 16) / 255;
+
+  // Convert to linear RGB
+  const linearR = r <= 0.03928 ? r / 12.92 : Math.pow((r + 0.055) / 1.055, 2.4);
+  const linearG = g <= 0.03928 ? g / 12.92 : Math.pow((g + 0.055) / 1.055, 2.4);
+  const linearB = b <= 0.03928 ? b / 12.92 : Math.pow((b + 0.055) / 1.055, 2.4);
+
+  // Calculate luminance
+  return 0.2126 * linearR + 0.7152 * linearG + 0.0722 * linearB;
+}
+
+// Returns appropriate foreground color (HSL format) based on background color luminance
+function getContrastingForeground(hex: string): string {
+  const luminance = getRelativeLuminance(hex);
+  // If luminance > 0.5, background is light, use dark text; otherwise use light text
+  return luminance > 0.5 ? "0 0% 10%" : "0 0% 100%";
+}
+
 function loadGoogleFont(fontFamily: string): void {
   const fontId = `google-font-${fontFamily.replace(/\s+/g, "-").toLowerCase()}`;
   
@@ -152,6 +178,7 @@ export function WhiteLabelProvider({ children }: { children: React.ReactNode }) 
       
       if (settings.primaryColor) {
         root.style.setProperty("--wl-primary", hexToHSL(settings.primaryColor));
+        root.style.setProperty("--wl-primary-foreground", getContrastingForeground(settings.primaryColor));
       }
       if (settings.secondaryColor) {
         root.style.setProperty("--wl-secondary", hexToHSL(settings.secondaryColor));
@@ -201,6 +228,7 @@ export function WhiteLabelProvider({ children }: { children: React.ReactNode }) 
     } else if (!isWhiteLabelActive && cssApplied) {
       root.removeAttribute("data-white-label");
       root.style.removeProperty("--wl-primary");
+      root.style.removeProperty("--wl-primary-foreground");
       root.style.removeProperty("--wl-secondary");
       root.style.removeProperty("--wl-accent");
       root.style.removeProperty("--wl-background");

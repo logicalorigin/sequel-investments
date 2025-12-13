@@ -565,7 +565,7 @@
 /* White-label overrides - applied when data-white-label="true" is set on :root */
 :root[data-white-label="true"] {
   --primary: var(--wl-primary);
-  --primary-foreground: 0 0% 10%;
+  --primary-foreground: var(--wl-primary-foreground, 0 0% 100%);
   --secondary: var(--wl-secondary);
   --secondary-foreground: 0 0% 95%;
   --accent: var(--wl-accent);
@@ -580,7 +580,7 @@
   --popover-foreground: var(--wl-foreground);
   --ring: var(--wl-primary);
   --sidebar-primary: var(--wl-primary);
-  --sidebar-primary-foreground: 0 0% 10%;
+  --sidebar-primary-foreground: var(--wl-primary-foreground, 0 0% 100%);
   --sidebar-accent: var(--wl-muted);
   --sidebar-accent-foreground: var(--wl-foreground);
   --sidebar-ring: var(--wl-primary);
