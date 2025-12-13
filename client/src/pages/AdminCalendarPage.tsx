@@ -1,24 +1,20 @@
-import { useState } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -29,17 +25,18 @@ import {
 import { 
   Calendar,
   Clock,
-  User,
-  CheckCircle2,
-  X,
-  Video,
-  FileText,
   Loader2,
   ChevronLeft,
   ChevronRight,
-  AlertCircle,
-  UserCheck,
+  Video,
+  MapPin,
+  Phone,
+  Mail,
+  X,
+  GripVertical,
 } from "lucide-react";
+import { DndContext, DragEndEvent, useDraggable, useDroppable, DragOverlay } from "@dnd-kit/core";
+import type { ConsultationType } from "@shared/schema";
 
 type Appointment = {
   id: string;
@@ -47,6 +44,7 @@ type Appointment = {
   staffUserId: string;
   title: string;
   description: string | null;
+  consultationType: ConsultationType | null;
   scheduledAt: string;
   durationMinutes: number;
   status: "scheduled" | "completed" | "cancelled" | "no_show";
@@ -70,10 +68,99 @@ type Appointment = {
   };
 };
 
+const CONSULTATION_TYPE_CONFIG: Record<string, { label: string; color: string; bgColor: string; borderColor: string }> = {
+  initial_call: { label: "Initial Call", color: "text-blue-700 dark:text-blue-300", bgColor: "bg-blue-500/20", borderColor: "border-l-blue-500" },
+  follow_up: { label: "Follow-up", color: "text-green-700 dark:text-green-300", bgColor: "bg-green-500/20", borderColor: "border-l-green-500" },
+  loan_review: { label: "Loan Review", color: "text-purple-700 dark:text-purple-300", bgColor: "bg-purple-500/20", borderColor: "border-l-purple-500" },
+  document_review: { label: "Document Review", color: "text-orange-700 dark:text-orange-300", bgColor: "bg-orange-500/20", borderColor: "border-l-orange-500" },
+  closing: { label: "Closing", color: "text-teal-700 dark:text-teal-300", bgColor: "bg-teal-500/20", borderColor: "border-l-teal-500" },
+  other: { label: "Other", color: "text-gray-700 dark:text-gray-300", bgColor: "bg-gray-500/20", borderColor: "border-l-gray-500" },
+};
+
+const HOURS = Array.from({ length: 16 }, (_, i) => i + 6); // 6 AM to 9 PM
+
+function getTimeFromHour(hour: number): string {
+  const period = hour >= 12 ? "PM" : "AM";
+  const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
+  return `${displayHour} ${period}`;
+}
+
+function DroppableTimeSlot({ dayIndex, hour, children }: { dayIndex: number; hour: number; children?: React.ReactNode }) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: `slot-${dayIndex}-${hour}`,
+    data: { dayIndex, hour },
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`relative h-12 border-t border-border/50 ${isOver ? "bg-primary/10" : ""}`}
+      data-testid={`time-slot-${dayIndex}-${hour}`}
+    >
+      {children}
+    </div>
+  );
+}
+
+function DraggableEvent({ 
+  appointment, 
+  topOffset, 
+  height, 
+  onClick,
+  getPersonDisplayName,
+}: { 
+  appointment: Appointment; 
+  topOffset: number; 
+  height: number;
+  onClick: () => void;
+  getPersonDisplayName: (p: any) => string;
+}) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: appointment.id,
+    data: { appointment },
+  });
+
+  const config = CONSULTATION_TYPE_CONFIG[appointment.consultationType || "other"];
+  const scheduledTime = new Date(appointment.scheduledAt);
+  const timeStr = scheduledTime.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+
+  return (
+    <div
+      ref={setNodeRef}
+      {...attributes}
+      className={`absolute left-0 right-0 mx-0.5 rounded-md border-l-4 cursor-pointer transition-all ${config.bgColor} ${config.borderColor} ${isDragging ? "opacity-50 z-50" : "z-10"}`}
+      style={{
+        top: `${topOffset}px`,
+        height: `${Math.max(height, 20)}px`,
+      }}
+      onClick={onClick}
+      data-testid={`calendar-event-${appointment.id}`}
+    >
+      <div className="flex items-center gap-1 px-1.5 py-0.5 h-full overflow-hidden">
+        <div {...listeners} className="cursor-grab shrink-0">
+          <GripVertical className="h-3 w-3 text-muted-foreground/50" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className={`text-xs font-medium truncate ${config.color}`}>
+            {timeStr} - {getPersonDisplayName(appointment.borrower)}
+          </p>
+          {height > 35 && (
+            <p className="text-xs text-muted-foreground truncate">
+              {config.label}
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminCalendarPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const timeGridRef = useRef<HTMLDivElement>(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
   
   const [selectedWeek, setSelectedWeek] = useState<Date>(() => {
     const now = new Date();
@@ -83,9 +170,17 @@ export default function AdminCalendarPage() {
   });
   
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+  const [filterType, setFilterType] = useState<string>("all");
   const [detailNotes, setDetailNotes] = useState("");
   const [detailStatus, setDetailStatus] = useState<string>("");
+  const [detailConsultationType, setDetailConsultationType] = useState<string>("");
   const [isSaving, setIsSaving] = useState(false);
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const interval = setInterval(() => setCurrentTime(new Date()), 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   const { data: appointments = [], isLoading } = useQuery<Appointment[]>({
     queryKey: ["/api/appointments"],
@@ -116,6 +211,11 @@ export default function AdminCalendarPage() {
     },
   });
 
+  const filteredAppointments = useMemo(() => {
+    if (filterType === "all") return appointments;
+    return appointments.filter(a => a.consultationType === filterType);
+  }, [appointments, filterType]);
+
   if (authLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -143,12 +243,13 @@ export default function AdminCalendarPage() {
   const weekDays = getWeekDays();
 
   const getAppointmentsForDay = (date: Date) => {
-    return appointments.filter((a) => {
+    return filteredAppointments.filter((a) => {
       const appointmentDate = new Date(a.scheduledAt);
       return (
         appointmentDate.getFullYear() === date.getFullYear() &&
         appointmentDate.getMonth() === date.getMonth() &&
-        appointmentDate.getDate() === date.getDate()
+        appointmentDate.getDate() === date.getDate() &&
+        a.status === "scheduled"
       );
     });
   };
@@ -164,21 +265,6 @@ export default function AdminCalendarPage() {
     const day = now.getDay();
     const diff = now.getDate() - day;
     setSelectedWeek(new Date(now.setDate(diff)));
-  };
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "scheduled":
-        return <Badge variant="default" className="bg-blue-500">Scheduled</Badge>;
-      case "completed":
-        return <Badge variant="default" className="bg-green-500">Completed</Badge>;
-      case "cancelled":
-        return <Badge variant="secondary">Cancelled</Badge>;
-      case "no_show":
-        return <Badge variant="destructive">No Show</Badge>;
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
-    }
   };
 
   const getPersonDisplayName = (person: { firstName: string | null; lastName: string | null; email: string } | undefined) => {
@@ -197,14 +283,6 @@ export default function AdminCalendarPage() {
     return person.email[0].toUpperCase();
   };
 
-  const formatTime = (dateStr: string) => {
-    return new Date(dateStr).toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    });
-  };
-
   const isToday = (date: Date) => {
     const today = new Date();
     return (
@@ -218,6 +296,7 @@ export default function AdminCalendarPage() {
     setSelectedAppointment(appointment);
     setDetailNotes(appointment.notes || "");
     setDetailStatus(appointment.status);
+    setDetailConsultationType(appointment.consultationType || "other");
   };
 
   const handleSaveDetail = () => {
@@ -228,286 +307,313 @@ export default function AdminCalendarPage() {
       updates: {
         notes: detailNotes,
         status: detailStatus,
+        consultationType: detailConsultationType,
       },
     });
   };
 
-  const todayAppointments = appointments.filter((a) => {
-    const appointmentDate = new Date(a.scheduledAt);
-    const today = new Date();
-    return (
-      appointmentDate.getFullYear() === today.getFullYear() &&
-      appointmentDate.getMonth() === today.getMonth() &&
-      appointmentDate.getDate() === today.getDate() &&
-      a.status === "scheduled"
-    );
-  });
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveId(null);
 
-  const upcomingCount = appointments.filter(
-    (a) => a.status === "scheduled" && new Date(a.scheduledAt) >= new Date()
-  ).length;
+    if (!over) return;
+
+    const draggedAppointment = appointments.find(a => a.id === active.id);
+    if (!draggedAppointment) return;
+
+    const slotData = over.data.current as { dayIndex: number; hour: number } | undefined;
+    if (!slotData) return;
+
+    const newDate = new Date(weekDays[slotData.dayIndex]);
+    newDate.setHours(slotData.hour, 0, 0, 0);
+
+    updateMutation.mutate({
+      id: draggedAppointment.id,
+      updates: {
+        scheduledAt: newDate.toISOString(),
+      },
+    });
+  };
+
+  const getCurrentTimePosition = () => {
+    const now = currentTime;
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
+    if (hours < 6 || hours >= 22) return null;
+    const offset = (hours - 6) * 48 + (minutes / 60) * 48;
+    return offset;
+  };
+
+  const currentTimePosition = getCurrentTimePosition();
+  const isTodayInWeek = weekDays.some(d => isToday(d));
+  const todayIndex = weekDays.findIndex(d => isToday(d));
+
+  const monthYear = weekDays[3].toLocaleDateString("en-US", { month: "long", year: "numeric" });
 
   return (
-    <div className="h-full">
-      <div className="container mx-auto px-4 py-8">
-        <div className="space-y-6">
+    <div className="h-full flex flex-col">
+      <div className="p-4 space-y-4">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => navigateWeek("prev")}
+              data-testid="button-prev-week"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={goToToday}
+              data-testid="button-today"
+            >
+              Today
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => navigateWeek("next")}
+              data-testid="button-next-week"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            <h2 className="text-xl font-semibold text-foreground" data-testid="text-month-year">
+              {monthYear}
+            </h2>
+          </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Calendar className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-foreground" data-testid="text-today-count">
-                    {todayAppointments.length}
-                  </p>
-                  <p className="text-sm text-muted-foreground">Today's Appointments</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-full bg-blue-500/10 flex items-center justify-center">
-                  <Clock className="h-6 w-6 text-blue-500" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-foreground" data-testid="text-upcoming-count">
-                    {upcomingCount}
-                  </p>
-                  <p className="text-sm text-muted-foreground">Upcoming</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-full bg-green-500/10 flex items-center justify-center">
-                  <CheckCircle2 className="h-6 w-6 text-green-500" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-foreground" data-testid="text-completed-count">
-                    {appointments.filter((a) => a.status === "completed").length}
-                  </p>
-                  <p className="text-sm text-muted-foreground">Completed This Month</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="flex items-center gap-3">
+            <Select value={filterType} onValueChange={setFilterType}>
+              <SelectTrigger className="w-[180px]" data-testid="select-filter-type">
+                <SelectValue placeholder="Filter by type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                {Object.entries(CONSULTATION_TYPE_CONFIG).map(([key, config]) => (
+                  <SelectItem key={key} value={key}>
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full ${config.bgColor.replace('/20', '')}`} />
+                      {config.label}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Weekly Calendar</CardTitle>
-                <CardDescription>
-                  {weekDays[0].toLocaleDateString("en-US", { month: "long", day: "numeric" })} - {weekDays[6].toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
-                </CardDescription>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigateWeek("prev")}
-                  data-testid="button-prev-week"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={goToToday}
-                  data-testid="button-today"
-                >
-                  Today
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigateWeek("next")}
-                  data-testid="button-next-week"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
+        <div className="flex items-center gap-4 flex-wrap">
+          {Object.entries(CONSULTATION_TYPE_CONFIG).map(([key, config]) => (
+            <div key={key} className="flex items-center gap-1.5 text-xs">
+              <div className={`w-3 h-3 rounded ${config.bgColor} border-l-2 ${config.borderColor}`} />
+              <span className="text-muted-foreground">{config.label}</span>
             </div>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="flex items-center justify-center py-16">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            ) : (
-              <div className="grid grid-cols-7 gap-2">
-                {weekDays.map((day, index) => (
-                  <div key={index} className="min-h-[200px]">
-                    <div
-                      className={`text-center p-2 rounded-t-lg ${
-                        isToday(day)
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted"
-                      }`}
-                    >
-                      <p className="text-xs font-medium">
-                        {day.toLocaleDateString("en-US", { weekday: "short" })}
-                      </p>
-                      <p className="text-lg font-bold">{day.getDate()}</p>
-                    </div>
-                    <div className="border border-t-0 rounded-b-lg p-1 space-y-1 min-h-[160px]">
-                      {getAppointmentsForDay(day).map((appointment) => (
-                        <button
-                          key={appointment.id}
-                          onClick={() => handleOpenDetail(appointment)}
-                          className={`w-full text-left p-2 rounded text-xs transition-all hover-elevate ${
-                            appointment.status === "scheduled"
-                              ? "bg-blue-500/10 border border-blue-500/20"
-                              : appointment.status === "completed"
-                              ? "bg-green-500/10 border border-green-500/20"
-                              : appointment.status === "cancelled"
-                              ? "bg-muted border border-muted-foreground/10 opacity-60"
-                              : "bg-destructive/10 border border-destructive/20"
-                          }`}
-                          data-testid={`calendar-event-${appointment.id}`}
-                        >
-                          <p className="font-medium truncate">
-                            {formatTime(appointment.scheduledAt)}
-                          </p>
-                          <p className="text-muted-foreground truncate">
-                            {getPersonDisplayName(appointment.borrower)}
-                          </p>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+          ))}
+        </div>
+      </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>All Appointments</CardTitle>
-            <CardDescription>View and manage all scheduled consultations</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="upcoming">
-              <TabsList>
-                <TabsTrigger value="upcoming" data-testid="tab-upcoming">
-                  Upcoming
-                </TabsTrigger>
-                <TabsTrigger value="past" data-testid="tab-past">
-                  Past
-                </TabsTrigger>
-                <TabsTrigger value="all" data-testid="tab-all">
-                  All
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="upcoming" className="mt-4">
-                <AppointmentList
-                  appointments={appointments.filter(
-                    (a) => a.status === "scheduled" && new Date(a.scheduledAt) >= new Date()
-                  )}
-                  onSelect={handleOpenDetail}
-                  getPersonDisplayName={getPersonDisplayName}
-                  getInitials={getInitials}
-                  getStatusBadge={getStatusBadge}
-                />
-              </TabsContent>
-
-              <TabsContent value="past" className="mt-4">
-                <AppointmentList
-                  appointments={appointments.filter(
-                    (a) => new Date(a.scheduledAt) < new Date() || a.status !== "scheduled"
-                  )}
-                  onSelect={handleOpenDetail}
-                  getPersonDisplayName={getPersonDisplayName}
-                  getInitials={getInitials}
-                  getStatusBadge={getStatusBadge}
-                />
-              </TabsContent>
-
-              <TabsContent value="all" className="mt-4">
-                <AppointmentList
-                  appointments={appointments}
-                  onSelect={handleOpenDetail}
-                  getPersonDisplayName={getPersonDisplayName}
-                  getInitials={getInitials}
-                  getStatusBadge={getStatusBadge}
-                />
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
-
-        <Dialog open={!!selectedAppointment} onOpenChange={() => setSelectedAppointment(null)}>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Appointment Details</DialogTitle>
-              <DialogDescription>
-                View and update appointment information
-              </DialogDescription>
-            </DialogHeader>
-
-            {selectedAppointment && (
-              <div className="space-y-6">
-                <div className="flex items-start gap-4">
-                  <Avatar className="h-14 w-14">
-                    <AvatarImage src={selectedAppointment.borrower?.profileImageUrl || undefined} />
-                    <AvatarFallback className="bg-primary/10 text-primary">
-                      {getInitials(selectedAppointment.borrower)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <h3 className="font-semibold text-foreground">
-                      {getPersonDisplayName(selectedAppointment.borrower)}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {selectedAppointment.borrower?.email}
-                    </p>
-                    {selectedAppointment.borrower?.phone && (
-                      <p className="text-sm text-muted-foreground">
-                        {selectedAppointment.borrower.phone}
-                      </p>
-                    )}
+      <Card className="flex-1 mx-4 mb-4 overflow-hidden">
+        <CardContent className="p-0 h-full">
+          {isLoading ? (
+            <div className="flex items-center justify-center h-full">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : (
+            <DndContext onDragEnd={handleDragEnd} onDragStart={(e) => setActiveId(e.active.id as string)}>
+              <div className="flex h-full">
+                <div className="w-16 shrink-0 border-r">
+                  <div className="h-14 border-b" />
+                  <div ref={timeGridRef}>
+                    {HOURS.map((hour) => (
+                      <div
+                        key={hour}
+                        className="h-12 border-t border-border/50 pr-2 flex items-start justify-end"
+                      >
+                        <span className="text-xs text-muted-foreground -mt-2">
+                          {getTimeFromHour(hour)}
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 bg-muted/50 rounded-lg p-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Date</p>
-                    <p className="font-medium text-foreground">
-                      {new Date(selectedAppointment.scheduledAt).toLocaleDateString("en-US", {
-                        weekday: "long",
-                        month: "long",
-                        day: "numeric",
-                      })}
-                    </p>
+                <div className="flex-1 overflow-x-auto">
+                  <div className="grid grid-cols-7 min-w-[700px]">
+                    {weekDays.map((day, dayIndex) => (
+                      <div key={dayIndex} className="border-r last:border-r-0">
+                        <div
+                          className={`h-14 border-b flex flex-col items-center justify-center ${
+                            isToday(day) ? "bg-primary/5" : ""
+                          }`}
+                        >
+                          <span className="text-xs text-muted-foreground uppercase">
+                            {day.toLocaleDateString("en-US", { weekday: "short" })}
+                          </span>
+                          <span
+                            className={`text-lg font-semibold w-8 h-8 flex items-center justify-center rounded-full ${
+                              isToday(day)
+                                ? "bg-primary text-primary-foreground"
+                                : "text-foreground"
+                            }`}
+                          >
+                            {day.getDate()}
+                          </span>
+                        </div>
+
+                        <div className="relative">
+                          {HOURS.map((hour) => {
+                            const dayAppointments = getAppointmentsForDay(day).filter(a => {
+                              const appointmentHour = new Date(a.scheduledAt).getHours();
+                              return appointmentHour === hour;
+                            });
+
+                            return (
+                              <DroppableTimeSlot key={hour} dayIndex={dayIndex} hour={hour}>
+                                {dayAppointments.map((appointment) => {
+                                  const scheduledTime = new Date(appointment.scheduledAt);
+                                  const minuteOffset = scheduledTime.getMinutes();
+                                  const topOffset = (minuteOffset / 60) * 48;
+                                  const height = (appointment.durationMinutes / 60) * 48;
+
+                                  return (
+                                    <Popover key={appointment.id}>
+                                      <PopoverTrigger asChild>
+                                        <div>
+                                          <DraggableEvent
+                                            appointment={appointment}
+                                            topOffset={topOffset}
+                                            height={height}
+                                            onClick={() => handleOpenDetail(appointment)}
+                                            getPersonDisplayName={getPersonDisplayName}
+                                          />
+                                        </div>
+                                      </PopoverTrigger>
+                                      <PopoverContent className="w-80 p-0" align="start">
+                                        <EventPopover
+                                          appointment={appointment}
+                                          getPersonDisplayName={getPersonDisplayName}
+                                          getInitials={getInitials}
+                                          onClose={() => setSelectedAppointment(null)}
+                                          onEdit={() => handleOpenDetail(appointment)}
+                                        />
+                                      </PopoverContent>
+                                    </Popover>
+                                  );
+                                })}
+                              </DroppableTimeSlot>
+                            );
+                          })}
+
+                          {isTodayInWeek && dayIndex === todayIndex && currentTimePosition !== null && (
+                            <div
+                              className="absolute left-0 right-0 z-20 pointer-events-none"
+                              style={{ top: `${currentTimePosition}px` }}
+                            >
+                              <div className="relative">
+                                <div className="absolute -left-1.5 -top-1.5 w-3 h-3 bg-red-500 rounded-full" />
+                                <div className="h-0.5 bg-red-500" />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Time</p>
-                    <p className="font-medium text-foreground">
-                      {formatTime(selectedAppointment.scheduledAt)}
-                    </p>
+                </div>
+              </div>
+
+              <DragOverlay>
+                {activeId ? (
+                  <div className="bg-primary/20 border border-primary rounded-md p-2 shadow-lg">
+                    <span className="text-sm font-medium">
+                      {appointments.find(a => a.id === activeId)?.title || "Moving..."}
+                    </span>
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Duration</p>
-                    <p className="font-medium text-foreground">
-                      {selectedAppointment.durationMinutes} minutes
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Assigned To</p>
-                    <p className="font-medium text-foreground">
-                      {getPersonDisplayName(selectedAppointment.staff)}
-                    </p>
-                  </div>
+                ) : null}
+              </DragOverlay>
+            </DndContext>
+          )}
+        </CardContent>
+      </Card>
+
+      {selectedAppointment && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setSelectedAppointment(null)}>
+          <div className="bg-background rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="p-6 space-y-6">
+              <div className="flex items-start justify-between">
+                <h3 className="text-lg font-semibold text-foreground">Edit Appointment</h3>
+                <Button variant="ghost" size="icon" onClick={() => setSelectedAppointment(null)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+
+              <div className="flex items-start gap-4">
+                <Avatar className="h-14 w-14">
+                  <AvatarImage src={selectedAppointment.borrower?.profileImageUrl || undefined} />
+                  <AvatarFallback className="bg-primary/10 text-primary">
+                    {getInitials(selectedAppointment.borrower)}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <h4 className="font-semibold text-foreground">
+                    {getPersonDisplayName(selectedAppointment.borrower)}
+                  </h4>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedAppointment.borrower?.email}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 bg-muted/50 rounded-lg p-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Date</p>
+                  <p className="font-medium text-foreground">
+                    {new Date(selectedAppointment.scheduledAt).toLocaleDateString("en-US", {
+                      weekday: "long",
+                      month: "long",
+                      day: "numeric",
+                    })}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Time</p>
+                  <p className="font-medium text-foreground">
+                    {new Date(selectedAppointment.scheduledAt).toLocaleTimeString("en-US", {
+                      hour: "numeric",
+                      minute: "2-digit",
+                      hour12: true,
+                    })}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Duration</p>
+                  <p className="font-medium text-foreground">
+                    {selectedAppointment.durationMinutes} minutes
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Assigned To</p>
+                  <p className="font-medium text-foreground">
+                    {getPersonDisplayName(selectedAppointment.staff)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Consultation Type</Label>
+                  <Select value={detailConsultationType} onValueChange={setDetailConsultationType}>
+                    <SelectTrigger data-testid="select-consultation-type">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(CONSULTATION_TYPE_CONFIG).map(([key, config]) => (
+                        <SelectItem key={key} value={key}>{config.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
@@ -536,97 +642,107 @@ export default function AdminCalendarPage() {
                   />
                 </div>
               </div>
-            )}
 
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setSelectedAppointment(null)}>
-                Cancel
-              </Button>
-              <Button onClick={handleSaveDetail} disabled={isSaving} data-testid="button-save-detail">
-                {isSaving ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  "Save Changes"
-                )}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
-      </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setSelectedAppointment(null)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleSaveDetail} disabled={isSaving} data-testid="button-save-detail">
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    "Save Changes"
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function AppointmentList({
-  appointments,
-  onSelect,
+function EventPopover({
+  appointment,
   getPersonDisplayName,
   getInitials,
-  getStatusBadge,
+  onClose,
+  onEdit,
 }: {
-  appointments: Appointment[];
-  onSelect: (a: Appointment) => void;
+  appointment: Appointment;
   getPersonDisplayName: (p: any) => string;
   getInitials: (p: any) => string;
-  getStatusBadge: (s: string) => JSX.Element;
+  onClose: () => void;
+  onEdit: () => void;
 }) {
-  if (appointments.length === 0) {
-    return (
-      <div className="text-center py-12 text-muted-foreground">
-        <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-        <p>No appointments found</p>
-      </div>
-    );
-  }
+  const config = CONSULTATION_TYPE_CONFIG[appointment.consultationType || "other"];
+  const scheduledTime = new Date(appointment.scheduledAt);
 
   return (
-    <div className="space-y-3">
-      {appointments.map((appointment) => (
-        <div
-          key={appointment.id}
-          className="flex items-center justify-between p-4 border rounded-lg hover-elevate cursor-pointer"
-          onClick={() => onSelect(appointment)}
-          data-testid={`appointment-row-${appointment.id}`}
-        >
-          <div className="flex items-center gap-4">
-            <Avatar className="h-10 w-10">
-              <AvatarImage src={appointment.borrower?.profileImageUrl || undefined} />
-              <AvatarFallback className="bg-primary/10 text-primary text-sm">
-                {getInitials(appointment.borrower)}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <p className="font-medium text-foreground">
-                {getPersonDisplayName(appointment.borrower)}
-              </p>
-              <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <Calendar className="h-3.5 w-3.5" />
-                  {new Date(appointment.scheduledAt).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                  })}
-                </span>
-                <span className="flex items-center gap-1">
-                  <Clock className="h-3.5 w-3.5" />
-                  {new Date(appointment.scheduledAt).toLocaleTimeString("en-US", {
-                    hour: "numeric",
-                    minute: "2-digit",
-                    hour12: true,
-                  })}
-                </span>
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            {getStatusBadge(appointment.status)}
-          </div>
+    <div className="p-4 space-y-4">
+      <div className="flex items-start gap-3">
+        <div className={`w-1 h-12 rounded ${config.borderColor.replace('border-l-', 'bg-')}`} />
+        <div className="flex-1 min-w-0">
+          <h4 className="font-semibold text-foreground truncate">{appointment.title}</h4>
+          <p className="text-sm text-muted-foreground">
+            {scheduledTime.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {scheduledTime.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })} - {appointment.durationMinutes} min
+          </p>
         </div>
-      ))}
+      </div>
+
+      <div className="flex items-center gap-3">
+        <Avatar className="h-8 w-8">
+          <AvatarImage src={appointment.borrower?.profileImageUrl || undefined} />
+          <AvatarFallback className="bg-primary/10 text-primary text-xs">
+            {getInitials(appointment.borrower)}
+          </AvatarFallback>
+        </Avatar>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium text-foreground truncate">
+            {getPersonDisplayName(appointment.borrower)}
+          </p>
+          <p className="text-xs text-muted-foreground truncate">
+            {appointment.borrower?.email}
+          </p>
+        </div>
+      </div>
+
+      <Badge variant="secondary" className={`${config.bgColor} ${config.color}`}>
+        {config.label}
+      </Badge>
+
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        {appointment.meetingUrl && (
+          <a
+            href={appointment.meetingUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 text-primary hover:underline"
+          >
+            <Video className="h-3.5 w-3.5" />
+            Join Meeting
+          </a>
+        )}
+        {appointment.borrower?.phone && (
+          <span className="flex items-center gap-1">
+            <Phone className="h-3.5 w-3.5" />
+            {appointment.borrower.phone}
+          </span>
+        )}
+      </div>
+
+      <div className="flex justify-end pt-2 border-t">
+        <Button size="sm" onClick={onEdit} data-testid="button-edit-appointment">
+          Edit
+        </Button>
+      </div>
     </div>
   );
 }
