@@ -64,12 +64,12 @@ import ScopeOfWorkGuidePage from "@/pages/ScopeOfWorkGuidePage";
 import AdminCustomizeSitePage from "@/pages/AdminCustomizeSitePage";
 import AdminEmailLogPage from "@/pages/AdminEmailLogPage";
 import AdminSmsLogPage from "@/pages/AdminSmsLogPage";
-import AdminAppointmentsPage from "@/pages/AdminAppointmentsPage";
+import AdminCalendarPage from "@/pages/AdminCalendarPage";
 import AdminFinancialsPage from "@/pages/AdminFinancialsPage";
 import AdminPortfolioPage from "@/pages/AdminPortfolioPage";
 import MapCalibrationPage from "@/pages/admin/map-calibration";
 import BookConsultationPage from "@/pages/BookConsultationPage";
-import MyAppointmentsPage from "@/pages/MyAppointmentsPage";
+import MyCalendarPage from "@/pages/MyCalendarPage";
 import SignDocumentPage from "@/pages/SignDocumentPage";
 import MessagesPage from "@/pages/MessagesPage";
 import AdminMessagesPage from "@/pages/AdminMessagesPage";
@@ -124,7 +124,7 @@ function Router() {
       <Route path="/admin/customize-site">{() => <AdminLayout><AdminCustomizeSitePage /></AdminLayout>}</Route>
       <Route path="/admin/email-log">{() => <AdminLayout><AdminEmailLogPage /></AdminLayout>}</Route>
       <Route path="/admin/sms-log">{() => <AdminLayout><AdminSmsLogPage /></AdminLayout>}</Route>
-      <Route path="/admin/appointments">{() => <AdminLayout><AdminAppointmentsPage /></AdminLayout>}</Route>
+      <Route path="/admin/calendar">{() => <AdminLayout><AdminCalendarPage /></AdminLayout>}</Route>
       <Route path="/admin/financials">{() => <AdminLayout><AdminFinancialsPage /></AdminLayout>}</Route>
       <Route path="/admin/portfolio">{() => <AdminLayout><AdminPortfolioPage /></AdminLayout>}</Route>
       <Route path="/admin/map-calibration">{() => <AdminLayout><MapCalibrationPage /></AdminLayout>}</Route>
@@ -133,7 +133,7 @@ function Router() {
       <Route path="/admin/users">{() => <AdminLayout><AdminUsersPage /></AdminLayout>}</Route>
       <Route path="/admin/webhooks">{() => <AdminLayout><AdminWebhooksPage /></AdminLayout>}</Route>
       <Route path="/portal/book-consultation" component={BookConsultationPage} />
-      <Route path="/portal/appointments" component={MyAppointmentsPage} />
+      <Route path="/portal/calendar" component={MyCalendarPage} />
       <Route path="/portal/messages" component={MessagesPage} />
       <Route path="/join/:token" component={JoinPage} />
       <Route path="/sign/:token" component={SignDocumentPage} />

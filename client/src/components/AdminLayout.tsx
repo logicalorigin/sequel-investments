@@ -50,7 +50,7 @@ const mainNavItems = [
 const operationsNavItems = [
   { title: "Loan Servicing", href: "/admin/servicing", icon: DollarSign },
   { title: "Draw Requests", href: "/admin/draw-requests", icon: HardHat, hasBadge: true },
-  { title: "Appointments", href: "/admin/appointments", icon: Calendar },
+  { title: "Calendar", href: "/admin/calendar", icon: Calendar },
   { title: "Financials", href: "/admin/financials", icon: CreditCard },
   { title: "Messages", href: "/admin/messages", icon: MessageSquare },
 ];

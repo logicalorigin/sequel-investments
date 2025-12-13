@@ -70,7 +70,7 @@ type Appointment = {
   };
 };
 
-export default function AdminAppointmentsPage() {
+export default function AdminCalendarPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
