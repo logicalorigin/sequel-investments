@@ -399,7 +399,7 @@ export function HeroSection({ config }: HeroSectionProps) {
 
             <div className="flex flex-row items-center gap-3">
               <Link href={ctaLink}>
-                <Button size="default" className="text-sm sm:text-lg sm:h-11 sm:px-6 text-white" data-testid="button-hero-apply">
+                <Button size="default" className="text-sm sm:text-lg sm:h-11 sm:px-6" data-testid="button-hero-apply">
                   {ctaText}
                   <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
                 </Button>
