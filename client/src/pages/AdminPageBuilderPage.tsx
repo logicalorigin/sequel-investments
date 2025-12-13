@@ -28,7 +28,11 @@ import {
   X,
   Plus,
   FileText,
+  Palette,
+  List,
+  Paintbrush,
 } from "lucide-react";
+import { EditorLayout } from "@/components/page-builder/EditorLayout";
 import type {
   PageLayout,
   PageSection,
@@ -640,6 +644,7 @@ export default function AdminPageBuilderPage() {
   const [hasChanges, setHasChanges] = useState(false);
   const [addSectionOpen, setAddSectionOpen] = useState(false);
   const [applyTemplateOpen, setApplyTemplateOpen] = useState(false);
+  const [editorMode, setEditorMode] = useState<"list" | "visual">("list");
 
   const { data: layout, isLoading } = useQuery<PageLayout>({
     queryKey: ["/api/page-layouts", selectedPageId],
@@ -797,10 +802,30 @@ export default function AdminPageBuilderPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <div className="flex items-center border rounded-md p-1 mr-2">
+            <Button
+              variant={editorMode === "list" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setEditorMode("list")}
+              data-testid="button-list-mode"
+            >
+              <List className="h-4 w-4 mr-1" />
+              List
+            </Button>
+            <Button
+              variant={editorMode === "visual" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setEditorMode("visual")}
+              data-testid="button-visual-mode"
+            >
+              <Paintbrush className="h-4 w-4 mr-1" />
+              Visual
+            </Button>
+          </div>
           <Button
             variant="outline"
             onClick={handleReset}
-            disabled={resetLayoutMutation.isPending}
+            disabled={resetLayoutMutation.isPending || editorMode === "visual"}
             data-testid="button-reset-layout"
           >
             {resetLayoutMutation.isPending ? (
@@ -813,6 +838,7 @@ export default function AdminPageBuilderPage() {
           <Button
             variant="outline"
             onClick={() => setAddSectionOpen(true)}
+            disabled={editorMode === "visual"}
             data-testid="button-add-section"
           >
             <Plus className="h-4 w-4 mr-2" />
@@ -820,7 +846,7 @@ export default function AdminPageBuilderPage() {
           </Button>
           <Button
             onClick={handleSave}
-            disabled={!hasChanges || updateLayoutMutation.isPending}
+            disabled={!hasChanges || updateLayoutMutation.isPending || editorMode === "visual"}
             data-testid="button-save-layout"
           >
             {updateLayoutMutation.isPending ? (
@@ -833,23 +859,28 @@ export default function AdminPageBuilderPage() {
         </div>
       </div>
 
-      <Tabs value={selectedPageId} onValueChange={handlePageChange}>
-        <TabsList className="mb-6" data-testid="page-tabs">
-          {Object.entries(PAGE_LABELS).map(([id, label]) => (
-            <TabsTrigger key={id} value={id} data-testid={`tab-${id}`}>
-              {label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+      {editorMode === "visual" ? (
+        <div className="border rounded-lg overflow-hidden h-[calc(100vh-200px)]">
+          <EditorLayout pageId={selectedPageId} />
+        </div>
+      ) : (
+        <Tabs value={selectedPageId} onValueChange={handlePageChange}>
+          <TabsList className="mb-6" data-testid="page-tabs">
+            {Object.entries(PAGE_LABELS).map(([id, label]) => (
+              <TabsTrigger key={id} value={id} data-testid={`tab-${id}`}>
+                {label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
 
-        {Object.keys(PAGE_LABELS).map((pageId) => (
-          <TabsContent key={pageId} value={pageId} className="mt-0">
-            {isLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {Object.keys(PAGE_LABELS).map((pageId) => (
+            <TabsContent key={pageId} value={pageId} className="mt-0">
+              {isLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2">
                   <Card>
                     <CardHeader className="pb-3">
@@ -980,6 +1011,7 @@ export default function AdminPageBuilderPage() {
           </TabsContent>
         ))}
       </Tabs>
+      )}
 
       <AddSectionDialog
         open={addSectionOpen}
