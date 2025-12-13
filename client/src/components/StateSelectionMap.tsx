@@ -138,7 +138,7 @@ export function StateSelectionMap({
                     className={`cursor-pointer transition-colors ${
                       isSelected 
                         ? "fill-primary stroke-primary-foreground" 
-                        : "fill-muted hover:fill-primary/30 stroke-border/50"
+                        : "fill-muted-foreground/25 hover:fill-primary/30 stroke-background"
                     }`}
                     strokeWidth="1"
                     onClick={() => onToggleState(stateCode)}
