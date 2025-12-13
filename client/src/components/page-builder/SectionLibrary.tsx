@@ -21,6 +21,9 @@ import {
   DollarSign,
   Search,
   GripVertical,
+  Workflow,
+  Table,
+  BadgeCheck,
 } from "lucide-react";
 import { SECTION_PRESETS, type SectionPresetCategory } from "@shared/schema";
 import type { SectionPreset } from "@shared/schema";
@@ -38,6 +41,9 @@ const SECTION_TYPE_ICONS: Record<string, typeof Layout> = {
   cta_banner: Megaphone,
   custom_content: FileText,
   stats_bar: BarChart3,
+  process_steps: Workflow,
+  product_comparison: Table,
+  partner_badges: BadgeCheck,
 };
 
 const SECTION_TYPE_LABELS: Record<string, string> = {
@@ -53,6 +59,9 @@ const SECTION_TYPE_LABELS: Record<string, string> = {
   cta_banner: "CTA",
   custom_content: "Content",
   stats_bar: "Stats",
+  process_steps: "Process Steps",
+  product_comparison: "Product Compare",
+  partner_badges: "Partner Badges",
 };
 
 const CATEGORY_LABELS: Record<SectionPresetCategory | "all", string> = {
@@ -69,6 +78,9 @@ const CATEGORY_LABELS: Record<SectionPresetCategory | "all", string> = {
   form: "Forms",
   stats: "Stats",
   funded: "Funded",
+  process: "Process",
+  comparison: "Compare",
+  badges: "Badges",
 };
 
 interface DraggablePresetCardProps {
@@ -159,6 +171,9 @@ export function SectionLibrary({ className }: SectionLibraryProps) {
     "funded",
     "map",
     "content",
+    "process",
+    "comparison",
+    "badges",
   ];
 
   return (

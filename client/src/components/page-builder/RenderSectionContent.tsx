@@ -12,6 +12,9 @@ import type {
   StateMapSectionConfig,
   CustomContentSectionConfig,
   StatsBarSectionConfig,
+  ProcessStepsSectionConfig,
+  ProductComparisonSectionConfig,
+  PartnerBadgesSectionConfig,
 } from "@shared/schema";
 import {
   HeroSection,
@@ -26,6 +29,9 @@ import {
   StateMapSection,
   CustomContentSection,
   StatsBarSection,
+  ProcessStepsSection,
+  ProductComparisonSection,
+  PartnerBadgesSection,
 } from "@/components/sections";
 
 interface RenderSectionContentProps {
@@ -69,6 +75,15 @@ export function RenderSectionContent({ section }: RenderSectionContentProps) {
 
     case "stats_bar":
       return <StatsBarSection config={section.config as StatsBarSectionConfig} />;
+
+    case "process_steps":
+      return <ProcessStepsSection config={section.config as ProcessStepsSectionConfig} />;
+
+    case "product_comparison":
+      return <ProductComparisonSection config={section.config as ProductComparisonSectionConfig} />;
+
+    case "partner_badges":
+      return <PartnerBadgesSection config={section.config as PartnerBadgesSectionConfig} />;
 
     default:
       return (

@@ -3228,6 +3228,9 @@ export const sectionTypeEnum = pgEnum("section_type", [
   "cta_banner",
   "custom_content",
   "stats_bar",
+  "process_steps",
+  "product_comparison",
+  "partner_badges",
 ]);
 
 // Hero section variants
@@ -3354,6 +3357,48 @@ export interface StatsBarSectionConfig {
   backgroundColor?: string;
 }
 
+export interface ProcessStepsSectionConfig {
+  title?: string;
+  steps: Array<{
+    icon?: string;
+    title: string;
+    description: string;
+  }>;
+  layout?: "row" | "grid";
+  columns?: 2 | 3 | 4;
+  showConnectors?: boolean;
+}
+
+export interface ProductComparisonSectionConfig {
+  title?: string;
+  description?: string;
+  products: Array<{
+    icon?: string;
+    name: string;
+    description: string;
+    specs: Array<{
+      label: string;
+      value: string;
+    }>;
+    ctaText?: string;
+    ctaLink?: string;
+  }>;
+  layout?: "cards" | "table";
+  showCTA?: boolean;
+}
+
+export interface PartnerBadgesSectionConfig {
+  title?: string;
+  badges: Array<{
+    name: string;
+    rating?: string;
+    icon?: string;
+    link?: string;
+  }>;
+  layout?: "row" | "grid";
+  showLinks?: boolean;
+}
+
 // Union type for all section configs
 export type SectionConfig = 
   | HeroSectionConfig
@@ -3367,7 +3412,10 @@ export type SectionConfig =
   | FeatureHighlightsSectionConfig
   | CTABannerSectionConfig
   | CustomContentSectionConfig
-  | StatsBarSectionConfig;
+  | StatsBarSectionConfig
+  | ProcessStepsSectionConfig
+  | ProductComparisonSectionConfig
+  | PartnerBadgesSectionConfig;
 
 // Individual section in a page layout
 export interface PageSection {
@@ -3509,6 +3557,9 @@ export const sectionTypes = [
   "cta_banner",
   "custom_content",
   "stats_bar",
+  "process_steps",
+  "product_comparison",
+  "partner_badges",
 ] as const;
 
 // Lead form config schema
@@ -3556,6 +3607,51 @@ export const statsBarSectionConfigSchema = z.object({
     suffix: z.string().optional(),
   })).optional(),
   backgroundColor: z.string().optional(),
+}).passthrough();
+
+// Process steps config schema
+export const processStepsSectionConfigSchema = z.object({
+  title: z.string().optional(),
+  steps: z.array(z.object({
+    icon: z.string().optional(),
+    title: z.string(),
+    description: z.string(),
+  })),
+  layout: z.enum(["row", "grid"]).optional(),
+  columns: z.union([z.literal(2), z.literal(3), z.literal(4)]).optional(),
+  showConnectors: z.boolean().optional(),
+}).passthrough();
+
+// Product comparison config schema
+export const productComparisonSectionConfigSchema = z.object({
+  title: z.string().optional(),
+  description: z.string().optional(),
+  products: z.array(z.object({
+    icon: z.string().optional(),
+    name: z.string(),
+    description: z.string(),
+    specs: z.array(z.object({
+      label: z.string(),
+      value: z.string(),
+    })),
+    ctaText: z.string().optional(),
+    ctaLink: z.string().optional(),
+  })),
+  layout: z.enum(["cards", "table"]).optional(),
+  showCTA: z.boolean().optional(),
+}).passthrough();
+
+// Partner badges config schema
+export const partnerBadgesSectionConfigSchema = z.object({
+  title: z.string().optional(),
+  badges: z.array(z.object({
+    name: z.string(),
+    rating: z.string().optional(),
+    icon: z.string().optional(),
+    link: z.string().optional(),
+  })),
+  layout: z.enum(["row", "grid"]).optional(),
+  showLinks: z.boolean().optional(),
 }).passthrough();
 
 // Base section fields shared across all section types
@@ -3627,6 +3723,21 @@ export const pageSectionSchema = z.discriminatedUnion("type", [
     ...baseSectionFields,
     type: z.literal("stats_bar"),
     config: statsBarSectionConfigSchema,
+  }),
+  z.object({
+    ...baseSectionFields,
+    type: z.literal("process_steps"),
+    config: processStepsSectionConfigSchema,
+  }),
+  z.object({
+    ...baseSectionFields,
+    type: z.literal("product_comparison"),
+    config: productComparisonSectionConfigSchema,
+  }),
+  z.object({
+    ...baseSectionFields,
+    type: z.literal("partner_badges"),
+    config: partnerBadgesSectionConfigSchema,
   }),
 ]);
 
@@ -4264,7 +4375,10 @@ export type SectionPresetCategory =
   | "map" 
   | "form"
   | "stats"
-  | "funded";
+  | "funded"
+  | "process"
+  | "comparison"
+  | "badges";
 
 export interface SectionPreset {
   id: string;
@@ -4827,6 +4941,137 @@ export const SECTION_PRESETS: SectionPreset[] = [
       paddingTop: "4rem",
       paddingBottom: "4rem",
     } as CustomContentSectionConfig,
+  },
+
+  // ========== PROCESS STEPS PRESETS ==========
+  {
+    id: "process-steps-default",
+    name: "Process Steps",
+    description: "Fast, Simple, Funding style with 3 steps",
+    type: "process_steps",
+    category: "process",
+    config: {
+      title: "How It Works",
+      steps: [
+        { icon: "Zap", title: "Fast", description: "Apply in minutes with our streamlined online application" },
+        { icon: "CheckCircle", title: "Simple", description: "No tax returns needed. We focus on property cash flow" },
+        { icon: "DollarSign", title: "Funding", description: "Close in as few as 5 days with competitive rates" },
+      ],
+      layout: "row",
+      columns: 3,
+      showConnectors: true,
+    } as ProcessStepsSectionConfig,
+  },
+  {
+    id: "process-steps-numbered",
+    name: "Numbered Steps",
+    description: "4-step process with numbered steps",
+    type: "process_steps",
+    category: "process",
+    config: {
+      title: "Your Path to Funding",
+      steps: [
+        { icon: "FileText", title: "Apply Online", description: "Complete our simple application in under 10 minutes" },
+        { icon: "Search", title: "Quick Review", description: "Our team reviews your application within 24 hours" },
+        { icon: "FileCheck", title: "Get Approved", description: "Receive your term sheet and loan approval" },
+        { icon: "Banknote", title: "Get Funded", description: "Close and receive your funds" },
+      ],
+      layout: "grid",
+      columns: 4,
+      showConnectors: true,
+    } as ProcessStepsSectionConfig,
+  },
+
+  // ========== PRODUCT COMPARISON PRESETS ==========
+  {
+    id: "product-comparison-loans",
+    name: "Loan Comparison",
+    description: "Compare different loan products with specs",
+    type: "product_comparison",
+    category: "comparison",
+    config: {
+      title: "Compare Our Loan Products",
+      description: "Find the right financing solution for your investment strategy",
+      products: [
+        {
+          icon: "Building2",
+          name: "DSCR Loan",
+          description: "Long-term rental financing based on property cash flow",
+          specs: [
+            { label: "Loan Amount", value: "$75K - $3M" },
+            { label: "Term", value: "30 Years" },
+            { label: "LTV", value: "Up to 80%" },
+            { label: "Min DSCR", value: "1.0" },
+          ],
+          ctaText: "Get DSCR Quote",
+          ctaLink: "/get-quote?type=dscr",
+        },
+        {
+          icon: "Hammer",
+          name: "Fix & Flip",
+          description: "Short-term bridge financing for property renovations",
+          specs: [
+            { label: "Loan Amount", value: "$100K - $2M" },
+            { label: "Term", value: "12-24 Months" },
+            { label: "LTC", value: "Up to 90%" },
+            { label: "LTARV", value: "Up to 75%" },
+          ],
+          ctaText: "Get Bridge Quote",
+          ctaLink: "/get-quote?type=fixflip",
+        },
+        {
+          icon: "HardHat",
+          name: "Construction",
+          description: "Ground-up construction financing with draw schedules",
+          specs: [
+            { label: "Loan Amount", value: "$250K - $5M" },
+            { label: "Term", value: "12-18 Months" },
+            { label: "LTC", value: "Up to 85%" },
+            { label: "Interest", value: "Interest Only" },
+          ],
+          ctaText: "Get Construction Quote",
+          ctaLink: "/get-quote?type=construction",
+        },
+      ],
+      layout: "cards",
+      showCTA: true,
+    } as ProductComparisonSectionConfig,
+  },
+
+  // ========== PARTNER BADGES PRESETS ==========
+  {
+    id: "partner-badges-trust",
+    name: "Trust Badges",
+    description: "BBB and TrustPilot style trust badges",
+    type: "partner_badges",
+    category: "badges",
+    config: {
+      title: "Trusted By Investors",
+      badges: [
+        { name: "BBB Accredited", rating: "A+", icon: "Shield" },
+        { name: "TrustPilot", rating: "4.8/5", icon: "Star" },
+        { name: "Google Reviews", rating: "4.9/5", icon: "Star" },
+        { name: "NMLS Licensed", rating: "#123456", icon: "BadgeCheck" },
+      ],
+      layout: "row",
+      showLinks: false,
+    } as PartnerBadgesSectionConfig,
+  },
+  {
+    id: "partner-badges-minimal",
+    name: "Minimal Badges",
+    description: "Clean, minimal partner badges",
+    type: "partner_badges",
+    category: "badges",
+    config: {
+      badges: [
+        { name: "BBB Accredited", icon: "Shield" },
+        { name: "Equal Housing Lender", icon: "Home" },
+        { name: "NMLS Licensed", icon: "BadgeCheck" },
+      ],
+      layout: "row",
+      showLinks: false,
+    } as PartnerBadgesSectionConfig,
   },
 ];
 
