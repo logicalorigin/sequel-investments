@@ -61,7 +61,7 @@ import DSCRLoansGuidePage from "@/pages/DSCRLoansGuidePage";
 import ADUGuidePage from "@/pages/ADUGuidePage";
 import RenovationsGuidePage from "@/pages/RenovationsGuidePage";
 import ScopeOfWorkGuidePage from "@/pages/ScopeOfWorkGuidePage";
-import AdminWhiteLabelPage from "@/pages/AdminWhiteLabelPage";
+import AdminCustomizeSitePage from "@/pages/AdminCustomizeSitePage";
 import AdminEmailLogPage from "@/pages/AdminEmailLogPage";
 import AdminSmsLogPage from "@/pages/AdminSmsLogPage";
 import AdminAppointmentsPage from "@/pages/AdminAppointmentsPage";
@@ -76,7 +76,6 @@ import AdminMessagesPage from "@/pages/AdminMessagesPage";
 import AdminDrawRequestsPage from "@/pages/AdminDrawRequestsPage";
 import AdminUsersPage from "@/pages/AdminUsersPage";
 import AdminWebhooksPage from "@/pages/AdminWebhooksPage";
-import AdminPageBuilderPage from "@/pages/AdminPageBuilderPage";
 import DSCRCalculatorPage from "@/pages/DSCRCalculatorPage";
 import FlipCalculatorPage from "@/pages/FlipCalculatorPage";
 import ConstructionCalculatorPage from "@/pages/ConstructionCalculatorPage";
@@ -121,7 +120,7 @@ function Router() {
       <Route path="/admin/servicing">{() => <AdminLayout><AdminServicingPage /></AdminLayout>}</Route>
       <Route path="/admin/servicing/:id">{() => <AdminLayout><AdminLoanDetailPage /></AdminLayout>}</Route>
       <Route path="/admin/borrower/:id">{() => <AdminLayout><BorrowerProfilePage /></AdminLayout>}</Route>
-      <Route path="/admin/customize-site">{() => <AdminLayout><AdminWhiteLabelPage /></AdminLayout>}</Route>
+      <Route path="/admin/customize-site">{() => <AdminLayout><AdminCustomizeSitePage /></AdminLayout>}</Route>
       <Route path="/admin/email-log">{() => <AdminLayout><AdminEmailLogPage /></AdminLayout>}</Route>
       <Route path="/admin/sms-log">{() => <AdminLayout><AdminSmsLogPage /></AdminLayout>}</Route>
       <Route path="/admin/appointments">{() => <AdminLayout><AdminAppointmentsPage /></AdminLayout>}</Route>
@@ -132,7 +131,6 @@ function Router() {
       <Route path="/admin/draw-requests">{() => <AdminLayout><AdminDrawRequestsPage /></AdminLayout>}</Route>
       <Route path="/admin/users">{() => <AdminLayout><AdminUsersPage /></AdminLayout>}</Route>
       <Route path="/admin/webhooks">{() => <AdminLayout><AdminWebhooksPage /></AdminLayout>}</Route>
-      <Route path="/admin/page-builder">{() => <AdminLayout><AdminPageBuilderPage /></AdminLayout>}</Route>
       <Route path="/portal/book-consultation" component={BookConsultationPage} />
       <Route path="/portal/appointments" component={MyAppointmentsPage} />
       <Route path="/portal/messages" component={MessagesPage} />
