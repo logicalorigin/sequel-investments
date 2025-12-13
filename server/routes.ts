@@ -46,7 +46,6 @@ import { getMarketData, refreshAllMarketData, getMarketDataStatus, getPropertyVa
 import { sendEmail, emailTemplates, getPortalUrl, shouldSendEmail } from "./email";
 import { sendSMSIfEnabled, isSMSConfigured } from "./sms";
 import { smsTemplates } from "./sms-templates";
-import stripeRoutes from "./stripe-routes";
 import multer from "multer";
 import { parseSOWTemplate, parseSOWWithAI, type SOWParseResult } from "./services/sowParsingService";
 import { performSearch } from "./services/aiSearchService";
@@ -8419,9 +8418,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "Failed to reset page layout" });
     }
   });
-
-  // Register Stripe routes
-  app.use('/api/stripe', stripeRoutes);
 
   const httpServer = createServer(app);
 

@@ -66,7 +66,6 @@ I prefer simple language. I want iterative development. Ask before making major 
     - **Admin Analytics Dashboard**: Pipeline metrics and visualization.
     - **White-Label Demo Mode**: Customizable company branding, colors, and contact information.
     - **Email Notifications**: Integration with Resend for templated email delivery with demo mode.
-    - **Stripe Payment Processing**: For application, commitment, and appraisal fees, including webhook handling.
     - **SMS Notifications**: Integration with Twilio for key loan milestones with user controls and demo mode.
     - **Calendar Booking System**: For consultations with staff, including admin management and availability.
     - **Document E-Signatures**: Secure, token-based signature capture with administrative management.
@@ -74,7 +73,6 @@ I prefer simple language. I want iterative development. Ask before making major 
 ## External Dependencies
 
 - **Google Maps API**: For property search autocomplete, interactive state maps, and property map previews.
-- **Stripe**: For processing payments related to loan applications.
 - **Resend**: For sending email notifications.
 - **Twilio**: For sending SMS notifications.
 - **RentCast API**: Integrated for automatic property data fetching in deal analyzers.
