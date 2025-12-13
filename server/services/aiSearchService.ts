@@ -20,6 +20,60 @@ const PUBLIC_PAGES = [
   { id: "dscr-calculator", title: "DSCR Calculator", url: "/resources/dscr-calculator", description: "Calculate DSCR for rental properties" },
   { id: "flip-calculator", title: "Fix & Flip Calculator", url: "/resources/flip-calculator", description: "Analyze fix and flip deals" },
   { id: "construction-calculator", title: "Construction Calculator", url: "/resources/construction-calculator", description: "Construction loan analysis" },
+  { id: "where-we-lend", title: "Where We Lend", url: "/where-we-lend", description: "See all states where we offer investment property loans" },
+];
+
+const US_STATES = [
+  { id: "alabama", name: "Alabama", abbrev: "AL", slug: "alabama" },
+  { id: "alaska", name: "Alaska", abbrev: "AK", slug: "alaska" },
+  { id: "arizona", name: "Arizona", abbrev: "AZ", slug: "arizona" },
+  { id: "arkansas", name: "Arkansas", abbrev: "AR", slug: "arkansas" },
+  { id: "california", name: "California", abbrev: "CA", slug: "california" },
+  { id: "colorado", name: "Colorado", abbrev: "CO", slug: "colorado" },
+  { id: "connecticut", name: "Connecticut", abbrev: "CT", slug: "connecticut" },
+  { id: "delaware", name: "Delaware", abbrev: "DE", slug: "delaware" },
+  { id: "florida", name: "Florida", abbrev: "FL", slug: "florida" },
+  { id: "georgia", name: "Georgia", abbrev: "GA", slug: "georgia" },
+  { id: "hawaii", name: "Hawaii", abbrev: "HI", slug: "hawaii" },
+  { id: "idaho", name: "Idaho", abbrev: "ID", slug: "idaho" },
+  { id: "illinois", name: "Illinois", abbrev: "IL", slug: "illinois" },
+  { id: "indiana", name: "Indiana", abbrev: "IN", slug: "indiana" },
+  { id: "iowa", name: "Iowa", abbrev: "IA", slug: "iowa" },
+  { id: "kansas", name: "Kansas", abbrev: "KS", slug: "kansas" },
+  { id: "kentucky", name: "Kentucky", abbrev: "KY", slug: "kentucky" },
+  { id: "louisiana", name: "Louisiana", abbrev: "LA", slug: "louisiana" },
+  { id: "maine", name: "Maine", abbrev: "ME", slug: "maine" },
+  { id: "maryland", name: "Maryland", abbrev: "MD", slug: "maryland" },
+  { id: "massachusetts", name: "Massachusetts", abbrev: "MA", slug: "massachusetts" },
+  { id: "michigan", name: "Michigan", abbrev: "MI", slug: "michigan" },
+  { id: "minnesota", name: "Minnesota", abbrev: "MN", slug: "minnesota" },
+  { id: "mississippi", name: "Mississippi", abbrev: "MS", slug: "mississippi" },
+  { id: "missouri", name: "Missouri", abbrev: "MO", slug: "missouri" },
+  { id: "montana", name: "Montana", abbrev: "MT", slug: "montana" },
+  { id: "nebraska", name: "Nebraska", abbrev: "NE", slug: "nebraska" },
+  { id: "nevada", name: "Nevada", abbrev: "NV", slug: "nevada" },
+  { id: "new-hampshire", name: "New Hampshire", abbrev: "NH", slug: "new-hampshire" },
+  { id: "new-jersey", name: "New Jersey", abbrev: "NJ", slug: "new-jersey" },
+  { id: "new-mexico", name: "New Mexico", abbrev: "NM", slug: "new-mexico" },
+  { id: "new-york", name: "New York", abbrev: "NY", slug: "new-york" },
+  { id: "north-carolina", name: "North Carolina", abbrev: "NC", slug: "north-carolina" },
+  { id: "north-dakota", name: "North Dakota", abbrev: "ND", slug: "north-dakota" },
+  { id: "ohio", name: "Ohio", abbrev: "OH", slug: "ohio" },
+  { id: "oklahoma", name: "Oklahoma", abbrev: "OK", slug: "oklahoma" },
+  { id: "oregon", name: "Oregon", abbrev: "OR", slug: "oregon" },
+  { id: "pennsylvania", name: "Pennsylvania", abbrev: "PA", slug: "pennsylvania" },
+  { id: "rhode-island", name: "Rhode Island", abbrev: "RI", slug: "rhode-island" },
+  { id: "south-carolina", name: "South Carolina", abbrev: "SC", slug: "south-carolina" },
+  { id: "south-dakota", name: "South Dakota", abbrev: "SD", slug: "south-dakota" },
+  { id: "tennessee", name: "Tennessee", abbrev: "TN", slug: "tennessee" },
+  { id: "texas", name: "Texas", abbrev: "TX", slug: "texas" },
+  { id: "utah", name: "Utah", abbrev: "UT", slug: "utah" },
+  { id: "vermont", name: "Vermont", abbrev: "VT", slug: "vermont" },
+  { id: "virginia", name: "Virginia", abbrev: "VA", slug: "virginia" },
+  { id: "washington", name: "Washington", abbrev: "WA", slug: "washington" },
+  { id: "west-virginia", name: "West Virginia", abbrev: "WV", slug: "west-virginia" },
+  { id: "wisconsin", name: "Wisconsin", abbrev: "WI", slug: "wisconsin" },
+  { id: "wyoming", name: "Wyoming", abbrev: "WY", slug: "wyoming" },
 ];
 
 const BORROWER_PAGES = [
@@ -52,6 +106,27 @@ const FAQS = [
   { id: "faq-prepay", question: "Are there prepayment penalties?", answer: "Most loans have flexible prepay options, including no prepay on some products." },
 ];
 
+function searchStates(query: string): SearchResult[] {
+  const lowerQuery = query.toLowerCase().trim();
+  
+  return US_STATES
+    .filter(state =>
+      state.name.toLowerCase().includes(lowerQuery) ||
+      state.abbrev.toLowerCase() === lowerQuery ||
+      state.slug.includes(lowerQuery) ||
+      lowerQuery.includes(state.name.toLowerCase())
+    )
+    .map(state => ({
+      id: `state-${state.id}`,
+      type: "page" as const,
+      title: `${state.name} Investment Loans`,
+      description: `DSCR, Fix & Flip, and Construction loans in ${state.name} (${state.abbrev})`,
+      url: `/states/${state.slug}`,
+      icon: "building",
+    }))
+    .slice(0, 5);
+}
+
 async function generateSearchIntent(query: string, context: SearchContext): Promise<SearchIntent> {
   const contextDescription = {
     public: "a public website visitor looking for loan products, resources, or company information",
@@ -59,16 +134,22 @@ async function generateSearchIntent(query: string, context: SearchContext): Prom
     admin: "a staff member managing loan applications, users, and pipeline",
   };
 
-  const prompt = `You are a search intent classifier for a real estate lending website.
+  const prompt = `You are a search intent classifier for Sequel Investments, a real estate lending website.
+
+IMPORTANT GUARDRAILS:
+- You ONLY search within this website's content. NEVER suggest external websites or resources.
+- You ONLY classify intent for internal site navigation and content.
+- All results must be from this site's pages, products, FAQs, state pages, or user data.
+- Do NOT reference or suggest Google, Zillow, Redfin, or any external sources.
 
 User context: ${contextDescription[context]}
 User query: "${query}"
 
 Classify the user's intent into one of these types:
-1. "navigate" - User wants to go to a specific page (e.g., "go to contact page", "show me DSCR loans")
+1. "navigate" - User wants to go to a specific page (e.g., "go to contact page", "show me DSCR loans", "New York loans")
 2. "filter" - User wants to filter or find specific items (e.g., "show pending applications", "loans over $500k")
 3. "entity" - User is looking for a specific entity by name/ID (e.g., "application #123", "John Smith")
-4. "question" - User is asking a question (e.g., "what are the rates?", "how fast can you close?")
+4. "question" - User is asking a question about our products/services (e.g., "what are the rates?", "how fast can you close?")
 
 Respond with ONLY valid JSON in this exact format:
 {"type": "navigate|filter|entity|question", "confidence": 0.0-1.0, "route": "/optional/path", "filters": {"optional": "filters"}, "entityType": "optional_type", "query": "original query"}`;
@@ -168,9 +249,10 @@ export async function searchPublic(query: string): Promise<SearchResponse> {
   
   const pageResults = searchPages(query, "public");
   const productResults = searchProducts(query);
+  const stateResults = searchStates(query);
   const faqResults = searchFAQs(query);
   
-  const results = [...productResults, ...pageResults, ...faqResults].slice(0, 8);
+  const results = [...stateResults, ...productResults, ...pageResults, ...faqResults].slice(0, 8);
   
   const suggestions = [
     "DSCR loan requirements",
