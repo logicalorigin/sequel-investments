@@ -96,7 +96,7 @@ export function SearchCommand({ context = "public", open, onOpenChange }: Search
         query: searchQuery,
         context,
       });
-      setResults(response as SearchResponse);
+      setResults(response as unknown as SearchResponse);
     } catch (error) {
       console.error("Search failed:", error);
       setResults(null);

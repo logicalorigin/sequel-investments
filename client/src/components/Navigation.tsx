@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Menu, X, ChevronDown, Search } from "lucide-react";
-import { SearchTrigger, SearchCommand } from "@/components/SearchCommand";
+import { InlineSearch } from "@/components/InlineSearch";
+import { SearchCommand } from "@/components/SearchCommand";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -122,7 +123,7 @@ export function Navigation() {
           </div>
 
           <div className="hidden lg:flex items-center gap-3">
-            <SearchTrigger context="public" />
+            <InlineSearch context="public" className="w-64" placeholder="Search..." />
             <Link href="/portal" data-testid="link-nav-portal">
               <Button 
                 size="default"
