@@ -28,12 +28,18 @@ import {
   Loader2,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Video,
   MapPin,
   Phone,
   Mail,
   X,
   GripVertical,
+  LayoutList,
+  CalendarDays,
+  Columns3,
+  Grid3X3,
+  Check,
 } from "lucide-react";
 import { DndContext, DragEndEvent, useDraggable, useDroppable, DragOverlay } from "@dnd-kit/core";
 import type { ConsultationType } from "@shared/schema";
@@ -78,6 +84,16 @@ const CONSULTATION_TYPE_CONFIG: Record<string, { label: string; color: string; b
 };
 
 const HOURS = Array.from({ length: 16 }, (_, i) => i + 6); // 6 AM to 9 PM
+
+type ViewMode = "schedule" | "day" | "3day" | "week" | "month";
+
+const VIEW_MODE_CONFIG: Record<ViewMode, { label: string; icon: typeof LayoutList }> = {
+  schedule: { label: "Schedule", icon: LayoutList },
+  day: { label: "Day", icon: CalendarDays },
+  "3day": { label: "3 Day", icon: Columns3 },
+  week: { label: "Week", icon: CalendarDays },
+  month: { label: "Month", icon: Grid3X3 },
+};
 
 function getTimeFromHour(hour: number): string {
   const period = hour >= 12 ? "PM" : "AM";
@@ -162,12 +178,33 @@ export default function AdminCalendarPage() {
   const timeGridRef = useRef<HTMLDivElement>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   
+  const [viewMode, setViewMode] = useState<ViewMode>("week");
+  const [viewDropdownOpen, setViewDropdownOpen] = useState(false);
+  
+  const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
+  
   const [selectedWeek, setSelectedWeek] = useState<Date>(() => {
     const now = new Date();
     const day = now.getDay();
     const diff = now.getDate() - day;
     return new Date(now.setDate(diff));
   });
+  
+  // Sync selectedDate and selectedWeek when changing view modes
+  const handleViewModeChange = (newMode: ViewMode) => {
+    // When switching from week view, sync selectedDate to the middle of the week
+    if (viewMode === "week" && newMode !== "week") {
+      setSelectedDate(new Date(selectedWeek.getTime() + 3 * 24 * 60 * 60 * 1000)); // Wednesday of current week
+    }
+    // When switching to week view, sync selectedWeek to contain selectedDate
+    if (newMode === "week" && viewMode !== "week") {
+      const day = selectedDate.getDay();
+      const weekStart = new Date(selectedDate);
+      weekStart.setDate(selectedDate.getDate() - day);
+      setSelectedWeek(weekStart);
+    }
+    setViewMode(newMode);
+  };
   
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [filterType, setFilterType] = useState<string>("all");
@@ -241,6 +278,98 @@ export default function AdminCalendarPage() {
   };
 
   const weekDays = getWeekDays();
+  
+  const getDisplayDays = (): Date[] => {
+    switch (viewMode) {
+      case "day":
+        return [new Date(selectedDate)];
+      case "3day": {
+        const days: Date[] = [];
+        for (let i = 0; i < 3; i++) {
+          const d = new Date(selectedDate);
+          d.setDate(selectedDate.getDate() + i);
+          days.push(d);
+        }
+        return days;
+      }
+      case "week":
+        return weekDays;
+      case "month": {
+        // Get all days in the month grid (including padding from prev/next months)
+        const year = selectedDate.getFullYear();
+        const month = selectedDate.getMonth();
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+        const startPadding = firstDay.getDay();
+        const days: Date[] = [];
+        
+        // Add padding days from previous month (1 - startPadding gives correct offset)
+        for (let i = startPadding; i > 0; i--) {
+          days.push(new Date(year, month, 1 - i));
+        }
+        
+        // Add all days of current month
+        for (let i = 1; i <= lastDay.getDate(); i++) {
+          days.push(new Date(year, month, i));
+        }
+        
+        // Add padding days to complete the grid (6 rows max)
+        const remaining = 42 - days.length;
+        for (let i = 1; i <= remaining; i++) {
+          days.push(new Date(year, month + 1, i));
+        }
+        
+        return days;
+      }
+      case "schedule":
+      default:
+        return weekDays;
+    }
+  };
+  
+  const displayDays = getDisplayDays();
+  
+  // Get header text based on view mode
+  const getHeaderText = (): string => {
+    switch (viewMode) {
+      case "day":
+        return selectedDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+      case "3day": {
+        const endDate = new Date(selectedDate);
+        endDate.setDate(selectedDate.getDate() + 2);
+        if (selectedDate.getMonth() === endDate.getMonth()) {
+          return `${selectedDate.toLocaleDateString("en-US", { month: "long", day: "numeric" })} - ${endDate.getDate()}, ${selectedDate.getFullYear()}`;
+        }
+        return `${selectedDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })} - ${endDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
+      }
+      case "week":
+        return monthYear;
+      case "month":
+        return selectedDate.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+      case "schedule":
+        return "Schedule";
+      default:
+        return monthYear;
+    }
+  };
+  
+  // Group appointments by date for schedule view
+  const getGroupedAppointments = () => {
+    const grouped: Record<string, Appointment[]> = {};
+    const sortedAppointments = [...filteredAppointments]
+      .filter(a => a.status === "scheduled")
+      .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
+    
+    sortedAppointments.forEach(appointment => {
+      const date = new Date(appointment.scheduledAt).toDateString();
+      if (!grouped[date]) {
+        grouped[date] = [];
+      }
+      grouped[date].push(appointment);
+    });
+    
+    return grouped;
+  };
 
   const getAppointmentsForDay = (date: Date) => {
     return filteredAppointments.filter((a) => {
@@ -254,17 +383,46 @@ export default function AdminCalendarPage() {
     });
   };
 
-  const navigateWeek = (direction: "prev" | "next") => {
-    const newWeek = new Date(selectedWeek);
-    newWeek.setDate(selectedWeek.getDate() + (direction === "next" ? 7 : -7));
-    setSelectedWeek(newWeek);
+  const navigate = (direction: "prev" | "next") => {
+    const multiplier = direction === "next" ? 1 : -1;
+    
+    switch (viewMode) {
+      case "day": {
+        const newDate = new Date(selectedDate);
+        newDate.setDate(selectedDate.getDate() + (1 * multiplier));
+        setSelectedDate(newDate);
+        break;
+      }
+      case "3day": {
+        const newDate = new Date(selectedDate);
+        newDate.setDate(selectedDate.getDate() + (3 * multiplier));
+        setSelectedDate(newDate);
+        break;
+      }
+      case "week": {
+        const newWeek = new Date(selectedWeek);
+        newWeek.setDate(selectedWeek.getDate() + (7 * multiplier));
+        setSelectedWeek(newWeek);
+        break;
+      }
+      case "month": {
+        const newDate = new Date(selectedDate);
+        newDate.setMonth(selectedDate.getMonth() + (1 * multiplier));
+        setSelectedDate(newDate);
+        break;
+      }
+      case "schedule":
+        // Schedule view uses infinite scroll, no navigation
+        break;
+    }
   };
 
   const goToToday = () => {
     const now = new Date();
+    setSelectedDate(new Date(now));
     const day = now.getDay();
     const diff = now.getDate() - day;
-    setSelectedWeek(new Date(now.setDate(diff)));
+    setSelectedWeek(new Date(new Date().setDate(diff)));
   };
 
   const getPersonDisplayName = (person: { firstName: string | null; lastName: string | null; email: string } | undefined) => {
@@ -324,7 +482,7 @@ export default function AdminCalendarPage() {
     const slotData = over.data.current as { dayIndex: number; hour: number } | undefined;
     if (!slotData) return;
 
-    const newDate = new Date(weekDays[slotData.dayIndex]);
+    const newDate = new Date(displayDays[slotData.dayIndex]);
     newDate.setHours(slotData.hour, 0, 0, 0);
 
     updateMutation.mutate({
@@ -355,14 +513,26 @@ export default function AdminCalendarPage() {
       <div className="p-4 space-y-4">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => navigateWeek("prev")}
-              data-testid="button-prev-week"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
+            {viewMode !== "schedule" && (
+              <>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => navigate("prev")}
+                  data-testid="button-prev"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => navigate("next")}
+                  data-testid="button-next"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </>
+            )}
             <Button
               variant="outline"
               size="sm"
@@ -371,16 +541,57 @@ export default function AdminCalendarPage() {
             >
               Today
             </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => navigateWeek("next")}
-              data-testid="button-next-week"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+            
+            <Popover open={viewDropdownOpen} onOpenChange={setViewDropdownOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  data-testid="button-view-mode"
+                >
+                  {(() => {
+                    const config = VIEW_MODE_CONFIG[viewMode];
+                    const Icon = config.icon;
+                    return (
+                      <>
+                        <Icon className="h-4 w-4" />
+                        {config.label}
+                        <ChevronDown className="h-3 w-3 opacity-50" />
+                      </>
+                    );
+                  })()}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-40 p-1" align="start">
+                <div className="space-y-0.5">
+                  {(Object.entries(VIEW_MODE_CONFIG) as [ViewMode, typeof VIEW_MODE_CONFIG[ViewMode]][]).map(([key, config]) => {
+                    const Icon = config.icon;
+                    const isSelected = viewMode === key;
+                    return (
+                      <button
+                        key={key}
+                        className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm hover-elevate ${
+                          isSelected ? "bg-primary/10 text-primary" : "text-foreground"
+                        }`}
+                        onClick={() => {
+                          handleViewModeChange(key);
+                          setViewDropdownOpen(false);
+                        }}
+                        data-testid={`button-view-${key}`}
+                      >
+                        <Icon className="h-4 w-4" />
+                        <span className="flex-1 text-left">{config.label}</span>
+                        {isSelected && <Check className="h-4 w-4" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </PopoverContent>
+            </Popover>
+            
             <h2 className="text-xl font-semibold text-foreground" data-testid="text-month-year">
-              {monthYear}
+              {getHeaderText()}
             </h2>
           </div>
 
@@ -420,121 +631,234 @@ export default function AdminCalendarPage() {
             <div className="flex items-center justify-center h-full">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
-          ) : (
-            <DndContext onDragEnd={handleDragEnd} onDragStart={(e) => setActiveId(e.active.id as string)}>
-              <div className="flex h-full">
-                <div className="w-16 shrink-0 border-r">
-                  <div className="h-14 border-b" />
-                  <div ref={timeGridRef}>
-                    {HOURS.map((hour) => (
-                      <div
-                        key={hour}
-                        className="h-12 border-t border-border/50 pr-2 flex items-start justify-end"
-                      >
-                        <span className="text-xs text-muted-foreground -mt-2">
-                          {getTimeFromHour(hour)}
-                        </span>
-                      </div>
-                    ))}
+          ) : viewMode === "schedule" ? (
+              /* Schedule View - Vertical agenda list */
+              <div className="h-full overflow-y-auto p-4 space-y-6" data-testid="schedule-view">
+                {Object.entries(getGroupedAppointments()).length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
+                    <Calendar className="h-12 w-12 mb-2 opacity-50" />
+                    <p>No upcoming appointments</p>
                   </div>
+                ) : (
+                  Object.entries(getGroupedAppointments()).map(([dateStr, dayAppointments]) => {
+                    const date = new Date(dateStr);
+                    return (
+                      <div key={dateStr} className="space-y-2">
+                        <div className="sticky top-0 bg-background/95 backdrop-blur-sm py-2 z-10">
+                          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                            <span className={`w-8 h-8 flex items-center justify-center rounded-full ${isToday(date) ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
+                              {date.getDate()}
+                            </span>
+                            {date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+                            {isToday(date) && <Badge variant="secondary" className="text-xs">Today</Badge>}
+                          </h3>
+                        </div>
+                        <div className="space-y-2 pl-10">
+                          {dayAppointments.map(appointment => {
+                            const config = CONSULTATION_TYPE_CONFIG[appointment.consultationType || "other"];
+                            const scheduledTime = new Date(appointment.scheduledAt);
+                            return (
+                              <div
+                                key={appointment.id}
+                                className={`flex items-start gap-3 p-3 rounded-lg border-l-4 cursor-pointer hover-elevate ${config.bgColor} ${config.borderColor}`}
+                                onClick={() => handleOpenDetail(appointment)}
+                                data-testid={`schedule-event-${appointment.id}`}
+                              >
+                                <div className="shrink-0 text-right w-16">
+                                  <p className="text-sm font-medium text-foreground">
+                                    {scheduledTime.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">{appointment.durationMinutes} min</p>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className={`font-medium truncate ${config.color}`}>
+                                    {getPersonDisplayName(appointment.borrower)}
+                                  </p>
+                                  <p className="text-sm text-muted-foreground truncate">{config.label}</p>
+                                </div>
+                                <Avatar className="h-8 w-8 shrink-0">
+                                  <AvatarImage src={appointment.borrower?.profileImageUrl || undefined} />
+                                  <AvatarFallback className="text-xs">{getInitials(appointment.borrower)}</AvatarFallback>
+                                </Avatar>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            ) : viewMode === "month" ? (
+              /* Month View - Calendar grid */
+              <div className="h-full flex flex-col" data-testid="month-view">
+                <div className="grid grid-cols-7 border-b">
+                  {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(day => (
+                    <div key={day} className="p-2 text-center text-xs font-medium text-muted-foreground uppercase">
+                      {day}
+                    </div>
+                  ))}
                 </div>
-
-                <div className="flex-1 overflow-x-auto">
-                  <div className="grid grid-cols-7 min-w-[700px]">
-                    {weekDays.map((day, dayIndex) => (
-                      <div key={dayIndex} className="border-r last:border-r-0">
-                        <div
-                          className={`h-14 border-b flex flex-col items-center justify-center ${
-                            isToday(day) ? "bg-primary/5" : ""
-                          }`}
-                        >
-                          <span className="text-xs text-muted-foreground uppercase">
-                            {day.toLocaleDateString("en-US", { weekday: "short" })}
-                          </span>
-                          <span
-                            className={`text-lg font-semibold w-8 h-8 flex items-center justify-center rounded-full ${
-                              isToday(day)
-                                ? "bg-primary text-primary-foreground"
-                                : "text-foreground"
-                            }`}
-                          >
+                <div className="flex-1 grid grid-cols-7 grid-rows-6">
+                  {displayDays.map((day, idx) => {
+                    const dayAppts = getAppointmentsForDay(day);
+                    const isCurrentMonth = day.getMonth() === selectedDate.getMonth();
+                    const maxVisible = 3;
+                    const visibleAppts = dayAppts.slice(0, maxVisible);
+                    const overflow = dayAppts.length - maxVisible;
+                    
+                    return (
+                      <div
+                        key={idx}
+                        className={`border-r border-b p-1 min-h-[80px] ${!isCurrentMonth ? "bg-muted/30" : ""} ${isToday(day) ? "bg-primary/5" : ""}`}
+                        data-testid={`month-day-${day.getDate()}`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className={`text-sm w-6 h-6 flex items-center justify-center rounded-full ${
+                            isToday(day) ? "bg-primary text-primary-foreground" : isCurrentMonth ? "text-foreground" : "text-muted-foreground"
+                          }`}>
                             {day.getDate()}
                           </span>
                         </div>
-
-                        <div className="relative">
-                          {HOURS.map((hour) => {
-                            const dayAppointments = getAppointmentsForDay(day).filter(a => {
-                              const appointmentHour = new Date(a.scheduledAt).getHours();
-                              return appointmentHour === hour;
-                            });
-
+                        <div className="space-y-0.5">
+                          {visibleAppts.map(appt => {
+                            const config = CONSULTATION_TYPE_CONFIG[appt.consultationType || "other"];
                             return (
-                              <DroppableTimeSlot key={hour} dayIndex={dayIndex} hour={hour}>
-                                {dayAppointments.map((appointment) => {
-                                  const scheduledTime = new Date(appointment.scheduledAt);
-                                  const minuteOffset = scheduledTime.getMinutes();
-                                  const topOffset = (minuteOffset / 60) * 48;
-                                  const height = (appointment.durationMinutes / 60) * 48;
-
-                                  return (
-                                    <Popover key={appointment.id}>
-                                      <PopoverTrigger asChild>
-                                        <div>
-                                          <DraggableEvent
-                                            appointment={appointment}
-                                            topOffset={topOffset}
-                                            height={height}
-                                            onClick={() => handleOpenDetail(appointment)}
-                                            getPersonDisplayName={getPersonDisplayName}
-                                          />
-                                        </div>
-                                      </PopoverTrigger>
-                                      <PopoverContent className="w-80 p-0" align="start">
-                                        <EventPopover
-                                          appointment={appointment}
-                                          getPersonDisplayName={getPersonDisplayName}
-                                          getInitials={getInitials}
-                                          onClose={() => setSelectedAppointment(null)}
-                                          onEdit={() => handleOpenDetail(appointment)}
-                                        />
-                                      </PopoverContent>
-                                    </Popover>
-                                  );
-                                })}
-                              </DroppableTimeSlot>
+                              <div
+                                key={appt.id}
+                                className={`text-xs px-1 py-0.5 rounded truncate cursor-pointer ${config.bgColor} ${config.color}`}
+                                onClick={() => handleOpenDetail(appt)}
+                                data-testid={`month-event-${appt.id}`}
+                              >
+                                {new Date(appt.scheduledAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })} {getPersonDisplayName(appt.borrower)}
+                              </div>
                             );
                           })}
-
-                          {isTodayInWeek && dayIndex === todayIndex && currentTimePosition !== null && (
-                            <div
-                              className="absolute left-0 right-0 z-20 pointer-events-none"
-                              style={{ top: `${currentTimePosition}px` }}
-                            >
-                              <div className="relative">
-                                <div className="absolute -left-1.5 -top-1.5 w-3 h-3 bg-red-500 rounded-full" />
-                                <div className="h-0.5 bg-red-500" />
-                              </div>
-                            </div>
+                          {overflow > 0 && (
+                            <div className="text-xs text-muted-foreground px-1">+{overflow} more</div>
                           )}
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    );
+                  })}
                 </div>
               </div>
-
-              <DragOverlay>
-                {activeId ? (
-                  <div className="bg-primary/20 border border-primary rounded-md p-2 shadow-lg">
-                    <span className="text-sm font-medium">
-                      {appointments.find(a => a.id === activeId)?.title || "Moving..."}
-                    </span>
+            ) : (
+              /* Day / 3 Day / Week Time Grid Views */
+              <DndContext onDragEnd={handleDragEnd} onDragStart={(e) => setActiveId(e.active.id as string)}>
+                <div className="flex h-full" data-testid={`${viewMode}-view`}>
+                  <div className="w-16 shrink-0 border-r">
+                    <div className="h-14 border-b" />
+                    <div ref={timeGridRef}>
+                      {HOURS.map((hour) => (
+                        <div
+                          key={hour}
+                          className="h-12 border-t border-border/50 pr-2 flex items-start justify-end"
+                        >
+                          <span className="text-xs text-muted-foreground -mt-2">
+                            {getTimeFromHour(hour)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                ) : null}
-              </DragOverlay>
-            </DndContext>
-          )}
+
+                  <div className="flex-1 overflow-x-auto">
+                    <div className={`grid min-w-[${viewMode === "day" ? "200" : viewMode === "3day" ? "400" : "700"}px]`} style={{ gridTemplateColumns: `repeat(${displayDays.length}, minmax(0, 1fr))` }}>
+                      {displayDays.map((day, dayIndex) => (
+                        <div key={dayIndex} className="border-r last:border-r-0">
+                          <div
+                            className={`h-14 border-b flex flex-col items-center justify-center ${
+                              isToday(day) ? "bg-primary/5" : ""
+                            }`}
+                          >
+                            <span className="text-xs text-muted-foreground uppercase">
+                              {day.toLocaleDateString("en-US", { weekday: "short" })}
+                            </span>
+                            <span
+                              className={`text-lg font-semibold w-8 h-8 flex items-center justify-center rounded-full ${
+                                isToday(day)
+                                  ? "bg-primary text-primary-foreground"
+                                  : "text-foreground"
+                              }`}
+                            >
+                              {day.getDate()}
+                            </span>
+                          </div>
+
+                          <div className="relative">
+                            {HOURS.map((hour) => {
+                              const dayAppointments = getAppointmentsForDay(day).filter(a => {
+                                const appointmentHour = new Date(a.scheduledAt).getHours();
+                                return appointmentHour === hour;
+                              });
+
+                              return (
+                                <DroppableTimeSlot key={hour} dayIndex={dayIndex} hour={hour}>
+                                  {dayAppointments.map((appointment) => {
+                                    const scheduledTime = new Date(appointment.scheduledAt);
+                                    const minuteOffset = scheduledTime.getMinutes();
+                                    const topOffset = (minuteOffset / 60) * 48;
+                                    const height = (appointment.durationMinutes / 60) * 48;
+
+                                    return (
+                                      <Popover key={appointment.id}>
+                                        <PopoverTrigger asChild>
+                                          <div>
+                                            <DraggableEvent
+                                              appointment={appointment}
+                                              topOffset={topOffset}
+                                              height={height}
+                                              onClick={() => handleOpenDetail(appointment)}
+                                              getPersonDisplayName={getPersonDisplayName}
+                                            />
+                                          </div>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-80 p-0" align="start">
+                                          <EventPopover
+                                            appointment={appointment}
+                                            getPersonDisplayName={getPersonDisplayName}
+                                            getInitials={getInitials}
+                                            onClose={() => setSelectedAppointment(null)}
+                                            onEdit={() => handleOpenDetail(appointment)}
+                                          />
+                                        </PopoverContent>
+                                      </Popover>
+                                    );
+                                  })}
+                                </DroppableTimeSlot>
+                              );
+                            })}
+
+                            {isToday(day) && currentTimePosition !== null && (
+                              <div
+                                className="absolute left-0 right-0 z-20 pointer-events-none"
+                                style={{ top: `${currentTimePosition}px` }}
+                              >
+                                <div className="relative">
+                                  <div className="absolute -left-1.5 -top-1.5 w-3 h-3 bg-red-500 rounded-full" />
+                                  <div className="h-0.5 bg-red-500" />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <DragOverlay>
+                  {activeId ? (
+                    <div className="bg-primary/20 border border-primary rounded-md p-2 shadow-lg">
+                      <span className="text-sm font-medium">
+                        {appointments.find(a => a.id === activeId)?.title || "Moving..."}
+                      </span>
+                    </div>
+                  ) : null}
+                </DragOverlay>
+              </DndContext>
+            )}
         </CardContent>
       </Card>
 
