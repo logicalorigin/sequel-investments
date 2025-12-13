@@ -8,19 +8,28 @@ const geminiClient = new GoogleGenAI({
   },
 });
 
-const PUBLIC_PAGES = [
-  { id: "home", title: "Home", url: "/", description: "Main landing page" },
-  { id: "dscr", title: "DSCR Loans", url: "/dscr", description: "Debt Service Coverage Ratio loans for rental properties" },
-  { id: "fix-flip", title: "Fix & Flip Loans", url: "/fix-flip", description: "Short-term financing for property renovations" },
-  { id: "construction", title: "New Construction Loans", url: "/construction", description: "Ground-up construction financing" },
-  { id: "about", title: "About Us", url: "/about", description: "Company information and team" },
-  { id: "contact", title: "Contact", url: "/contact", description: "Get in touch with us" },
-  { id: "resources", title: "Resources", url: "/resources", description: "Educational content and tools" },
-  { id: "quote", title: "Get a Quote", url: "/quote", description: "Start your loan application" },
-  { id: "dscr-calculator", title: "DSCR Calculator", url: "/resources/dscr-calculator", description: "Calculate DSCR for rental properties" },
-  { id: "flip-calculator", title: "Fix & Flip Calculator", url: "/resources/flip-calculator", description: "Analyze fix and flip deals" },
-  { id: "construction-calculator", title: "Construction Calculator", url: "/resources/construction-calculator", description: "Construction loan analysis" },
-  { id: "where-we-lend", title: "Where We Lend", url: "/where-we-lend", description: "See all states where we offer investment property loans" },
+interface PageEntry {
+  id: string;
+  title: string;
+  url: string;
+  description: string;
+  keywords: string[];
+  priority: number;
+}
+
+const PUBLIC_PAGES: PageEntry[] = [
+  { id: "home", title: "Home", url: "/", description: "Main landing page", keywords: ["homepage", "main", "start"], priority: 1 },
+  { id: "dscr", title: "DSCR Loans", url: "/dscr", description: "Debt Service Coverage Ratio loans for rental properties", keywords: ["dscr", "rental", "investment", "rates", "long term", "30 year"], priority: 8 },
+  { id: "fix-flip", title: "Fix & Flip Loans", url: "/fix-flip", description: "Short-term financing for property renovations", keywords: ["flip", "fix", "renovation", "rehab", "rates", "bridge", "short term"], priority: 8 },
+  { id: "construction", title: "New Construction Loans", url: "/construction", description: "Ground-up construction financing", keywords: ["construction", "build", "new build", "ground up", "rates", "development"], priority: 8 },
+  { id: "about", title: "About Us", url: "/about", description: "Company information and team", keywords: ["about", "team", "company", "who", "story"], priority: 3 },
+  { id: "contact", title: "Contact Us", url: "/contact", description: "Get in touch with us", keywords: ["contact", "call", "phone", "email", "reach", "talk", "message", "speak"], priority: 9 },
+  { id: "resources", title: "Resources", url: "/resources", description: "Educational content and tools", keywords: ["resources", "articles", "blog", "learn", "education", "guides"], priority: 5 },
+  { id: "quote", title: "Get a Quote", url: "/quote", description: "Start your loan application", keywords: ["apply", "application", "quote", "start", "begin", "get started", "rates", "pricing"], priority: 10 },
+  { id: "dscr-calculator", title: "DSCR Calculator", url: "/resources/dscr-calculator", description: "Calculate DSCR for rental properties - analyze cash flow and loan qualification", keywords: ["calculator", "calculators", "dscr", "analyze", "tool", "calculate", "analysis", "rental"], priority: 10 },
+  { id: "flip-calculator", title: "Fix & Flip Calculator", url: "/resources/flip-calculator", description: "Analyze fix and flip deals - calculate ROI and profit", keywords: ["calculator", "calculators", "flip", "analyze", "tool", "calculate", "roi", "profit", "analysis"], priority: 10 },
+  { id: "construction-calculator", title: "Construction Calculator", url: "/resources/construction-calculator", description: "Construction loan analysis - calculate draw schedules and costs", keywords: ["calculator", "calculators", "construction", "analyze", "tool", "calculate", "draw", "budget", "analysis"], priority: 10 },
+  { id: "where-we-lend", title: "Where We Lend", url: "/where-we-lend", description: "See all states where we offer investment property loans", keywords: ["states", "locations", "where", "lend", "areas", "coverage", "map"], priority: 7 },
 ];
 
 const US_STATES = [
@@ -187,6 +196,7 @@ Respond with ONLY valid JSON in this exact format:
 
 function searchPages(query: string, context: SearchContext): SearchResult[] {
   const lowerQuery = query.toLowerCase();
+  const queryWords = lowerQuery.split(/\s+/).filter(w => w.length > 1);
   const pages = context === "public" ? PUBLIC_PAGES 
     : context === "borrower" ? [...BORROWER_PAGES, ...PUBLIC_PAGES]
     : [...ADMIN_PAGES, ...BORROWER_PAGES, ...PUBLIC_PAGES];
@@ -195,8 +205,12 @@ function searchPages(query: string, context: SearchContext): SearchResult[] {
     .filter(page => 
       page.title.toLowerCase().includes(lowerQuery) ||
       page.description.toLowerCase().includes(lowerQuery) ||
-      page.url.toLowerCase().includes(lowerQuery)
+      page.url.toLowerCase().includes(lowerQuery) ||
+      (page.keywords && page.keywords.some(kw => 
+        queryWords.some(qw => kw.includes(qw) || qw.includes(kw))
+      ))
     )
+    .sort((a, b) => ((b as PageEntry).priority || 0) - ((a as PageEntry).priority || 0))
     .map(page => ({
       id: page.id,
       type: "page" as const,
