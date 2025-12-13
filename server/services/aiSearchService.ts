@@ -75,7 +75,7 @@ Respond with ONLY valid JSON in this exact format:
 
   try {
     const response = await geminiClient.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-2.0-flash",
       contents: prompt,
     });
 
