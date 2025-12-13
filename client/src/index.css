@@ -561,3 +561,38 @@
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
+/* White-label overrides - applied when data-white-label="true" is set on :root */
+:root[data-white-label="true"] {
+  --primary: var(--wl-primary);
+  --primary-foreground: 0 0% 10%;
+  --secondary: var(--wl-secondary);
+  --secondary-foreground: 0 0% 95%;
+  --accent: var(--wl-accent);
+  --accent-foreground: 0 0% 10%;
+  --background: var(--wl-background);
+  --foreground: var(--wl-foreground);
+  --muted: var(--wl-muted);
+  --muted-foreground: 0 0% 60%;
+  --card: var(--wl-card);
+  --card-foreground: var(--wl-foreground);
+  --popover: var(--wl-card);
+  --popover-foreground: var(--wl-foreground);
+  --ring: var(--wl-primary);
+  --sidebar-primary: var(--wl-primary);
+  --sidebar-primary-foreground: 0 0% 10%;
+  --sidebar-accent: var(--wl-muted);
+  --sidebar-accent-foreground: var(--wl-foreground);
+  --sidebar-ring: var(--wl-primary);
+  --radius: var(--wl-radius);
+  --font-sans: var(--wl-font-family), sans-serif;
+}
+
+:root[data-white-label="true"] h1,
+:root[data-white-label="true"] h2,
+:root[data-white-label="true"] h3,
+:root[data-white-label="true"] h4,
+:root[data-white-label="true"] h5,
+:root[data-white-label="true"] h6 {
+  font-weight: var(--wl-heading-weight);
+}
