@@ -11,9 +11,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Palette, Building2, Phone, Mail, MapPin, Type, RotateCcw, Save, Eye, Image, LayoutTemplate, Sparkles } from "lucide-react";
+import { Palette, Building2, Phone, Mail, MapPin, Type, RotateCcw, Save, Eye, Image, LayoutTemplate, Sparkles, Monitor } from "lucide-react";
 import { EditorLayout } from "@/components/page-builder/EditorLayout";
 import { siteTemplates, type SiteTemplate } from "@/data/siteTemplates";
+import { LiveSitePreview } from "@/components/admin/LiveSitePreview";
 import type { WhiteLabelSettings } from "@shared/schema";
 
 interface WhiteLabelSettingsWithMeta extends Partial<WhiteLabelSettings> {
@@ -215,7 +216,7 @@ export default function AdminCustomizeSitePage() {
         </div>
 
         <TabsContent value="branding" className="flex-1 m-0 overflow-auto">
-          <div className="max-w-5xl mx-auto px-6 py-12">
+          <div className="max-w-6xl mx-auto px-6 py-12">
             <Card className="mb-8">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -227,51 +228,64 @@ export default function AdminCustomizeSitePage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {siteTemplates.map((template) => (
-                    <Card 
-                      key={template.id} 
-                      className="hover-elevate"
-                      data-testid={`card-template-${template.id}`}
-                    >
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-base">{template.name}</CardTitle>
-                        <CardDescription className="text-xs">
-                          {template.description}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="pb-3">
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="w-6 h-6 rounded-full border shadow-sm"
-                            style={{ backgroundColor: template.colors.primary }}
-                            title="Primary"
-                          />
-                          <div
-                            className="w-6 h-6 rounded-full border shadow-sm"
-                            style={{ backgroundColor: template.colors.secondary }}
-                            title="Secondary"
-                          />
-                          <div
-                            className="w-6 h-6 rounded-full border shadow-sm"
-                            style={{ backgroundColor: template.colors.accent }}
-                            title="Accent"
-                          />
-                        </div>
-                      </CardContent>
-                      <CardContent className="pt-0">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full"
-                          onClick={() => handleApplyTemplate(template)}
-                          data-testid={`button-apply-template-${template.id}`}
-                        >
-                          Apply
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  ))}
+                <div className="grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {siteTemplates.map((template) => (
+                      <Card 
+                        key={template.id} 
+                        className="hover-elevate"
+                        data-testid={`card-template-${template.id}`}
+                      >
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-base">{template.name}</CardTitle>
+                          <CardDescription className="text-xs">
+                            {template.description}
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="pb-3">
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-6 h-6 rounded-full border shadow-sm"
+                              style={{ backgroundColor: template.colors.primary }}
+                              title="Primary"
+                            />
+                            <div
+                              className="w-6 h-6 rounded-full border shadow-sm"
+                              style={{ backgroundColor: template.colors.secondary }}
+                              title="Secondary"
+                            />
+                            <div
+                              className="w-6 h-6 rounded-full border shadow-sm"
+                              style={{ backgroundColor: template.colors.accent }}
+                              title="Accent"
+                            />
+                          </div>
+                        </CardContent>
+                        <CardContent className="pt-0">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full"
+                            onClick={() => handleApplyTemplate(template)}
+                            data-testid={`button-apply-template-${template.id}`}
+                          >
+                            Apply
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                      <Monitor className="h-4 w-4" />
+                      Live Preview
+                    </div>
+                    <LiveSitePreview formData={formData} />
+                    <p className="text-xs text-muted-foreground text-center">
+                      Updates in real-time as you change settings
+                    </p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
