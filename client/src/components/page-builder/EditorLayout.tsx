@@ -23,7 +23,7 @@ import {
   LayoutTemplate,
 } from "lucide-react";
 import { SectionLibrary } from "./SectionLibrary";
-import { EditorCanvas } from "./EditorCanvas";
+import { PreviewSurface } from "./PreviewSurface";
 import { PropertyInspector } from "./PropertyInspector";
 import { useEditorStore } from "@/stores/editorStore";
 import type { PageLayout, PageSection, SectionPreset, PageTemplateId } from "@shared/schema";
@@ -273,7 +273,7 @@ export function EditorLayout({ pageId }: EditorLayoutProps) {
 
         <div className="flex-1 flex min-h-0">
           <SectionLibrary className="w-64 shrink-0" />
-          <EditorCanvas className="flex-1" onSectionDrop={handleSectionDrop} />
+          <PreviewSurface className="flex-1" onSectionDrop={handleSectionDrop} />
           <PropertyInspector className="w-72 shrink-0" />
         </div>
       </div>
