@@ -18,6 +18,14 @@ const defaultSettings: WhiteLabelSettingsWithMeta = {
   logoUrl: null,
   primaryColor: "#D4A01D",
   secondaryColor: "#1a1a1a",
+  accentColor: "#f59e0b",
+  backgroundColor: "#0a0a0a",
+  foregroundColor: "#fafafa",
+  mutedColor: "#171717",
+  cardColor: "#1f1f1f",
+  fontFamily: "Inter",
+  headingWeight: "600",
+  borderRadius: "0.5rem",
   contactPhone: "302.388.8860",
   contactEmail: "josh@fundwithsequel.com",
   contactAddress: "800 5th Avenue, Suite 4100, Miami Beach, FL 33139",
@@ -81,22 +89,58 @@ export function WhiteLabelProvider({ children }: { children: React.ReactNode }) 
   const isDemoMode = settings?.isDemoMode || false;
 
   useEffect(() => {
-    if (settings?.primaryColor && isDemoMode) {
-      const hslValue = hexToHSL(settings.primaryColor);
-      document.documentElement.style.setProperty("--primary", hslValue);
+    const root = document.documentElement;
+    
+    if (isDemoMode && settings) {
+      root.setAttribute("data-white-label", "true");
       
+      if (settings.primaryColor) {
+        root.style.setProperty("--wl-primary", hexToHSL(settings.primaryColor));
+      }
       if (settings.secondaryColor) {
-        const secondaryHsl = hexToHSL(settings.secondaryColor);
-        document.documentElement.style.setProperty("--secondary", secondaryHsl);
+        root.style.setProperty("--wl-secondary", hexToHSL(settings.secondaryColor));
+      }
+      if (settings.accentColor) {
+        root.style.setProperty("--wl-accent", hexToHSL(settings.accentColor));
+      }
+      if (settings.backgroundColor) {
+        root.style.setProperty("--wl-background", hexToHSL(settings.backgroundColor));
+      }
+      if (settings.foregroundColor) {
+        root.style.setProperty("--wl-foreground", hexToHSL(settings.foregroundColor));
+      }
+      if (settings.mutedColor) {
+        root.style.setProperty("--wl-muted", hexToHSL(settings.mutedColor));
+      }
+      if (settings.cardColor) {
+        root.style.setProperty("--wl-card", hexToHSL(settings.cardColor));
+      }
+      if (settings.fontFamily) {
+        root.style.setProperty("--wl-font-family", settings.fontFamily);
+      }
+      if (settings.headingWeight) {
+        root.style.setProperty("--wl-heading-weight", settings.headingWeight);
+      }
+      if (settings.borderRadius) {
+        root.style.setProperty("--wl-radius", settings.borderRadius);
       }
       
       setCssApplied(true);
     } else if (!isDemoMode && cssApplied) {
-      document.documentElement.style.removeProperty("--primary");
-      document.documentElement.style.removeProperty("--secondary");
+      root.removeAttribute("data-white-label");
+      root.style.removeProperty("--wl-primary");
+      root.style.removeProperty("--wl-secondary");
+      root.style.removeProperty("--wl-accent");
+      root.style.removeProperty("--wl-background");
+      root.style.removeProperty("--wl-foreground");
+      root.style.removeProperty("--wl-muted");
+      root.style.removeProperty("--wl-card");
+      root.style.removeProperty("--wl-font-family");
+      root.style.removeProperty("--wl-heading-weight");
+      root.style.removeProperty("--wl-radius");
       setCssApplied(false);
     }
-  }, [settings?.primaryColor, settings?.secondaryColor, isDemoMode, cssApplied]);
+  }, [settings, isDemoMode, cssApplied]);
 
   const handleRefetch = useCallback(() => {
     refetch();
