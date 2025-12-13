@@ -3234,7 +3234,27 @@ export const sectionTypeEnum = pgEnum("section_type", [
 ]);
 
 // Hero section variants
-export type HeroVariant = "carousel" | "static" | "video" | "split";
+export type HeroVariant = "carousel" | "static" | "video" | "split" | "stats_centered";
+
+// Animated stat configuration for stats_centered hero variant
+export interface HeroAnimatedStat {
+  value: number;
+  prefix?: string;
+  suffix?: string;
+  label: string;
+}
+
+// Badge pill configuration for hero section
+export interface HeroBadge {
+  text: string;
+  icon?: string;
+}
+
+// Feature pill for hero footer
+export interface HeroFeaturePill {
+  icon?: string;
+  text: string;
+}
 
 // Section configuration types (stored as JSONB)
 export interface HeroSectionConfig {
@@ -3249,6 +3269,12 @@ export interface HeroSectionConfig {
   backgroundVideo?: string;
   showFundedDeals?: boolean;
   overlayOpacity?: number;
+  // Stats centered variant options
+  animatedStats?: HeroAnimatedStat[];
+  badge?: HeroBadge;
+  featurePills?: HeroFeaturePill[];
+  darkBackground?: boolean;
+  accentColor?: string; // e.g., "gold", "purple", "blue"
 }
 
 export interface TrustIndicatorsSectionConfig {
@@ -4482,6 +4508,38 @@ export const SECTION_PRESETS: SectionPreset[] = [
       ctaText: "Get Construction Quote",
       ctaLink: "/get-quote?type=construction",
       showFundedDeals: false,
+    } as HeroSectionConfig,
+  },
+  {
+    id: "hero-summit-stats",
+    name: "Summit Stats Hero",
+    description: "Dramatic full-screen hero with animated stats, dark background, and gold/purple accents - ideal for premium investor-focused branding",
+    type: "hero",
+    category: "hero",
+    config: {
+      variant: "stats_centered",
+      headline: "Elevate Your Investments",
+      subheadline: "Access premium lending solutions designed for high-net-worth investors. Fast closings, competitive rates, and white-glove service.",
+      ctaText: "Get Started",
+      ctaLink: "/get-quote",
+      secondaryCtaText: "View Products",
+      secondaryCtaLink: "/loan-programs",
+      darkBackground: true,
+      accentColor: "gold",
+      badge: {
+        text: "Private lending for sophisticated investors",
+        icon: "Shield",
+      },
+      animatedStats: [
+        { value: 1200, prefix: "$", suffix: "M+", label: "Funded" },
+        { value: 2500, prefix: "", suffix: "+", label: "Deals Closed" },
+        { value: 47, prefix: "", suffix: "", label: "States" },
+      ],
+      featurePills: [
+        { icon: "TrendingUp", text: "Institutional-Grade Underwriting" },
+        { icon: "Zap", text: "24-Hour Term Sheets" },
+        { icon: "Shield", text: "Dedicated Account Manager" },
+      ],
     } as HeroSectionConfig,
   },
 
