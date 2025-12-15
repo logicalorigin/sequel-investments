@@ -6,6 +6,7 @@ import {
   CarouselItem,
 } from "@/components/ui/carousel";
 import type { TestimonialsSectionConfig } from "@shared/schema";
+import { useSectionVariant } from "@/hooks/useSectionVariant";
 
 import testimonial1 from "@assets/generated_images/Investor_testimonial_headshot_1_2a222601.png";
 import testimonial2 from "@assets/generated_images/Investor_testimonial_headshot_2_bb13b1a2.png";
@@ -40,6 +41,7 @@ const DEFAULT_TESTIMONIALS = [
 ];
 
 export function TestimonialsSection({ config }: TestimonialsSectionProps) {
+  const variantStyles = useSectionVariant("testimonials");
   const testimonials = config.testimonials?.length ? config.testimonials : DEFAULT_TESTIMONIALS;
   const showRatings = config.showRatings !== false;
   const layout = config.layout || "carousel";
@@ -69,14 +71,14 @@ export function TestimonialsSection({ config }: TestimonialsSectionProps) {
 
   return (
     <section 
-      className="py-12 sm:py-16 md:py-24 bg-card"
+      className={`${variantStyles.spacing} ${variantStyles.background}`}
       role="region"
       aria-label="Investor testimonials"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="text-center mb-8 sm:mb-12 md:mb-16">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">What Our Investors Say</h2>
-          <p className="text-base sm:text-lg md:text-xl text-muted-foreground">
+          <h2 className={`${variantStyles.typography.headline} mb-3 sm:mb-4`}>What Our Investors Say</h2>
+          <p className={variantStyles.typography.body}>
             Real success stories from real estate investors
           </p>
         </div>

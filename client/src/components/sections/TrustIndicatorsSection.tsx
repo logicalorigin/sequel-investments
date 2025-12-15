@@ -1,4 +1,5 @@
 import { GeometricPattern } from "@/components/GeometricPattern";
+import { useSectionVariant } from "@/hooks/useSectionVariant";
 import type { TrustIndicatorsSectionConfig } from "@shared/schema";
 
 interface TrustIndicatorsSectionProps {
@@ -13,6 +14,8 @@ const DEFAULT_STATS = [
 ];
 
 export function TrustIndicatorsSection({ config }: TrustIndicatorsSectionProps) {
+  const variantStyles = useSectionVariant("trust_indicators");
+  
   const stats = config.customStats?.length 
     ? config.customStats.map(s => ({ value: s.value, label: s.label, mobileLabel: s.label }))
     : DEFAULT_STATS.filter((_, i) => {
@@ -26,7 +29,7 @@ export function TrustIndicatorsSection({ config }: TrustIndicatorsSectionProps) 
   if (stats.length === 0) return null;
 
   return (
-    <section className="py-4 sm:py-12 bg-card border-b relative overflow-hidden">
+    <section className={`${variantStyles.spacing} ${variantStyles.background} border-b relative overflow-hidden`}>
       <GeometricPattern 
         variant="dots" 
         className="text-primary" 

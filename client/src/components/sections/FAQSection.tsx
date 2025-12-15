@@ -5,6 +5,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import type { FAQSectionConfig } from "@shared/schema";
+import { useSectionVariant } from "@/hooks/useSectionVariant";
 
 interface FAQSectionProps {
   config: FAQSectionConfig;
@@ -38,23 +39,24 @@ const DEFAULT_FAQS = [
 ];
 
 export function FAQSection({ config }: FAQSectionProps) {
+  const variantStyles = useSectionVariant("faq");
   const title = config.title || "Frequently Asked Questions";
   const description = config.description;
   const items = config.items?.length ? config.items : DEFAULT_FAQS;
   const layout = config.layout || "accordion";
 
   return (
-    <section className="py-12 sm:py-20 bg-muted/30">
+    <section className={`${variantStyles.spacing} ${variantStyles.background}`}>
       <div className="max-w-4xl mx-auto px-4 sm:px-6">
         <div className="text-center mb-8 sm:mb-12">
           <h2 
-            className="text-2xl sm:text-4xl font-bold mb-4"
+            className={`${variantStyles.typography.headline} mb-4`}
             data-testid="text-faq-title"
           >
             {title}
           </h2>
           {description && (
-            <p className="text-lg text-muted-foreground">{description}</p>
+            <p className={variantStyles.typography.body}>{description}</p>
           )}
         </div>
 
