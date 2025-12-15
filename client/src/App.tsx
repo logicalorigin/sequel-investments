@@ -77,6 +77,7 @@ import AdminDrawRequestsPage from "@/pages/AdminDrawRequestsPage";
 import AdminUsersPage from "@/pages/AdminUsersPage";
 import AdminWebhooksPage from "@/pages/AdminWebhooksPage";
 import AdminLoanProductsPage from "@/pages/AdminLoanProductsPage";
+import AdminPremiumTemplatesPage from "@/pages/AdminPremiumTemplatesPage";
 import DSCRCalculatorPage from "@/pages/DSCRCalculatorPage";
 import FlipCalculatorPage from "@/pages/FlipCalculatorPage";
 import ConstructionCalculatorPage from "@/pages/ConstructionCalculatorPage";
@@ -134,6 +135,7 @@ function Router() {
       <Route path="/admin/users">{() => <AdminLayout><AdminUsersPage /></AdminLayout>}</Route>
       <Route path="/admin/webhooks">{() => <AdminLayout><AdminWebhooksPage /></AdminLayout>}</Route>
       <Route path="/admin/loan-products">{() => <AdminLayout><AdminLoanProductsPage /></AdminLayout>}</Route>
+      <Route path="/admin/premium-templates">{() => <AdminLayout><AdminPremiumTemplatesPage /></AdminLayout>}</Route>
       <Route path="/portal/book-consultation" component={BookConsultationPage} />
       <Route path="/portal/calendar" component={MyCalendarPage} />
       <Route path="/portal/messages" component={MessagesPage} />
