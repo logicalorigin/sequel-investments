@@ -8416,6 +8416,150 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============================================
+  // LOAN PRODUCT MANAGEMENT ROUTES
+  // ============================================
+  
+  // Get all loan products (public - active only)
+  app.get("/api/loan-products", async (req: any, res) => {
+    try {
+      const products = await storage.getActiveLoanProducts();
+      return res.json(products);
+    } catch (error) {
+      console.error("Error fetching loan products:", error);
+      return res.status(500).json({ error: "Failed to fetch loan products" });
+    }
+  });
+  
+  // Get single loan product by slug (public)
+  app.get("/api/loan-products/:slug", async (req: any, res) => {
+    try {
+      const { slug } = req.params;
+      const product = await storage.getLoanProductBySlug(slug);
+      if (!product) {
+        return res.status(404).json({ error: "Loan product not found" });
+      }
+      return res.json(product);
+    } catch (error) {
+      console.error("Error fetching loan product:", error);
+      return res.status(500).json({ error: "Failed to fetch loan product" });
+    }
+  });
+  
+  // Get all loan products (admin - includes inactive)
+  app.get("/api/admin/loan-products", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const products = await storage.getLoanProducts();
+      return res.json(products);
+    } catch (error) {
+      console.error("Error fetching loan products:", error);
+      return res.status(500).json({ error: "Failed to fetch loan products" });
+    }
+  });
+  
+  // Get single loan product by ID (admin)
+  app.get("/api/admin/loan-products/:id", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const product = await storage.getLoanProduct(id);
+      if (!product) {
+        return res.status(404).json({ error: "Loan product not found" });
+      }
+      return res.json(product);
+    } catch (error) {
+      console.error("Error fetching loan product:", error);
+      return res.status(500).json({ error: "Failed to fetch loan product" });
+    }
+  });
+  
+  // Create new loan product (admin)
+  app.post("/api/admin/loan-products", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { insertLoanProductSchema } = await import("@shared/schema");
+      
+      const validationResult = insertLoanProductSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        const validationError = fromZodError(validationResult.error);
+        return res.status(400).json({ 
+          error: "Validation failed", 
+          message: validationError.message,
+          details: validationResult.error.errors
+        });
+      }
+      
+      const product = await storage.createLoanProduct(validationResult.data);
+      return res.status(201).json(product);
+    } catch (error: any) {
+      console.error("Error creating loan product:", error);
+      if (error.code === "23505") { // Unique constraint violation
+        return res.status(400).json({ error: "A product with this slug already exists" });
+      }
+      return res.status(500).json({ error: "Failed to create loan product" });
+    }
+  });
+  
+  // Update loan product (admin)
+  app.put("/api/admin/loan-products/:id", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { insertLoanProductSchema } = await import("@shared/schema");
+      
+      // For updates, make all fields optional
+      const updateSchema = insertLoanProductSchema.partial();
+      const validationResult = updateSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        const validationError = fromZodError(validationResult.error);
+        return res.status(400).json({ 
+          error: "Validation failed", 
+          message: validationError.message,
+          details: validationResult.error.errors
+        });
+      }
+      
+      const product = await storage.updateLoanProduct(id, validationResult.data);
+      if (!product) {
+        return res.status(404).json({ error: "Loan product not found" });
+      }
+      return res.json(product);
+    } catch (error: any) {
+      console.error("Error updating loan product:", error);
+      if (error.code === "23505") {
+        return res.status(400).json({ error: "A product with this slug already exists" });
+      }
+      return res.status(500).json({ error: "Failed to update loan product" });
+    }
+  });
+  
+  // Delete loan product (admin)
+  app.delete("/api/admin/loan-products/:id", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteLoanProduct(id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Loan product not found" });
+      }
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting loan product:", error);
+      return res.status(500).json({ error: "Failed to delete loan product" });
+    }
+  });
+  
+  // Reorder loan products (admin)
+  app.patch("/api/admin/loan-products/reorder", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { orderedIds } = req.body;
+      if (!Array.isArray(orderedIds)) {
+        return res.status(400).json({ error: "orderedIds must be an array" });
+      }
+      await storage.reorderLoanProducts(orderedIds);
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Error reordering loan products:", error);
+      return res.status(500).json({ error: "Failed to reorder loan products" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   // ============================================
