@@ -8560,6 +8560,172 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============================================
+  // PREMIUM TEMPLATES ROUTES
+  // ============================================
+  
+  // Get all active premium templates (public)
+  app.get("/api/premium-templates", async (req: any, res) => {
+    try {
+      const templates = await storage.getActivePremiumTemplates();
+      return res.json(templates);
+    } catch (error) {
+      console.error("Error fetching premium templates:", error);
+      return res.status(500).json({ error: "Failed to fetch templates" });
+    }
+  });
+  
+  // Get single premium template by slug (public)
+  app.get("/api/premium-templates/:slug", async (req: any, res) => {
+    try {
+      const { slug } = req.params;
+      const template = await storage.getPremiumTemplateBySlug(slug);
+      if (!template) {
+        return res.status(404).json({ error: "Template not found" });
+      }
+      return res.json(template);
+    } catch (error) {
+      console.error("Error fetching premium template:", error);
+      return res.status(500).json({ error: "Failed to fetch template" });
+    }
+  });
+  
+  // Get all premium templates (admin - includes inactive)
+  app.get("/api/admin/premium-templates", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const templates = await storage.getPremiumTemplates();
+      return res.json(templates);
+    } catch (error) {
+      console.error("Error fetching premium templates:", error);
+      return res.status(500).json({ error: "Failed to fetch templates" });
+    }
+  });
+  
+  // Get single premium template by ID (admin)
+  app.get("/api/admin/premium-templates/:id", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const template = await storage.getPremiumTemplate(id);
+      if (!template) {
+        return res.status(404).json({ error: "Template not found" });
+      }
+      return res.json(template);
+    } catch (error) {
+      console.error("Error fetching premium template:", error);
+      return res.status(500).json({ error: "Failed to fetch template" });
+    }
+  });
+  
+  // Create new premium template (admin)
+  app.post("/api/admin/premium-templates", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { insertPremiumTemplateSchema } = await import("@shared/schema");
+      
+      const validationResult = insertPremiumTemplateSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        const validationError = fromZodError(validationResult.error);
+        return res.status(400).json({ 
+          error: "Validation failed", 
+          message: validationError.message,
+          details: validationResult.error.errors
+        });
+      }
+      
+      const template = await storage.createPremiumTemplate(validationResult.data);
+      return res.status(201).json(template);
+    } catch (error: any) {
+      console.error("Error creating premium template:", error);
+      if (error.code === "23505") {
+        return res.status(400).json({ error: "A template with this slug already exists" });
+      }
+      return res.status(500).json({ error: "Failed to create template" });
+    }
+  });
+  
+  // Update premium template (admin)
+  app.put("/api/admin/premium-templates/:id", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { insertPremiumTemplateSchema } = await import("@shared/schema");
+      
+      const updateSchema = insertPremiumTemplateSchema.partial();
+      const validationResult = updateSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        const validationError = fromZodError(validationResult.error);
+        return res.status(400).json({ 
+          error: "Validation failed", 
+          message: validationError.message,
+          details: validationResult.error.errors
+        });
+      }
+      
+      const template = await storage.updatePremiumTemplate(id, validationResult.data);
+      if (!template) {
+        return res.status(404).json({ error: "Template not found" });
+      }
+      return res.json(template);
+    } catch (error: any) {
+      console.error("Error updating premium template:", error);
+      if (error.code === "23505") {
+        return res.status(400).json({ error: "A template with this slug already exists" });
+      }
+      return res.status(500).json({ error: "Failed to update template" });
+    }
+  });
+  
+  // Delete premium template (admin)
+  app.delete("/api/admin/premium-templates/:id", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deletePremiumTemplate(id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Template not found" });
+      }
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting premium template:", error);
+      return res.status(500).json({ error: "Failed to delete template" });
+    }
+  });
+  
+  // Reorder premium templates (admin)
+  app.patch("/api/admin/premium-templates/reorder", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { orderedIds } = req.body;
+      if (!Array.isArray(orderedIds)) {
+        return res.status(400).json({ error: "orderedIds must be an array" });
+      }
+      await storage.reorderPremiumTemplates(orderedIds);
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Error reordering premium templates:", error);
+      return res.status(500).json({ error: "Failed to reorder templates" });
+    }
+  });
+  
+  // Apply template to white-label site
+  app.post("/api/white-label/apply-template", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { whiteLabelSiteId, templateId } = req.body;
+      
+      if (!whiteLabelSiteId || !templateId) {
+        return res.status(400).json({ error: "whiteLabelSiteId and templateId are required" });
+      }
+      
+      // Verify template exists
+      const template = await storage.getPremiumTemplate(templateId);
+      if (!template) {
+        return res.status(404).json({ error: "Template not found" });
+      }
+      
+      const assignment = await storage.applyTemplateToWhiteLabelSite(whiteLabelSiteId, templateId);
+      return res.json(assignment);
+    } catch (error) {
+      console.error("Error applying template:", error);
+      return res.status(500).json({ error: "Failed to apply template" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   // ============================================
