@@ -5453,3 +5453,111 @@ export interface SearchResponse {
   results: SearchResult[];
   suggestions: string[];
 }
+
+// ============================================
+// PREMIUM TEMPLATES
+// ============================================
+
+// Template categories
+export const templateCategoryEnum = pgEnum("template_category", [
+  "modern",
+  "classic", 
+  "minimal",
+  "bold",
+]);
+
+// Color scheme type for templates
+export interface TemplateColorScheme {
+  primary: string;
+  secondary: string;
+  accent: string;
+  background: string;
+  foreground: string;
+  muted?: string;
+  card?: string;
+}
+
+// Typography configuration
+export interface TemplateTypography {
+  headingFont: string;
+  bodyFont: string;
+  headingWeight?: string;
+}
+
+// Page layouts configuration for templates
+export type TemplatePageLayoutsConfig = Partial<Record<PageTemplateId, PageSection[]>>;
+
+// Premium templates table
+export const premiumTemplates = pgTable("premium_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name", { length: 255 }).notNull(),
+  slug: varchar("slug", { length: 255 }).notNull().unique(),
+  description: text("description"),
+  category: templateCategoryEnum("category").default("modern"),
+  
+  // Visual preview
+  thumbnailUrl: text("thumbnail_url"),
+  previewUrl: text("preview_url"),
+  screenshotUrls: jsonb("screenshot_urls").$type<string[]>().default([]),
+  
+  // Design configuration
+  colorScheme: jsonb("color_scheme").$type<TemplateColorScheme>(),
+  typography: jsonb("typography").$type<TemplateTypography>(),
+  
+  // Page layouts for this template
+  pageLayoutsConfig: jsonb("page_layouts_config").$type<TemplatePageLayoutsConfig>(),
+  
+  // Additional styling options
+  buttonStyle: varchar("button_style", { length: 50 }).default("rounded"), // "rounded" | "square" | "pill"
+  borderRadius: varchar("border_radius", { length: 50 }).default("0.5rem"),
+  themePreference: varchar("theme_preference", { length: 20 }).default("dark"), // "light" | "dark"
+  
+  // Metadata
+  isPremium: boolean("is_premium").default(true).notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  sortOrder: integer("sort_order").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_premium_templates_slug").on(table.slug),
+  index("idx_premium_templates_active").on(table.isActive),
+  index("idx_premium_templates_category").on(table.category),
+]);
+
+export type PremiumTemplate = typeof premiumTemplates.$inferSelect;
+export type InsertPremiumTemplate = typeof premiumTemplates.$inferInsert;
+
+export const insertPremiumTemplateSchema = createInsertSchema(premiumTemplates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// White-label template assignments
+export const whiteLabelTemplateAssignments = pgTable("white_label_template_assignments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  whiteLabelSiteId: varchar("white_label_site_id")
+    .references(() => whiteLabelSettings.id, { onDelete: "cascade" })
+    .notNull(),
+  templateId: varchar("template_id")
+    .references(() => premiumTemplates.id, { onDelete: "set null" }),
+  
+  // Custom overrides after template selection
+  colorOverrides: jsonb("color_overrides").$type<Partial<TemplateColorScheme>>(),
+  typographyOverrides: jsonb("typography_overrides").$type<Partial<TemplateTypography>>(),
+  contentOverrides: jsonb("content_overrides").$type<Record<string, any>>(),
+  
+  assignedAt: timestamp("assigned_at").defaultNow().notNull(),
+  customizedAt: timestamp("customized_at"),
+}, (table) => [
+  index("idx_wl_template_assignments_site").on(table.whiteLabelSiteId),
+  index("idx_wl_template_assignments_template").on(table.templateId),
+]);
+
+export type WhiteLabelTemplateAssignment = typeof whiteLabelTemplateAssignments.$inferSelect;
+export type InsertWhiteLabelTemplateAssignment = typeof whiteLabelTemplateAssignments.$inferInsert;
+
+export const insertWhiteLabelTemplateAssignmentSchema = createInsertSchema(whiteLabelTemplateAssignments).omit({
+  id: true,
+  assignedAt: true,
+});

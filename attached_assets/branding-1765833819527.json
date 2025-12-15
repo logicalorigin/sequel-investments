@@ -1,0 +1,61 @@
+{
+  "colorScheme": "light",
+  "fonts": [
+    {
+      "family": "Source Sans Pro",
+      "role": "body"
+    },
+    {
+      "family": "dm-font",
+      "role": "display"
+    }
+  ],
+  "colors": {
+    "primary": "#03A9F4",
+    "accent": "#2C3E50",
+    "background": "#F7F7F7",
+    "textPrimary": "#2C3E50",
+    "link": "#2C3E50"
+  },
+  "typography": {
+    "fontFamilies": {
+      "primary": "Source Sans Pro",
+      "heading": "dm-font"
+    },
+    "fontStacks": {
+      "heading": [
+        "Source Sans Pro",
+        "sans-serif"
+      ],
+      "body": [
+        "Source Sans Pro",
+        "sans-serif"
+      ],
+      "paragraph": [
+        "Source Sans Pro",
+        "sans-serif"
+      ]
+    },
+    "fontSizes": {
+      "h1": "16px",
+      "h2": "16px",
+      "body": "16px"
+    }
+  },
+  "spacing": {
+    "baseUnit": 10,
+    "borderRadius": "0px"
+  },
+  "components": {},
+  "images": {
+    "logo": null,
+    "favicon": "https://chris503f174e.responsivesiteeditor.com/editor/product/reseller/images/favicon_one_reseller.ico",
+    "ogImage": null
+  },
+  "__framework_hints": [],
+  "confidence": {
+    "buttons": 0,
+    "colors": 0.95,
+    "overall": 0.475
+  }
+}
