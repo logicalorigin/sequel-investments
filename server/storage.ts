@@ -48,6 +48,8 @@ import {
   staffMessagePreferences,
   messageTemplates,
   pageLayouts,
+  loanProducts,
+  loanProductPricingTiers,
   type User, 
   type UpsertUser,
   type Lead, 
@@ -151,6 +153,10 @@ import {
   type PageLayout,
   type InsertPageLayout,
   type PageSection,
+  type LoanProduct,
+  type InsertLoanProduct,
+  type LoanProductPricingTier,
+  type InsertLoanProductPricingTier,
   DEFAULT_DOCUMENT_TYPES,
   DEFAULT_BUSINESS_HOURS,
   DEFAULT_HOME_PAGE_LAYOUT,
@@ -518,6 +524,23 @@ export interface IStorage {
   upsertPageLayout(data: InsertPageLayout): Promise<PageLayout>;
   updatePageLayoutSections(pageId: string, sections: PageSection[]): Promise<PageLayout | undefined>;
   resetPageLayoutToDefault(pageId: string): Promise<PageLayout | undefined>;
+  
+  // Loan product operations (dynamic product management)
+  getLoanProducts(): Promise<LoanProduct[]>;
+  getActiveLoanProducts(): Promise<LoanProduct[]>;
+  getLoanProduct(id: string): Promise<LoanProduct | undefined>;
+  getLoanProductBySlug(slug: string): Promise<LoanProduct | undefined>;
+  createLoanProduct(data: InsertLoanProduct): Promise<LoanProduct>;
+  updateLoanProduct(id: string, data: Partial<InsertLoanProduct>): Promise<LoanProduct | undefined>;
+  deleteLoanProduct(id: string): Promise<boolean>;
+  reorderLoanProducts(orderedIds: string[]): Promise<void>;
+  
+  // Loan product pricing tier operations
+  getLoanProductPricingTiers(productId: string): Promise<LoanProductPricingTier[]>;
+  getLoanProductPricingTier(id: string): Promise<LoanProductPricingTier | undefined>;
+  createLoanProductPricingTier(data: InsertLoanProductPricingTier): Promise<LoanProductPricingTier>;
+  updateLoanProductPricingTier(id: string, data: Partial<InsertLoanProductPricingTier>): Promise<LoanProductPricingTier | undefined>;
+  deleteLoanProductPricingTier(id: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -3381,6 +3404,97 @@ export class DatabaseStorage implements IStorage {
     // For other pages, we'd have their defaults defined
     // For now, just return undefined if no default exists
     return undefined;
+  }
+
+  // Loan product operations (dynamic product management)
+  async getLoanProducts(): Promise<LoanProduct[]> {
+    return db.select().from(loanProducts).orderBy(loanProducts.sortOrder);
+  }
+
+  async getActiveLoanProducts(): Promise<LoanProduct[]> {
+    return db
+      .select()
+      .from(loanProducts)
+      .where(eq(loanProducts.status, "active"))
+      .orderBy(loanProducts.sortOrder);
+  }
+
+  async getLoanProduct(id: string): Promise<LoanProduct | undefined> {
+    const [product] = await db.select().from(loanProducts).where(eq(loanProducts.id, id));
+    return product;
+  }
+
+  async getLoanProductBySlug(slug: string): Promise<LoanProduct | undefined> {
+    const [product] = await db.select().from(loanProducts).where(eq(loanProducts.slug, slug));
+    return product;
+  }
+
+  async createLoanProduct(data: InsertLoanProduct): Promise<LoanProduct> {
+    const [product] = await db.insert(loanProducts).values(data as any).returning();
+    return product;
+  }
+
+  async updateLoanProduct(id: string, data: Partial<InsertLoanProduct>): Promise<LoanProduct | undefined> {
+    const updateData = {
+      ...data,
+      updatedAt: new Date(),
+    };
+    const [product] = await db
+      .update(loanProducts)
+      .set(updateData as any)
+      .where(eq(loanProducts.id, id))
+      .returning();
+    return product;
+  }
+
+  async deleteLoanProduct(id: string): Promise<boolean> {
+    const result = await db.delete(loanProducts).where(eq(loanProducts.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async reorderLoanProducts(orderedIds: string[]): Promise<void> {
+    for (let i = 0; i < orderedIds.length; i++) {
+      await db
+        .update(loanProducts)
+        .set({ sortOrder: i + 1, updatedAt: new Date() })
+        .where(eq(loanProducts.id, orderedIds[i]));
+    }
+  }
+
+  // Loan product pricing tier operations
+  async getLoanProductPricingTiers(productId: string): Promise<LoanProductPricingTier[]> {
+    return db
+      .select()
+      .from(loanProductPricingTiers)
+      .where(eq(loanProductPricingTiers.productId, productId))
+      .orderBy(loanProductPricingTiers.sortOrder);
+  }
+
+  async getLoanProductPricingTier(id: string): Promise<LoanProductPricingTier | undefined> {
+    const [tier] = await db.select().from(loanProductPricingTiers).where(eq(loanProductPricingTiers.id, id));
+    return tier;
+  }
+
+  async createLoanProductPricingTier(data: InsertLoanProductPricingTier): Promise<LoanProductPricingTier> {
+    const [tier] = await db.insert(loanProductPricingTiers).values(data).returning();
+    return tier;
+  }
+
+  async updateLoanProductPricingTier(id: string, data: Partial<InsertLoanProductPricingTier>): Promise<LoanProductPricingTier | undefined> {
+    const [tier] = await db
+      .update(loanProductPricingTiers)
+      .set({
+        ...data,
+        updatedAt: new Date(),
+      })
+      .where(eq(loanProductPricingTiers.id, id))
+      .returning();
+    return tier;
+  }
+
+  async deleteLoanProductPricingTier(id: string): Promise<boolean> {
+    const result = await db.delete(loanProductPricingTiers).where(eq(loanProductPricingTiers.id, id)).returning();
+    return result.length > 0;
   }
 }
 
