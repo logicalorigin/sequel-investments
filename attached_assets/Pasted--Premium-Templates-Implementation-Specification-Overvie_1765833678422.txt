@@ -1,0 +1,420 @@
+
+# Premium Templates - Implementation Specification
+
+## Overview
+
+This document outlines the plan to implement a **Premium Templates** system inspired by [LendingWise Templates](https://www.templates.lendingwise.com/). This will allow white-label clients to select from professionally designed, pre-configured site templates rather than building from scratch.
+
+## Concept
+
+Each premium template is a **complete, ready-to-use website design** with:
+- Pre-configured page layouts (home, products, about, contact, resources)
+- Custom color schemes and typography
+- Curated section configurations
+- Sample content and imagery
+- Industry-specific messaging (investor-focused, broker-focused, etc.)
+
+Clients can:
+1. **Browse** available templates with live previews
+2. **Select** a template that matches their brand
+3. **Customize** colors, logos, and content
+4. **Deploy** their white-label site instantly
+
+---
+
+## Database Schema
+
+### New Tables
+
+```typescript
+// Premium template definitions
+premiumTemplates: pgTable("premium_templates", {
+  id: varchar("id", { length: 255 }).primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  slug: varchar("slug", { length: 255 }).notNull().unique(),
+  description: text("description"),
+  category: varchar("category", { length: 100 }), // "modern", "classic", "minimal", "bold"
+  
+  // Visual preview
+  thumbnailUrl: text("thumbnail_url"),
+  previewUrl: text("preview_url"), // Link to live demo site
+  screenshotUrls: json("screenshot_urls").$type<string[]>(),
+  
+  // Design configuration
+  colorScheme: json("color_scheme").$type<{
+    primary: string;
+    secondary: string;
+    accent: string;
+    background: string;
+    foreground: string;
+  }>(),
+  
+  typography: json("typography").$type<{
+    headingFont: string;
+    bodyFont: string;
+  }>(),
+  
+  // Page layouts for this template
+  pageLayoutsConfig: json("page_layouts_config").$type<Record<PageTemplateId, PageSection[]>>(),
+  
+  // Metadata
+  isPremium: boolean("is_premium").default(true),
+  isActive: boolean("is_active").default(true),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Track which template each white-label site is using
+whiteLabelTemplateAssignments: pgTable("white_label_template_assignments", {
+  id: varchar("id", { length: 255 }).primaryKey(),
+  whiteLabelSiteId: varchar("white_label_site_id", { length: 255 })
+    .references(() => whiteLabelSettings.id)
+    .notNull(),
+  templateId: varchar("template_id", { length: 255 })
+    .references(() => premiumTemplates.id)
+    .notNull(),
+  
+  // Custom overrides after template selection
+  colorOverrides: json("color_overrides").$type<Partial<ColorScheme>>(),
+  contentOverrides: json("content_overrides").$type<any>(),
+  
+  assignedAt: timestamp("assigned_at").defaultNow(),
+  customizedAt: timestamp("customized_at"),
+});
+```
+
+---
+
+## Template Gallery Structure
+
+### Template Categories
+
+1. **Modern Investor** (Dark theme, bold typography, data-focused)
+   - Clean cards, prominent CTAs, calculator emphasis
+   - Target: Tech-savvy real estate investors
+
+2. **Classic Lender** (Professional, trust-focused, traditional)
+   - Traditional layouts, testimonial-heavy, badge emphasis
+   - Target: Conservative investors, older demographics
+
+3. **Minimal Broker** (Light, spacious, content-first)
+   - Lots of whitespace, simple navigation, educational focus
+   - Target: Brokers who want to appear approachable
+
+4. **Bold Capital** (High contrast, vibrant, conversion-optimized)
+   - Large hero images, aggressive CTAs, social proof
+   - Target: Fix & flip focused, action-oriented investors
+
+### Example Templates
+
+#### Template: "Investor Pro" (Modern Investor)
+```typescript
+{
+  id: "investor-pro",
+  name: "Investor Pro",
+  slug: "investor-pro",
+  description: "Dark, modern design for data-driven investors. Features interactive calculators, market analytics, and bold CTAs.",
+  category: "modern",
+  colorScheme: {
+    primary: "#D4AF37", // Gold
+    secondary: "#1a1a1a", // Near black
+    accent: "#3b82f6", // Blue
+    background: "#0a0a0a",
+    foreground: "#ffffff",
+  },
+  typography: {
+    headingFont: "DM Sans",
+    bodyFont: "Inter",
+  },
+  pageLayoutsConfig: {
+    home: [
+      { type: "hero", config: { variant: "split", showStats: true } },
+      { type: "trust_indicators", config: { layout: "badges" } },
+      { type: "loan_products", config: { layout: "cards" } },
+      { type: "stats_bar", config: { showAnimation: true } },
+      { type: "recently_funded", config: { layout: "carousel" } },
+      { type: "testimonials", config: { layout: "grid" } },
+      { type: "cta_banner", config: { variant: "dark" } },
+    ],
+    dscr: [...],
+    fix_flip: [...],
+  },
+  isPremium: true,
+  isActive: true,
+}
+```
+
+#### Template: "Trust Builder" (Classic Lender)
+```typescript
+{
+  id: "trust-builder",
+  name: "Trust Builder",
+  slug: "trust-builder",
+  description: "Traditional, professional design emphasizing credibility and testimonials.",
+  category: "classic",
+  colorScheme: {
+    primary: "#1e40af", // Navy blue
+    secondary: "#f8fafc", // Light gray
+    accent: "#059669", // Green
+    background: "#ffffff",
+    foreground: "#0f172a",
+  },
+  typography: {
+    headingFont: "Merriweather",
+    bodyFont: "Open Sans",
+  },
+  // ... page configurations
+}
+```
+
+---
+
+## Implementation Phases
+
+### Phase 1: Template Gallery (Backend + Admin) - 4 hours
+
+**1.1 Database Migration**
+- Add `premium_templates` table
+- Add `white_label_template_assignments` table
+- Seed 4-6 example templates
+
+**1.2 API Endpoints**
+```
+GET  /api/premium-templates              - Public gallery (active only)
+GET  /api/premium-templates/:id          - Single template detail
+GET  /api/admin/premium-templates        - Admin list (all)
+POST /api/admin/premium-templates        - Create template
+PUT  /api/admin/premium-templates/:id    - Update template
+DELETE /api/admin/premium-templates/:id  - Delete template
+POST /api/white-label/apply-template     - Apply template to site
+```
+
+**1.3 Admin Template Manager**
+- CRUD interface for templates
+- Upload thumbnails/screenshots
+- Configure page layouts visually
+- JSON editor for advanced customization
+
+### Phase 2: Template Selection UI - 3 hours
+
+**2.1 Public Template Gallery Page** (`/templates`)
+- Grid of template cards with thumbnails
+- Filter by category
+- Live preview modal (iframe of demo site)
+- "Use This Template" CTA (requires white-label account)
+
+**2.2 Template Detail Page** (`/templates/:slug`)
+- Large hero screenshot
+- Feature list
+- Multiple page screenshots (carousel)
+- Color scheme preview
+- "Get Started" button
+
+**2.3 Selection Flow**
+```
+User clicks "Use This Template" →
+  If not logged in: Redirect to signup with template pre-selected
+  If logged in (white-label admin): Confirmation modal →
+    Apply template (replaces current page layouts)
+```
+
+### Phase 3: Template Application System - 3 hours
+
+**3.1 Template Application Logic**
+When a template is applied:
+1. Clone template's `pageLayoutsConfig` to site's `page_layouts` table
+2. Apply color scheme to `whiteLabelSettings.brandColors`
+3. Create `white_label_template_assignments` record
+4. Log assignment in audit trail
+
+**3.2 Customization After Selection**
+- Admin can modify colors (color picker UI)
+- Edit individual sections
+- Upload custom logo/images
+- All changes tracked as "overrides"
+
+**3.3 Reset to Template**
+- "Restore Template Defaults" button
+- Clears all overrides, reapplies original template config
+
+### Phase 4: Template Previews & Marketing - 2 hours
+
+**4.1 Live Demo Sites**
+For each template, create a live preview at:
+- `templates.sequel.com/demo/investor-pro`
+- `templates.sequel.com/demo/trust-builder`
+- etc.
+
+Implementation:
+- Use existing white-label system
+- Create demo `whiteLabelSettings` records
+- Populate with sample content
+
+**4.2 Marketing Page**
+- Landing page showcasing premium templates
+- "Why Use Templates" section
+- Pricing integration (if premium templates cost extra)
+- Video walkthrough
+
+### Phase 5: Advanced Features (Optional) - 3 hours
+
+**5.1 Template Variations**
+- "Light" and "Dark" variants of each template
+- Industry-specific versions (DSCR-focused vs Fix & Flip-focused)
+
+**5.2 One-Click Duplication**
+- "Clone This Template" button in admin
+- Creates editable copy for customization
+- Enables creating custom templates from existing ones
+
+**5.3 Template Marketplace**
+- User-submitted templates (with approval)
+- Revenue sharing for template creators
+- Rating/review system
+
+---
+
+## Key Features
+
+### Template Gallery
+✅ **Browse & Preview**: Grid view with live previews
+✅ **Filtering**: By category, color scheme, industry focus
+✅ **Instant Apply**: One-click template application
+✅ **Customization**: Post-selection color/content editing
+
+### Admin Template Builder
+✅ **Visual Editor**: Drag-drop page layout configuration
+✅ **Color Scheme Designer**: Live preview with color picker
+✅ **Asset Management**: Upload template screenshots
+✅ **Version Control**: Track template updates, rollback changes
+
+### White-Label Integration
+✅ **Seamless Onboarding**: New clients select template during signup
+✅ **Brand Customization**: Override colors, logos, content
+✅ **Template Switching**: Change templates without losing data
+✅ **Export/Import**: Save custom configurations as templates
+
+---
+
+## Technical Considerations
+
+### Performance
+- **Template Previews**: Use iframe sandboxing with lazy loading
+- **Screenshot Generation**: Automated Puppeteer screenshots on template save
+- **Caching**: Cache-Control headers on template assets
+
+### Data Structure
+- **Flexibility**: JSON-based config allows arbitrary section types
+- **Validation**: Zod schemas ensure template integrity
+- **Migrations**: Handle template schema updates gracefully
+
+### User Experience
+- **Preview Accuracy**: Demo sites must match production exactly
+- **Mobile Previews**: Show mobile/desktop screenshots
+- **Loading States**: Skeleton loaders for template gallery
+
+---
+
+## Migration Strategy
+
+### For Existing White-Label Sites
+1. **Default Template**: Create "Legacy" template matching current design
+2. **Auto-Assign**: Assign all existing sites to "Legacy" template
+3. **Opt-In Upgrade**: Email clients about new templates, allow switching
+
+### For New Sign-Ups
+1. **Template Selection Step**: Add to onboarding flow after account creation
+2. **Recommended Templates**: Show 2-3 templates based on industry
+3. **Skip Option**: Allow "Start from Scratch" (current behavior)
+
+---
+
+## Content Strategy
+
+### Template Naming
+- **Action-Oriented**: "Investor Pro", "Capital Builder", "Trust Anchor"
+- **Benefit-Focused**: "Conversion King", "Lead Magnet", "Authority Builder"
+
+### Template Descriptions
+- **Problem/Solution**: "Struggling to convert visitors? Bold Capital's aggressive CTAs..."
+- **Target Audience**: "Perfect for brokers targeting first-time investors"
+- **Key Features**: "Includes: Animated calculators, 3D hero, testimonial carousel"
+
+### Screenshot Guidelines
+- **Hero Section**: Above-the-fold on desktop
+- **Full Page**: Scrolling screenshot of entire homepage
+- **Product Pages**: DSCR, Fix & Flip detail pages
+- **Mobile View**: Responsive design showcase
+
+---
+
+## Pricing Model (Optional)
+
+### Free Templates (3-4 basic templates)
+- Included with all white-label accounts
+- Limited customization (colors only)
+
+### Premium Templates ($199/template or $499/unlimited)
+- Full customization
+- Exclusive designs
+- Priority support
+- Monthly updates
+
+### Enterprise Custom Templates ($2,500+)
+- Bespoke design service
+- Dedicated designer consultation
+- Unlimited revisions
+
+---
+
+## Success Metrics
+
+- **Template Adoption Rate**: % of white-label sites using templates vs custom
+- **Time to Launch**: Days from signup to site publish (should decrease)
+- **Customization Depth**: % of sites that modify template vs use as-is
+- **Template Popularity**: Which templates are selected most
+- **Conversion Impact**: Do template sites convert better?
+
+---
+
+## Deliverables
+
+1. **Database Schema**: Premium templates + assignments tables
+2. **API Endpoints**: Full CRUD for templates
+3. **Admin UI**: Template manager with visual editor
+4. **Public Gallery**: Template browsing and selection
+5. **Application System**: One-click template deployment
+6. **Demo Sites**: 4-6 live template previews
+7. **Documentation**: Template creation guide for staff
+
+---
+
+## Next Steps
+
+1. **Review & Approve**: Discuss this spec with stakeholders
+2. **Design Mockups**: Create Figma mockups of 4 initial templates
+3. **Phase 1 Implementation**: Start with backend + admin manager
+4. **Beta Testing**: Launch to 3-5 pilot white-label clients
+5. **Iterate**: Gather feedback, refine templates
+6. **Public Launch**: Marketing campaign for template gallery
+
+---
+
+## References
+
+- **LendingWise Templates**: https://www.templates.lendingwise.com/
+- **Existing Page Builder**: `/admin/page-builder` (foundation for template system)
+- **White-Label System**: `whiteLabelSettings` table (integration point)
+
+---
+
+## Questions for Stakeholder
+
+1. **Pricing**: Should premium templates be monetized separately?
+2. **Custom Templates**: Allow clients to save their customizations as reusable templates?
+3. **Template Updates**: Auto-update sites when template is improved, or freeze on selection?
+4. **Content**: Pre-populate templates with client's info or use placeholder content?
+5. **Branding**: Should templates include Sequel branding or be fully white-labeled?
+
+Ready to start implementation when you approve this plan!
