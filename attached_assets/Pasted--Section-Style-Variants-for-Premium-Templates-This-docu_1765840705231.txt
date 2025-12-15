@@ -1,0 +1,496 @@
+
+# Section Style Variants for Premium Templates
+
+This document defines 3 distinct style variants for each major section type. These variants can be mixed and matched across premium templates to create unique, cohesive designs.
+
+## Overview
+
+Each section type has three variants:
+- **Variant A**: Clean & Minimal - Emphasizes whitespace and simplicity
+- **Variant B**: Bold & Dynamic - Uses strong visual hierarchy and accents
+- **Variant C**: Professional & Structured - Focuses on organization and clarity
+
+---
+
+## Hero Section Variants
+
+### Variant A: Clean & Minimal
+**Visual Style:**
+- Large centered headline with generous whitespace
+- Subtle background (solid color or minimal gradient)
+- Single prominent CTA button
+- Optional trust indicators below CTA
+
+**Design Specs:**
+- Typography: Light weight (400-500) for body, Bold (700) for headline
+- Button: Pill-shaped, solid primary color
+- Spacing: py-24 to py-32
+- Background: Solid or subtle gradient (10% opacity)
+- Layout: Centered, single column
+
+**Best For:** Nestly, minimalist brands
+
+---
+
+### Variant B: Bold & Dynamic
+**Visual Style:**
+- Split-screen layout (text left, visual right)
+- Strong color overlays on background images
+- Multiple CTAs (primary + secondary)
+- Animated gradient backgrounds or patterns
+
+**Design Specs:**
+- Typography: Heavy weight (700-800) for headlines
+- Button: Rounded or square, high contrast
+- Spacing: py-20 to py-28
+- Background: Image with 60-80% overlay, or animated gradient
+- Layout: 50/50 split on desktop, stacked on mobile
+- Pattern: Geometric or waves at 15-25% opacity
+
+**Best For:** Summit Capital, investor-focused brands
+
+---
+
+### Variant C: Professional & Structured
+**Visual Style:**
+- Traditional top-aligned layout
+- Professional photography background
+- Badge/certification strip integrated
+- Clear hierarchy with subheadline and bullet benefits
+
+**Design Specs:**
+- Typography: Medium weight (600) for headlines
+- Button: Rounded (0.5rem), professional colors
+- Spacing: py-16 to py-24
+- Background: High-quality photography with 50-70% overlay
+- Layout: Top-aligned, max-w-3xl content width
+- Trust elements: Inline badges or stats bar
+
+**Best For:** Upcrunch, Blueprint Pro, traditional lending
+
+---
+
+## Product/Feature Highlights Variants
+
+### Variant A: Card Grid - Clean & Minimal
+**Visual Style:**
+- 3-column grid with subtle card borders
+- Icon + Title + Description + Link pattern
+- Consistent spacing, minimal shadows
+- Hover: Subtle lift effect (2-4px)
+
+**Design Specs:**
+- Cards: bg-card, border border-border, rounded-lg
+- Icons: 40px, single color (primary or accent)
+- Typography: Title at text-xl (600), body at text-base (400)
+- Spacing: gap-6 between cards, p-6 internal padding
+- Hover: translate-y-[-4px], shadow-md transition
+
+**Best For:** Clean, professional layouts
+
+---
+
+### Variant B: Highlight Boxes - Bold & Dynamic
+**Visual Style:**
+- Alternating left/right layout for each feature
+- Background fills with accent colors
+- Large icons (60-80px) with gradient treatments
+- Strong visual separation between items
+
+**Design Specs:**
+- Layout: Alternating 60/40 split (image/text)
+- Background: Accent gradient or solid with pattern overlay
+- Icons: 64px with gradient fill or dual-color treatment
+- Typography: Title at text-2xl to text-3xl (700), body at text-lg
+- Spacing: py-12 to py-16 per section, gap-8 between items
+- Visual: Geometric patterns at 10% opacity in backgrounds
+
+**Best For:** High-impact feature showcases
+
+---
+
+### Variant C: List-Based - Professional & Structured
+**Visual Style:**
+- Vertical list with checkmarks or numbered badges
+- Grouped by category with section headers
+- Compact, scannable format
+- Side-by-side comparison tables option
+
+**Design Specs:**
+- Layout: Single column list or 2-column comparison
+- Icons: 24px checkmarks or numbered badges
+- Typography: Title at text-lg (600), body at text-sm (400)
+- Spacing: gap-4 between items, py-8 to py-12 section padding
+- Borders: Dividers between major sections
+- Tables: Striped rows, sticky headers
+
+**Best For:** Feature comparisons, requirement lists
+
+---
+
+## Testimonials Section Variants
+
+### Variant A: Minimal Cards
+**Visual Style:**
+- 3-column grid of simple quote cards
+- Avatar + Name + Title + Quote
+- White/card background, minimal decoration
+- Star ratings inline with author info
+
+**Design Specs:**
+- Cards: bg-card, border border-border, rounded-lg, p-6
+- Avatar: 48px circular
+- Typography: Quote at text-base (400) italic, Name at text-sm (600)
+- Stars: 16px, filled with accent color
+- Spacing: gap-6 between cards
+- Quotes: Left-aligned, quotation marks as decoration
+
+**Best For:** Professional, trustworthy presentation
+
+---
+
+### Variant B: Featured Carousel
+**Visual Style:**
+- Large single testimonial with rotation
+- Full-width or split with large headshot
+- Video testimonial option
+- Navigation dots and arrows
+
+**Design Specs:**
+- Layout: Centered, max-w-4xl
+- Avatar: 80-120px or full headshot image
+- Typography: Quote at text-xl to text-2xl (400), Name at text-lg (700)
+- Background: Gradient or pattern overlay at 5% opacity
+- Controls: Arrows on sides, dots below
+- Animation: Fade transition, 5s auto-advance
+
+**Best For:** High-impact social proof
+
+---
+
+### Variant C: Grid with Metrics
+**Visual Style:**
+- Compact grid (2-3 columns)
+- Metrics integrated (loan amount, deal size, ROI)
+- Badge for loan type
+- Business/professional headshots
+
+**Design Specs:**
+- Cards: bg-muted, rounded-md, p-4
+- Avatar: 40px circular
+- Typography: Quote at text-sm (400), Name at text-xs (600)
+- Metrics: Highlighted numbers in accent color, text-lg (700)
+- Badges: Rounded pill badges for loan type
+- Spacing: gap-4 between cards, compact internal padding
+
+**Best For:** Data-driven lending platforms
+
+---
+
+## CTA Banner Variants
+
+### Variant A: Centered Minimal
+**Visual Style:**
+- Single centered headline + subtext
+- One prominent button
+- Clean background (gradient or solid)
+- Generous whitespace
+
+**Design Specs:**
+- Layout: Centered, max-w-2xl
+- Background: Gradient (primary to accent) or solid primary
+- Typography: Headline at text-3xl to text-4xl (700), white text
+- Button: Large (px-8 py-4), contrasting color (white or accent)
+- Spacing: py-16 to py-24
+- Border: Optional top/bottom accent line
+
+**Best For:** Simple conversion points
+
+---
+
+### Variant B: Split with Visual
+**Visual Style:**
+- 50/50 split: message left, image/icon right
+- Multiple CTAs (primary + secondary)
+- Background pattern or gradient
+- Icon or illustration visual
+
+**Design Specs:**
+- Layout: Grid 1:1, gap-8 to gap-12
+- Background: Pattern overlay or gradient
+- Typography: Headline at text-3xl (700), body at text-lg (400)
+- Buttons: Primary (solid) + Secondary (outline)
+- Visual: Abstract icon, pattern, or illustration (300-400px)
+- Spacing: py-20 to py-28
+
+**Best For:** Multi-option CTAs
+
+---
+
+### Variant C: Form-Integrated
+**Visual Style:**
+- Inline lead capture form
+- Benefits list on left, form on right
+- Professional, structured layout
+- Progress indicator for multi-step
+
+**Design Specs:**
+- Layout: 60/40 split (benefits/form)
+- Background: Card or section background
+- Form: Input fields with labels, primary button
+- Typography: Headline at text-2xl (600), list items at text-base
+- Form styling: Rounded inputs, focus states with ring
+- Spacing: py-12 to py-16
+- Icons: Checkmarks for benefit list items
+
+**Best For:** Lead generation pages
+
+---
+
+## Stats/Trust Bar Variants
+
+### Variant A: Horizontal Minimal
+**Visual Style:**
+- 4-column inline stats
+- Large numbers, small labels
+- Minimal decoration
+- Border top/bottom only
+
+**Design Specs:**
+- Layout: Grid 4 columns, centered text
+- Typography: Numbers at text-3xl to text-4xl (700) primary color, Labels at text-sm (400) muted
+- Background: bg-card
+- Borders: border-t and border-b
+- Spacing: py-8 to py-12, gap-4
+- Hover: Optional scale pulse on numbers
+
+**Best For:** Clean, professional sites (Upcrunch, Nestly)
+
+---
+
+### Variant B: Badge Grid
+**Visual Style:**
+- Logo-style badges or certification icons
+- 4-6 items in grid
+- Tooltips or labels below
+- Subtle background patterns
+
+**Design Specs:**
+- Layout: Grid 4-6 columns, centered
+- Items: 80-100px badge/logo images
+- Background: bg-muted with pattern overlay (5% opacity)
+- Typography: Label at text-xs (500) below each badge
+- Spacing: py-6 to py-8, gap-6
+- Opacity: Items at 70% opacity, 100% on hover
+
+**Best For:** Trust indicators, partner logos
+
+---
+
+### Variant C: Feature Stats
+**Visual Style:**
+- 2-row layout with icons
+- Icon + Number + Label per stat
+- Alternating background colors
+- More detailed descriptions
+
+**Design Specs:**
+- Layout: Grid 2x2 or 3x2
+- Icons: 32px, accent color
+- Typography: Numbers at text-2xl (700), Labels at text-sm (600), Description at text-xs (400)
+- Background: Alternating bg-card and bg-muted
+- Spacing: py-4 internal padding, gap-4 between items
+- Borders: Rounded cards with subtle shadows
+
+**Best For:** Detailed metrics, feature highlights
+
+---
+
+## Process Steps Variants
+
+### Variant A: Timeline Vertical
+**Visual Style:**
+- Vertical timeline with connecting line
+- Numbered circles for each step
+- Icon + Title + Description
+- Left-aligned, simple progression
+
+**Design Specs:**
+- Layout: Vertical list, max-w-2xl
+- Timeline: 2px line connecting numbered circles (24px)
+- Numbers: Primary background, white text
+- Typography: Title at text-lg (600), Description at text-base (400)
+- Icons: 20px inline with title
+- Spacing: gap-8 between steps, pl-12 for content offset
+
+**Best For:** Linear processes, application flows
+
+---
+
+### Variant B: Card Grid Horizontal
+**Visual Style:**
+- 3-4 column grid
+- Large step numbers (01, 02, 03)
+- Cards with icons
+- Arrow separators between cards
+
+**Design Specs:**
+- Layout: Grid 3-4 columns with arrow separators
+- Cards: bg-card, rounded-lg, p-6
+- Numbers: text-6xl (800), accent color at 20% opacity as background
+- Icons: 48px, primary color
+- Typography: Title at text-xl (600), Description at text-sm (400)
+- Spacing: gap-4 between cards
+- Arrows: 24px right arrow icons between cards
+
+**Best For:** High-level overviews, 3-4 step processes
+
+---
+
+### Variant C: Accordion Checklist
+**Visual Style:**
+- Expandable accordion items
+- Checkmarks for each step
+- Detailed sub-steps when expanded
+- Progress indicator
+
+**Design Specs:**
+- Layout: Vertical accordion, max-w-3xl
+- Items: border-b dividers, hover bg-muted
+- Checkmarks: 20px, green when complete
+- Typography: Title at text-lg (600), Sub-items at text-sm (400)
+- Progress: Bar at top showing % complete
+- Spacing: py-4 per item, gap-2 for sub-items
+- Animation: Smooth expand/collapse
+
+**Best For:** Complex multi-step processes, onboarding
+
+---
+
+## FAQ Section Variants
+
+### Variant A: Simple Accordion
+**Visual Style:**
+- Clean accordion with +/- icons
+- Minimal styling
+- Single column
+- Smooth animations
+
+**Design Specs:**
+- Layout: Single column, max-w-3xl
+- Items: border-b dividers only
+- Icons: 20px plus/minus, transition rotation
+- Typography: Question at text-base (600), Answer at text-sm (400)
+- Spacing: py-4 per item
+- Animation: Height transition, 200ms ease
+- Hover: bg-muted
+
+**Best For:** Long FAQ lists, content-heavy
+
+---
+
+### Variant B: Category Tabs
+**Visual Style:**
+- Tabbed interface by category
+- 2-column grid per category
+- Icons for each question
+- Search bar at top
+
+**Design Specs:**
+- Layout: Tabs at top, 2-column grid below
+- Tabs: Pills or underline style
+- Cards: bg-card, rounded-md, p-4
+- Icons: 24px question mark or topic icon, accent color
+- Typography: Question at text-sm (600), Answer at text-xs (400)
+- Search: Input with magnifying glass icon
+- Spacing: gap-4 between cards
+
+**Best For:** Organized FAQ sections, multiple topics
+
+---
+
+### Variant C: Split Panel
+**Visual Style:**
+- Question list on left (30%)
+- Answer panel on right (70%)
+- Active question highlighted
+- Sticky scroll behavior
+
+**Design Specs:**
+- Layout: Fixed left sidebar, scrolling right content
+- Left Panel: List of questions, text-sm (500)
+- Right Panel: Large answer display, text-base (400)
+- Active State: bg-primary text-primary-foreground for selected
+- Typography: Answer title at text-xl (700)
+- Spacing: py-2 for list items, p-8 for answer panel
+- Scroll: Sticky positioning for left panel
+
+**Best For:** Extensive FAQ sections, professional sites
+
+---
+
+## Implementation Notes
+
+### Mixing Variants Across Templates
+
+**Nestly Template:**
+- Hero: Variant A (Clean & Minimal)
+- Features: Variant A (Card Grid)
+- Testimonials: Variant A (Minimal Cards)
+- Process: Variant A (Timeline)
+- CTA: Variant A (Centered Minimal)
+
+**Summit Capital Template:**
+- Hero: Variant B (Bold & Dynamic)
+- Features: Variant B (Highlight Boxes)
+- Testimonials: Variant B (Featured Carousel)
+- Stats: Variant B (Badge Grid) + custom metrics
+- CTA: Variant B (Split with Visual)
+
+**Upcrunch Template:**
+- Hero: Variant C (Professional & Structured)
+- Features: Variant C (List-Based)
+- Testimonials: Variant C (Grid with Metrics)
+- Process: Variant A (Timeline)
+- Stats: Variant A (Horizontal Minimal)
+- CTA: Variant C (Form-Integrated)
+
+**Blueprint Pro Template:**
+- Hero: Variant B (Bold & Dynamic)
+- Features: Variant C (List-Based)
+- Process: Variant B (Card Grid Horizontal)
+- Stats: Variant C (Feature Stats)
+- CTA: Variant C (Form-Integrated)
+
+### CSS Utility Classes Pattern
+
+Create reusable utility classes for each variant:
+
+```css
+/* Hero Variants */
+.hero-variant-a { /* Clean minimal styles */ }
+.hero-variant-b { /* Bold dynamic styles */ }
+.hero-variant-c { /* Professional structured styles */ }
+
+/* Feature Variants */
+.features-variant-a { /* Card grid styles */ }
+.features-variant-b { /* Highlight boxes styles */ }
+.features-variant-c { /* List-based styles */ }
+
+/* etc. */
+```
+
+### Component Naming Convention
+
+Use this pattern for section components:
+- `HeroSection` (base)
+- `HeroSectionMinimal` (variant A)
+- `HeroSectionBold` (variant B)
+- `HeroSectionStructured` (variant C)
+
+Or use a variant prop:
+```tsx
+<HeroSection variant="minimal" />
+<HeroSection variant="bold" />
+<HeroSection variant="structured" />
+```
