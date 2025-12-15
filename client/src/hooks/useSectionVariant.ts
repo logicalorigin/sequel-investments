@@ -1,5 +1,6 @@
 import { sectionVariantRegistry, getVariantStyles, type VariantStyles } from "@shared/sectionVariants";
 import type { SectionStyleVariant, VariantSectionType, SectionStyleVariantsConfig } from "@shared/schema";
+import { useSectionVariantsConfig } from "@/contexts/SectionVariantsContext";
 
 const DEFAULT_VARIANT: SectionStyleVariant = "variantA";
 
@@ -18,10 +19,10 @@ const DEFAULT_CONFIG: SectionStyleVariantsConfig = {
 
 export function useSectionVariant(
   sectionType: VariantSectionType,
-  overrideVariant?: SectionStyleVariant,
-  variantsConfig?: SectionStyleVariantsConfig | null
+  overrideVariant?: SectionStyleVariant
 ): VariantStyles {
-  const activeConfig = variantsConfig || DEFAULT_CONFIG;
+  const contextConfig = useSectionVariantsConfig();
+  const activeConfig = contextConfig || DEFAULT_CONFIG;
   const variant = overrideVariant || activeConfig[sectionType] || DEFAULT_VARIANT;
   
   const definition = getVariantStyles(sectionType, variant);

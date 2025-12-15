@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { CheckCircle2, ArrowRight, Star, Shield, TrendingUp, Zap, Clock, Building, Users, Award, Target, Sparkles } from "lucide-react";
 import { GeometricPattern } from "@/components/GeometricPattern";
 import { useSectionVariant } from "@/hooks/useSectionVariant";
-import type { HeroSectionConfig, FundedDeal, HeroAnimatedStat, HeroFeaturePill, SectionStyleVariantsConfig } from "@shared/schema";
+import type { HeroSectionConfig, FundedDeal, HeroAnimatedStat, HeroFeaturePill } from "@shared/schema";
 
 import testimonial1 from "@assets/generated_images/Investor_testimonial_headshot_1_2a222601.png";
 import testimonial2 from "@assets/generated_images/Investor_testimonial_headshot_2_bb13b1a2.png";
@@ -324,11 +324,10 @@ function HeroStatsCentered({ config }: { config: HeroSectionConfig }) {
 
 interface HeroSectionProps {
   config: HeroSectionConfig;
-  variantsConfig?: SectionStyleVariantsConfig | null;
 }
 
-export function HeroSection({ config, variantsConfig }: HeroSectionProps) {
-  const variantStyles = useSectionVariant("hero", undefined, variantsConfig);
+export function HeroSection({ config }: HeroSectionProps) {
+  const variantStyles = useSectionVariant("hero");
   
   // Render stats_centered variant
   if (config.variant === "stats_centered") {
