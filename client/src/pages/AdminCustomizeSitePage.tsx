@@ -16,9 +16,40 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Palette, Building2, Phone, Mail, MapPin, Type, RotateCcw, Save, Eye, Image, LayoutTemplate, Sparkles, Monitor, Link2, Sun, Moon, Share2, Globe, Sliders, RectangleHorizontal, Crown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { EditorLayout } from "@/components/page-builder/EditorLayout";
-import { siteTemplates, availableFonts, getBasicTemplates, getPremiumTemplates, type SiteTemplate } from "@/data/siteTemplates";
+import { availableFonts, getBasicTemplates, type SiteTemplate } from "@/data/siteTemplates";
 import { LiveSitePreview } from "@/components/admin/LiveSitePreview";
-import type { WhiteLabelSettings } from "@shared/schema";
+import type { WhiteLabelSettings, PremiumTemplate } from "@shared/schema";
+import { Loader2 } from "lucide-react";
+
+// Helper to convert database PremiumTemplate to SiteTemplate format
+function convertToSiteTemplate(template: PremiumTemplate): SiteTemplate {
+  return {
+    id: template.slug,
+    name: template.name,
+    description: template.description || "",
+    isPremium: template.isPremium,
+    colors: {
+      primary: template.colorScheme?.primary || "#D4A01D",
+      secondary: template.colorScheme?.secondary || "#1a1a1a",
+      accent: template.colorScheme?.accent || "#f59e0b",
+      background: template.colorScheme?.background || "#0a0a0a",
+      foreground: template.colorScheme?.foreground || "#fafafa",
+      muted: template.colorScheme?.muted || "#171717",
+      card: template.colorScheme?.card || "#1f1f1f",
+    },
+    typography: {
+      fontFamily: template.typography?.headingFont || "Inter",
+      headingWeight: template.typography?.headingWeight || "600",
+    },
+    borderRadius: template.borderRadius || "0.5rem",
+    buttonStyle: (template.buttonStyle as "rounded" | "square" | "pill") || "rounded",
+    themePreference: (template.themePreference as "light" | "dark") || "dark",
+    heroSettings: {
+      style: "gradient",
+      overlayOpacity: 80,
+    },
+  };
+}
 
 interface WhiteLabelSettingsWithMeta extends Partial<WhiteLabelSettings> {
   isDemoMode: boolean;
@@ -73,6 +104,12 @@ export default function AdminCustomizeSitePage() {
 
   const { data: settings, isLoading: settingsLoading } = useQuery<WhiteLabelSettingsWithMeta>({
     queryKey: ["/api/white-label"],
+    enabled: isAuthenticated,
+  });
+
+  // Fetch premium templates from database
+  const { data: premiumTemplates, isLoading: templatesLoading } = useQuery<PremiumTemplate[]>({
+    queryKey: ["/api/premium-templates"],
     enabled: isAuthenticated,
   });
 
@@ -283,57 +320,83 @@ export default function AdminCustomizeSitePage() {
                           Pro
                         </Badge>
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {getPremiumTemplates().map((template) => (
-                          <Card 
-                            key={template.id} 
-                            className="hover-elevate relative ring-1 ring-amber-500/30 shadow-[0_0_15px_rgba(251,191,36,0.15)]"
-                            data-testid={`card-template-${template.id}`}
-                          >
-                            <Badge 
-                              className="absolute top-2 right-2 bg-gradient-to-r from-amber-500 to-yellow-400 text-black border-0 text-xs px-1.5 py-0.5"
-                            >
-                              <Crown className="h-3 w-3" />
-                            </Badge>
-                            <CardHeader className="pb-3">
-                              <CardTitle className="text-base">{template.name}</CardTitle>
-                              <CardDescription className="text-xs">
-                                {template.description}
-                              </CardDescription>
-                            </CardHeader>
-                            <CardContent className="pb-3">
-                              <div className="flex items-center gap-2">
-                                <div
-                                  className="w-6 h-6 rounded-full border shadow-sm"
-                                  style={{ backgroundColor: template.colors.primary }}
-                                  title="Primary"
-                                />
-                                <div
-                                  className="w-6 h-6 rounded-full border shadow-sm"
-                                  style={{ backgroundColor: template.colors.secondary }}
-                                  title="Secondary"
-                                />
-                                <div
-                                  className="w-6 h-6 rounded-full border shadow-sm"
-                                  style={{ backgroundColor: template.colors.accent }}
-                                  title="Accent"
-                                />
-                              </div>
-                            </CardContent>
-                            <CardContent className="pt-0">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="w-full"
-                                onClick={() => handleApplyTemplate(template)}
-                                data-testid={`button-apply-template-${template.id}`}
+                      {templatesLoading ? (
+                        <div className="flex items-center justify-center py-8">
+                          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                        </div>
+                      ) : premiumTemplates && premiumTemplates.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {premiumTemplates.map((dbTemplate) => {
+                            const template = convertToSiteTemplate(dbTemplate);
+                            return (
+                              <Card 
+                                key={dbTemplate.id} 
+                                className="hover-elevate relative ring-1 ring-amber-500/30 shadow-[0_0_15px_rgba(251,191,36,0.15)]"
+                                data-testid={`card-template-${template.id}`}
                               >
-                                Apply
-                              </Button>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
+                                {dbTemplate.isPremium && (
+                                  <Badge 
+                                    className="absolute top-2 right-2 bg-gradient-to-r from-amber-500 to-yellow-400 text-black border-0 text-xs px-1.5 py-0.5"
+                                  >
+                                    <Crown className="h-3 w-3" />
+                                  </Badge>
+                                )}
+                                <CardHeader className="pb-3">
+                                  <CardTitle className="text-base">{template.name}</CardTitle>
+                                  <CardDescription className="text-xs">
+                                    {template.description}
+                                  </CardDescription>
+                                </CardHeader>
+                                <CardContent className="pb-3">
+                                  <div className="flex items-center gap-2">
+                                    <div
+                                      className="w-6 h-6 rounded-full border shadow-sm"
+                                      style={{ backgroundColor: template.colors.primary }}
+                                      title="Primary"
+                                    />
+                                    <div
+                                      className="w-6 h-6 rounded-full border shadow-sm"
+                                      style={{ backgroundColor: template.colors.secondary }}
+                                      title="Secondary"
+                                    />
+                                    <div
+                                      className="w-6 h-6 rounded-full border shadow-sm"
+                                      style={{ backgroundColor: template.colors.accent }}
+                                      title="Accent"
+                                    />
+                                    <div
+                                      className="w-6 h-6 rounded-full border shadow-sm"
+                                      style={{ backgroundColor: template.colors.background }}
+                                      title="Background"
+                                    />
+                                  </div>
+                                  <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                                    <Badge variant="outline" className="text-xs">
+                                      {dbTemplate.category}
+                                    </Badge>
+                                    <span>{dbTemplate.themePreference === "dark" ? "Dark" : "Light"}</span>
+                                  </div>
+                                </CardContent>
+                                <CardContent className="pt-0">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="w-full"
+                                    onClick={() => handleApplyTemplate(template)}
+                                    data-testid={`button-apply-template-${template.id}`}
+                                  >
+                                    Apply
+                                  </Button>
+                                </CardContent>
+                              </Card>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground text-center py-4">
+                          No premium templates available.
+                        </p>
+                      )}
                     </div>
 
                     <div className="space-y-4">
