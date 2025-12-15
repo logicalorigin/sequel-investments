@@ -4,7 +4,8 @@ import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { CheckCircle2, ArrowRight, Star, Shield, TrendingUp, Zap, Clock, Building, Users, Award, Target, Sparkles } from "lucide-react";
 import { GeometricPattern } from "@/components/GeometricPattern";
-import type { HeroSectionConfig, FundedDeal, HeroAnimatedStat, HeroFeaturePill } from "@shared/schema";
+import { useSectionVariant } from "@/hooks/useSectionVariant";
+import type { HeroSectionConfig, FundedDeal, HeroAnimatedStat, HeroFeaturePill, SectionStyleVariantsConfig } from "@shared/schema";
 
 import testimonial1 from "@assets/generated_images/Investor_testimonial_headshot_1_2a222601.png";
 import testimonial2 from "@assets/generated_images/Investor_testimonial_headshot_2_bb13b1a2.png";
@@ -323,9 +324,12 @@ function HeroStatsCentered({ config }: { config: HeroSectionConfig }) {
 
 interface HeroSectionProps {
   config: HeroSectionConfig;
+  variantsConfig?: SectionStyleVariantsConfig | null;
 }
 
-export function HeroSection({ config }: HeroSectionProps) {
+export function HeroSection({ config, variantsConfig }: HeroSectionProps) {
+  const variantStyles = useSectionVariant("hero", undefined, variantsConfig);
+  
   // Render stats_centered variant
   if (config.variant === "stats_centered") {
     return <HeroStatsCentered config={config} />;
@@ -362,8 +366,11 @@ export function HeroSection({ config }: HeroSectionProps) {
   const ctaText = config.ctaText || "Apply Now";
   const ctaLink = config.ctaLink || "/get-quote";
 
+  const sectionSpacing = variantStyles.spacing || "pt-4 pb-6 sm:pt-8 sm:pb-12 md:pt-12 md:pb-16";
+  const sectionBackground = variantStyles.background || "bg-background";
+
   return (
-    <section className="relative pt-4 pb-6 sm:pt-8 sm:pb-12 md:pt-12 md:pb-16 overflow-hidden bg-background">
+    <section className={`relative overflow-hidden ${sectionSpacing} ${sectionBackground}`}>
       <GeometricPattern 
         variant="orbs" 
         className="text-primary" 
@@ -388,12 +395,15 @@ export function HeroSection({ config }: HeroSectionProps) {
               </div>
             </div>
 
-            <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight" data-testid="text-hero-title">
+            <h1 
+              className={`leading-tight ${variantStyles.typography.headline || "text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold"}`} 
+              data-testid="text-hero-title"
+            >
               {headline}
               <span className="block mt-1 sm:mt-2 text-primary">{subheadline}</span>
             </h1>
 
-            <p className="text-sm sm:text-lg md:text-xl text-muted-foreground max-w-lg">
+            <p className={`max-w-lg ${variantStyles.typography.body || "text-sm sm:text-lg md:text-xl text-muted-foreground"}`}>
               DSCR, Fix & Flip, and Construction loans — fast, flexible financing with no tax returns required.
             </p>
 
