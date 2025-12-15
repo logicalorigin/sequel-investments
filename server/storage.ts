@@ -50,6 +50,8 @@ import {
   pageLayouts,
   loanProducts,
   loanProductPricingTiers,
+  premiumTemplates,
+  whiteLabelTemplateAssignments,
   type User, 
   type UpsertUser,
   type Lead, 
@@ -157,6 +159,10 @@ import {
   type InsertLoanProduct,
   type LoanProductPricingTier,
   type InsertLoanProductPricingTier,
+  type PremiumTemplate,
+  type InsertPremiumTemplate,
+  type WhiteLabelTemplateAssignment,
+  type InsertWhiteLabelTemplateAssignment,
   DEFAULT_DOCUMENT_TYPES,
   DEFAULT_BUSINESS_HOURS,
   DEFAULT_HOME_PAGE_LAYOUT,
@@ -541,6 +547,22 @@ export interface IStorage {
   createLoanProductPricingTier(data: InsertLoanProductPricingTier): Promise<LoanProductPricingTier>;
   updateLoanProductPricingTier(id: string, data: Partial<InsertLoanProductPricingTier>): Promise<LoanProductPricingTier | undefined>;
   deleteLoanProductPricingTier(id: string): Promise<boolean>;
+  
+  // Premium templates operations
+  getPremiumTemplates(): Promise<PremiumTemplate[]>;
+  getActivePremiumTemplates(): Promise<PremiumTemplate[]>;
+  getPremiumTemplate(id: string): Promise<PremiumTemplate | undefined>;
+  getPremiumTemplateBySlug(slug: string): Promise<PremiumTemplate | undefined>;
+  createPremiumTemplate(data: InsertPremiumTemplate): Promise<PremiumTemplate>;
+  updatePremiumTemplate(id: string, data: Partial<InsertPremiumTemplate>): Promise<PremiumTemplate | undefined>;
+  deletePremiumTemplate(id: string): Promise<boolean>;
+  reorderPremiumTemplates(orderedIds: string[]): Promise<void>;
+  
+  // White-label template assignment operations
+  getWhiteLabelTemplateAssignment(whiteLabelSiteId: string): Promise<WhiteLabelTemplateAssignment | undefined>;
+  createWhiteLabelTemplateAssignment(data: InsertWhiteLabelTemplateAssignment): Promise<WhiteLabelTemplateAssignment>;
+  updateWhiteLabelTemplateAssignment(id: string, data: Partial<InsertWhiteLabelTemplateAssignment>): Promise<WhiteLabelTemplateAssignment | undefined>;
+  applyTemplateToWhiteLabelSite(whiteLabelSiteId: string, templateId: string): Promise<WhiteLabelTemplateAssignment>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -3495,6 +3517,118 @@ export class DatabaseStorage implements IStorage {
   async deleteLoanProductPricingTier(id: string): Promise<boolean> {
     const result = await db.delete(loanProductPricingTiers).where(eq(loanProductPricingTiers.id, id)).returning();
     return result.length > 0;
+  }
+
+  // Premium templates operations
+  async getPremiumTemplates(): Promise<PremiumTemplate[]> {
+    return db
+      .select()
+      .from(premiumTemplates)
+      .orderBy(premiumTemplates.sortOrder, premiumTemplates.name);
+  }
+
+  async getActivePremiumTemplates(): Promise<PremiumTemplate[]> {
+    return db
+      .select()
+      .from(premiumTemplates)
+      .where(eq(premiumTemplates.isActive, true))
+      .orderBy(premiumTemplates.sortOrder, premiumTemplates.name);
+  }
+
+  async getPremiumTemplate(id: string): Promise<PremiumTemplate | undefined> {
+    const [template] = await db.select().from(premiumTemplates).where(eq(premiumTemplates.id, id));
+    return template;
+  }
+
+  async getPremiumTemplateBySlug(slug: string): Promise<PremiumTemplate | undefined> {
+    const [template] = await db.select().from(premiumTemplates).where(eq(premiumTemplates.slug, slug));
+    return template;
+  }
+
+  async createPremiumTemplate(data: InsertPremiumTemplate): Promise<PremiumTemplate> {
+    const [template] = await db.insert(premiumTemplates).values(data).returning();
+    return template;
+  }
+
+  async updatePremiumTemplate(id: string, data: Partial<InsertPremiumTemplate>): Promise<PremiumTemplate | undefined> {
+    const updateData = {
+      ...data,
+      updatedAt: new Date(),
+    };
+    const [template] = await db
+      .update(premiumTemplates)
+      .set(updateData as any)
+      .where(eq(premiumTemplates.id, id))
+      .returning();
+    return template;
+  }
+
+  async deletePremiumTemplate(id: string): Promise<boolean> {
+    const result = await db.delete(premiumTemplates).where(eq(premiumTemplates.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async reorderPremiumTemplates(orderedIds: string[]): Promise<void> {
+    for (let i = 0; i < orderedIds.length; i++) {
+      await db
+        .update(premiumTemplates)
+        .set({ sortOrder: i + 1, updatedAt: new Date() })
+        .where(eq(premiumTemplates.id, orderedIds[i]));
+    }
+  }
+
+  // White-label template assignment operations
+  async getWhiteLabelTemplateAssignment(whiteLabelSiteId: string): Promise<WhiteLabelTemplateAssignment | undefined> {
+    const [assignment] = await db
+      .select()
+      .from(whiteLabelTemplateAssignments)
+      .where(eq(whiteLabelTemplateAssignments.whiteLabelSiteId, whiteLabelSiteId));
+    return assignment;
+  }
+
+  async createWhiteLabelTemplateAssignment(data: InsertWhiteLabelTemplateAssignment): Promise<WhiteLabelTemplateAssignment> {
+    const [assignment] = await db.insert(whiteLabelTemplateAssignments).values(data).returning();
+    return assignment;
+  }
+
+  async updateWhiteLabelTemplateAssignment(id: string, data: Partial<InsertWhiteLabelTemplateAssignment>): Promise<WhiteLabelTemplateAssignment | undefined> {
+    const [assignment] = await db
+      .update(whiteLabelTemplateAssignments)
+      .set({
+        ...data,
+        customizedAt: new Date(),
+      })
+      .where(eq(whiteLabelTemplateAssignments.id, id))
+      .returning();
+    return assignment;
+  }
+
+  async applyTemplateToWhiteLabelSite(whiteLabelSiteId: string, templateId: string): Promise<WhiteLabelTemplateAssignment> {
+    // Check for existing assignment
+    const existing = await this.getWhiteLabelTemplateAssignment(whiteLabelSiteId);
+    
+    if (existing) {
+      // Update existing assignment
+      const [updated] = await db
+        .update(whiteLabelTemplateAssignments)
+        .set({
+          templateId,
+          colorOverrides: null,
+          typographyOverrides: null,
+          contentOverrides: null,
+          assignedAt: new Date(),
+          customizedAt: null,
+        })
+        .where(eq(whiteLabelTemplateAssignments.id, existing.id))
+        .returning();
+      return updated;
+    }
+    
+    // Create new assignment
+    return this.createWhiteLabelTemplateAssignment({
+      whiteLabelSiteId,
+      templateId,
+    });
   }
 }
 
