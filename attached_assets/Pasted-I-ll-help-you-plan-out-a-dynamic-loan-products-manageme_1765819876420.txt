@@ -1,0 +1,184 @@
+I'll help you plan out a dynamic loan products management system with full CRUD functionality. Let's break this down systematically.
+
+Current State Analysis
+Looking at your codebase, I can see:
+
+Static loan products are currently hardcoded in multiple places:
+
+GetQuotePage.tsx (rag://rag_source_5, [rag://rag_source_6]) - displays 3 products (DSCR, Fix & Flip, Construction)
+LoanProductsSection.tsx (rag://rag_source_0) - has a PRODUCTS constant with fixed data
+Navigation dropdowns (rag://rag_source_12)
+Product data includes:
+
+Title, subtitle, icon
+Features/selling points
+Stats (rates, LTV, terms)
+Images
+Links
+Display contexts:
+
+Homepage hero/product cards
+Quote/application flow
+Product detail pages
+Navigation menus
+Page builder sections
+Proposed Architecture
+1. Database Schema
+// Add to shared/schema.ts
+export const loanProductStatusEnum = pgEnum("loan_product_status", [
+  "active",
+  "inactive",
+  "coming_soon"
+]);
+export const loanProducts = pgTable("loan_products", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  
+  // Basic Info
+  slug: varchar("slug").notNull().unique(), // "dscr", "fix-flip", etc
+  name: text("name").notNull(), // "DSCR Loans"
+  shortName: text("short_name").notNull(), // "DSCR"
+  subtitle: text("subtitle"), // "Rental Loan"
+  description: text("description"),
+  
+  // Display
+  icon: text("icon").default("Building2"), // Lucide icon name
+  primaryColor: text("primary_color").default("#D4A01D"),
+  cardImageUrl: text("card_image_url"),
+  heroImageUrl: text("hero_image_url"),
+  
+  // Core Terms
+  minLoanAmount: integer("min_loan_amount"),
+  maxLoanAmount: integer("max_loan_amount"),
+  minRate: text("min_rate"), // "7.99"
+  maxRate: text("max_rate"), // "11.99"
+  maxLTV: integer("max_ltv"), // 80
+  maxLTC: integer("max_ltc"), // 90
+  minCreditScore: integer("min_credit_score"),
+  
+  // Term Options
+  termMonths: text("term_months").array(), // ["12", "24", "360"]
+  isInterestOnlyAvailable: boolean("is_interest_only_available").default(false),
+  amortizationMonths: integer("amortization_months"), // 360 for DSCR
+  
+  // Features (bullet points)
+  features: jsonb("features").$type<string[]>(),
+  
+  // Status & Ordering
+  status: loanProductStatusEnum("status").default("active").notNull(),
+  sortOrder: integer("sort_order").default(0),
+  
+  // Visibility
+  showInQuoteFlow: boolean("show_in_quote_flow").default(true),
+  showInNavigation: boolean("show_in_navigation").default(true),
+  showInProductsSection: boolean("show_in_products_section").default(true),
+  
+  // Links
+  detailPageUrl: text("detail_page_url"), // "/dscr-loans"
+  
+  // Metadata
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+2. Admin CRUD Interface
+Create a new page: AdminLoanProductsPage.tsx
+
+Features:
+
+Table view with sortable columns
+Drag-to-reorder for sortOrder
+Quick toggle for status (active/inactive/coming_soon)
+Edit modal/drawer with form sections:
+Basic Info: name, subtitle, description, slug
+Display: icon picker, colors, images
+Terms: min/max amounts, rates, LTV/LTC, credit score
+Features: dynamic list (add/remove bullet points)
+Visibility: toggles for where it shows
+Advanced: term options, amortization
+UI Components:
+
+- DataTable with inline editing
+- Icon Picker (Lucide icons dropdown)
+- Image uploader (ObjectUploader)
+- Dynamic list builder for features
+- Color picker for branding
+- Preview panel showing how card will look
+3. API Endpoints
+// GET /api/admin/loan-products - List all (admin only)
+// GET /api/loan-products - Public list (active only)
+// GET /api/loan-products/:slug - Get single product
+// POST /api/admin/loan-products - Create new
+// PUT /api/admin/loan-products/:id - Update
+// DELETE /api/admin/loan-products/:id - Delete
+// PATCH /api/admin/loan-products/reorder - Bulk update sortOrder
+4. Migration Strategy
+Phase 1: Seed Initial Data
+
+// Migration to populate table with current 3 products
+// Convert hardcoded PRODUCTS to database records
+Phase 2: Update Components
+
+// Fetch from API instead of using constants
+// Use React Query for caching
+// Fallback to defaults if API fails
+Phase 3: Dynamic Rendering
+
+// LoanProductsSection: map over fetched products
+// GetQuotePage: render dynamic cards
+// Navigation: build menu from active products
+5. Advanced Features (Optional)
+Pricing Tiers:
+
+// Add loanProductPricingTiers table
+// Multiple rate tiers based on LTV, credit score, etc.
+// "If LTV < 70% and credit > 740, rate = 7.99%"
+Product Variants:
+
+// DSCR: Purchase, Cash-Out, Rate/Term
+// Each variant has different terms
+// Stored as child records
+Conditional Features:
+
+// Show/hide features based on state
+// "No prepay penalty" - only show in certain states
+Implementation Phases
+Phase 1: Database & Seed (1-2 hours)
+Add schema to shared/schema.ts
+Create migration
+Seed with 3 existing products
+Test queries
+Phase 2: Admin CRUD (3-4 hours)
+Create AdminLoanProductsPage.tsx
+Build form components
+API routes in server/routes.ts
+Image upload integration
+Test CRUD operations
+Phase 3: Frontend Integration (2-3 hours)
+Create useLoanProducts() hook
+Update LoanProductsSection
+Update GetQuotePage
+Update Navigation
+Add loading/error states
+Phase 4: Polish (1-2 hours)
+Preview in Page Builder
+Caching strategy
+Validation rules
+Documentation
+Key Decisions Needed
+Icon Management: Use Lucide icon names (strings) or upload custom SVGs?
+Pricing Complexity: Simple min/max rates or complex tier system?
+Versioning: Track changes to products over time?
+Multi-tenancy: Different products per white-label site?
+Approval Workflow: Draft → Review → Published states?
+Benefits
+✅ Flexibility: Add new products without code changes
+✅ A/B Testing: Easily test different messaging/features
+✅ Seasonal Campaigns: Temporarily boost certain products
+✅ White-Label Ready: Different products per client
+✅ Analytics: Track which products convert best
+✅ Content Team: Non-technical staff can update
+
+Potential Challenges
+⚠️ Breaking Changes: Slug changes could break URLs
+⚠️ Cache Invalidation: Need to clear React Query cache
+⚠️ Type Safety: Dynamic data loses TypeScript benefits
+⚠️ Backward Compatibility: Ensure existing applications still work

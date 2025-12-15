@@ -78,6 +78,159 @@ export const productVariantEnum = pgEnum("product_variant", [
 ]);
 export type ProductVariant = "purchase" | "cash_out" | "rate_term";
 
+// Loan product status enum
+export const loanProductStatusEnum = pgEnum("loan_product_status", [
+  "active",
+  "inactive",
+  "coming_soon"
+]);
+export type LoanProductStatus = "active" | "inactive" | "coming_soon";
+
+// Loan Products table - dynamic loan product configuration
+export const loanProducts = pgTable("loan_products", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  
+  // Basic Info
+  slug: varchar("slug").notNull().unique(), // "dscr", "fix-flip", "construction"
+  name: text("name").notNull(), // "DSCR Loans"
+  shortName: text("short_name").notNull(), // "DSCR"
+  subtitle: text("subtitle"), // "Rental Loan"
+  description: text("description"), // Short description
+  detailedDescription: text("detailed_description"), // Longer description for product pages
+  
+  // Display
+  icon: text("icon").default("Building2"), // Lucide icon name
+  primaryColor: text("primary_color").default("#D4A01D"), // Brand color for this product
+  cardImageUrl: text("card_image_url"), // Image for product cards
+  heroImageUrl: text("hero_image_url"), // Image for product detail page hero
+  
+  // Core Terms - Loan Amounts
+  minLoanAmount: integer("min_loan_amount"),
+  maxLoanAmount: integer("max_loan_amount"),
+  
+  // Core Terms - Rates
+  minRate: text("min_rate"), // "5.75"
+  maxRate: text("max_rate"), // "11.99"
+  
+  // Core Terms - LTV/LTC
+  maxLTV: integer("max_ltv"), // 80
+  maxLTC: integer("max_ltc"), // 92
+  maxLTARV: integer("max_lt_arv"), // Loan-to-ARV for fix & flip
+  
+  // Core Terms - Borrower Requirements
+  minCreditScore: integer("min_credit_score"),
+  minDSCR: text("min_dscr"), // "0.75" or null if no minimum
+  experienceRequired: boolean("experience_required").default(false),
+  
+  // Term Options
+  termOptions: text("term_options").array(), // ["12", "24", "360"] in months
+  defaultTermMonths: integer("default_term_months"),
+  isInterestOnlyAvailable: boolean("is_interest_only_available").default(false),
+  amortizationMonths: integer("amortization_months"), // 360 for 30-year DSCR
+  
+  // Features (bullet points for marketing)
+  features: jsonb("features").$type<string[]>(),
+  
+  // Mobile-specific display
+  mobileDescription: text("mobile_description"),
+  mobileRate: text("mobile_rate"), // "From 5.75% • 30-Year Fixed"
+  mobileStats: jsonb("mobile_stats").$type<Array<{ label: string; value: string }>>(),
+  
+  // Desktop stats display
+  stats: jsonb("stats").$type<Array<{ label: string; value: string }>>(),
+  
+  // Status & Ordering
+  status: loanProductStatusEnum("status").default("active").notNull(),
+  sortOrder: integer("sort_order").default(0),
+  
+  // Visibility Controls
+  showInQuoteFlow: boolean("show_in_quote_flow").default(true),
+  showInNavigation: boolean("show_in_navigation").default(true),
+  showInProductsSection: boolean("show_in_products_section").default(true),
+  showInCalculators: boolean("show_in_calculators").default(true),
+  
+  // Links
+  detailPageUrl: text("detail_page_url"), // "/dscr-loans"
+  
+  // Product Variants (for products like DSCR with Purchase/Cash-Out/Rate-Term)
+  hasVariants: boolean("has_variants").default(false),
+  variants: jsonb("variants").$type<Array<{
+    id: string;
+    name: string;
+    maxLTV?: number;
+    description?: string;
+  }>>(),
+  
+  // Versioning & Audit
+  version: integer("version").default(1),
+  publishedAt: timestamp("published_at"),
+  
+  // Metadata
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertLoanProductSchema = createInsertSchema(loanProducts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertLoanProduct = z.infer<typeof insertLoanProductSchema>;
+export type LoanProduct = typeof loanProducts.$inferSelect;
+
+// Loan Product Pricing Tiers - for complex rate structures based on LTV, credit score, etc.
+export const loanProductPricingTiers = pgTable("loan_product_pricing_tiers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  productId: varchar("product_id").notNull().references(() => loanProducts.id, { onDelete: "cascade" }),
+  
+  // Tier identification
+  name: text("name").notNull(), // "Standard", "Premium", "First-Time Investor"
+  description: text("description"),
+  
+  // Conditions for this tier
+  minLTV: integer("min_ltv"),
+  maxLTV: integer("max_ltv"),
+  minCreditScore: integer("min_credit_score"),
+  maxCreditScore: integer("max_credit_score"),
+  minDSCR: text("min_dscr"),
+  minExperience: integer("min_experience"), // Number of deals
+  
+  // Rates for this tier
+  rate: text("rate").notNull(), // The base rate for this tier
+  rateAdjustment: text("rate_adjustment"), // Adjustment from base ("+0.25", "-0.50")
+  
+  // Other terms
+  maxLoanAmount: integer("max_loan_amount"),
+  originationPoints: text("origination_points"),
+  
+  // Status
+  isActive: boolean("is_active").default(true),
+  sortOrder: integer("sort_order").default(0),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertLoanProductPricingTierSchema = createInsertSchema(loanProductPricingTiers).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertLoanProductPricingTier = z.infer<typeof insertLoanProductPricingTierSchema>;
+export type LoanProductPricingTier = typeof loanProductPricingTiers.$inferSelect;
+
+// Relations for loan products
+export const loanProductsRelations = relations(loanProducts, ({ many }) => ({
+  pricingTiers: many(loanProductPricingTiers),
+}));
+
+export const loanProductPricingTiersRelations = relations(loanProductPricingTiers, ({ one }) => ({
+  product: one(loanProducts, {
+    fields: [loanProductPricingTiers.productId],
+    references: [loanProducts.id],
+  }),
+}));
+
 // Loan Applications table
 export const loanApplications = pgTable("loan_applications", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
