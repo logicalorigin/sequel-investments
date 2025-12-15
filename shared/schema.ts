@@ -5487,6 +5487,25 @@ export interface TemplateTypography {
 // Page layouts configuration for templates
 export type TemplatePageLayoutsConfig = Partial<Record<PageTemplateId, PageSection[]>>;
 
+// Section style variant identifiers
+export type SectionStyleVariant = "variantA" | "variantB" | "variantC";
+
+// Section types that support variants
+export type VariantSectionType = 
+  | "hero"
+  | "feature_highlights"
+  | "testimonials"
+  | "cta_banner"
+  | "stats_bar"
+  | "trust_indicators"
+  | "process_steps"
+  | "faq"
+  | "loan_products"
+  | "product_comparison";
+
+// Mapping of section types to their style variants
+export type SectionStyleVariantsConfig = Partial<Record<VariantSectionType, SectionStyleVariant>>;
+
 // Premium templates table
 export const premiumTemplates = pgTable("premium_templates", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -5506,6 +5525,9 @@ export const premiumTemplates = pgTable("premium_templates", {
   
   // Page layouts for this template
   pageLayoutsConfig: jsonb("page_layouts_config").$type<TemplatePageLayoutsConfig>(),
+  
+  // Section style variants (variantA, variantB, variantC per section type)
+  sectionStyleVariants: jsonb("section_style_variants").$type<SectionStyleVariantsConfig>(),
   
   // Additional styling options
   buttonStyle: varchar("button_style", { length: 50 }).default("rounded"), // "rounded" | "square" | "pill"
