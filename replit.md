@@ -54,6 +54,12 @@ I prefer simple language. I want iterative development. Ask before making major 
     - **Application Messaging**: Threaded messaging between staff and borrowers per application. Messages show sender role badges, timestamps, and support file attachments. Unread count indicators on both portals.
     - **Email Notifications**: Automatic emails sent when staff request revisions (to borrower) and when borrower resubmits (to assigned staff members).
     - **API Endpoints**: `/api/applications/:id/revision-requests`, `/api/applications/:id/revision-requests/pending`, `/api/admin/applications/:id/revision-requests`, `/api/revision-requests/:id/resolve`, `/api/applications/:id/resubmit`, `/api/applications/:id/messages`, `/api/applications/:id/messages/unread-count`.
+- **Dynamic Loan Products Management** (Phase 1 Complete):
+    - **Database Schema**: `loan_products` table storing all product configuration (basic info, display assets, core terms, features, visibility controls, variants, versioning)
+    - **Pricing Tiers**: `loan_product_pricing_tiers` table for future complex rate structures based on LTV, credit score, experience
+    - **Seeded Products**: DSCR, Fix & Flip, and New Construction products migrated from hardcoded data
+    - **Fields Include**: slug, name, shortName, subtitle, descriptions, icon (Lucide name), primaryColor, cardImageUrl, heroImageUrl, min/max loan amounts, rates, LTV/LTC/LTARV, credit score, DSCR, term options, features array, mobile/desktop stats, visibility toggles, variants JSON, versioning
+    - **Next Phases**: Admin CRUD UI, API endpoints, frontend integration to replace hardcoded products
 - **Modular Page Builder** (Admin Feature):
     - **Visual Section Editor**: Admin interface at `/admin/page-builder` for customizing website pages (home, dscr, fix_flip, construction, about, contact, resources).
     - **Section Types**: Hero, Trust Indicators, Loan Products, Testimonials, FAQ, Lead Form, Recently Funded, State Map, Feature Highlights, CTA Banner, Custom Content, Stats Bar.
