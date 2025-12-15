@@ -520,6 +520,79 @@
   animation: wordTicker 9s ease-in-out infinite;
 }
 
+/* Upcrunch Design System Utilities */
+.upcrunch-pill-button {
+  border-radius: 100px;
+  padding: 12px 32px;
+  font-weight: 600;
+  transition: opacity 200ms ease-in-out;
+}
+
+.upcrunch-pill-button:hover {
+  opacity: 0.9;
+}
+
+.upcrunch-pill-button-sm {
+  border-radius: 100px;
+  padding: 8px 24px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  transition: opacity 200ms ease-in-out;
+}
+
+.upcrunch-pill-button-sm:hover {
+  opacity: 0.9;
+}
+
+.upcrunch-card {
+  border-radius: 0px;
+  padding: 32px;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--card));
+}
+
+.upcrunch-card-compact {
+  border-radius: 0px;
+  padding: 24px;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--card));
+}
+
+.upcrunch-input {
+  background: #F7F7F9;
+  border-radius: 100px;
+  padding: 14px 24px;
+  border: none;
+  font-size: 16px;
+  color: #333333;
+  transition: all 200ms ease-in-out;
+}
+
+.upcrunch-input:focus {
+  outline: none;
+  border: 2px solid #23D7FF;
+  padding: 12px 22px; /* Compensate for border */
+}
+
+.upcrunch-input::placeholder {
+  color: #999999;
+}
+
+.upcrunch-gradient-text {
+  background: linear-gradient(135deg, #806BFF 0%, #23D7FF 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.upcrunch-gradient-bg {
+  background: linear-gradient(135deg, #806BFF 0%, #23D7FF 100%);
+}
+
+.upcrunch-surface {
+  background: #F7F7F9;
+}
+
 @keyframes wordTickerVertical {
   0%, 30% {
     transform: translateY(0);

@@ -13,3 +13,7 @@ export { CustomContentSection } from "./CustomContentSection";
 export { ProcessStepsSection } from "./ProcessStepsSection";
 export { ProductComparisonSection } from "./ProductComparisonSection";
 export { PartnerBadgesSection } from "./PartnerBadgesSection";
+export { default as TestimonialsSection } from './TestimonialsSection';
+export { default as TrustIndicatorsSection } from './TrustIndicatorsSection';
+export { default as UpcrunchProductComparisonSection } from './UpcrunchProductComparisonSection';
+export { default as UpcrunchTrustIndicatorsSection } from './UpcrunchTrustIndicatorsSection';
