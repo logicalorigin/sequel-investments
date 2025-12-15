@@ -1,0 +1,113 @@
+{
+  "colorScheme": "light",
+  "fonts": [
+    {
+      "family": "Odudo",
+      "role": "body"
+    }
+  ],
+  "colors": {
+    "primary": "#23D7FF",
+    "accent": "#806BFF",
+    "background": "#FFFFFF",
+    "textPrimary": "#000000",
+    "link": "#5E5773"
+  },
+  "typography": {
+    "fontFamilies": {
+      "primary": "Odudo",
+      "heading": "Odudo"
+    },
+    "fontStacks": {
+      "heading": [
+        "Odudo",
+        "sans-serif"
+      ],
+      "body": [
+        "Odudo",
+        "sans-serif"
+      ],
+      "paragraph": [
+        "Odudo",
+        "sans-serif"
+      ]
+    },
+    "fontSizes": {
+      "h1": "60px",
+      "h2": "45px",
+      "body": "20px"
+    }
+  },
+  "spacing": {
+    "baseUnit": 8,
+    "borderRadius": "0px"
+  },
+  "components": {
+    "input": {
+      "background": "#F7F7F9",
+      "textColor": "#333333",
+      "borderColor": null,
+      "borderRadius": "100px",
+      "borderRadiusCorners": {
+        "topLeft": "100px",
+        "topRight": "100px",
+        "bottomRight": "100px",
+        "bottomLeft": "100px"
+      },
+      "shadow": "none"
+    },
+    "buttonPrimary": {
+      "background": "#806BFF",
+      "textColor": "#FFFFFF",
+      "borderRadius": "100px",
+      "borderRadiusCorners": {
+        "topLeft": "100px",
+        "topRight": "100px",
+        "bottomRight": "100px",
+        "bottomLeft": "100px"
+      },
+      "shadow": "none"
+    },
+    "buttonSecondary": {
+      "background": "#23D7FF",
+      "textColor": "#FFFFFF",
+      "borderRadius": "100px",
+      "borderRadiusCorners": {
+        "topLeft": "100px",
+        "topRight": "100px",
+        "bottomRight": "100px",
+        "bottomLeft": "100px"
+      },
+      "shadow": "none"
+    }
+  },
+  "images": {
+    "logo": "File saved at: attached_assets/logo.png",
+    "favicon": "File saved at: attached_assets/favicon.png",
+    "ogImage": null
+  },
+  "__framework_hints": [],
+  "__llm_logo_reasoning": {
+    "selectedIndex": 0,
+    "reasoning": "Strong indicators: header logo linking to homepage, header location, visible, highest logo on page, src contains brand name \"UpCrunch\", reasonable size. Score: 108 (clear winner by 108 points)",
+    "confidence": 0.9
+  },
+  "__llm_button_reasoning": {
+    "primary": {
+      "index": 1,
+      "text": "Get Started",
+      "reasoning": "Button #1 ('Get Started') has a vibrant blue background (#806BFF) and action-oriented text, making it the primary call-to-action. It stands out as a strong CTA due to its color and wording."
+    },
+    "secondary": {
+      "index": 2,
+      "text": "Learn More",
+      "reasoning": "Button #2 ('Learn More') has a different background color (#23D7FF) than the primary button and serves as a secondary action, which is common for informational prompts. It is less prominent than the primary button."
+    },
+    "confidence": 0.95
+  },
+  "confidence": {
+    "buttons": 0.95,
+    "colors": 0.9,
+    "overall": 0.925
+  }
+}
