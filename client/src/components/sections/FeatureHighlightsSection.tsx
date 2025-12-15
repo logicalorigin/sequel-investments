@@ -13,6 +13,7 @@ import {
   Building2
 } from "lucide-react";
 import type { FeatureHighlightsSectionConfig } from "@shared/schema";
+import { useSectionVariant } from "@/hooks/useSectionVariant";
 
 interface FeatureHighlightsSectionProps {
   config: FeatureHighlightsSectionConfig;
@@ -42,6 +43,7 @@ const DEFAULT_FEATURES = [
 ];
 
 export function FeatureHighlightsSection({ config }: FeatureHighlightsSectionProps) {
+  const variantStyles = useSectionVariant("feature_highlights");
   const title = config.title || "Why Investors Choose Us";
   const features = config.features?.length ? config.features : DEFAULT_FEATURES;
   const columns = config.columns || 3;
@@ -54,10 +56,10 @@ export function FeatureHighlightsSection({ config }: FeatureHighlightsSectionPro
   };
 
   return (
-    <section className="py-12 sm:py-20 bg-background">
+    <section className={`${variantStyles.spacing} ${variantStyles.background}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <h2 
-          className="text-2xl sm:text-4xl font-bold text-center mb-8 sm:mb-12"
+          className={`${variantStyles.typography.headline} text-center mb-8 sm:mb-12`}
           data-testid="text-features-title"
         >
           {title}
@@ -76,7 +78,7 @@ export function FeatureHighlightsSection({ config }: FeatureHighlightsSectionPro
                       </div>
                       <div>
                         <h3 className="font-semibold text-lg mb-1">{feature.title}</h3>
-                        <p className="text-muted-foreground text-sm">{feature.description}</p>
+                        <p className={`${variantStyles.typography.body} text-sm`}>{feature.description}</p>
                       </div>
                     </div>
                   </CardContent>
@@ -95,7 +97,7 @@ export function FeatureHighlightsSection({ config }: FeatureHighlightsSectionPro
                   </div>
                   <div>
                     <h3 className="font-semibold mb-1">{feature.title}</h3>
-                    <p className="text-muted-foreground text-sm">{feature.description}</p>
+                    <p className={`${variantStyles.typography.body} text-sm`}>{feature.description}</p>
                   </div>
                 </div>
               );

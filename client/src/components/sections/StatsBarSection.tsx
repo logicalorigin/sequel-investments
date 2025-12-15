@@ -1,4 +1,5 @@
 import type { StatsBarSectionConfig } from "@shared/schema";
+import { useSectionVariant } from "@/hooks/useSectionVariant";
 
 interface StatsBarSectionProps {
   config: StatsBarSectionConfig;
@@ -12,13 +13,14 @@ const DEFAULT_STATS = [
 ];
 
 export function StatsBarSection({ config }: StatsBarSectionProps) {
+  const variantStyles = useSectionVariant("stats_bar");
   const stats = config.stats?.length ? config.stats : DEFAULT_STATS;
 
   if (stats.length === 0) return null;
 
   return (
     <section 
-      className="py-8 sm:py-12 bg-muted/50 border-y"
+      className={`${variantStyles.spacing} ${variantStyles.background} border-y`}
       style={config.backgroundColor ? { backgroundColor: config.backgroundColor } : undefined}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
@@ -29,10 +31,10 @@ export function StatsBarSection({ config }: StatsBarSectionProps) {
               className="text-center"
               data-testid={`stats-bar-item-${i}`}
             >
-              <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-primary">
+              <p className={`${variantStyles.typography.headline} text-primary`}>
                 {stat.prefix}{stat.value}{stat.suffix}
               </p>
-              <p className="text-sm text-muted-foreground mt-1">{stat.label}</p>
+              <p className={`${variantStyles.typography.body} mt-1`}>{stat.label}</p>
             </div>
           ))}
         </div>

@@ -11,6 +11,7 @@ import {
   ArrowRight
 } from "lucide-react";
 import type { ProcessStepsSectionConfig } from "@shared/schema";
+import { useSectionVariant } from "@/hooks/useSectionVariant";
 
 interface ProcessStepsSectionProps {
   config: ProcessStepsSectionConfig;
@@ -34,6 +35,7 @@ const DEFAULT_STEPS = [
 ];
 
 export function ProcessStepsSection({ config }: ProcessStepsSectionProps) {
+  const variantStyles = useSectionVariant("process_steps");
   const title = config.title || "How It Works";
   const steps = config.steps?.length ? config.steps : DEFAULT_STEPS;
   const columns = config.columns || 3;
@@ -47,11 +49,11 @@ export function ProcessStepsSection({ config }: ProcessStepsSectionProps) {
   };
 
   return (
-    <section className="py-12 sm:py-20 bg-background">
+    <section className={`${variantStyles.spacing} ${variantStyles.background}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         {title && (
           <h2 
-            className="text-2xl sm:text-4xl font-bold text-center mb-8 sm:mb-12"
+            className={`${variantStyles.typography.headline} text-center mb-8 sm:mb-12`}
             data-testid="text-process-steps-title"
           >
             {title}
@@ -71,7 +73,7 @@ export function ProcessStepsSection({ config }: ProcessStepsSectionProps) {
                       <IconComponent className="h-8 w-8 text-primary" />
                     </div>
                     <h3 className="font-bold text-xl mb-2">{step.title}</h3>
-                    <p className="text-muted-foreground text-sm">{step.description}</p>
+                    <p className={`${variantStyles.typography.body} text-sm`}>{step.description}</p>
                   </CardContent>
                 </Card>
                 
