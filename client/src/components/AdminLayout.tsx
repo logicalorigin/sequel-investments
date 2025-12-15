@@ -32,6 +32,7 @@ import {
   ArrowLeft,
   HardHat,
   Package,
+  LayoutTemplate,
 } from "lucide-react";
 import { InlineSearch } from "@/components/InlineSearch";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -52,6 +53,7 @@ const operationsNavItems = [
   { title: "Loan Servicing", href: "/admin/servicing", icon: DollarSign },
   { title: "Draw Requests", href: "/admin/draw-requests", icon: HardHat, hasBadge: true },
   { title: "Loan Products", href: "/admin/loan-products", icon: Package },
+  { title: "Premium Templates", href: "/admin/premium-templates", icon: LayoutTemplate },
   { title: "Calendar", href: "/admin/calendar", icon: Calendar },
   { title: "Financials", href: "/admin/financials", icon: CreditCard },
   { title: "Messages", href: "/admin/messages", icon: MessageSquare },
