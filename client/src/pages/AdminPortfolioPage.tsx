@@ -214,6 +214,26 @@ export default function AdminPortfolioPage() {
     return portfolio;
   }, [portfolio, selectedState, selectedCluster]);
 
+  // Process chart data from filtered portfolio
+  const loanTypeData = useMemo(() => {
+    if (!filteredPortfolio?.byLoanType) return [];
+    return Object.entries(filteredPortfolio.byLoanType).map(([type, data]) => ({
+      name: type,
+      value: data.value,
+      count: data.count,
+    }));
+  }, [filteredPortfolio]);
+
+  const statusData = useMemo(() => {
+    if (!filteredPortfolio?.byStatus) return [];
+    return Object.entries(filteredPortfolio.byStatus).map(([status, data]) => ({
+      name: STATUS_LABELS[status] || status,
+      value: data.value,
+      count: data.count,
+      fill: STATUS_COLORS[status] || "#94a3b8",
+    }));
+  }, [filteredPortfolio]);
+
   return (
     <div className="h-full">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-6">
