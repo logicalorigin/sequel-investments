@@ -29,6 +29,7 @@ import {
 } from "recharts";
 import type { LucideIcon } from "lucide-react";
 import { PortfolioConcentrationHeatmap } from "@/components/admin/PortfolioConcentrationHeatmap";
+import { useState, useMemo } from "react";
 
 interface PortfolioData {
   totalFunded: { value: number; count: number };
@@ -159,63 +160,97 @@ function LoadingSkeleton() {
 
 export default function AdminPortfolioPage() {
   const [, navigate] = useLocation();
-  
+  const [selectedState, setSelectedState] = useState<string | null>(null);
+  const [selectedCluster, setSelectedCluster] = useState<any | null>(null);
+
   const { data: portfolio, isLoading } = useQuery<PortfolioData>({
-    queryKey: ["/api/admin/analytics/portfolio"],
+    queryKey: ["/api/admin/analytics/portfolio", selectedState],
   });
-  
+
   const { data: geoAnalytics, isLoading: geoLoading } = useQuery<GeographicAnalyticsData>({
     queryKey: ["/api/admin/analytics/geographic"],
   });
 
-  const loanTypeData = portfolio ? Object.entries(portfolio.byLoanType || {}).map(([type, data]) => ({
-    name: type,
-    value: data.value,
-    count: data.count,
-  })) : [];
+  const handleViewChange = (state: string | null, cluster: any | null) => {
+    setSelectedState(state);
+    setSelectedCluster(cluster);
+  };
 
-  const statusData = portfolio ? Object.entries(portfolio.byStatus || {}).map(([status, data]) => ({
-    name: STATUS_LABELS[status] || status,
-    value: data.value,
-    count: data.count,
-    fill: STATUS_COLORS[status] || "#94a3b8",
-  })) : [];
+  // Filter portfolio data based on selection
+  const filteredPortfolio = useMemo(() => {
+    if (!portfolio) return null;
+
+    // If a cluster is selected, filter by those specific loans
+    if (selectedCluster && selectedCluster.loans) {
+      const clusterLoanIds = new Set(selectedCluster.loans.map((l: any) => l.id));
+      return {
+        ...portfolio,
+        totalFunded: {
+          value: selectedCluster.portfolioValue,
+          count: selectedCluster.loans.length,
+        },
+        averages: {
+          loanSize: selectedCluster.portfolioValue / selectedCluster.loans.length,
+          interestRate: selectedCluster.avgInterestRate,
+          ltv: portfolio.averages.ltv, // Keep original LTV for now
+        },
+      };
+    }
+
+    // If a state is selected, filter by state
+    if (selectedState && portfolio.byState) {
+      const stateData = portfolio.byState.find(s => s.state === selectedState);
+      if (stateData) {
+        return {
+          ...portfolio,
+          totalFunded: {
+            value: stateData.value,
+            count: stateData.count,
+          },
+        };
+      }
+    }
+
+    return portfolio;
+  }, [portfolio, selectedState, selectedCluster]);
 
   return (
     <div className="h-full">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-6">
         {isLoading ? (
           <LoadingSkeleton />
-        ) : !portfolio ? (
+        ) : !filteredPortfolio ? (
           <div className="text-center py-12 text-muted-foreground">No portfolio data available</div>
         ) : (
           <>
             <PortfolioConcentrationHeatmap 
               data={geoAnalytics?.portfolioConcentration || []} 
               isLoading={geoLoading}
+              onStateClick={(state) => handleViewChange(state, null)}
+              selectedState={selectedState}
             />
-            
+
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <MetricCard
                 title="Total Portfolio"
-                value={formatCurrency(portfolio.totalFunded?.value || 0)}
-                subtitle={`${portfolio.totalFunded?.count || 0} active loans`}
+                value={formatCurrency(filteredPortfolio.totalFunded?.value || 0)}
+                subtitle={`${filteredPortfolio.totalFunded?.count || 0} active loans`}
                 icon={Building2}
                 onClick={() => navigate("/admin/servicing")}
               />
               <MetricCard
                 title="Avg Loan Size"
-                value={formatCurrency(portfolio.averages?.loanSize || 0)}
+                value={formatCurrency(filteredPortfolio.averages?.loanSize || 0)}
                 icon={DollarSign}
               />
               <MetricCard
                 title="Avg Interest Rate"
-                value={formatPercent(portfolio.averages?.interestRate || 0)}
+                value={formatPercent(filteredPortfolio.averages?.interestRate || 0)}
                 icon={Percent}
               />
               <MetricCard
                 title="Avg LTV"
-                value={formatPercent(portfolio.averages?.ltv || 0)}
+                value={formatPercent(filteredPortfolio.averages?.ltv || 0)}
                 icon={BarChart3}
               />
             </div>
@@ -290,9 +325,9 @@ export default function AdminPortfolioPage() {
                 <CardDescription>Last 12 months trend</CardDescription>
               </CardHeader>
               <CardContent>
-                {(portfolio.monthlyTrend || []).length > 0 ? (
+                {(filteredPortfolio.monthlyTrend || []).length > 0 ? (
                   <ResponsiveContainer width="100%" height={300}>
-                    <AreaChart data={portfolio.monthlyTrend || []}>
+                    <AreaChart data={filteredPortfolio.monthlyTrend || []}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="month" />
                       <YAxis tickFormatter={(v) => formatCurrency(v)} />
@@ -317,10 +352,10 @@ export default function AdminPortfolioPage() {
                 <MapPin className="h-5 w-5 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                {(portfolio.byState || []).length > 0 ? (
+                {(filteredPortfolio.byState || []).length > 0 ? (
                   <div className="space-y-3">
-                    {(portfolio.byState || []).slice(0, 10).map((state, index) => {
-                      const maxValue = (portfolio.byState || [])[0]?.value || 1;
+                    {(filteredPortfolio.byState || []).slice(0, 10).map((state, index) => {
+                      const maxValue = (filteredPortfolio.byState || [])[0]?.value || 1;
                       const percentage = (state.value / maxValue) * 100;
                       return (
                         <div key={state.state} className="flex items-center gap-3">

@@ -54,10 +54,7 @@ interface LoanCluster {
   };
 }
 
-interface PortfolioConcentrationHeatmapProps {
-  data: PortfolioStateData[];
-  isLoading?: boolean;
-}
+
 
 const STATE_NAMES: Record<string, string> = {
   AL: "Alabama", AK: "Alaska", AZ: "Arizona", AR: "Arkansas", CA: "California",
@@ -96,6 +93,41 @@ function getRiskColor(data: PortfolioStateData): string {
   return "#EF4444";
 }
 
+function getStateFillColor(stateCode: string, stateDataMap: Map<string, PortfolioStateData>, stateClusters: any[]): string {
+  // Try to get state data from the map first
+  const stateData = stateDataMap.get(stateCode);
+  if (stateData && stateData.fundedCount > 0) {
+    const total = stateData.performanceMetrics.current + stateData.performanceMetrics.late + stateData.performanceMetrics.defaulted;
+    if (total === 0) return "#1F2937";
+    
+    const problemRate = (stateData.performanceMetrics.late + stateData.performanceMetrics.defaulted) / total;
+    
+    // Use lighter opacity colors for state fills
+    if (problemRate === 0) return "rgba(16, 185, 129, 0.3)"; // Green
+    if (problemRate < 0.1) return "rgba(132, 204, 22, 0.3)"; // Lime
+    if (problemRate < 0.2) return "rgba(251, 191, 36, 0.3)"; // Yellow
+    if (problemRate < 0.3) return "rgba(249, 115, 22, 0.3)"; // Orange
+    return "rgba(239, 68, 68, 0.3)"; // Red
+  }
+  
+  // Fallback to cluster data
+  const cluster = stateClusters.find(c => c.state === stateCode);
+  if (cluster && cluster.loanCount > 0) {
+    const total = cluster.performanceMetrics.current + cluster.performanceMetrics.late + cluster.performanceMetrics.defaulted;
+    if (total === 0) return "#1F2937";
+    
+    const problemRate = (cluster.performanceMetrics.late + cluster.performanceMetrics.defaulted) / total;
+    
+    if (problemRate === 0) return "rgba(16, 185, 129, 0.3)";
+    if (problemRate < 0.1) return "rgba(132, 204, 22, 0.3)";
+    if (problemRate < 0.2) return "rgba(251, 191, 36, 0.3)";
+    if (problemRate < 0.3) return "rgba(249, 115, 22, 0.3)";
+    return "rgba(239, 68, 68, 0.3)";
+  }
+  
+  return "#1F2937"; // Default dark gray for states with no data
+}
+
 function getMarkerSize(value: number, max: number): number {
   if (max === 0 || value === 0) return 0;
   const ratio = value / max;
@@ -130,7 +162,13 @@ function getLoanColor(loan: LoanData): string {
   return "#6B7280";
 }
 
-export function PortfolioConcentrationHeatmap({ data, isLoading }: PortfolioConcentrationHeatmapProps) {
+interface PortfolioConcentrationHeatmapProps {
+  data: PortfolioStateData[];
+  isLoading?: boolean;
+  onViewChange?: (state: string | null, cluster: LoanCluster | null) => void;
+}
+
+export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }: PortfolioConcentrationHeatmapProps) {
   const [hoveredState, setHoveredState] = useState<string | null>(null);
   const [selectedState, setSelectedState] = useState<string | null>(null);
   const [focusedState, setFocusedState] = useState<string | null>(null);
@@ -294,6 +332,11 @@ export function PortfolioConcentrationHeatmap({ data, isLoading }: PortfolioConc
       setSelectedState(stateCode);
       setSelectedCluster(null);
       
+      // Notify parent of state selection
+      if (onViewChange) {
+        onViewChange(stateCode, null);
+      }
+      
       setTimeout(() => setIsZooming(false), 350);
     }
   };
@@ -303,14 +346,28 @@ export function PortfolioConcentrationHeatmap({ data, isLoading }: PortfolioConc
     setViewBox("0 0 959 593");
     setFocusedState(null);
     setSelectedCluster(null);
+    
+    // Notify parent of zoom out
+    if (onViewChange) {
+      onViewChange(null, null);
+    }
+    
     setTimeout(() => setIsZooming(false), 350);
   };
   
   const handleClusterClick = (cluster: LoanCluster) => {
     if (selectedCluster?.id === cluster.id) {
       setSelectedCluster(null);
+      // Notify parent of cluster deselection
+      if (onViewChange) {
+        onViewChange(focusedState, null);
+      }
     } else {
       setSelectedCluster(cluster);
+      // Notify parent of cluster selection
+      if (onViewChange) {
+        onViewChange(focusedState, cluster);
+      }
     }
   };
   
@@ -404,17 +461,29 @@ export function PortfolioConcentrationHeatmap({ data, isLoading }: PortfolioConc
                   transition: isZooming ? "viewBox 0.35s cubic-bezier(0.4, 0, 0.2, 1)" : "none",
                 }}
               >
-              {Object.entries(statePaths).map(([stateCode, pathD]) => (
-                <path
-                  key={stateCode}
-                  d={pathD}
-                  fill={focusedState === stateCode ? "#374151" : "#1F2937"}
-                  stroke="#374151"
-                  strokeWidth={0.5}
-                  className={focusedState && focusedState !== stateCode ? "opacity-30" : ""}
-                  data-testid={`state-bg-${stateCode}`}
-                />
-              ))}
+              {Object.entries(statePaths).map(([stateCode, pathD]) => {
+                const fillColor = focusedState 
+                  ? (focusedState === stateCode ? "#374151" : "#1F2937")
+                  : getStateFillColor(stateCode, stateDataMap, stateClusters);
+                
+                const isHovered = hoveredState === stateCode;
+                const isSelected = selectedState === stateCode;
+                
+                return (
+                  <path
+                    key={stateCode}
+                    d={pathD}
+                    fill={fillColor}
+                    stroke={isSelected ? "#FFFFFF" : isHovered ? "#9CA3AF" : "#374151"}
+                    strokeWidth={isSelected ? 2 : isHovered ? 1.5 : 0.5}
+                    className={focusedState && focusedState !== stateCode ? "opacity-30" : "cursor-pointer transition-all duration-200"}
+                    data-testid={`state-bg-${stateCode}`}
+                    onClick={() => !focusedState && handleStateClick(stateCode)}
+                    onMouseEnter={() => !focusedState && setHoveredState(stateCode)}
+                    onMouseLeave={() => !focusedState && setHoveredState(null)}
+                  />
+                );
+              })}
               
               {!focusedState && stateClusters.map(cluster => {
                 const center = stateCenters[cluster.state];
