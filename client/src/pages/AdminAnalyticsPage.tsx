@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   TrendingUp,
   TrendingDown,
@@ -14,7 +16,10 @@ import {
   MapPin,
   Users,
   Map,
+  LayoutDashboard,
+  LayoutGrid,
 } from "lucide-react";
+import { DashboardGrid } from "@/components/admin/dashboard";
 import {
   BarChart,
   Bar,
@@ -164,6 +169,7 @@ function StatCard({
 
 export default function AdminAnalyticsPage() {
   const [, navigate] = useLocation();
+  const [viewMode, setViewMode] = useState<"customizable" | "classic">("customizable");
   
   const { data: analytics, isLoading, error } = useQuery<AnalyticsData>({
     queryKey: ["/api/admin/analytics"],
@@ -223,7 +229,28 @@ export default function AdminAnalyticsPage() {
     <div className="h-full">
       <ScrollArea className="h-full">
         <div className="p-6 space-y-6">
-            {isLoading ? (
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div>
+                <h1 className="text-2xl font-bold" data-testid="analytics-title">Pipeline Analytics</h1>
+                <p className="text-muted-foreground text-sm">Monitor loan pipeline performance and trends</p>
+              </div>
+              <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "customizable" | "classic")}>
+                <TabsList>
+                  <TabsTrigger value="customizable" className="gap-2" data-testid="tab-customizable">
+                    <LayoutGrid className="h-4 w-4" />
+                    Customizable
+                  </TabsTrigger>
+                  <TabsTrigger value="classic" className="gap-2" data-testid="tab-classic">
+                    <LayoutDashboard className="h-4 w-4" />
+                    Classic
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+            
+            {viewMode === "customizable" ? (
+              <DashboardGrid />
+            ) : isLoading ? (
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   {[1, 2, 3, 4].map((i) => (
