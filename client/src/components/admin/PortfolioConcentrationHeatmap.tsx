@@ -274,7 +274,7 @@ export function PortfolioConcentrationHeatmap({ data, isLoading }: PortfolioConc
       setViewBox(newViewBox);
       setFocusedState(stateCode);
       setSelectedState(stateCode);
-      setSelectedMetro(null);
+      setSelectedCluster(null);
       
       setTimeout(() => setIsZooming(false), 350);
     }
