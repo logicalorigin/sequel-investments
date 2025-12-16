@@ -178,7 +178,6 @@ export function PortfolioConcentrationHeatmap({
   selectedState
 }: PortfolioConcentrationHeatmapProps) {
   const [hoveredState, setHoveredState] = useState<string | null>(null);
-  const [selectedState, setSelectedState] = useState<string | null>(null);
   const [focusedState, setFocusedState] = useState<string | null>(null);
   const [selectedCluster, setSelectedCluster] = useState<LoanCluster | null>(null);
   const [hoveredCluster, setHoveredCluster] = useState<LoanCluster | null>(null);
@@ -350,7 +349,6 @@ export function PortfolioConcentrationHeatmap({
       setIsZooming(true);
       setViewBox(newViewBox);
       setFocusedState(stateCode);
-      setSelectedState(stateCode);
       setSelectedCluster(null);
 
       // Notify parent of state selection
