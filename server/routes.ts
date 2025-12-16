@@ -4175,48 +4175,78 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         };
       }));
 
-      // Filter out loans without coordinates
-      const loansWithCoords = result.filter(loan => loan.lat !== null && loan.lng !== null);
-
-      res.json(loansWithCoords);
+      // Return all loans, including those without coordinates (frontend can handle null coords)
+      res.json(result);
     } catch (error) {
       console.error('Portfolio loans error:', error);
       res.status(500).send({ error: 'Failed to fetch portfolio loans' });
     }
   });
 
-  // Get loan-level data for a specific state with geographic coordinates
-  app.get('/api/admin/analytics/portfolio-loans/:state', isAuthenticated, isStaff, async (req: any, res) => {
+  // Geocode backfill endpoint - geocodes all serviced loans missing coordinates
+  app.post('/api/admin/geocode-backfill', isAuthenticated, isStaff, async (req: any, res) => {
     try {
-      const { state } = req.params;
-      const allLoans = await storage.getAllServicedLoans();
-
-      // Filter loans by state
-      const stateLoans = allLoans.filter(loan => loan.propertyState === state);
-
-      // Map to loan data format with coordinates
-      const loanData = stateLoans.map(loan => ({
-        id: loan.id,
-        loanNumber: loan.loanNumber || 'N/A',
-        propertyAddress: loan.propertyAddress || 'Unknown',
-        propertyCity: loan.propertyCity,
-        propertyState: loan.propertyState || state,
-        propertyZip: loan.propertyZip,
-        loanAmount: loan.loanAmount || 0,
-        currentBalance: loan.currentBalance || 0,
-        status: loan.loanStatus || 'current',
-        loanType: loan.loanType || 'Unknown',
-        interestRate: loan.interestRate || '0',
-        fundedDate: loan.fundedDate || '',
-        borrowerName: loan.borrowerName || 'Unknown',
-        lat: loan.propertyLatitude || 0,
-        lng: loan.propertyLongitude || 0,
-      }));
-
-      res.json(loanData);
+      const { getOrCreatePropertyLocation } = await import('./services/geocodingService');
+      const loans = await storage.getAllServicedLoans();
+      
+      let geocoded = 0;
+      let skipped = 0;
+      let failed = 0;
+      const results: { loanId: string; address: string; status: string }[] = [];
+      
+      for (const loan of loans) {
+        // Check if already geocoded
+        const existingLocation = await storage.getPropertyLocation(loan.id);
+        if (existingLocation) {
+          skipped++;
+          continue;
+        }
+        
+        // Build full address
+        const addressParts = [
+          loan.propertyAddress,
+          loan.propertyCity,
+          loan.propertyState,
+          loan.propertyZip
+        ].filter(Boolean);
+        
+        if (addressParts.length < 2) {
+          failed++;
+          results.push({ loanId: loan.id, address: 'incomplete', status: 'failed' });
+          continue;
+        }
+        
+        const fullAddress = addressParts.join(', ');
+        
+        try {
+          const location = await getOrCreatePropertyLocation(loan.id, fullAddress);
+          if (location) {
+            geocoded++;
+            results.push({ loanId: loan.id, address: fullAddress, status: 'geocoded' });
+          } else {
+            failed++;
+            results.push({ loanId: loan.id, address: fullAddress, status: 'failed' });
+          }
+        } catch (err) {
+          failed++;
+          results.push({ loanId: loan.id, address: fullAddress, status: 'error' });
+        }
+        
+        // Rate limit to avoid hitting API limits
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+      
+      res.json({
+        success: true,
+        total: loans.length,
+        geocoded,
+        skipped,
+        failed,
+        results: results.slice(0, 20), // Return first 20 results for debugging
+      });
     } catch (error) {
-      console.error('Portfolio loans error:', error);
-      res.status(500).send({ error: 'Failed to fetch portfolio loans' });
+      console.error('Geocode backfill error:', error);
+      res.status(500).json({ error: 'Failed to run geocode backfill' });
     }
   });
 

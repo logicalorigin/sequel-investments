@@ -180,15 +180,19 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
   const [zoomLevel, setZoomLevel] = useState<'us' | 'state' | 'cluster'>('us');
   
   // Fetch loan-level data for focused state
-  const { data: loanData = [] } = useQuery<LoanData[]>({
+  const { data: loanData = [] as LoanData[] } = useQuery<LoanData[]>({
     queryKey: ['/api/admin/analytics/portfolio-loans', focusedState],
     enabled: !!focusedState,
-    onSuccess: (data) => {
-      console.log(`Loaded ${data.length} loans for ${focusedState}`);
-      const loansWithCoords = data.filter(l => l.lat && l.lng);
-      console.log(`${loansWithCoords.length} loans have coordinates`);
-    },
   });
+  
+  // Log loan data when it changes (replaces deprecated onSuccess)
+  useEffect(() => {
+    if (loanData && loanData.length > 0) {
+      console.log(`Loaded ${loanData.length} loans for ${focusedState}`);
+      const loansWithCoords = loanData.filter((l: LoanData) => l.lat && l.lng);
+      console.log(`${loansWithCoords.length} loans have coordinates`);
+    }
+  }, [loanData, focusedState]);
   
   // Fetch state-level clusters for US map view
   interface StateCluster {
