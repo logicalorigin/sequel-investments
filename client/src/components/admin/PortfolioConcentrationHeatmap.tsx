@@ -146,6 +146,24 @@ export function PortfolioConcentrationHeatmap({ data, isLoading }: PortfolioConc
     enabled: !!focusedState,
   });
   
+  // Fetch state-level clusters for US map view
+  interface StateCluster {
+    state: string;
+    loanCount: number;
+    portfolioValue: number;
+    avgInterestRate: number;
+    performanceMetrics: {
+      current: number;
+      late: number;
+      defaulted: number;
+    };
+  }
+  
+  const { data: stateClusters = [] } = useQuery<StateCluster[]>({
+    queryKey: ['/api/admin/analytics/portfolio-state-clusters'],
+    enabled: !focusedState,
+  });
+  
   const filteredData = useMemo(() => {
     if (riskFilter === "all") return data;
     
@@ -398,66 +416,101 @@ export function PortfolioConcentrationHeatmap({ data, isLoading }: PortfolioConc
                 />
               ))}
               
-              {!focusedState && filteredData.filter(d => d.portfolioValue > 0).map(stateData => {
-                const center = stateCenters[stateData.state];
+              {!focusedState && stateClusters.map(cluster => {
+                const center = stateCenters[cluster.state];
                 if (!center) return null;
                 
-                const radius = getMarkerSize(stateData.portfolioValue, maxPortfolioValue);
-                const color = getRiskColor(stateData);
-                const isHovered = hoveredState === stateData.state;
+                const maxClusterValue = Math.max(...stateClusters.map(c => c.portfolioValue), 1);
+                const radius = getMarkerSize(cluster.portfolioValue, maxClusterValue);
+                
+                // Calculate cluster color based on performance
+                const total = cluster.performanceMetrics.current + cluster.performanceMetrics.late + cluster.performanceMetrics.defaulted;
+                const problemRate = total > 0 ? (cluster.performanceMetrics.late + cluster.performanceMetrics.defaulted) / total : 0;
+                let color = "#10B981";
+                if (problemRate > 0 && problemRate < 0.1) color = "#84CC16";
+                else if (problemRate >= 0.1 && problemRate < 0.2) color = "#FBBF24";
+                else if (problemRate >= 0.2 && problemRate < 0.3) color = "#F97316";
+                else if (problemRate >= 0.3) color = "#EF4444";
+                
+                const isHovered = hoveredState === cluster.state;
                 
                 return (
-                  <Tooltip key={stateData.state}>
+                  <Tooltip key={cluster.state}>
                     <TooltipTrigger asChild>
-                      <circle
-                        cx={center.x}
-                        cy={center.y}
-                        r={isHovered ? radius * 1.2 : radius}
-                        fill={color}
-                        fillOpacity={selectedState === stateData.state ? 1 : 0.7}
-                        stroke={selectedState === stateData.state ? "#FFFFFF" : isHovered ? "#FFFFFF" : color}
-                        strokeWidth={selectedState === stateData.state ? 3 : isHovered ? 2 : 1}
-                        className="transition-all duration-150 cursor-pointer"
-                        onMouseEnter={() => setHoveredState(stateData.state)}
-                        onMouseLeave={() => setHoveredState(null)}
-                        onClick={() => handleStateClick(stateData.state)}
-                        data-testid={`marker-${stateData.state}`}
-                      />
+                      <g>
+                        <circle
+                          cx={center.x}
+                          cy={center.y}
+                          r={radius + 3}
+                          fill={color}
+                          opacity={0.2}
+                          className="cluster-pulse"
+                        />
+                        <circle
+                          cx={center.x}
+                          cy={center.y}
+                          r={isHovered ? radius * 1.2 : radius}
+                          fill={color}
+                          fillOpacity={selectedState === cluster.state ? 1 : 0.8}
+                          stroke={selectedState === cluster.state ? "#FFFFFF" : isHovered ? "#FFFFFF" : color}
+                          strokeWidth={selectedState === cluster.state ? 3 : isHovered ? 2 : 1}
+                          className="transition-all duration-150 cursor-pointer hover:scale-110"
+                          onMouseEnter={() => setHoveredState(cluster.state)}
+                          onMouseLeave={() => setHoveredState(null)}
+                          onClick={() => handleStateClick(cluster.state)}
+                          data-testid={`marker-${cluster.state}`}
+                        />
+                        <text
+                          x={center.x}
+                          y={center.y}
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                          className="text-xs font-bold fill-white pointer-events-none"
+                        >
+                          {cluster.loanCount}
+                        </text>
+                      </g>
                     </TooltipTrigger>
                     <TooltipContent side="top" className="bg-card border shadow-lg p-3 max-w-xs">
                       <div className="space-y-2">
-                        <p className="font-semibold text-foreground">
-                          {STATE_NAMES[stateData.state] || stateData.state}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4 text-primary" />
+                          <p className="font-semibold text-foreground">
+                            {STATE_NAMES[cluster.state] || cluster.state}
+                          </p>
+                        </div>
                         <div className="space-y-1">
                           <p className="text-sm text-muted-foreground">
-                            <span className="font-medium text-foreground">{stateData.fundedCount}</span> loans
+                            <span className="font-medium text-foreground">{cluster.loanCount}</span> loans
                           </p>
                           <p className="text-sm text-muted-foreground">
-                            <span className="font-medium text-foreground">{formatCurrency(stateData.portfolioValue)}</span> portfolio value
+                            <span className="font-medium text-foreground">{formatCurrency(cluster.portfolioValue)}</span> total
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            <span className="font-medium text-foreground">{cluster.avgInterestRate.toFixed(2)}%</span> avg rate
                           </p>
                         </div>
                         <div className="pt-2 border-t border-border">
-                          <p className="text-xs font-medium text-muted-foreground mb-1">Performance</p>
                           <div className="flex items-center gap-3 text-xs">
                             <span className="flex items-center gap-1 text-green-500">
                               <CheckCircle2 className="h-3 w-3" />
-                              {stateData.performanceMetrics.current} current
+                              {cluster.performanceMetrics.current}
                             </span>
-                            {stateData.performanceMetrics.late > 0 && (
+                            {cluster.performanceMetrics.late > 0 && (
                               <span className="flex items-center gap-1 text-yellow-500">
                                 <AlertTriangle className="h-3 w-3" />
-                                {stateData.performanceMetrics.late} late
+                                {cluster.performanceMetrics.late}
                               </span>
                             )}
-                            {stateData.performanceMetrics.defaulted > 0 && (
+                            {cluster.performanceMetrics.defaulted > 0 && (
                               <span className="flex items-center gap-1 text-red-500">
                                 <AlertTriangle className="h-3 w-3" />
-                                {stateData.performanceMetrics.defaulted} default
+                                {cluster.performanceMetrics.defaulted}
                               </span>
                             )}
                           </div>
                         </div>
+                        <p className="text-xs text-muted-foreground italic mt-2">Click to zoom in</p>
                       </div>
                     </TooltipContent>
                   </Tooltip>

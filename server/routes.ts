@@ -4187,6 +4187,54 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     }
   });
 
+  // Get aggregated state-level loan clusters for US map view
+  app.get('/api/admin/analytics/portfolio-state-clusters', isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const loans = await storage.getAllServicedLoans();
+      
+      // Group loans by state
+      const loansByState = new Map<string, typeof loans>();
+      for (const loan of loans) {
+        if (!loan.propertyState) continue;
+        if (!loansByState.has(loan.propertyState)) {
+          loansByState.set(loan.propertyState, []);
+        }
+        loansByState.get(loan.propertyState)!.push(loan);
+      }
+      
+      // Build state clusters with aggregate stats
+      const stateClusters = await Promise.all(
+        Array.from(loansByState.entries()).map(async ([state, stateLoans]) => {
+          const totalLoans = stateLoans.length;
+          const totalPortfolioValue = stateLoans.reduce((sum, loan) => sum + (loan.currentBalance || 0), 0);
+          const avgInterestRate = stateLoans.reduce((sum, loan) => sum + parseFloat(loan.interestRate || '0'), 0) / totalLoans;
+          
+          // Performance metrics
+          const current = stateLoans.filter(l => l.loanStatus === 'current').length;
+          const late = stateLoans.filter(l => l.loanStatus === 'late' || l.loanStatus === 'grace_period').length;
+          const defaulted = stateLoans.filter(l => l.loanStatus === 'default' || l.loanStatus === 'foreclosure').length;
+          
+          return {
+            state,
+            loanCount: totalLoans,
+            portfolioValue: totalPortfolioValue,
+            avgInterestRate,
+            performanceMetrics: {
+              current,
+              late,
+              defaulted,
+            },
+          };
+        })
+      );
+      
+      res.json(stateClusters);
+    } catch (error) {
+      console.error('State clusters error:', error);
+      res.status(500).send({ error: 'Failed to fetch state clusters' });
+    }
+  });
+
   // Get all loan applications (staff view)
   app.get("/api/admin/applications", isAuthenticated, isStaff, async (req: any, res) => {
     try {
