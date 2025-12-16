@@ -194,6 +194,8 @@ export default function AdminPortfolioPage() {
           interestRate: selectedCluster.avgInterestRate,
           ltv: portfolio.averages.ltv, // Keep original LTV for now
         },
+        byLoanType: portfolio.byLoanType, // Keep full data for charts
+        byStatus: portfolio.byStatus, // Keep full data for charts
       };
     }
 
@@ -207,6 +209,9 @@ export default function AdminPortfolioPage() {
             value: stateData.value,
             count: stateData.count,
           },
+          byLoanType: portfolio.byLoanType, // Keep full data for charts
+          byStatus: portfolio.byStatus, // Keep full data for charts
+          averages: portfolio.averages, // Keep averages
         };
       }
     }
@@ -237,6 +242,35 @@ export default function AdminPortfolioPage() {
   return (
     <div className="h-full">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-6">
+        {/* Header with context */}
+        {(selectedState || selectedCluster) && (
+          <div className="flex items-center justify-between bg-muted/50 rounded-lg p-4">
+            <div className="flex items-center gap-3">
+              <MapPin className="h-5 w-5 text-primary" />
+              <div>
+                <p className="text-sm font-medium">
+                  {selectedCluster 
+                    ? `Viewing cluster in ${selectedState} (${selectedCluster.loanCount} loans)` 
+                    : `Viewing ${selectedState} portfolio`}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {selectedCluster 
+                    ? `${formatCurrency(selectedCluster.portfolioValue)} portfolio value`
+                    : `Click a cluster on the map for detailed view`}
+                </p>
+              </div>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => handleViewChange(null, null)}
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              View All States
+            </Button>
+          </div>
+        )}
+
         {isLoading ? (
           <LoadingSkeleton />
         ) : !filteredPortfolio ? (
@@ -247,6 +281,7 @@ export default function AdminPortfolioPage() {
               data={geoAnalytics?.portfolioConcentration || []} 
               isLoading={geoLoading}
               onStateClick={(state) => handleViewChange(state, null)}
+              onClusterClick={(cluster) => handleViewChange(selectedState, cluster)}
               selectedState={selectedState}
             />
 
