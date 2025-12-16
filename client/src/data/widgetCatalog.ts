@@ -10,7 +10,7 @@ export const widgetCatalog: WidgetTemplate[] = [
     icon: "DollarSign",
     metric: "totalPipelineValue",
     dataSource: "analytics",
-    defaultSize: { w: 3, h: 2, minW: 2, minH: 2 },
+    defaultSize: { w: 6, h: 2, minW: 4, minH: 2 },
   },
   {
     id: "avg-loan-size",
@@ -21,7 +21,7 @@ export const widgetCatalog: WidgetTemplate[] = [
     icon: "Calculator",
     metric: "avgLoanSize",
     dataSource: "analytics",
-    defaultSize: { w: 3, h: 2, minW: 2, minH: 2 },
+    defaultSize: { w: 6, h: 2, minW: 4, minH: 2 },
   },
   {
     id: "total-funded",
@@ -32,7 +32,7 @@ export const widgetCatalog: WidgetTemplate[] = [
     icon: "Banknote",
     metric: "totalFunded",
     dataSource: "analytics",
-    defaultSize: { w: 3, h: 2, minW: 2, minH: 2 },
+    defaultSize: { w: 6, h: 2, minW: 4, minH: 2 },
   },
   {
     id: "conversion-rate",
@@ -43,7 +43,7 @@ export const widgetCatalog: WidgetTemplate[] = [
     icon: "TrendingUp",
     metric: "conversionRate",
     dataSource: "analytics",
-    defaultSize: { w: 3, h: 2, minW: 2, minH: 2 },
+    defaultSize: { w: 6, h: 2, minW: 4, minH: 2 },
   },
   {
     id: "avg-days-to-close",
@@ -54,7 +54,7 @@ export const widgetCatalog: WidgetTemplate[] = [
     icon: "Clock",
     metric: "avgDaysToClose",
     dataSource: "analytics",
-    defaultSize: { w: 3, h: 2, minW: 2, minH: 2 },
+    defaultSize: { w: 6, h: 2, minW: 4, minH: 2 },
   },
   {
     id: "active-applications",
@@ -65,7 +65,7 @@ export const widgetCatalog: WidgetTemplate[] = [
     icon: "FileText",
     metric: "activeApplications",
     dataSource: "analytics",
-    defaultSize: { w: 3, h: 2, minW: 2, minH: 2 },
+    defaultSize: { w: 6, h: 2, minW: 4, minH: 2 },
   },
   {
     id: "this-month-apps",
@@ -76,7 +76,7 @@ export const widgetCatalog: WidgetTemplate[] = [
     icon: "Calendar",
     metric: "thisMonthApps",
     dataSource: "analytics",
-    defaultSize: { w: 3, h: 2, minW: 2, minH: 2 },
+    defaultSize: { w: 6, h: 2, minW: 4, minH: 2 },
   },
   {
     id: "status-distribution",
@@ -86,7 +86,7 @@ export const widgetCatalog: WidgetTemplate[] = [
     category: "analytics",
     icon: "PieChart",
     dataSource: "statusBreakdown",
-    defaultSize: { w: 4, h: 4, minW: 3, minH: 3 },
+    defaultSize: { w: 8, h: 4, minW: 6, minH: 3 },
   },
   {
     id: "loan-type-breakdown",
@@ -96,7 +96,7 @@ export const widgetCatalog: WidgetTemplate[] = [
     category: "analytics",
     icon: "BarChart3",
     dataSource: "productBreakdown",
-    defaultSize: { w: 6, h: 4, minW: 4, minH: 3 },
+    defaultSize: { w: 12, h: 4, minW: 8, minH: 3 },
   },
   {
     id: "activity-trends",
@@ -106,7 +106,7 @@ export const widgetCatalog: WidgetTemplate[] = [
     category: "activity",
     icon: "LineChart",
     dataSource: "temporal",
-    defaultSize: { w: 8, h: 4, minW: 6, minH: 3 },
+    defaultSize: { w: 16, h: 4, minW: 12, minH: 3 },
     supportsTimePeriod: true,
     defaultTimePeriod: "30d",
   },
@@ -118,7 +118,7 @@ export const widgetCatalog: WidgetTemplate[] = [
     category: "geographic",
     icon: "MapPin",
     dataSource: "topStates",
-    defaultSize: { w: 6, h: 4, minW: 4, minH: 3 },
+    defaultSize: { w: 12, h: 4, minW: 8, minH: 3 },
   },
   {
     id: "application-heatmap",
@@ -128,7 +128,7 @@ export const widgetCatalog: WidgetTemplate[] = [
     category: "geographic",
     icon: "Map",
     dataSource: "applicationActivity",
-    defaultSize: { w: 6, h: 5, minW: 4, minH: 4 },
+    defaultSize: { w: 12, h: 5, minW: 8, minH: 4 },
   },
   {
     id: "portfolio-concentration",
@@ -138,7 +138,7 @@ export const widgetCatalog: WidgetTemplate[] = [
     category: "geographic",
     icon: "Wallet",
     dataSource: "portfolioConcentration",
-    defaultSize: { w: 6, h: 5, minW: 4, minH: 4 },
+    defaultSize: { w: 12, h: 5, minW: 8, minH: 4 },
   },
   {
     id: "weekly-volume",
@@ -148,7 +148,7 @@ export const widgetCatalog: WidgetTemplate[] = [
     category: "finance",
     icon: "TrendingUp",
     dataSource: "weeklyVolume",
-    defaultSize: { w: 6, h: 4, minW: 4, minH: 3 },
+    defaultSize: { w: 12, h: 4, minW: 8, minH: 3 },
     supportsTimePeriod: true,
     defaultTimePeriod: "90d",
   },
@@ -161,7 +161,7 @@ export const defaultWidgets: Widget[] = [
     title: "Total Pipeline Value",
     metric: "totalPipelineValue",
     dataSource: "analytics",
-    layout: { x: 0, y: 0, w: 3, h: 2, minW: 2, minH: 2 },
+    layout: { x: 0, y: 0, w: 6, h: 2, minW: 4, minH: 2 },
   },
   {
     id: "widget-2",
@@ -169,7 +169,7 @@ export const defaultWidgets: Widget[] = [
     title: "Conversion Rate",
     metric: "conversionRate",
     dataSource: "analytics",
-    layout: { x: 3, y: 0, w: 3, h: 2, minW: 2, minH: 2 },
+    layout: { x: 6, y: 0, w: 6, h: 2, minW: 4, minH: 2 },
   },
   {
     id: "widget-3",
@@ -177,7 +177,7 @@ export const defaultWidgets: Widget[] = [
     title: "Avg Days to Close",
     metric: "avgDaysToClose",
     dataSource: "analytics",
-    layout: { x: 6, y: 0, w: 3, h: 2, minW: 2, minH: 2 },
+    layout: { x: 12, y: 0, w: 6, h: 2, minW: 4, minH: 2 },
   },
   {
     id: "widget-4",
@@ -185,14 +185,14 @@ export const defaultWidgets: Widget[] = [
     title: "Active Applications",
     metric: "activeApplications",
     dataSource: "analytics",
-    layout: { x: 9, y: 0, w: 3, h: 2, minW: 2, minH: 2 },
+    layout: { x: 18, y: 0, w: 6, h: 2, minW: 4, minH: 2 },
   },
   {
     id: "widget-5",
     type: "pie-chart",
     title: "Status Distribution",
     dataSource: "statusBreakdown",
-    layout: { x: 0, y: 2, w: 4, h: 4, minW: 3, minH: 3 },
+    layout: { x: 0, y: 2, w: 8, h: 4, minW: 6, minH: 3 },
   },
   {
     id: "widget-6",
@@ -200,7 +200,7 @@ export const defaultWidgets: Widget[] = [
     title: "Activity Trends",
     dataSource: "temporal",
     timePeriod: "30d",
-    layout: { x: 4, y: 2, w: 8, h: 4, minW: 6, minH: 3 },
+    layout: { x: 8, y: 2, w: 16, h: 4, minW: 12, minH: 3 },
   },
 ];
 

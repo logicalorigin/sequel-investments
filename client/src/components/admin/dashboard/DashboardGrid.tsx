@@ -33,7 +33,7 @@ import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
 
 
-const GRID_COLS = 12;
+const GRID_COLS = 24;
 const ROW_HEIGHT = 80;
 const SAVE_DEBOUNCE_MS = 60000;
 
