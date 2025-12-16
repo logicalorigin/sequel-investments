@@ -13,6 +13,7 @@ import {
   PieChart,
   MapPin,
   Users,
+  Map,
 } from "lucide-react";
 import {
   BarChart,
@@ -33,6 +34,9 @@ import {
   LabelList,
 } from "recharts";
 import { apiRequest } from "@/lib/queryClient";
+import { ApplicationActivityHeatmap } from "@/components/admin/ApplicationActivityHeatmap";
+import { PortfolioConcentrationHeatmap } from "@/components/admin/PortfolioConcentrationHeatmap";
+import { MultiMetricTrendChart } from "@/components/admin/MultiMetricTrendChart";
 
 interface AnalyticsData {
   statusCounts: Record<string, number>;
@@ -48,6 +52,31 @@ interface AnalyticsData {
     lastMonthCount: number;
     thisMonthVolume: number;
     lastMonthVolume: number;
+  };
+}
+
+interface GeographicAnalyticsData {
+  applicationActivity: {
+    state: string;
+    count: number;
+    volume: number;
+    statusBreakdown: Record<string, number>;
+  }[];
+  portfolioConcentration: {
+    state: string;
+    fundedCount: number;
+    portfolioValue: number;
+    performanceMetrics: {
+      current: number;
+      late: number;
+      defaulted: number;
+    };
+  }[];
+  summary: {
+    totalApplications: number;
+    totalApplicationVolume: number;
+    totalPortfolioValue: number;
+    activeStatesCount: number;
   };
 }
 
@@ -138,6 +167,10 @@ export default function AdminAnalyticsPage() {
   
   const { data: analytics, isLoading, error } = useQuery<AnalyticsData>({
     queryKey: ["/api/admin/analytics"],
+  });
+  
+  const { data: geoAnalytics, isLoading: geoLoading } = useQuery<GeographicAnalyticsData>({
+    queryKey: ["/api/admin/analytics/geographic"],
   });
   
   if (error) {
@@ -455,6 +488,26 @@ export default function AdminAnalyticsPage() {
                     )}
                   </CardContent>
                 </Card>
+                
+                <div className="mt-8 space-y-6">
+                  <div className="flex items-center gap-2 text-lg font-semibold">
+                    <Map className="h-5 w-5" style={{ color: GOLD_COLOR }} />
+                    Geographic Insights
+                  </div>
+                  
+                  <MultiMetricTrendChart />
+                  
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                    <ApplicationActivityHeatmap 
+                      data={geoAnalytics?.applicationActivity || []} 
+                      isLoading={geoLoading}
+                    />
+                    <PortfolioConcentrationHeatmap 
+                      data={geoAnalytics?.portfolioConcentration || []} 
+                      isLoading={geoLoading}
+                    />
+                  </div>
+                </div>
               </>
             ) : null}
         </div>
