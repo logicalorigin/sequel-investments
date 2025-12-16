@@ -4,10 +4,11 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Wallet, AlertTriangle, CheckCircle2, Filter, ZoomOut, MapPin, DollarSign, Calendar, TrendingUp } from "lucide-react";
+import { Wallet, AlertTriangle, CheckCircle2, Filter, ZoomOut, MapPin, DollarSign, Calendar, TrendingUp, ExternalLink, Building2, Percent, Clock } from "lucide-react";
 import { statePaths } from "@/components/USMap";
 import { parsePathBounds, latLngToSvgWithBounds, SLUG_TO_ABBR, type SVGBounds } from "@/lib/mapUtils";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
 
 interface PortfolioStateData {
   state: string;
@@ -27,6 +28,7 @@ interface LoanData {
   propertyCity: string | null;
   propertyState: string;
   propertyZip: string | null;
+  propertyType: string | null;
   loanAmount: number;
   currentBalance: number;
   status: string;
@@ -36,6 +38,18 @@ interface LoanData {
   borrowerName: string;
   lat: number;
   lng: number;
+  // Enhanced fields for tooltips
+  riskScore: number;
+  creditScore: number | null;
+  ltvRatio: number | null;
+  dscrRatio: number | null;
+  daysFunded: number | null;
+  nextPaymentDate: string | null;
+  paymentsDue: number;
+  totalPastDue: number;
+  projectCompletionPercent: number | null;
+  arv: number | null;
+  currentValue: number | null;
 }
 
 interface LoanCluster {
@@ -47,11 +61,40 @@ interface LoanCluster {
   loans: LoanData[];
   portfolioValue: number;
   avgInterestRate: number;
+  avgRiskScore: number;
   performanceMetrics: {
     current: number;
     late: number;
     defaulted: number;
   };
+}
+
+// Risk score color based on 0-100 scale
+function getRiskScoreColor(score: number): string {
+  if (score >= 90) return "#10B981"; // Green - Excellent
+  if (score >= 75) return "#84CC16"; // Lime - Good
+  if (score >= 60) return "#FBBF24"; // Yellow - Warning
+  if (score >= 45) return "#F97316"; // Orange - Caution
+  return "#EF4444"; // Red - Critical
+}
+
+function getRiskScoreLabel(score: number): string {
+  if (score >= 90) return "Excellent";
+  if (score >= 75) return "Good";
+  if (score >= 60) return "Fair";
+  if (score >= 45) return "Caution";
+  return "High Risk";
+}
+
+// Format days funded into human-readable string
+function formatDaysFunded(days: number | null): string {
+  if (days === null) return "N/A";
+  if (days === 0) return "Today";
+  if (days === 1) return "1 day ago";
+  if (days < 30) return `${days} days ago`;
+  if (days < 60) return "1 month ago";
+  if (days < 365) return `${Math.floor(days / 30)} months ago`;
+  return `${Math.floor(days / 365)} year${days >= 730 ? 's' : ''} ago`;
 }
 
 
@@ -200,6 +243,7 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
     loanCount: number;
     portfolioValue: number;
     avgInterestRate: number;
+    avgRiskScore: number;
     performanceMetrics: {
       current: number;
       late: number;
@@ -297,6 +341,7 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
       // Calculate cluster statistics
       const portfolioValue = clusterLoans.reduce((sum, l) => sum + l.loanAmount, 0);
       const avgInterestRate = clusterLoans.reduce((sum, l) => sum + parseFloat(l.interestRate), 0) / clusterLoans.length;
+      const avgRiskScore = clusterLoans.reduce((sum, l) => sum + (l.riskScore ?? 100), 0) / clusterLoans.length;
 
       const performanceMetrics = {
         current: clusterLoans.filter(l => l.status === 'current').length,
@@ -313,6 +358,7 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
         loans: clusterLoans,
         portfolioValue,
         avgInterestRate,
+        avgRiskScore,
         performanceMetrics,
       });
     });
@@ -761,46 +807,68 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
                         />
                       </g>
                     </TooltipTrigger>
-                    <TooltipContent side="top" className="bg-card border shadow-lg p-3 max-w-xs">
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4 text-primary" />
-                          <p className="font-semibold text-foreground">
+                    <TooltipContent side="top" className="bg-card border shadow-lg p-0 max-w-xs overflow-hidden">
+                      {/* Header with risk score and state name */}
+                      <div className="flex items-center gap-3 px-3 py-2 border-b border-border bg-muted/30">
+                        {/* Risk Score Badge */}
+                        <div 
+                          className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
+                          style={{ backgroundColor: getRiskScoreColor(cluster.avgRiskScore ?? 100) }}
+                          title={`Risk Score: ${cluster.avgRiskScore ?? 100} - ${getRiskScoreLabel(cluster.avgRiskScore ?? 100)}`}
+                        >
+                          {cluster.avgRiskScore ?? 100}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-foreground">
                             {STATE_NAMES[cluster.state] || cluster.state}
-                          </p>
-                        </div>
-                        <div className="space-y-1">
-                          <p className="text-sm text-muted-foreground">
-                            <span className="font-medium text-foreground">{cluster.loanCount}</span> loans
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            <span className="font-medium text-foreground">{formatCurrency(cluster.portfolioValue)}</span> total
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            <span className="font-medium text-foreground">{cluster.avgInterestRate.toFixed(2)}%</span> avg rate
-                          </p>
-                        </div>
-                        <div className="pt-2 border-t border-border">
-                          <div className="flex items-center gap-3 text-xs">
-                            <span className="flex items-center gap-1 text-green-500">
-                              <CheckCircle2 className="h-3 w-3" />
-                              {cluster.performanceMetrics.current}
-                            </span>
-                            {cluster.performanceMetrics.late > 0 && (
-                              <span className="flex items-center gap-1 text-yellow-500">
-                                <AlertTriangle className="h-3 w-3" />
-                                {cluster.performanceMetrics.late}
-                              </span>
-                            )}
-                            {cluster.performanceMetrics.defaulted > 0 && (
-                              <span className="flex items-center gap-1 text-red-500">
-                                <AlertTriangle className="h-3 w-3" />
-                                {cluster.performanceMetrics.defaulted}
-                              </span>
-                            )}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {cluster.loanCount} {cluster.loanCount === 1 ? 'loan' : 'loans'}
                           </div>
                         </div>
-                        <p className="text-xs text-muted-foreground italic mt-2">Click to zoom in</p>
+                      </div>
+                      
+                      {/* Metrics grid */}
+                      <div className="grid grid-cols-3 gap-1 p-2 bg-muted/20">
+                        <div className="text-center p-1.5 bg-background rounded">
+                          <div className="text-xs text-muted-foreground">Portfolio</div>
+                          <div className="font-semibold text-sm">{formatCurrency(cluster.portfolioValue)}</div>
+                        </div>
+                        <div className="text-center p-1.5 bg-background rounded">
+                          <div className="text-xs text-muted-foreground">Avg Rate</div>
+                          <div className="font-semibold text-sm">{cluster.avgInterestRate.toFixed(2)}%</div>
+                        </div>
+                        <div className="text-center p-1.5 bg-background rounded">
+                          <div className="text-xs text-muted-foreground">Avg Loan</div>
+                          <div className="font-semibold text-sm">{formatCurrency(cluster.portfolioValue / cluster.loanCount)}</div>
+                        </div>
+                      </div>
+                      
+                      {/* Performance breakdown */}
+                      <div className="px-3 py-2 border-t border-border">
+                        <div className="flex items-center gap-3 text-xs">
+                          <span className="flex items-center gap-1 text-green-500">
+                            <CheckCircle2 className="h-3 w-3" />
+                            {cluster.performanceMetrics.current} current
+                          </span>
+                          {cluster.performanceMetrics.late > 0 && (
+                            <span className="flex items-center gap-1 text-yellow-500">
+                              <AlertTriangle className="h-3 w-3" />
+                              {cluster.performanceMetrics.late} late
+                            </span>
+                          )}
+                          {cluster.performanceMetrics.defaulted > 0 && (
+                            <span className="flex items-center gap-1 text-red-500">
+                              <AlertTriangle className="h-3 w-3" />
+                              {cluster.performanceMetrics.defaulted} default
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Action hint */}
+                      <div className="px-3 py-1.5 bg-primary/5 text-xs text-muted-foreground text-center">
+                        Click to zoom in
                       </div>
                     </TooltipContent>
                   </Tooltip>
@@ -877,43 +945,72 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
                               />
                             </g>
                           </TooltipTrigger>
-                          <TooltipContent side="top" className="bg-card border shadow-lg p-3 max-w-xs">
-                            <div className="space-y-2">
+                          <TooltipContent side="top" className="bg-card border shadow-lg p-0 max-w-xs overflow-hidden">
+                            {/* Header with risk score badge and loan count */}
+                            <div className="flex items-center justify-between gap-3 px-3 py-2 border-b border-border bg-muted/30">
                               <div className="flex items-center gap-2">
-                                <MapPin className="h-4 w-4 text-primary" />
-                                <p className="font-semibold text-foreground">
-                                  {cluster.loans.length} {cluster.loans.length === 1 ? 'Loan' : 'Loans'}
-                                </p>
-                              </div>
-                              <div className="space-y-1">
-                                <p className="text-sm text-muted-foreground">
-                                  <span className="font-medium text-foreground">{formatCurrency(cluster.portfolioValue)}</span> total
-                                </p>
-                                <p className="text-sm text-muted-foreground">
-                                  <span className="font-medium text-foreground">{cluster.avgInterestRate.toFixed(2)}%</span> avg rate
-                                </p>
-                              </div>
-                              <div className="pt-2 border-t border-border">
-                                <div className="flex items-center gap-3 text-xs">
-                                  <span className="flex items-center gap-1 text-green-500">
-                                    <CheckCircle2 className="h-3 w-3" />
-                                    {cluster.performanceMetrics.current}
-                                  </span>
-                                  {cluster.performanceMetrics.late > 0 && (
-                                    <span className="flex items-center gap-1 text-yellow-500">
-                                      <AlertTriangle className="h-3 w-3" />
-                                      {cluster.performanceMetrics.late}
-                                    </span>
-                                  )}
-                                  {cluster.performanceMetrics.defaulted > 0 && (
-                                    <span className="flex items-center gap-1 text-red-500">
-                                      <AlertTriangle className="h-3 w-3" />
-                                      {cluster.performanceMetrics.defaulted}
-                                    </span>
+                                {/* Risk Score Badge */}
+                                <div 
+                                  className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
+                                  style={{ backgroundColor: getRiskScoreColor(cluster.avgRiskScore) }}
+                                  title={`Risk Score: ${Math.round(cluster.avgRiskScore)} - ${getRiskScoreLabel(cluster.avgRiskScore)}`}
+                                >
+                                  {Math.round(cluster.avgRiskScore)}
+                                </div>
+                                <div>
+                                  <div className="font-semibold text-foreground">
+                                    {cluster.loans.length} {cluster.loans.length === 1 ? 'Loan' : 'Loans'}
+                                  </div>
+                                  {cluster.loans[0]?.propertyCity && (
+                                    <div className="text-xs text-muted-foreground">
+                                      {cluster.loans[0].propertyCity}, {cluster.loans[0].propertyState}
+                                    </div>
                                   )}
                                 </div>
                               </div>
-                              <p className="text-xs text-muted-foreground italic mt-2">Click to view details</p>
+                            </div>
+                            
+                            {/* Metrics grid */}
+                            <div className="grid grid-cols-3 gap-1 p-2 bg-muted/20">
+                              <div className="text-center p-1.5 bg-background rounded">
+                                <div className="text-xs text-muted-foreground">Portfolio</div>
+                                <div className="font-semibold text-sm">{formatCurrency(cluster.portfolioValue)}</div>
+                              </div>
+                              <div className="text-center p-1.5 bg-background rounded">
+                                <div className="text-xs text-muted-foreground">Avg Rate</div>
+                                <div className="font-semibold text-sm">{cluster.avgInterestRate.toFixed(2)}%</div>
+                              </div>
+                              <div className="text-center p-1.5 bg-background rounded">
+                                <div className="text-xs text-muted-foreground">Avg Loan</div>
+                                <div className="font-semibold text-sm">{formatCurrency(cluster.portfolioValue / cluster.loans.length)}</div>
+                              </div>
+                            </div>
+                            
+                            {/* Performance breakdown */}
+                            <div className="px-3 py-2 border-t border-border">
+                              <div className="flex items-center gap-3 text-xs">
+                                <span className="flex items-center gap-1 text-green-500">
+                                  <CheckCircle2 className="h-3 w-3" />
+                                  {cluster.performanceMetrics.current} current
+                                </span>
+                                {cluster.performanceMetrics.late > 0 && (
+                                  <span className="flex items-center gap-1 text-yellow-500">
+                                    <AlertTriangle className="h-3 w-3" />
+                                    {cluster.performanceMetrics.late} late
+                                  </span>
+                                )}
+                                {cluster.performanceMetrics.defaulted > 0 && (
+                                  <span className="flex items-center gap-1 text-red-500">
+                                    <AlertTriangle className="h-3 w-3" />
+                                    {cluster.performanceMetrics.defaulted} default
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            
+                            {/* Action hint */}
+                            <div className="px-3 py-1.5 bg-primary/5 text-xs text-muted-foreground text-center">
+                              Click to view details
                             </div>
                           </TooltipContent>
                         </Tooltip>
@@ -973,44 +1070,107 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
                               />
                             </g>
                           </TooltipTrigger>
-                          <TooltipContent side="right" className="bg-card border shadow-lg p-3 max-w-xs">
-                            <div className="space-y-2">
-                              <p className="font-semibold text-sm">{loan.loanNumber}</p>
-                              <p className="text-xs text-muted-foreground">{loan.propertyAddress}</p>
-                              {loan.propertyCity && (
-                                <p className="text-xs text-muted-foreground">
-                                  {loan.propertyCity}, {loan.propertyState} {loan.propertyZip}
-                                </p>
-                              )}
-                              <div className="space-y-1 pt-2 border-t border-border">
-                                <p className="text-xs">
-                                  <span className="text-muted-foreground">Amount:</span>{' '}
-                                  <span className="font-medium">{formatCurrency(loan.loanAmount)}</span>
-                                </p>
-                                <p className="text-xs">
-                                  <span className="text-muted-foreground">Balance:</span>{' '}
-                                  <span className="font-medium">{formatCurrency(loan.currentBalance)}</span>
-                                </p>
-                                <p className="text-xs">
-                                  <span className="text-muted-foreground">Rate:</span>{' '}
-                                  <span className="font-medium">{loan.interestRate}%</span>
-                                </p>
-                                <p className="text-xs">
-                                  <span className="text-muted-foreground">Type:</span>{' '}
-                                  <span className="font-medium">{loan.loanType}</span>
-                                </p>
-                                <p className="text-xs">
-                                  <span className="text-muted-foreground">Borrower:</span>{' '}
-                                  <span className="font-medium">{loan.borrowerName}</span>
-                                </p>
+                          <TooltipContent side="right" className="bg-card border shadow-lg p-0 max-w-sm overflow-hidden">
+                            {/* Header with risk score and loan number */}
+                            <div className="flex items-center gap-3 px-3 py-2 border-b border-border bg-muted/30">
+                              {/* Risk Score Badge */}
+                              <div 
+                                className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0"
+                                style={{ backgroundColor: getRiskScoreColor(loan.riskScore ?? 100) }}
+                                title={`Risk Score: ${loan.riskScore ?? 100} - ${getRiskScoreLabel(loan.riskScore ?? 100)}`}
+                              >
+                                {loan.riskScore ?? 100}
                               </div>
+                              <div className="min-w-0">
+                                <div className="font-semibold text-foreground truncate">{loan.loanNumber}</div>
+                                <div className="text-xs text-muted-foreground truncate">
+                                  {loan.propertyCity ? `${loan.propertyCity}, ${loan.propertyState}` : loan.propertyState}
+                                </div>
+                              </div>
+                              {/* Status Badge */}
+                              <Badge 
+                                variant={
+                                  loan.status === 'current' ? 'default' :
+                                  loan.status === 'grace_period' ? 'secondary' :
+                                  loan.status === 'late' ? 'secondary' :
+                                  'destructive'
+                                }
+                                className="capitalize shrink-0"
+                              >
+                                {loan.status.replace('_', ' ')}
+                              </Badge>
+                            </div>
+                            
+                            {/* Key metrics row */}
+                            <div className="grid grid-cols-3 gap-1 p-2 bg-muted/20">
+                              <div className="text-center p-1.5 bg-background rounded">
+                                <div className="text-xs text-muted-foreground">Amount</div>
+                                <div className="font-semibold text-sm">{formatCurrency(loan.loanAmount)}</div>
+                              </div>
+                              <div className="text-center p-1.5 bg-background rounded">
+                                <div className="text-xs text-muted-foreground">Rate</div>
+                                <div className="font-semibold text-sm">{loan.interestRate}%</div>
+                              </div>
+                              <div className="text-center p-1.5 bg-background rounded">
+                                <div className="text-xs text-muted-foreground">Balance</div>
+                                <div className="font-semibold text-sm">{formatCurrency(loan.currentBalance)}</div>
+                              </div>
+                            </div>
+                            
+                            {/* Details section */}
+                            <div className="px-3 py-2 space-y-1.5 border-t border-border">
+                              <div className="flex items-center gap-2 text-xs">
+                                <Building2 className="h-3 w-3 text-muted-foreground shrink-0" />
+                                <span className="text-muted-foreground">Type:</span>
+                                <Badge variant="outline" className="text-xs h-5">{loan.loanType}</Badge>
+                                {loan.propertyType && (
+                                  <Badge variant="outline" className="text-xs h-5">{loan.propertyType}</Badge>
+                                )}
+                              </div>
+                              
+                              <div className="flex items-center gap-2 text-xs">
+                                <Clock className="h-3 w-3 text-muted-foreground shrink-0" />
+                                <span className="text-muted-foreground">Funded:</span>
+                                <span className="font-medium">{formatDaysFunded(loan.daysFunded)}</span>
+                              </div>
+                              
+                              {/* Performance indicators */}
+                              <div className="flex flex-wrap items-center gap-2 text-xs pt-1">
+                                {loan.ltvRatio !== null && (
+                                  <div className="flex items-center gap-1 px-2 py-0.5 bg-muted rounded">
+                                    <Percent className="h-3 w-3" />
+                                    <span>LTV: {loan.ltvRatio.toFixed(1)}%</span>
+                                  </div>
+                                )}
+                                {loan.dscrRatio !== null && (
+                                  <div className="flex items-center gap-1 px-2 py-0.5 bg-muted rounded">
+                                    <TrendingUp className="h-3 w-3" />
+                                    <span>DSCR: {loan.dscrRatio.toFixed(2)}x</span>
+                                  </div>
+                                )}
+                                {loan.projectCompletionPercent !== null && loan.projectCompletionPercent > 0 && (
+                                  <div className="flex items-center gap-1 px-2 py-0.5 bg-muted rounded">
+                                    <span>Completion: {loan.projectCompletionPercent}%</span>
+                                  </div>
+                                )}
+                              </div>
+                              
+                              {/* GPS indicator */}
                               {isActualPosition && (
-                                <p className="text-xs text-green-500 flex items-center gap-1 mt-1">
+                                <div className="flex items-center gap-1 text-xs text-green-500 pt-1">
                                   <MapPin className="h-3 w-3" />
-                                  Actual GPS location
-                                </p>
+                                  GPS Verified Location
+                                </div>
                               )}
                             </div>
+                            
+                            {/* View Details link */}
+                            <Link href={`/admin/loans/${loan.id}`}>
+                              <div className="px-3 py-2 bg-primary/10 hover:bg-primary/20 transition-colors flex items-center justify-center gap-2 text-xs text-primary font-medium cursor-pointer">
+                                <ExternalLink className="h-3 w-3" />
+                                View Details
+                              </div>
+                            </Link>
                           </TooltipContent>
                         </Tooltip>
                       </g>

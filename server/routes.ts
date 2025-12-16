@@ -4151,10 +4151,88 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           .map(({ loanId, location }) => [loanId, location])
       );
 
-      // Build response with loan details and coordinates
+      // Build response with loan details, coordinates, and enhanced metrics
       const result = await Promise.all(stateLoans.map(async (loan) => {
         const user = await storage.getUser(loan.userId);
         const location = locationMap.get(loan.id);
+        
+        // Fetch linked loan application for analyzer data (credit score, etc.)
+        let creditScore: number | null = null;
+        let ltvRatio: number | null = null;
+        let dscrRatio: number | null = null;
+        let reserveAssets: number | null = null;
+        
+        if (loan.loanApplicationId) {
+          const application = await storage.getApplication(loan.loanApplicationId);
+          if (application?.analyzerData) {
+            const analyzerData = application.analyzerData as any;
+            
+            // Extract credit score from analyzer inputs
+            if (analyzerData.inputs?.creditScore) {
+              creditScore = Array.isArray(analyzerData.inputs.creditScore) 
+                ? analyzerData.inputs.creditScore[0] 
+                : analyzerData.inputs.creditScore;
+            }
+            
+            // Extract LTV from analyzer results
+            if (analyzerData.results?.ltv) {
+              ltvRatio = parseFloat(analyzerData.results.ltv);
+            }
+            
+            // Extract DSCR from analyzer results (for DSCR loans)
+            if (analyzerData.results?.dscrRatio) {
+              dscrRatio = parseFloat(analyzerData.results.dscrRatio);
+            }
+            
+            // Extract reserve assets if available
+            if (analyzerData.inputs?.reserveAssets) {
+              reserveAssets = parseFloat(analyzerData.inputs.reserveAssets);
+            }
+          }
+        }
+        
+        // Calculate days since funding
+        const daysFunded = loan.closingDate 
+          ? Math.floor((Date.now() - new Date(loan.closingDate).getTime()) / (1000 * 60 * 60 * 24))
+          : null;
+        
+        // Calculate risk score (0-100, higher is better)
+        let riskScore = 100;
+        
+        // Payment status deductions
+        const status = loan.loanStatus?.toLowerCase() || 'current';
+        if (status === 'late' || status === 'grace_period') riskScore -= 25;
+        if (status === 'default' || status === 'foreclosure') riskScore -= 50;
+        
+        // LTV deductions (using loan data or calculated LTV)
+        const effectiveLtv = ltvRatio || (loan.currentValue && loan.currentValue > 0 
+          ? (loan.currentBalance / loan.currentValue) * 100 
+          : null);
+        if (effectiveLtv) {
+          if (effectiveLtv > 90) riskScore -= 20;
+          else if (effectiveLtv > 80) riskScore -= 10;
+        }
+        
+        // DSCR deductions (for DSCR loans)
+        if (dscrRatio !== null && dscrRatio < 1.0) riskScore -= 15;
+        
+        // Credit score deductions
+        if (creditScore !== null) {
+          if (creditScore < 620) riskScore -= 20;
+          else if (creditScore < 680) riskScore -= 10;
+          else if (creditScore < 720) riskScore -= 5;
+        }
+        
+        // Reserve assets bonus (if confirmed reserves exist)
+        if (reserveAssets && reserveAssets > 0) {
+          const monthsOfReserves = loan.monthlyPayment && loan.monthlyPayment > 0 
+            ? reserveAssets / loan.monthlyPayment 
+            : 0;
+          if (monthsOfReserves >= 12) riskScore = Math.min(100, riskScore + 5);
+          else if (monthsOfReserves >= 6) riskScore = Math.min(100, riskScore + 3);
+        }
+        
+        riskScore = Math.max(0, Math.min(100, riskScore));
 
         return {
           id: loan.id,
@@ -4163,6 +4241,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           propertyCity: loan.propertyCity,
           propertyState: loan.propertyState,
           propertyZip: loan.propertyZip,
+          propertyType: loan.propertyType,
           loanAmount: loan.originalLoanAmount,
           currentBalance: loan.currentBalance,
           status: loan.loanStatus,
@@ -4172,6 +4251,18 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           borrowerName: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email : 'Unknown',
           lat: location ? parseFloat(location.latitude) : null,
           lng: location ? parseFloat(location.longitude) : null,
+          // Enhanced fields for tooltips
+          riskScore,
+          creditScore,
+          ltvRatio: effectiveLtv,
+          dscrRatio,
+          daysFunded,
+          nextPaymentDate: loan.nextPaymentDate,
+          paymentsDue: loan.paymentsDue || 0,
+          totalPastDue: loan.totalPastDue || 0,
+          projectCompletionPercent: loan.projectCompletionPercent,
+          arv: loan.arv,
+          currentValue: loan.currentValue,
         };
       }));
 
@@ -4250,6 +4341,53 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     }
   });
 
+  // Helper function to calculate risk score for a loan
+  const calculateLoanRiskScore = async (loan: any): Promise<number> => {
+    let riskScore = 100;
+    
+    // Payment status deductions
+    const status = loan.loanStatus?.toLowerCase() || 'current';
+    if (status === 'late' || status === 'grace_period') riskScore -= 25;
+    if (status === 'default' || status === 'foreclosure') riskScore -= 50;
+    
+    // LTV deductions (if current value available)
+    if (loan.currentValue && loan.currentValue > 0) {
+      const ltv = (loan.currentBalance / loan.currentValue) * 100;
+      if (ltv > 90) riskScore -= 20;
+      else if (ltv > 80) riskScore -= 10;
+    }
+    
+    // Fetch analyzer data for credit score/DSCR if linked application exists
+    if (loan.loanApplicationId) {
+      try {
+        const application = await storage.getLoanApplication(loan.loanApplicationId);
+        if (application?.analyzerData) {
+          const analyzerData = application.analyzerData as any;
+          
+          // Credit score deductions
+          if (analyzerData.inputs?.creditScore) {
+            const creditScore = Array.isArray(analyzerData.inputs.creditScore) 
+              ? analyzerData.inputs.creditScore[0] 
+              : analyzerData.inputs.creditScore;
+            if (creditScore < 620) riskScore -= 20;
+            else if (creditScore < 680) riskScore -= 10;
+            else if (creditScore < 720) riskScore -= 5;
+          }
+          
+          // DSCR deductions
+          if (analyzerData.results?.dscrRatio) {
+            const dscr = parseFloat(analyzerData.results.dscrRatio);
+            if (dscr < 1.0) riskScore -= 15;
+          }
+        }
+      } catch (e) {
+        // Ignore errors fetching analyzer data
+      }
+    }
+    
+    return Math.max(0, Math.min(100, riskScore));
+  };
+
   // Get aggregated state-level loan clusters for US map view
   app.get('/api/admin/analytics/portfolio-state-clusters', isAuthenticated, isStaff, async (req: any, res) => {
     try {
@@ -4265,7 +4403,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         loansByState.get(loan.propertyState)!.push(loan);
       }
 
-      // Build state clusters with aggregate stats
+      // Build state clusters with aggregate stats including risk scores
       const stateClusters = await Promise.all(
         Array.from(loansByState.entries()).map(async ([state, stateLoans]) => {
           const totalLoans = stateLoans.length;
@@ -4277,11 +4415,16 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           const late = stateLoans.filter(l => l.loanStatus === 'late' || l.loanStatus === 'grace_period').length;
           const defaulted = stateLoans.filter(l => l.loanStatus === 'default' || l.loanStatus === 'foreclosure').length;
 
+          // Calculate average risk score for all loans in state
+          const riskScores = await Promise.all(stateLoans.map(loan => calculateLoanRiskScore(loan)));
+          const avgRiskScore = riskScores.reduce((sum, score) => sum + score, 0) / totalLoans;
+
           return {
             state,
             loanCount: totalLoans,
             portfolioValue: totalPortfolioValue,
             avgInterestRate,
+            avgRiskScore: Math.round(avgRiskScore),
             performanceMetrics: {
               current,
               late,
