@@ -1742,6 +1742,31 @@ export const insertUserPreferencesSchema = createInsertSchema(userPreferences).o
 });
 
 // ============================================
+// DASHBOARD LAYOUTS (Drag-Drop Widgets)
+// ============================================
+export const dashboardLayouts = pgTable("dashboard_layouts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id).unique(),
+  widgets: jsonb("widgets").notNull().default([]),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const dashboardLayoutsRelations = relations(dashboardLayouts, ({ one }) => ({
+  user: one(users, {
+    fields: [dashboardLayouts.userId],
+    references: [users.id],
+  }),
+}));
+
+export type DashboardLayout = typeof dashboardLayouts.$inferSelect;
+export type InsertDashboardLayout = typeof dashboardLayouts.$inferInsert;
+
+export const insertDashboardLayoutSchema = createInsertSchema(dashboardLayouts).omit({
+  id: true,
+  updatedAt: true,
+});
+
+// ============================================
 // CONNECTED ENTITIES (LLCs, Partners)
 // ============================================
 export const entityTypeEnum = pgEnum("entity_type", ["llc", "corporation", "trust", "partnership", "individual"]);
