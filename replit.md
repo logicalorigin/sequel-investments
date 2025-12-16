@@ -62,12 +62,19 @@ I prefer simple language. I want iterative development. Ask before making major 
     - **Next Phases**: Admin CRUD UI, API endpoints, frontend integration to replace hardcoded products
 - **Modular Page Builder** (Admin Feature):
     - **Visual Section Editor**: Admin interface at `/admin/page-builder` for customizing website pages (home, dscr, fix_flip, construction, about, contact, resources).
-    - **Section Types**: Hero, Trust Indicators, Loan Products, Testimonials, FAQ, Lead Form, Recently Funded, State Map, Feature Highlights, CTA Banner, Custom Content, Stats Bar.
+    - **Section Types**: Hero, Trust Indicators, Loan Products, Testimonials, FAQ, Lead Form, Recently Funded, State Map, Feature Highlights, CTA Banner, Custom Content, Stats Bar, Process Steps, Product Comparison, Partner Badges.
     - **Configuration Panels**: Per-section config with variants, layouts, visibility toggles, and type-specific options.
     - **Drag-Reorder**: Sections can be reordered with up/down buttons; order normalized on save.
     - **API Endpoints**: `GET /api/page-layouts/:pageId`, `PUT /api/admin/page-layouts/:pageId`, `POST /api/admin/page-layouts/:pageId/reset`.
     - **Zod Validation**: Discriminated union schema validates section configs by type, preventing malformed data.
     - **Auto-Create Layouts**: Empty layouts auto-created for all valid page IDs on first access; home page gets default sections.
+    - **Section Style Variants System**:
+        - **Variant Registry**: `shared/sectionVariants.ts` defines styling tokens (spacing, background, typography) for each section type with 3 variants (variantA=Clean/Minimal, variantB=Bold/Dynamic, variantC=Professional/Structured).
+        - **Context Provider**: `SectionVariantsContext` provides variant configuration to components without prop drilling.
+        - **useSectionVariant Hook**: Sections call `useSectionVariant(sectionType)` to get dynamic styling (spacing, background, typography.headline, typography.body).
+        - **Integrated Sections**: HeroSection, TrustIndicatorsSection, LoanProductsSection, TestimonialsSection, FAQSection, FeatureHighlightsSection, CTABannerSection, StatsBarSection, ProcessStepsSection.
+        - **Default Configuration**: variantC for most sections, variantA for stats_bar.
+        - **Template Mappings**: Premium templates have predefined variant assignments stored in database.
 - **SaaS Features**:
     - **Admin Analytics Dashboard**: Pipeline metrics and visualization.
     - **White-Label Demo Mode**: Customizable company branding, colors, and contact information.
