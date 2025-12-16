@@ -4270,6 +4270,67 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     }
   });
 
+  // Backfill geocoding for all serviced loans without coordinates
+  app.post('/api/admin/analytics/geocode-loans', isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const loans = await storage.getAllServicedLoans();
+      const { getOrCreatePropertyLocation } = await import("./services/geocodingService");
+      
+      let geocoded = 0;
+      let skipped = 0;
+      let failed = 0;
+      
+      for (const loan of loans) {
+        // Check if already has location
+        const existing = await storage.getPropertyLocation(loan.id);
+        if (existing) {
+          skipped++;
+          continue;
+        }
+        
+        // Build full address
+        const fullAddress = [
+          loan.propertyAddress,
+          loan.propertyCity,
+          loan.propertyState,
+          loan.propertyZip
+        ].filter(Boolean).join(", ");
+        
+        if (!fullAddress || fullAddress === "Unknown Address") {
+          skipped++;
+          continue;
+        }
+        
+        try {
+          const location = await getOrCreatePropertyLocation(loan.id, fullAddress);
+          if (location) {
+            geocoded++;
+            console.log(`Geocoded loan ${loan.loanNumber}: ${fullAddress}`);
+          } else {
+            failed++;
+          }
+        } catch (err) {
+          console.error(`Failed to geocode loan ${loan.loanNumber}:`, err);
+          failed++;
+        }
+        
+        // Add small delay to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
+      res.json({
+        success: true,
+        geocoded,
+        skipped,
+        failed,
+        total: loans.length,
+      });
+    } catch (error) {
+      console.error('Geocode loans error:', error);
+      res.status(500).send({ error: 'Failed to geocode loans' });
+    }
+  });
+
   // Get all loan applications (staff view)
   app.get("/api/admin/applications", isAuthenticated, isStaff, async (req: any, res) => {
     try {
@@ -4515,6 +4576,25 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           });
           
           console.log(`Created serviced loan ${loanNumber} for application ${id}`);
+          
+          // Geocode property address for map visualization
+          try {
+            const fullAddress = [
+              servicedLoan.propertyAddress,
+              servicedLoan.propertyCity,
+              servicedLoan.propertyState,
+              servicedLoan.propertyZip
+            ].filter(Boolean).join(", ");
+            
+            if (fullAddress) {
+              const { getOrCreatePropertyLocation } = await import("./services/geocodingService");
+              await getOrCreatePropertyLocation(servicedLoan.id, fullAddress);
+              console.log(`Geocoded property location for loan ${loanNumber}`);
+            }
+          } catch (geocodeError) {
+            console.error("Error geocoding property location:", geocodeError);
+            // Don't fail loan creation, just log the error
+          }
           
           // Copy application scope of work items to serviced loan (for Fix & Flip and New Construction)
           if (isHardMoney) {
