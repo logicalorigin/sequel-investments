@@ -246,8 +246,7 @@ export default function AdminPortfolioPage() {
             <PortfolioConcentrationHeatmap 
               data={geoAnalytics?.portfolioConcentration || []} 
               isLoading={geoLoading}
-              onStateClick={(state) => handleViewChange(state, null)}
-              selectedState={selectedState}
+              onViewChange={handleViewChange}
             />
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
