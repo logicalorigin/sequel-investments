@@ -182,6 +182,11 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
   const { data: loanData = [] } = useQuery<LoanData[]>({
     queryKey: ['/api/admin/analytics/portfolio-loans', focusedState],
     enabled: !!focusedState,
+    onSuccess: (data) => {
+      console.log(`Loaded ${data.length} loans for ${focusedState}`);
+      const loansWithCoords = data.filter(l => l.lat && l.lng);
+      console.log(`${loansWithCoords.length} loans have coordinates`);
+    },
   });
   
   // Fetch state-level clusters for US map view
@@ -223,6 +228,14 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
   const loanClusters = useMemo(() => {
     if (!focusedState || !loanData.length) return [];
     
+    // Filter loans with valid coordinates
+    const validLoans = loanData.filter(loan => loan.lat && loan.lng && loan.lat !== 0 && loan.lng !== 0);
+    
+    if (validLoans.length === 0) {
+      console.warn(`No loans with valid coordinates found for ${focusedState}`);
+      return [];
+    }
+    
     const statePathD = statePaths[focusedState];
     if (!statePathD) return [];
     
@@ -230,7 +243,7 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
     const CLUSTER_DISTANCE_THRESHOLD = 15; // SVG pixels
     
     // Convert loans to SVG coordinates
-    const loansWithSVG = loanData.map(loan => ({
+    const loansWithSVG = validLoans.map(loan => ({
       ...loan,
       svgX: latLngToSvgWithBounds(loan.lat, loan.lng, focusedState, bounds).x,
       svgY: latLngToSvgWithBounds(loan.lat, loan.lng, focusedState, bounds).y,

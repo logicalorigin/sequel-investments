@@ -4187,6 +4187,41 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     }
   });
 
+  // Get loan-level data for a specific state with geographic coordinates
+  app.get('/api/admin/analytics/portfolio-loans/:state', isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const { state } = req.params;
+      const allLoans = await storage.getAllServicedLoans();
+      
+      // Filter loans by state
+      const stateLoans = allLoans.filter(loan => loan.propertyState === state);
+      
+      // Map to loan data format with coordinates
+      const loanData = stateLoans.map(loan => ({
+        id: loan.id,
+        loanNumber: loan.loanNumber || 'N/A',
+        propertyAddress: loan.propertyAddress || 'Unknown',
+        propertyCity: loan.propertyCity,
+        propertyState: loan.propertyState || state,
+        propertyZip: loan.propertyZip,
+        loanAmount: loan.loanAmount || 0,
+        currentBalance: loan.currentBalance || 0,
+        status: loan.loanStatus || 'current',
+        loanType: loan.loanType || 'Unknown',
+        interestRate: loan.interestRate || '0',
+        fundedDate: loan.fundedDate || '',
+        borrowerName: loan.borrowerName || 'Unknown',
+        lat: loan.propertyLatitude || 0,
+        lng: loan.propertyLongitude || 0,
+      }));
+      
+      res.json(loanData);
+    } catch (error) {
+      console.error('Portfolio loans error:', error);
+      res.status(500).send({ error: 'Failed to fetch portfolio loans' });
+    }
+  });
+
   // Get aggregated state-level loan clusters for US map view
   app.get('/api/admin/analytics/portfolio-state-clusters', isAuthenticated, isStaff, async (req: any, res) => {
     try {
