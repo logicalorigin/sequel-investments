@@ -200,10 +200,7 @@ export default function AdminWebhooksPage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Webhook className="h-8 w-8 text-primary" />
-          <div>
-            <h1 className="text-2xl font-bold" data-testid="text-page-title">Webhooks</h1>
-            <p className="text-muted-foreground">Manage webhook endpoints and deliveries</p>
-          </div>
+          <h1 className="text-2xl font-bold" data-testid="text-page-title">Webhooks</h1>
         </div>
         <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
           <DialogTrigger asChild>

@@ -184,10 +184,7 @@ export default function AdminUsersPage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Users className="h-8 w-8 text-primary" />
-          <div>
-            <h1 className="text-2xl font-bold" data-testid="text-page-title">User Management</h1>
-            <p className="text-muted-foreground">Manage staff and borrower accounts</p>
-          </div>
+          <h1 className="text-2xl font-bold" data-testid="text-page-title">User Management</h1>
         </div>
         <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
           <DialogTrigger asChild>

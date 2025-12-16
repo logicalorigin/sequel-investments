@@ -218,10 +218,7 @@ export default function AdminAnalyticsPage() {
     <div className="h-full overflow-hidden">
       <ScrollArea className="h-full">
         <div className="p-6 space-y-6 max-w-full overflow-hidden">
-          <div>
-            <h1 className="text-2xl font-bold" data-testid="analytics-title">Pipeline Analytics</h1>
-            <p className="text-muted-foreground text-sm">Monitor application pipeline performance and conversion trends</p>
-          </div>
+          <h1 className="text-2xl font-bold" data-testid="analytics-title">Pipeline Analytics</h1>
           
           {isLoading ? (
             <div className="space-y-6">
