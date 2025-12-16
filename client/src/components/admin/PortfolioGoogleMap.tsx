@@ -409,6 +409,18 @@ function PortfolioMapInner({
   const clustererRef = useRef<MarkerClusterer | null>(null);
   const markersRef = useRef<google.maps.marker.AdvancedMarkerElement[]>([]);
   
+  // Store callbacks in refs to prevent useEffect re-runs
+  const onLoanSelectRef = useRef(onLoanSelect);
+  const onClusterSelectRef = useRef(onClusterSelect);
+  const onVisibleLoansChangeRef = useRef(onVisibleLoansChange);
+  
+  // Keep refs updated
+  useEffect(() => {
+    onLoanSelectRef.current = onLoanSelect;
+    onClusterSelectRef.current = onClusterSelect;
+    onVisibleLoansChangeRef.current = onVisibleLoansChange;
+  });
+  
   // Track visible loans based on viewport bounds
   const updateVisibleLoans = useCallback(() => {
     if (!map || loans.length === 0) return;
@@ -421,8 +433,8 @@ function PortfolioMapInner({
       return bounds.contains({ lat: loan.lat, lng: loan.lng });
     });
     
-    onVisibleLoansChange?.(visibleLoans, loans.length);
-  }, [map, loans, onVisibleLoansChange]);
+    onVisibleLoansChangeRef.current?.(visibleLoans, loans.length);
+  }, [map, loans]);
   
   // Listen to map idle event (fires after zoom/pan completes)
   useEffect(() => {
@@ -481,7 +493,7 @@ function PortfolioMapInner({
       marker.addListener('click', () => {
         setSelectedLoan(loan);
         setClusterInfo(null);
-        onLoanSelect?.(loan);
+        onLoanSelectRef.current?.(loan);
       });
       
       return marker;
@@ -512,7 +524,7 @@ function PortfolioMapInner({
             const position = cluster.position;
             setClusterInfo({ loans: clusterLoans, position });
             setSelectedLoan(null);
-            onClusterSelect?.(clusterLoans, { lat: position.lat(), lng: position.lng() });
+            onClusterSelectRef.current?.(clusterLoans, { lat: position.lat(), lng: position.lng() });
           }
         },
       });
@@ -523,7 +535,7 @@ function PortfolioMapInner({
         clustererRef.current.clearMarkers();
       }
     };
-  }, [map, markersLib, loans, onLoanSelect, onClusterSelect]);
+  }, [map, markersLib, loans]);
   
   // Map controls
   const handleZoomIn = useCallback(() => {
