@@ -226,9 +226,9 @@ export default function AdminAnalyticsPage() {
     : 0;
   
   return (
-    <div className="h-full">
+    <div className="h-full overflow-hidden">
       <ScrollArea className="h-full">
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-6 max-w-full overflow-hidden">
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <div>
                 <h1 className="text-2xl font-bold" data-testid="analytics-title">Pipeline Analytics</h1>
