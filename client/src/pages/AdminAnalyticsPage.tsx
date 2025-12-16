@@ -1,11 +1,9 @@
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   TrendingUp,
   TrendingDown,
@@ -16,10 +14,7 @@ import {
   MapPin,
   Users,
   Map,
-  LayoutDashboard,
-  LayoutGrid,
 } from "lucide-react";
-import { DashboardGrid } from "@/components/admin/dashboard";
 import {
   BarChart,
   Bar,
@@ -34,13 +29,8 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  Funnel,
-  FunnelChart,
-  LabelList,
 } from "recharts";
-import { apiRequest } from "@/lib/queryClient";
 import { ApplicationActivityHeatmap } from "@/components/admin/ApplicationActivityHeatmap";
-import { PortfolioConcentrationHeatmap } from "@/components/admin/PortfolioConcentrationHeatmap";
 import { MultiMetricTrendChart } from "@/components/admin/MultiMetricTrendChart";
 
 interface AnalyticsData {
@@ -169,7 +159,6 @@ function StatCard({
 
 export default function AdminAnalyticsPage() {
   const [, navigate] = useLocation();
-  const [viewMode, setViewMode] = useState<"customizable" | "classic">("customizable");
   
   const { data: analytics, isLoading, error } = useQuery<AnalyticsData>({
     queryKey: ["/api/admin/analytics"],
@@ -229,314 +218,287 @@ export default function AdminAnalyticsPage() {
     <div className="h-full overflow-hidden">
       <ScrollArea className="h-full">
         <div className="p-6 space-y-6 max-w-full overflow-hidden">
-            <div className="flex items-center justify-between gap-4 flex-wrap">
-              <div>
-                <h1 className="text-2xl font-bold" data-testid="analytics-title">Pipeline Analytics</h1>
-                <p className="text-muted-foreground text-sm">Monitor loan pipeline performance and trends</p>
+          <div>
+            <h1 className="text-2xl font-bold" data-testid="analytics-title">Pipeline Analytics</h1>
+            <p className="text-muted-foreground text-sm">Monitor loan pipeline performance and trends</p>
+          </div>
+          
+          {isLoading ? (
+            <div className="space-y-6">
+              <Skeleton className="h-[400px]" />
+              <Skeleton className="h-[350px]" />
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {[1, 2, 3, 4].map((i) => (
+                  <Skeleton key={i} className="h-32" />
+                ))}
               </div>
-              <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "customizable" | "classic")}>
-                <TabsList>
-                  <TabsTrigger value="customizable" className="gap-2" data-testid="tab-customizable">
-                    <LayoutGrid className="h-4 w-4" />
-                    Customizable
-                  </TabsTrigger>
-                  <TabsTrigger value="classic" className="gap-2" data-testid="tab-classic">
-                    <LayoutDashboard className="h-4 w-4" />
-                    Classic
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {[1, 2, 3, 4].map((i) => (
+                  <Skeleton key={i} className="h-80" />
+                ))}
+              </div>
             </div>
-            
-            {viewMode === "customizable" ? (
-              <DashboardGrid />
-            ) : isLoading ? (
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {[1, 2, 3, 4].map((i) => (
-                    <Skeleton key={i} className="h-32" />
-                  ))}
-                </div>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {[1, 2, 3, 4].map((i) => (
-                    <Skeleton key={i} className="h-80" />
-                  ))}
-                </div>
+          ) : analytics ? (
+            <>
+              <ApplicationActivityHeatmap 
+                data={geoAnalytics?.applicationActivity || []} 
+                isLoading={geoLoading}
+              />
+              
+              <MultiMetricTrendChart />
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" data-testid="stats-grid">
+                <StatCard
+                  title="Total Pipeline Value"
+                  value={formatCurrency(analytics.stats.totalPipelineValue)}
+                  subtitle="Active applications"
+                  icon={DollarSign}
+                  testId="stat-pipeline-value"
+                />
+                <StatCard
+                  title="Average Loan Size"
+                  value={formatCurrency(analytics.stats.avgLoanSize)}
+                  subtitle="Across all applications"
+                  icon={BarChart3}
+                  testId="stat-avg-loan-size"
+                />
+                <StatCard
+                  title="Avg Days to Close"
+                  value={analytics.stats.avgDaysToClose > 0 ? `${analytics.stats.avgDaysToClose} days` : "N/A"}
+                  subtitle="From application to funding"
+                  icon={Clock}
+                  testId="stat-avg-days-close"
+                />
+                <StatCard
+                  title="This Month"
+                  value={`${analytics.stats.thisMonthCount} apps`}
+                  subtitle={formatCurrency(analytics.stats.thisMonthVolume)}
+                  icon={TrendingUp}
+                  trend={monthChange >= 0 ? "up" : "down"}
+                  trendValue={`${monthChange >= 0 ? "+" : ""}${monthChange.toFixed(0)}% vs last month`}
+                  testId="stat-this-month"
+                />
               </div>
-            ) : analytics ? (
-              <>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" data-testid="stats-grid">
-                  <StatCard
-                    title="Total Pipeline Value"
-                    value={formatCurrency(analytics.stats.totalPipelineValue)}
-                    subtitle="Active applications"
-                    icon={DollarSign}
-                    testId="stat-pipeline-value"
-                  />
-                  <StatCard
-                    title="Average Loan Size"
-                    value={formatCurrency(analytics.stats.avgLoanSize)}
-                    subtitle="Across all applications"
-                    icon={BarChart3}
-                    testId="stat-avg-loan-size"
-                  />
-                  <StatCard
-                    title="Avg Days to Close"
-                    value={analytics.stats.avgDaysToClose > 0 ? `${analytics.stats.avgDaysToClose} days` : "N/A"}
-                    subtitle="From application to funding"
-                    icon={Clock}
-                    testId="stat-avg-days-close"
-                  />
-                  <StatCard
-                    title="This Month"
-                    value={`${analytics.stats.thisMonthCount} apps`}
-                    subtitle={formatCurrency(analytics.stats.thisMonthVolume)}
-                    icon={TrendingUp}
-                    trend={monthChange >= 0 ? "up" : "down"}
-                    trendValue={`${monthChange >= 0 ? "+" : ""}${monthChange.toFixed(0)}% vs last month`}
-                    testId="stat-this-month"
-                  />
-                </div>
-                
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <Card data-testid="chart-status-bar">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <BarChart3 className="h-5 w-5" style={{ color: GOLD_COLOR }} />
-                        Applications by Status
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={statusData} layout="vertical">
-                          <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                          <XAxis type="number" stroke="#9CA3AF" />
-                          <YAxis dataKey="name" type="category" width={80} stroke="#9CA3AF" />
-                          <Tooltip
-                            contentStyle={{
-                              backgroundColor: "#1F2937",
-                              border: "1px solid #374151",
-                              borderRadius: "8px",
-                            }}
-                          />
-                          <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-                            {statusData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={entry.fill} />
-                            ))}
-                          </Bar>
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </CardContent>
-                  </Card>
-                  
-                  <Card data-testid="chart-volume-line">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <TrendingUp className="h-5 w-5" style={{ color: GOLD_COLOR }} />
-                        Weekly Application Volume
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <ResponsiveContainer width="100%" height={300}>
-                        <LineChart data={analytics.weeklyVolume}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                          <XAxis dataKey="week" stroke="#9CA3AF" />
-                          <YAxis yAxisId="left" stroke="#9CA3AF" />
-                          <YAxis yAxisId="right" orientation="right" stroke="#9CA3AF" tickFormatter={formatCurrency} />
-                          <Tooltip
-                            contentStyle={{
-                              backgroundColor: "#1F2937",
-                              border: "1px solid #374151",
-                              borderRadius: "8px",
-                            }}
-                            formatter={(value: number, name: string) => [
-                              name === "volume" ? formatFullCurrency(value) : value,
-                              name === "volume" ? "Volume" : "Applications"
-                            ]}
-                          />
-                          <Legend />
-                          <Line
-                            yAxisId="left"
-                            type="monotone"
-                            dataKey="count"
-                            name="Applications"
-                            stroke={GOLD_COLOR}
-                            strokeWidth={2}
-                            dot={{ fill: GOLD_COLOR }}
-                          />
-                          <Line
-                            yAxisId="right"
-                            type="monotone"
-                            dataKey="volume"
-                            name="Volume"
-                            stroke="#10B981"
-                            strokeWidth={2}
-                            dot={{ fill: "#10B981" }}
-                          />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </CardContent>
-                  </Card>
-                  
-                  <Card data-testid="chart-loan-type-pie">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <PieChart className="h-5 w-5" style={{ color: GOLD_COLOR }} />
-                        Distribution by Loan Type
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <ResponsiveContainer width="100%" height={300}>
-                        <RechartsPieChart>
-                          <Pie
-                            data={loanTypeData}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={60}
-                            outerRadius={100}
-                            paddingAngle={2}
-                            dataKey="value"
-                            label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                          >
-                            {loanTypeData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={entry.fill} />
-                            ))}
-                          </Pie>
-                          <Tooltip
-                            contentStyle={{
-                              backgroundColor: "#1F2937",
-                              border: "1px solid #374151",
-                              borderRadius: "8px",
-                            }}
-                          />
-                        </RechartsPieChart>
-                      </ResponsiveContainer>
-                    </CardContent>
-                  </Card>
-                  
-                  <Card data-testid="chart-funnel">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Users className="h-5 w-5" style={{ color: GOLD_COLOR }} />
-                        Conversion Funnel
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        {funnelData.map((item, index) => {
-                          const maxCount = funnelData[0]?.count || 1;
-                          const width = Math.max((item.count / maxCount) * 100, 20);
-                          const prevCount = index > 0 ? funnelData[index - 1].count : item.count;
-                          const conversionRate = prevCount > 0 ? ((item.count / prevCount) * 100).toFixed(1) : "100";
-                          
-                          return (
-                            <div key={item.stage} className="space-y-1">
-                              <div className="flex justify-between text-sm">
-                                <span>{item.stage}</span>
-                                <span className="text-muted-foreground">
-                                  {item.count} {index > 0 && `(${conversionRate}%)`}
-                                </span>
-                              </div>
-                              <div className="h-8 bg-muted rounded-md overflow-hidden">
-                                <div
-                                  className="h-full rounded-md flex items-center justify-center text-xs font-medium text-white"
-                                  style={{
-                                    width: `${width}%`,
-                                    backgroundColor: item.fill,
-                                  }}
-                                >
-                                  {item.count}
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-                
-                <Card data-testid="chart-top-states">
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card data-testid="chart-status-bar">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <MapPin className="h-5 w-5" style={{ color: GOLD_COLOR }} />
-                      Top 10 States by Volume
+                      <BarChart3 className="h-5 w-5" style={{ color: GOLD_COLOR }} />
+                      Applications by Status
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    {analytics.topStates.length === 0 ? (
-                      <p className="text-center text-muted-foreground py-8">No state data available</p>
-                    ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <ResponsiveContainer width="100%" height={300}>
-                          <BarChart data={analytics.topStates}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                            <XAxis dataKey="state" stroke="#9CA3AF" />
-                            <YAxis stroke="#9CA3AF" tickFormatter={formatCurrency} />
-                            <Tooltip
-                              contentStyle={{
-                                backgroundColor: "#1F2937",
-                                border: "1px solid #374151",
-                                borderRadius: "8px",
-                              }}
-                              formatter={(value: number) => [formatFullCurrency(value), "Volume"]}
-                            />
-                            <Bar dataKey="volume" fill={GOLD_COLOR} radius={[4, 4, 0, 0]} />
-                          </BarChart>
-                        </ResponsiveContainer>
-                        
-                        <div className="space-y-2">
-                          <div className="grid grid-cols-3 text-sm font-medium text-muted-foreground border-b pb-2">
-                            <span>State</span>
-                            <span className="text-right">Count</span>
-                            <span className="text-right">Volume</span>
-                          </div>
-                          {analytics.topStates.map((state, index) => (
-                            <div
-                              key={state.state}
-                              className="grid grid-cols-3 text-sm py-1"
-                              data-testid={`state-row-${state.state}`}
-                            >
-                              <span className="flex items-center gap-2">
-                                <span
-                                  className="w-2 h-2 rounded-full"
-                                  style={{ backgroundColor: GOLD_COLORS[index % GOLD_COLORS.length] }}
-                                />
-                                {state.state}
-                              </span>
-                              <span className="text-right">{state.count}</span>
-                              <span className="text-right font-medium" style={{ color: GOLD_COLOR }}>
-                                {formatCurrency(state.volume)}
-                              </span>
-                            </div>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={statusData} layout="vertical">
+                        <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                        <XAxis type="number" stroke="#9CA3AF" />
+                        <YAxis dataKey="name" type="category" width={80} stroke="#9CA3AF" />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: "#1F2937",
+                            border: "1px solid #374151",
+                            borderRadius: "8px",
+                          }}
+                        />
+                        <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                          {statusData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.fill} />
                           ))}
-                        </div>
-                      </div>
-                    )}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
                   </CardContent>
                 </Card>
                 
-                <div className="mt-8 space-y-6">
-                  <div className="flex items-center gap-2 text-lg font-semibold">
-                    <Map className="h-5 w-5" style={{ color: GOLD_COLOR }} />
-                    Geographic Insights
-                  </div>
-                  
-                  <MultiMetricTrendChart />
-                  
-                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                    <ApplicationActivityHeatmap 
-                      data={geoAnalytics?.applicationActivity || []} 
-                      isLoading={geoLoading}
-                    />
-                    <PortfolioConcentrationHeatmap 
-                      data={geoAnalytics?.portfolioConcentration || []} 
-                      isLoading={geoLoading}
-                    />
-                  </div>
-                </div>
-              </>
-            ) : null}
+                <Card data-testid="chart-volume-line">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5" style={{ color: GOLD_COLOR }} />
+                      Weekly Application Volume
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <LineChart data={analytics.weeklyVolume}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                        <XAxis dataKey="week" stroke="#9CA3AF" />
+                        <YAxis yAxisId="left" stroke="#9CA3AF" />
+                        <YAxis yAxisId="right" orientation="right" stroke="#9CA3AF" tickFormatter={formatCurrency} />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: "#1F2937",
+                            border: "1px solid #374151",
+                            borderRadius: "8px",
+                          }}
+                          formatter={(value: number, name: string) => [
+                            name === "volume" ? formatFullCurrency(value) : value,
+                            name === "volume" ? "Volume" : "Applications"
+                          ]}
+                        />
+                        <Legend />
+                        <Line
+                          yAxisId="left"
+                          type="monotone"
+                          dataKey="count"
+                          name="Applications"
+                          stroke={GOLD_COLOR}
+                          strokeWidth={2}
+                          dot={{ fill: GOLD_COLOR }}
+                        />
+                        <Line
+                          yAxisId="right"
+                          type="monotone"
+                          dataKey="volume"
+                          name="Volume"
+                          stroke="#10B981"
+                          strokeWidth={2}
+                          dot={{ fill: "#10B981" }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+                
+                <Card data-testid="chart-loan-type-pie">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <PieChart className="h-5 w-5" style={{ color: GOLD_COLOR }} />
+                      Distribution by Loan Type
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <RechartsPieChart>
+                        <Pie
+                          data={loanTypeData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={60}
+                          outerRadius={100}
+                          paddingAngle={2}
+                          dataKey="value"
+                          label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                        >
+                          {loanTypeData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.fill} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: "#1F2937",
+                            border: "1px solid #374151",
+                            borderRadius: "8px",
+                          }}
+                        />
+                      </RechartsPieChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+                
+                <Card data-testid="chart-funnel">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Users className="h-5 w-5" style={{ color: GOLD_COLOR }} />
+                      Conversion Funnel
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {funnelData.map((item, index) => {
+                        const maxCount = funnelData[0]?.count || 1;
+                        const width = Math.max((item.count / maxCount) * 100, 20);
+                        const prevCount = index > 0 ? funnelData[index - 1].count : item.count;
+                        const conversionRate = prevCount > 0 ? ((item.count / prevCount) * 100).toFixed(1) : "100";
+                        
+                        return (
+                          <div key={item.stage} className="space-y-1">
+                            <div className="flex justify-between text-sm">
+                              <span>{item.stage}</span>
+                              <span className="text-muted-foreground">
+                                {item.count} {index > 0 && `(${conversionRate}%)`}
+                              </span>
+                            </div>
+                            <div className="h-8 bg-muted rounded-md overflow-hidden">
+                              <div
+                                className="h-full rounded-md flex items-center justify-center text-xs font-medium text-white"
+                                style={{
+                                  width: `${width}%`,
+                                  backgroundColor: item.fill,
+                                }}
+                              >
+                                {item.count}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+              
+              <Card data-testid="chart-top-states">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MapPin className="h-5 w-5" style={{ color: GOLD_COLOR }} />
+                    Top 10 States by Volume
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {analytics.topStates.length === 0 ? (
+                    <p className="text-center text-muted-foreground py-8">No state data available</p>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={analytics.topStates}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                          <XAxis dataKey="state" stroke="#9CA3AF" />
+                          <YAxis stroke="#9CA3AF" tickFormatter={formatCurrency} />
+                          <Tooltip
+                            contentStyle={{
+                              backgroundColor: "#1F2937",
+                              border: "1px solid #374151",
+                              borderRadius: "8px",
+                            }}
+                            formatter={(value: number) => [formatFullCurrency(value), "Volume"]}
+                          />
+                          <Bar dataKey="volume" fill={GOLD_COLOR} radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                      
+                      <div className="space-y-2">
+                        <div className="grid grid-cols-3 text-sm font-medium text-muted-foreground border-b pb-2">
+                          <span>State</span>
+                          <span className="text-right">Count</span>
+                          <span className="text-right">Volume</span>
+                        </div>
+                        {analytics.topStates.map((state, index) => (
+                          <div
+                            key={state.state}
+                            className="grid grid-cols-3 text-sm py-1"
+                            data-testid={`state-row-${state.state}`}
+                          >
+                            <span className="flex items-center gap-2">
+                              <span
+                                className="w-2 h-2 rounded-full"
+                                style={{ backgroundColor: GOLD_COLORS[index % GOLD_COLORS.length] }}
+                              />
+                              {state.state}
+                            </span>
+                            <span className="text-right">{state.count}</span>
+                            <span className="text-right font-medium" style={{ color: GOLD_COLOR }}>
+                              {formatCurrency(state.volume)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </>
+          ) : null}
         </div>
       </ScrollArea>
     </div>

@@ -562,16 +562,6 @@
   display: none;
 }
 
-/* React Grid Layout overflow control */
-.react-grid-layout {
-  max-width: 100% !important;
-  overflow: hidden !important;
-}
-
-.react-grid-item {
-  overflow: hidden;
-}
-
 /* White-label overrides - applied when data-white-label="true" is set on :root */
 :root[data-white-label="true"] {
   --primary: var(--wl-primary);
