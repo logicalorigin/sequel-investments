@@ -4163,7 +4163,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         let reserveAssets: number | null = null;
         
         if (loan.loanApplicationId) {
-          const application = await storage.getApplication(loan.loanApplicationId);
+          const application = await storage.getLoanApplication(loan.loanApplicationId);
           if (application?.analyzerData) {
             const analyzerData = application.analyzerData as any;
             
