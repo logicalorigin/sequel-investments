@@ -368,13 +368,13 @@ export function DashboardGrid() {
         )}
       </div>
       
-      <div ref={containerRef} className="min-h-[400px] overflow-hidden">
+      <div ref={containerRef} className="min-h-[400px] w-full max-w-full overflow-x-hidden">
         <GridLayout
           className="layout"
           layout={layout}
           cols={GRID_COLS}
           rowHeight={ROW_HEIGHT}
-          width={containerWidth}
+          width={containerWidth > 0 ? containerWidth : 1200}
           margin={[12, 12]}
           containerPadding={[0, 0]}
           isDraggable={true}
