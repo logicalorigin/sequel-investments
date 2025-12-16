@@ -1,3 +1,4 @@
+replit_final_file>
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import express from "express";
@@ -689,7 +690,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get full loan details with payments, draws, escrow, documents, milestones
+  // Get full loan details with payments, payments, escrow, documents, milestones
   app.get("/api/serviced-loans/:id/details", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
@@ -2151,7 +2152,6 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       }
 
       const application = await storage.getLoanApplication(photo.loanApplicationId);
-
       if (!application) {
         return res.status(404).json({ error: "Application not found" });
       }
@@ -3010,7 +3010,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       const updated = await storage.updateDocumentSignature(req.params.id, {
         ...req.body,
         signedAt: req.body.status === "signed" ? new Date() : undefined,
-        ipAddress: req.ip,
+        ipAddress: req.ip || req.connection?.remoteAddress,
         userAgent: req.headers["user-agent"],
       });
       return res.json(updated);
@@ -3071,7 +3071,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       const docType = docTypes.find(dt => dt.id === document.documentTypeId);
 
       // Send signature request email - use token-based URL for security
-      const signingUrl = `${getPortalUrl()}/sign/${accessToken}`;
+      const signingUrl = `${getPortalUrl()}/sign/${signatureRequest.id}?token=${accessToken}`;
 
       if (signerUserId && await shouldSendEmail(signerUserId)) {
         try {
@@ -3364,7 +3364,6 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           id: document.id,
           name: document.fileName,
           typeName: docType?.name,
-          description: docType?.description,
         } : null,
         application: application ? {
           id: application.id,
@@ -4270,8 +4269,8 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     }
   });
 
-  // Backfill geocoding for all serviced loans without coordinates
-  app.post('/api/admin/analytics/geocode-loans', isAuthenticated, isStaff, async (req: any, res) => {
+  // Backfill geocoding for all serviced loans without property locations
+  app.post("/api/admin/analytics/geocode-loans", isAuthenticated, isStaff, async (req: any, res) => {
     try {
       const loans = await storage.getAllServicedLoans();
       const { getOrCreatePropertyLocation } = await import("./services/geocodingService");
@@ -4281,7 +4280,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       let failed = 0;
 
       for (const loan of loans) {
-        // Check if already has location
+        // Check if already geocoded
         const existing = await storage.getPropertyLocation(loan.id);
         if (existing) {
           skipped++;
@@ -4289,45 +4288,38 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         }
 
         // Build full address
-        const fullAddress = [
+        const addressParts = [
           loan.propertyAddress,
           loan.propertyCity,
           loan.propertyState,
           loan.propertyZip
-        ].filter(Boolean).join(", ");
+        ].filter(Boolean);
 
-        if (!fullAddress || fullAddress === "Unknown Address") {
-          skipped++;
+        if (addressParts.length === 0) {
+          failed++;
           continue;
         }
 
-        try {
-          const location = await getOrCreatePropertyLocation(loan.id, fullAddress);
-          if (location) {
-            geocoded++;
-            console.log(`Geocoded loan ${loan.loanNumber}: ${fullAddress}`);
-          } else {
-            failed++;
-          }
-        } catch (err) {
-          console.error(`Failed to geocode loan ${loan.loanNumber}:`, err);
+        const fullAddress = addressParts.join(", ");
+
+        // Geocode (works for all loan types including DSCR)
+        const location = await getOrCreatePropertyLocation(loan.id, fullAddress);
+        if (location) {
+          geocoded++;
+        } else {
           failed++;
         }
-
-        // Add small delay to avoid rate limiting
-        await new Promise(resolve => setTimeout(resolve, 100));
       }
 
       res.json({
-        success: true,
+        total: loans.length,
         geocoded,
         skipped,
         failed,
-        total: loans.length,
       });
     } catch (error) {
-      console.error('Geocode loans error:', error);
-      res.status(500).send({ error: 'Failed to geocode loans' });
+      console.error("Geocoding error:", error);
+      res.status(500).json({ error: "Failed to geocode loans" });
     }
   });
 
@@ -5510,7 +5502,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
   app.post("/api/applications/:id/messages", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
+      const user= await storage.getUser(userId);
       const application = await storage.getLoanApplication(req.params.id);
 
       if (!application) {
@@ -6212,11 +6204,11 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
 
       await storage.updateServicedLoan(loan.id, {
         currentBalance: newBalance,
+        lastPaymentDate: new Date(),
+        lastPaymentAmount: payment.paidAmount,
         totalPrincipalPaid: (loan.totalPrincipalPaid || 0) + principalAmount,
         totalInterestPaid: (loan.totalInterestPaid || 0) + interestAmount,
         escrowBalance: (loan.escrowBalance || 0) + escrowAmount,
-        lastPaymentDate: new Date(),
-        nextPaymentDate: new Date(new Date().setMonth(new Date().getMonth() + 1)),
         loanStatus: newBalance === 0 ? "paid_off" : loan.loanStatus,
       });
 
@@ -8164,6 +8156,9 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         }
       }
 
+      if (processed > 0) {
+        console.log(`Notification processor: ${processed} notifications sent in ${batches.size} batches`);
+      }
       return res.json({ 
         success: true, 
         processed, 
@@ -8814,7 +8809,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       const dayOfWeek = parseInt(req.params.dayOfWeek);
 
       // Only staff can update their own availability, admins can update any
-      if (user?.role === "borrower") {
+      if (user?.role === ""borrower") {
         return res.status(403).json({ error: "Only staff can update availability" });
       }
 
@@ -9347,3 +9342,4 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
 
   return httpServer;
 }
+</replit_final_file>
