@@ -1,0 +1,406 @@
+
+# Premium Templates & Customize Site Pages Integration Plan
+
+## Overview
+
+This document outlines the plan to combine the **Premium Templates** management system with the **Customize Site** page to create a unified, powerful site customization experience for admins.
+
+## Current State
+
+### Premium Templates Page (`/admin/premium-templates`)
+- **Purpose**: Manage premium design templates that can be applied to white-label sites
+- **Features**:
+  - CRUD operations for premium templates
+  - Template preview cards with design tokens
+  - Drag-and-drop reordering
+  - Template metadata (name, description, colors, typography, etc.)
+  - Database-backed template storage
+
+### Customize Site Page (`/admin/customize-site`)
+- **Purpose**: Customize the current site's branding and design
+- **Features**:
+  - Two main tabs: **Branding** and **Pages**
+  - Branding tab: Colors, fonts, contact info, social links
+  - Pages tab: Visual page builder for modular sections
+  - Live preview of changes
+  - Template selector (currently uses hardcoded templates from `siteTemplates.ts`)
+
+## Integration Goals
+
+### 1. Unified Template System
+- Replace hardcoded templates in `siteTemplates.ts` with database-backed premium templates
+- Allow admins to create, edit, and manage templates from one place
+- Make templates instantly available in the Customize Site page
+
+### 2. Enhanced Template Application
+- One-click template application from Premium Templates page
+- Visual template preview before applying
+- Template assignment tracking (which white-label site uses which template)
+- Ability to customize a template after applying it
+
+### 3. Streamlined Workflow
+- Remove redundancy between the two pages
+- Create clear navigation between template management and site customization
+- Enable "Create Template from Current Site" functionality
+
+## Proposed Architecture
+
+### Database Schema (Already Exists)
+```typescript
+// Premium Templates
+premiumTemplates {
+  id: string
+  name: string
+  description: string
+  previewImageUrl: string
+  colors: { primary, secondary, accent, background, foreground, muted, card }
+  typography: { fontFamily, headingWeight }
+  borderRadius: string
+  buttonStyle: "rounded" | "square" | "pill"
+  themePreference: "light" | "dark"
+  heroSettings: { style, imageUrl, patternType, overlayOpacity }
+  layoutModules: { heroVariant, showTrustBlock, etc. }
+  mediaPresets: { iconSet, imageStyle, accentPattern }
+  tagline: string
+  isActive: boolean
+  sortOrder: number
+  createdAt: timestamp
+  updatedAt: timestamp
+}
+
+// White Label Template Assignments
+whiteLabelTemplateAssignments {
+  id: string
+  whiteLabelSiteId: string
+  premiumTemplateId: string
+  appliedAt: timestamp
+  customizations: jsonb // Overrides to template defaults
+}
+
+// White Label Settings (Existing)
+whiteLabelSettings {
+  id: string
+  companyName: string
+  logoUrl: string
+  primaryColor: string
+  // ... all other customization fields
+}
+```
+
+### API Endpoints
+
+#### Existing Premium Template Endpoints
+```typescript
+GET    /api/premium-templates              // List all templates
+GET    /api/premium-templates/:id          // Get single template
+POST   /api/premium-templates              // Create template
+PATCH  /api/premium-templates/:id          // Update template
+DELETE /api/premium-templates/:id          // Delete template
+POST   /api/premium-templates/reorder      // Reorder templates
+```
+
+#### New Integration Endpoints
+```typescript
+// Apply a template to the current white-label site
+POST   /api/white-label/apply-template
+Body: { templateId: string, applyToPages?: boolean }
+
+// Get current template assignment
+GET    /api/white-label/template-assignment
+
+// Save current site as new template
+POST   /api/premium-templates/from-current-site
+Body: { name: string, description: string }
+
+// Preview template (temporary application)
+POST   /api/white-label/preview-template
+Body: { templateId: string }
+```
+
+### UI/UX Changes
+
+#### 1. Premium Templates Page Enhancements
+```typescript
+// Add "Apply to Site" action to each template card
+<Card>
+  <CardHeader>
+    <CardTitle>{template.name}</CardTitle>
+    <Badge variant={template.isActive ? "default" : "secondary"}>
+      {template.isActive ? "Active" : "Inactive"}
+    </Badge>
+  </CardHeader>
+  <CardContent>
+    {/* Preview of colors, fonts, etc. */}
+  </CardContent>
+  <CardFooter>
+    <Button onClick={() => applyTemplate(template.id)}>
+      Apply to Site
+    </Button>
+    <Button variant="outline" onClick={() => navigate(`/admin/customize-site?template=${template.id}`)}>
+      Customize & Apply
+    </Button>
+  </CardFooter>
+</Card>
+```
+
+#### 2. Customize Site Page Enhancements
+```typescript
+// Add template source indicator
+<div className="flex items-center justify-between mb-4">
+  <div>
+    <h2>Site Customization</h2>
+    {currentTemplate && (
+      <p className="text-sm text-muted-foreground">
+        Based on template: <Badge>{currentTemplate.name}</Badge>
+        <Button variant="ghost" size="sm" onClick={viewTemplate}>
+          View Template
+        </Button>
+      </p>
+    )}
+  </div>
+  <div className="flex gap-2">
+    <Button variant="outline" onClick={saveAsTemplate}>
+      <Crown className="h-4 w-4 mr-2" />
+      Save as Template
+    </Button>
+    <Button onClick={applyChanges}>Save Changes</Button>
+  </div>
+</div>
+
+// Enhanced template selector
+<Select value={selectedTemplateId} onValueChange={handleTemplateChange}>
+  <SelectTrigger>
+    <SelectValue placeholder="Choose a template..." />
+  </SelectTrigger>
+  <SelectContent>
+    {premiumTemplates.map(template => (
+      <SelectItem key={template.id} value={template.id}>
+        <div className="flex items-center gap-2">
+          <Crown className="h-4 w-4 text-primary" />
+          {template.name}
+        </div>
+      </SelectItem>
+    ))}
+  </SelectContent>
+</Select>
+```
+
+#### 3. Navigation Integration
+```typescript
+// Add cross-navigation between pages
+const breadcrumbs = [
+  { label: "Admin", href: "/admin" },
+  { label: "Premium Templates", href: "/admin/premium-templates" },
+  { label: "Customize Site", href: "/admin/customize-site" },
+];
+
+// Add quick actions
+<DropdownMenu>
+  <DropdownMenuTrigger>
+    <Button variant="outline">
+      <LayoutTemplate className="h-4 w-4 mr-2" />
+      Template Actions
+    </Button>
+  </DropdownMenuTrigger>
+  <DropdownMenuContent>
+    <DropdownMenuItem onClick={() => navigate('/admin/premium-templates')}>
+      Manage Templates
+    </DropdownMenuItem>
+    <DropdownMenuItem onClick={saveAsTemplate}>
+      Save as New Template
+    </DropdownMenuItem>
+    <DropdownMenuItem onClick={resetToTemplate}>
+      Reset to Template Defaults
+    </DropdownMenuItem>
+  </DropdownMenuContent>
+</DropdownMenu>
+```
+
+## Implementation Steps
+
+### Phase 1: API Integration (Backend)
+1. ✅ Create `whiteLabelTemplateAssignments` table (already exists)
+2. ✅ Add template CRUD operations to storage.ts (already exists)
+3. Create new endpoints:
+   - `POST /api/white-label/apply-template`
+   - `GET /api/white-label/template-assignment`
+   - `POST /api/premium-templates/from-current-site`
+
+### Phase 2: Template Application Logic
+1. Create service function to apply template to white-label settings
+2. Handle partial vs. full template application
+3. Track template assignment in database
+4. Allow customizations on top of template
+
+### Phase 3: UI Updates
+1. Update Premium Templates page:
+   - Add "Apply to Site" button
+   - Add "Customize & Apply" button
+   - Show which template is currently active
+2. Update Customize Site page:
+   - Replace hardcoded templates with database templates
+   - Add template source indicator
+   - Add "Save as Template" functionality
+   - Add "Reset to Template" functionality
+
+### Phase 4: User Experience Enhancements
+1. Add template preview modal
+2. Add confirmation dialog before applying template
+3. Add success/error notifications
+4. Add undo/rollback functionality
+5. Add template comparison view
+
+## Code Changes Required
+
+### 1. New API Routes (server/routes.ts)
+```typescript
+// Apply template to current white-label site
+app.post("/api/white-label/apply-template", isAuthenticated, async (req: any, res) => {
+  const userId = req.user.claims.sub;
+  const user = await storage.getUser(userId);
+  
+  if (user?.role !== "admin" && user?.role !== "staff") {
+    return res.status(403).json({ error: "Only admins can apply templates" });
+  }
+  
+  const { templateId, applyToPages } = req.body;
+  const template = await storage.getPremiumTemplate(templateId);
+  
+  if (!template) {
+    return res.status(404).json({ error: "Template not found" });
+  }
+  
+  // Get or create white-label settings
+  let settings = await storage.getWhiteLabelSettings();
+  if (!settings) {
+    settings = await storage.createWhiteLabelSettings({
+      companyName: template.name,
+      isActive: true,
+    });
+  }
+  
+  // Apply template to settings
+  const updatedSettings = await storage.updateWhiteLabelSettings(settings.id, {
+    primaryColor: template.colors.primary,
+    secondaryColor: template.colors.secondary,
+    accentColor: template.colors.accent,
+    backgroundColor: template.colors.background,
+    foregroundColor: template.colors.foreground,
+    mutedColor: template.colors.muted,
+    cardColor: template.colors.card,
+    fontFamily: template.typography.fontFamily,
+    headingWeight: template.typography.headingWeight,
+    borderRadius: template.borderRadius,
+    buttonStyle: template.buttonStyle,
+    themePreference: template.themePreference,
+    heroStyle: template.heroSettings.style,
+    heroImageUrl: template.heroSettings.imageUrl,
+    heroPatternType: template.heroSettings.patternType,
+    heroOverlayOpacity: template.heroSettings.overlayOpacity,
+  });
+  
+  // Create or update template assignment
+  const existingAssignment = await storage.getWhiteLabelTemplateAssignment(settings.id);
+  if (existingAssignment) {
+    await storage.updateWhiteLabelTemplateAssignment(existingAssignment.id, {
+      premiumTemplateId: templateId,
+    });
+  } else {
+    await storage.createWhiteLabelTemplateAssignment({
+      whiteLabelSiteId: settings.id,
+      premiumTemplateId: templateId,
+    });
+  }
+  
+  return res.json({ success: true, settings: updatedSettings });
+});
+
+// Get current template assignment
+app.get("/api/white-label/template-assignment", isAuthenticated, async (req: any, res) => {
+  const settings = await storage.getWhiteLabelSettings();
+  if (!settings) {
+    return res.json({ assignment: null, template: null });
+  }
+  
+  const assignment = await storage.getWhiteLabelTemplateAssignment(settings.id);
+  if (!assignment) {
+    return res.json({ assignment: null, template: null });
+  }
+  
+  const template = await storage.getPremiumTemplate(assignment.premiumTemplateId);
+  return res.json({ assignment, template });
+});
+
+// Save current site as template
+app.post("/api/premium-templates/from-current-site", isAuthenticated, async (req: any, res) => {
+  const userId = req.user.claims.sub;
+  const user = await storage.getUser(userId);
+  
+  if (user?.role !== "admin" && user?.role !== "staff") {
+    return res.status(403).json({ error: "Only admins can create templates" });
+  }
+  
+  const { name, description } = req.body;
+  const settings = await storage.getWhiteLabelSettings();
+  
+  if (!settings) {
+    return res.status(400).json({ error: "No site settings to convert" });
+  }
+  
+  const template = await storage.createPremiumTemplate({
+    name,
+    description,
+    previewImageUrl: settings.logoUrl,
+    colors: {
+      primary: settings.primaryColor,
+      secondary: settings.secondaryColor,
+      accent: settings.accentColor,
+      background: settings.backgroundColor,
+      foreground: settings.foregroundColor,
+      muted: settings.mutedColor,
+      card: settings.cardColor,
+    },
+    typography: {
+      fontFamily: settings.fontFamily,
+      headingWeight: settings.headingWeight,
+    },
+    borderRadius: settings.borderRadius,
+    buttonStyle: settings.buttonStyle,
+    themePreference: settings.themePreference,
+    heroSettings: {
+      style: settings.heroStyle,
+      imageUrl: settings.heroImageUrl,
+      patternType: settings.heroPatternType,
+      overlayOpacity: settings.heroOverlayOpacity,
+    },
+    isActive: true,
+    sortOrder: 0,
+  });
+  
+  return res.json(template);
+});
+```
+
+### 2. Update AdminCustomizeSitePage.tsx
+Replace hardcoded template selector with database-backed templates and add template actions.
+
+### 3. Update AdminPremiumTemplatesPage.tsx
+Add "Apply to Site" and "Customize & Apply" buttons to template cards.
+
+## Benefits
+
+1. **Single Source of Truth**: All templates managed in database
+2. **Flexibility**: Admins can create, customize, and apply templates easily
+3. **Reusability**: Save successful designs as templates for future use
+4. **Consistency**: Ensure brand consistency across white-label sites
+5. **Efficiency**: Quick template switching without manual reconfiguration
+
+## Future Enhancements
+
+1. Template versioning and rollback
+2. Template marketplace/sharing
+3. Template preview in iframe
+4. A/B testing different templates
+5. Template inheritance and overrides
+6. Template categories and tags
+7. Template export/import
