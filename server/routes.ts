@@ -1498,7 +1498,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => {
+
+app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const lineItem = await storage.getDrawLineItem(req.params.id);
@@ -4127,6 +4128,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "Internal server error" });
     }
   };
+
+  // Get loan-level portfolio data with coordinates for a state
+  app.get('/api/admin/analytics/portfolio-loans/:state', isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const { state } = req.params;
+      
+      // Get all serviced loans for the state
+      const loans = await storage.getAllServicedLoans();
+      const stateLoans = loans.filter(loan => loan.propertyState === state);
+      
+      // Fetch property locations for geocoded coordinates
+      const loanIds = stateLoans.map(l => l.id);
+      const locations = await Promise.all(
+        loanIds.map(async (loanId) => {
+          const location = await storage.getPropertyLocation(loanId);
+          return { loanId, location };
+        })
+      );
+      
+      const locationMap = new Map(
+        locations
+          .filter(({ location }) => location !== null)
+          .map(({ loanId, location }) => [loanId, location])
+      );
+      
+      // Build response with loan details and coordinates
+      const result = await Promise.all(stateLoans.map(async (loan) => {
+        const user = await storage.getUser(loan.userId);
+        const location = locationMap.get(loan.id);
+        
+        return {
+          id: loan.id,
+          loanNumber: loan.loanNumber,
+          propertyAddress: loan.propertyAddress,
+          propertyCity: loan.propertyCity,
+          propertyState: loan.propertyState,
+          propertyZip: loan.propertyZip,
+          loanAmount: loan.originalLoanAmount,
+          currentBalance: loan.currentBalance,
+          status: loan.loanStatus,
+          loanType: loan.loanType,
+          interestRate: loan.interestRate,
+          fundedDate: loan.closingDate,
+          borrowerName: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email : 'Unknown',
+          lat: location ? parseFloat(location.latitude) : null,
+          lng: location ? parseFloat(location.longitude) : null,
+        };
+      }));
+      
+      // Filter out loans without coordinates
+      const loansWithCoords = result.filter(loan => loan.lat !== null && loan.lng !== null);
+      
+      res.json(loansWithCoords);
+    } catch (error) {
+      console.error('Portfolio loans error:', error);
+      res.status(500).send({ error: 'Failed to fetch portfolio loans' });
+    }
+  });
 
   // Get all loan applications (staff view)
   app.get("/api/admin/applications", isAuthenticated, isStaff, async (req: any, res) => {
