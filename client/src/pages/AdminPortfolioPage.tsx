@@ -28,6 +28,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import type { LucideIcon } from "lucide-react";
+import { PortfolioConcentrationHeatmap } from "@/components/admin/PortfolioConcentrationHeatmap";
 
 interface PortfolioData {
   totalFunded: { value: number; count: number };
@@ -36,6 +37,31 @@ interface PortfolioData {
   byState: { state: string; value: number; count: number }[];
   averages: { loanSize: number; interestRate: number; ltv: number };
   monthlyTrend: { month: string; value: number; count: number }[];
+}
+
+interface GeographicAnalyticsData {
+  applicationActivity: {
+    state: string;
+    count: number;
+    volume: number;
+    statusBreakdown: Record<string, number>;
+  }[];
+  portfolioConcentration: {
+    state: string;
+    fundedCount: number;
+    portfolioValue: number;
+    performanceMetrics: {
+      current: number;
+      late: number;
+      defaulted: number;
+    };
+  }[];
+  summary: {
+    totalApplications: number;
+    totalApplicationVolume: number;
+    totalPortfolioValue: number;
+    activeStatesCount: number;
+  };
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -112,6 +138,7 @@ function MetricCard({
 function LoadingSkeleton() {
   return (
     <div className="space-y-6">
+      <Skeleton className="h-[400px]" />
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[1, 2, 3, 4].map((i) => (
           <Card key={i}>
@@ -136,6 +163,10 @@ export default function AdminPortfolioPage() {
   const { data: portfolio, isLoading } = useQuery<PortfolioData>({
     queryKey: ["/api/admin/analytics/portfolio"],
   });
+  
+  const { data: geoAnalytics, isLoading: geoLoading } = useQuery<GeographicAnalyticsData>({
+    queryKey: ["/api/admin/analytics/geographic"],
+  });
 
   const loanTypeData = portfolio ? Object.entries(portfolio.byLoanType || {}).map(([type, data]) => ({
     name: type,
@@ -159,6 +190,11 @@ export default function AdminPortfolioPage() {
           <div className="text-center py-12 text-muted-foreground">No portfolio data available</div>
         ) : (
           <>
+            <PortfolioConcentrationHeatmap 
+              data={geoAnalytics?.portfolioConcentration || []} 
+              isLoading={geoLoading}
+            />
+            
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <MetricCard
                 title="Total Portfolio"
