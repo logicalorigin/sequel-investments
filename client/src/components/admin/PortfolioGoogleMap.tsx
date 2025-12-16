@@ -18,7 +18,6 @@ import {
 } from "lucide-react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { darkMapStyles } from "@/lib/mapStyles";
 
 interface LoanData {
   id: string;
@@ -612,10 +611,9 @@ export function PortfolioGoogleMap({
       <Map
         defaultCenter={{ lat: 39.8283, lng: -98.5795 }}
         defaultZoom={4}
-        mapId="portfolio-concentration-map"
+        mapId="DEMO_MAP_ID"
         gestureHandling="greedy"
         disableDefaultUI={true}
-        styles={darkMapStyles}
         style={{ width: "100%", height: "100%" }}
       >
         <PortfolioMapInner 
