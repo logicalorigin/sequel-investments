@@ -233,7 +233,7 @@ export default function AdminLoanDetailPage() {
 
   const { data: propertyLocation } = useQuery<PropertyLocation>({
     queryKey: ["/api/serviced-loans", loan?.id, "property-location"],
-    enabled: !!loan?.id && loan?.loanType !== "dscr",
+    enabled: !!loan?.id,
   });
 
   const [selectedPhoto, setSelectedPhoto] = useState<EnrichedDrawPhoto | null>(null);
