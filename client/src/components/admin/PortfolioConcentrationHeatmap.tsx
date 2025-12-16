@@ -233,8 +233,12 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
   const loanClusters = useMemo(() => {
     if (!focusedState || !loanData.length) return [];
     
-    // Filter loans with valid coordinates
-    const validLoans = loanData.filter(loan => loan.lat && loan.lng && loan.lat !== 0 && loan.lng !== 0);
+    // Filter loans with valid coordinates - handle both string and number types
+    const validLoans = loanData.filter(loan => {
+      const lat = typeof loan.lat === 'string' ? parseFloat(loan.lat) : loan.lat;
+      const lng = typeof loan.lng === 'string' ? parseFloat(loan.lng) : loan.lng;
+      return lat && lng && !isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0;
+    });
     
     if (validLoans.length === 0) {
       console.warn(`No loans with valid coordinates found for ${focusedState}`);
@@ -247,12 +251,18 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
     const bounds = parsePathBounds(statePathD);
     const CLUSTER_DISTANCE_THRESHOLD = 15; // SVG pixels
     
-    // Convert loans to SVG coordinates
-    const loansWithSVG = validLoans.map(loan => ({
-      ...loan,
-      svgX: latLngToSvgWithBounds(loan.lat, loan.lng, focusedState, bounds).x,
-      svgY: latLngToSvgWithBounds(loan.lat, loan.lng, focusedState, bounds).y,
-    }));
+    // Convert loans to SVG coordinates - ensure numeric lat/lng
+    const loansWithSVG = validLoans.map(loan => {
+      const lat = typeof loan.lat === 'string' ? parseFloat(loan.lat) : loan.lat;
+      const lng = typeof loan.lng === 'string' ? parseFloat(loan.lng) : loan.lng;
+      return {
+        ...loan,
+        lat,
+        lng,
+        svgX: latLngToSvgWithBounds(lat, lng, focusedState, bounds).x,
+        svgY: latLngToSvgWithBounds(lat, lng, focusedState, bounds).y,
+      };
+    });
     
     // Simple geographic clustering algorithm
     const clusters: LoanCluster[] = [];
@@ -491,10 +501,13 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
       const svgBounds = parsePathBounds(pathD);
       
       return loans.map((loan, idx) => {
-        // Get actual geographic position if available
-        if (loan.lat && loan.lng && loan.lat !== 0 && loan.lng !== 0) {
+        // Get actual geographic position if available - handle string/number types
+        const lat = typeof loan.lat === 'string' ? parseFloat(loan.lat) : loan.lat;
+        const lng = typeof loan.lng === 'string' ? parseFloat(loan.lng) : loan.lng;
+        
+        if (lat && lng && !isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
           // Pass the state abbreviation and SVG bounds to latLngToSvgWithBounds
-          const pos = latLngToSvgWithBounds(loan.lat, loan.lng, focusedState, svgBounds);
+          const pos = latLngToSvgWithBounds(lat, lng, focusedState, svgBounds);
           return {
             loan,
             x: pos.x,
