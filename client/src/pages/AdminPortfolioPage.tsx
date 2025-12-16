@@ -177,6 +177,53 @@ export default function AdminPortfolioPage() {
   };
 
   // Filter portfolio data based on selection
+  const filteredPortfolioData = useMemo(() => {
+    if (!portfolio) return null;
+
+    // If cluster is selected, show cluster-specific data
+    if (selectedCluster) {
+      const clusterValue = selectedCluster.portfolioValue;
+      const clusterCount = selectedCluster.loans.length;
+      const avgLoanSize = clusterCount > 0 ? clusterValue / clusterCount : 0;
+      const avgInterestRate = selectedCluster.avgInterestRate;
+
+      return {
+        totalFunded: { value: clusterValue, count: clusterCount },
+        averages: {
+          loanSize: avgLoanSize,
+          interestRate: avgInterestRate,
+          ltv: portfolio.averages.ltv, // Keep overall average for LTV
+        },
+        byLoanType: portfolio.byLoanType, // Keep full breakdown for now
+        byStatus: portfolio.byStatus,
+      };
+    }
+
+    // If state is selected, filter by state
+    if (selectedState && geoAnalytics?.portfolioConcentration) {
+      const stateData = geoAnalytics.portfolioConcentration.find(s => s.state === selectedState);
+      if (stateData) {
+        return {
+          totalFunded: { 
+            value: stateData.portfolioValue, 
+            count: stateData.fundedCount 
+          },
+          averages: {
+            loanSize: stateData.fundedCount > 0 ? stateData.portfolioValue / stateData.fundedCount : 0,
+            interestRate: portfolio.averages.interestRate, // Keep overall average
+            ltv: portfolio.averages.ltv, // Keep overall average
+          },
+          byLoanType: portfolio.byLoanType, // Keep full breakdown
+          byStatus: portfolio.byStatus,
+        };
+      }
+    }
+
+    // No selection - return full portfolio
+    return portfolio;
+  }, [portfolio, selectedState, selectedCluster, geoAnalytics]);
+
+  // Filter portfolio data based on selection
   const filteredPortfolio = useMemo(() => {
     if (!portfolio) return null;
 
@@ -214,25 +261,25 @@ export default function AdminPortfolioPage() {
     return portfolio;
   }, [portfolio, selectedState, selectedCluster]);
 
-  // Process chart data from portfolio (not filtered, as filtering only affects totals for now)
+  // Process chart data from filtered portfolio
   const loanTypeData = useMemo(() => {
-    if (!portfolio?.byLoanType) return [];
-    return Object.entries(portfolio.byLoanType).map(([type, data]) => ({
+    if (!filteredPortfolioData?.byLoanType) return [];
+    return Object.entries(filteredPortfolioData.byLoanType).map(([type, data]) => ({
       name: type,
       value: data.value,
       count: data.count,
     }));
-  }, [portfolio]);
+  }, [filteredPortfolioData]);
 
   const statusData = useMemo(() => {
-    if (!portfolio?.byStatus) return [];
-    return Object.entries(portfolio.byStatus).map(([status, data]) => ({
+    if (!filteredPortfolioData?.byStatus) return [];
+    return Object.entries(filteredPortfolioData.byStatus).map(([status, data]) => ({
       name: STATUS_LABELS[status] || status,
       value: data.value,
       count: data.count,
       fill: STATUS_COLORS[status] || "#94a3b8",
     }));
-  }, [portfolio]);
+  }, [filteredPortfolioData]);
 
   return (
     <div className="h-full">
@@ -244,10 +291,29 @@ export default function AdminPortfolioPage() {
         
         {isLoading ? (
           <LoadingSkeleton />
-        ) : !filteredPortfolio ? (
+        ) : !filteredPortfolioData ? (
           <div className="text-center py-12 text-muted-foreground">No portfolio data available</div>
         ) : (
           <>
+            {(selectedState || selectedCluster) && (
+              <div className="bg-primary/10 border border-primary/20 rounded-lg p-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium">
+                    Viewing: {selectedCluster ? `Cluster in ${selectedState} (${selectedCluster.loans.length} loans)` : selectedState}
+                  </span>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => handleViewChange(null, null)}
+                  className="text-xs"
+                >
+                  View All Portfolio
+                </Button>
+              </div>
+            )}
+            
             <PortfolioConcentrationHeatmap 
               data={geoAnalytics?.portfolioConcentration || []} 
               isLoading={geoLoading}
@@ -257,24 +323,24 @@ export default function AdminPortfolioPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <MetricCard
                 title={selectedState || selectedCluster ? `Portfolio (${selectedState || 'Cluster'})` : "Total Portfolio"}
-                value={formatCurrency(filteredPortfolio?.totalFunded?.value || 0)}
-                subtitle={`${filteredPortfolio?.totalFunded?.count || 0} active loans`}
+                value={formatCurrency(filteredPortfolioData?.totalFunded?.value || 0)}
+                subtitle={`${filteredPortfolioData?.totalFunded?.count || 0} active loans`}
                 icon={Building2}
                 onClick={() => navigate("/admin/servicing")}
               />
               <MetricCard
                 title="Avg Loan Size"
-                value={formatCurrency(filteredPortfolio?.averages?.loanSize || 0)}
+                value={formatCurrency(filteredPortfolioData?.averages?.loanSize || 0)}
                 icon={DollarSign}
               />
               <MetricCard
                 title="Avg Interest Rate"
-                value={formatPercent(filteredPortfolio?.averages?.interestRate || 0)}
+                value={formatPercent(filteredPortfolioData?.averages?.interestRate || 0)}
                 icon={Percent}
               />
               <MetricCard
                 title="Avg LTV"
-                value={formatPercent(filteredPortfolio?.averages?.ltv || 0)}
+                value={formatPercent(filteredPortfolioData?.averages?.ltv || 0)}
                 icon={BarChart3}
               />
             </div>
