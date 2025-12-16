@@ -18,7 +18,7 @@ const GridLayout = GridLayoutBase as React.ComponentType<{
   children: React.ReactNode;
 }>;
 import { Button } from "@/components/ui/button";
-import { Plus, Settings, RotateCcw, Save, Loader2 } from "lucide-react";
+import { Plus, RotateCcw, Save, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { KPIWidget } from "./KPIWidget";
@@ -88,7 +88,6 @@ interface DashboardLayoutResponse {
 
 export function DashboardGrid() {
   const { toast } = useToast();
-  const [isEditing, setIsEditing] = useState(false);
   const [catalogOpen, setCatalogOpen] = useState(false);
   const [widgets, setWidgets] = useState<Widget[]>(defaultWidgets);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -193,13 +192,11 @@ export function DashboardGrid() {
         return widget;
       });
       
-      if (isEditing) {
-        debouncedSave(updatedWidgets);
-      }
+      debouncedSave(updatedWidgets);
       
       return updatedWidgets;
     });
-  }, [isEditing, debouncedSave]);
+  }, [debouncedSave]);
   
   const handleAddWidget = useCallback((widget: Widget) => {
     setWidgets(prev => {
@@ -314,7 +311,6 @@ export function DashboardGrid() {
       <WidgetCard 
         key={widget.id}
         widgetId={widget.id} 
-        isEditing={isEditing} 
         onRemove={() => handleRemoveWidget(widget.id)}
       >
         {content}
@@ -335,37 +331,24 @@ export function DashboardGrid() {
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2">
           <Button
-            variant={isEditing ? "default" : "outline"}
+            variant="outline"
             size="sm"
-            onClick={() => setIsEditing(!isEditing)}
-            data-testid="toggle-edit-mode"
+            onClick={() => setCatalogOpen(true)}
+            data-testid="add-widget-button"
           >
-            <Settings className="h-4 w-4 mr-2" />
-            {isEditing ? "Done Editing" : "Customize"}
+            <Plus className="h-4 w-4 mr-2" />
+            Add Widget
           </Button>
-          {isEditing && (
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCatalogOpen(true)}
-                data-testid="add-widget-button"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Widget
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => resetMutation.mutate()}
-                disabled={resetMutation.isPending}
-                data-testid="reset-layout-button"
-              >
-                <RotateCcw className="h-4 w-4 mr-2" />
-                Reset to Default
-              </Button>
-            </>
-          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => resetMutation.mutate()}
+            disabled={resetMutation.isPending}
+            data-testid="reset-layout-button"
+          >
+            <RotateCcw className="h-4 w-4 mr-2" />
+            Reset
+          </Button>
         </div>
         {hasUnsavedChanges && (
           <Button
@@ -385,23 +368,23 @@ export function DashboardGrid() {
         )}
       </div>
       
-      <div ref={containerRef} className="min-h-[400px]">
+      <div ref={containerRef} className="min-h-[400px] overflow-hidden">
         <GridLayout
           className="layout"
           layout={layout}
           cols={GRID_COLS}
           rowHeight={ROW_HEIGHT}
           width={containerWidth}
-          margin={[16, 16]}
+          margin={[12, 12]}
           containerPadding={[0, 0]}
-          isDraggable={isEditing}
-          isResizable={isEditing}
+          isDraggable={true}
+          isResizable={true}
           draggableHandle=".drag-handle"
           onLayoutChange={(currentLayout) => handleLayoutChange([...currentLayout] as GridLayoutItem[])}
           useCSSTransforms
         >
           {widgets.map(widget => (
-            <div key={widget.id} data-testid={`grid-item-${widget.id}`}>
+            <div key={widget.id} data-testid={`grid-item-${widget.id}`} className="overflow-hidden">
               {renderWidget(widget)}
             </div>
           ))}
