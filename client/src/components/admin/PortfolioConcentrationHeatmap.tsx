@@ -177,6 +177,7 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
   const [riskFilter, setRiskFilter] = useState<string>("all");
   const [viewBox, setViewBox] = useState<string>("0 0 959 593");
   const [isZooming, setIsZooming] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState<'us' | 'state' | 'cluster'>('us');
   
   // Fetch loan-level data for focused state
   const { data: loanData = [] } = useQuery<LoanData[]>({
@@ -344,6 +345,8 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
       setFocusedState(stateCode);
       setSelectedState(stateCode);
       setSelectedCluster(null);
+      setZoomLevel('state');
+      
       
       // Notify parent of state selection
       if (onViewChange) {
@@ -354,13 +357,15 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
     }
   };
   
-  const handleZoomOut = () => {
+  // Helper to fully reset to US view
+  const resetToUSView = () => {
     setIsZooming(true);
     setViewBox("0 0 959 593");
     setFocusedState(null);
+    setSelectedState(null);
     setSelectedCluster(null);
+    setZoomLevel('us');
     
-    // Notify parent of zoom out
     if (onViewChange) {
       onViewChange(null, null);
     }
@@ -368,15 +373,99 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
     setTimeout(() => setIsZooming(false), 350);
   };
   
+  const handleZoomOut = () => {
+    // Multi-level zoom out logic
+    if (zoomLevel === 'cluster') {
+      // Zoom out from cluster to state
+      setIsZooming(true);
+      
+      if (focusedState) {
+        const pathD = statePaths[focusedState];
+        if (pathD) {
+          const bounds = parsePathBounds(pathD);
+          const padding = 50;
+          const stateViewBox = `${bounds.minX - padding} ${bounds.minY - padding} ${bounds.maxX - bounds.minX + padding * 2} ${bounds.maxY - bounds.minY + padding * 2}`;
+          setViewBox(stateViewBox);
+        }
+      }
+      
+      setZoomLevel('state');
+      setSelectedCluster(null);
+      
+      // Notify parent of zoom back to state
+      if (onViewChange) {
+        onViewChange(focusedState, null);
+      }
+      
+      setTimeout(() => setIsZooming(false), 350);
+    } else {
+      // Zoom out from state to US - use helper to fully reset all state
+      resetToUSView();
+    }
+  };
+  
   const handleClusterClick = (cluster: LoanCluster) => {
     if (selectedCluster?.id === cluster.id) {
+      // Clicking selected cluster - deselect and zoom back to state view
       setSelectedCluster(null);
+      setZoomLevel('state');
+      
+      if (focusedState) {
+        const pathD = statePaths[focusedState];
+        if (pathD) {
+          const bounds = parsePathBounds(pathD);
+          const padding = 50;
+          const stateViewBox = `${bounds.minX - padding} ${bounds.minY - padding} ${bounds.maxX - bounds.minX + padding * 2} ${bounds.maxY - bounds.minY + padding * 2}`;
+          setIsZooming(true);
+          setViewBox(stateViewBox);
+          setTimeout(() => setIsZooming(false), 350);
+        }
+      }
+      
+      
+      
       // Notify parent of cluster deselection
       if (onViewChange) {
         onViewChange(focusedState, null);
       }
     } else {
+      // Zoom into cluster and show individual loans at their actual positions
       setSelectedCluster(cluster);
+      setZoomLevel('cluster');
+      
+      // Calculate bounding box for all loans in the cluster with their actual coordinates
+      const loansWithCoords = cluster.loans.filter(l => l.lat && l.lng);
+      
+      if (loansWithCoords.length > 0 && focusedState) {
+        // Calculate viewBox that encompasses all loan positions
+        const pathD = statePaths[focusedState];
+        if (pathD) {
+          const svgBounds = parsePathBounds(pathD);
+          
+          // Get SVG coordinates for all loans - pass stateAbbr and svgBounds
+          const loanSvgPositions = loansWithCoords.map(loan => {
+            return latLngToSvgWithBounds(loan.lat, loan.lng, focusedState, svgBounds);
+          });
+          
+          // Find the bounding box of all loans
+          const minX = Math.min(...loanSvgPositions.map(p => p.x), cluster.centerX);
+          const maxX = Math.max(...loanSvgPositions.map(p => p.x), cluster.centerX);
+          const minY = Math.min(...loanSvgPositions.map(p => p.y), cluster.centerY);
+          const maxY = Math.max(...loanSvgPositions.map(p => p.y), cluster.centerY);
+          
+          // Add padding and ensure minimum size
+          const width = Math.max(maxX - minX, 40);
+          const height = Math.max(maxY - minY, 40);
+          const padding = Math.max(width, height) * 0.5; // 50% padding
+          
+          const clusterBox = `${minX - padding} ${minY - padding} ${width + padding * 2} ${height + padding * 2}`;
+          
+          setIsZooming(true);
+          setViewBox(clusterBox);
+          setTimeout(() => setIsZooming(false), 350);
+        }
+      }
+      
       // Notify parent of cluster selection
       if (onViewChange) {
         onViewChange(focusedState, cluster);
@@ -384,11 +473,55 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
     }
   };
   
-  // Calculate spiderfied positions for loans in selected cluster
-  const spiderfiedLoans = useMemo(() => {
-    if (!selectedCluster || selectedCluster.loans.length === 1) return [];
+  // Calculate loan positions - use actual geographic coordinates when in cluster view
+  const loanPositions = useMemo(() => {
+    if (!selectedCluster) return [];
     
     const loans = selectedCluster.loans;
+    
+    // If we're zoomed into a cluster, show loans at their actual GPS positions
+    if (zoomLevel === 'cluster' && focusedState) {
+      const pathD = statePaths[focusedState];
+      if (!pathD) return [];
+      
+      const svgBounds = parsePathBounds(pathD);
+      
+      return loans.map((loan, idx) => {
+        // Get actual geographic position if available
+        if (loan.lat && loan.lng && loan.lat !== 0 && loan.lng !== 0) {
+          // Pass the state abbreviation and SVG bounds to latLngToSvgWithBounds
+          const pos = latLngToSvgWithBounds(loan.lat, loan.lng, focusedState, svgBounds);
+          return {
+            loan,
+            x: pos.x,
+            y: pos.y,
+            isActualPosition: true,
+          };
+        }
+        
+        // Fallback to cluster center with deterministic offset for loans without coords
+        // Use index for deterministic positioning instead of random
+        const angle = (idx / loans.length) * 2 * Math.PI;
+        const distance = 5 + (idx % 5) * 2;
+        return {
+          loan,
+          x: selectedCluster.centerX + Math.cos(angle) * distance,
+          y: selectedCluster.centerY + Math.sin(angle) * distance,
+          isActualPosition: false,
+        };
+      });
+    }
+    
+    // For state-level view, use spiderfying around cluster center
+    if (loans.length === 1) {
+      return [{
+        loan: loans[0],
+        x: selectedCluster.centerX,
+        y: selectedCluster.centerY,
+        isActualPosition: false,
+      }];
+    }
+    
     const radius = 30 + (loans.length * 2); // Dynamic radius based on count
     const angleStep = (2 * Math.PI) / loans.length;
     
@@ -401,11 +534,10 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
         loan,
         x,
         y,
-        lineX1: selectedCluster.centerX,
-        lineY1: selectedCluster.centerY,
+        isActualPosition: false,
       };
     });
-  }, [selectedCluster]);
+  }, [selectedCluster, zoomLevel, focusedState]);
   
   if (isLoading) {
     return (
@@ -453,16 +585,57 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
         <div className="relative">
           <TooltipProvider>
             <div className="relative">
-              {focusedState && (
-                <div className="absolute top-2 right-2 z-10">
+              {/* Navigation breadcrumb and back button */}
+              {(focusedState || zoomLevel !== 'us') && (
+                <div className="absolute top-2 right-2 z-10 flex items-center gap-2">
+                  {/* Breadcrumb */}
+                  <div className="text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded-md shadow-sm">
+                    <span 
+                      className={zoomLevel !== 'us' ? 'cursor-pointer hover:text-foreground transition-colors' : 'text-foreground font-medium'}
+                      onClick={() => {
+                        if (zoomLevel !== 'us') {
+                          resetToUSView();
+                        }
+                      }}
+                    >
+                      US
+                    </span>
+                    {focusedState && (
+                      <>
+                        <span className="mx-1">/</span>
+                        <span 
+                          className={zoomLevel === 'cluster' ? 'cursor-pointer hover:text-foreground transition-colors' : 'text-foreground font-medium'}
+                          onClick={() => {
+                            if (zoomLevel === 'cluster') {
+                              handleZoomOut();
+                            }
+                          }}
+                        >
+                          {STATE_NAMES[focusedState] || focusedState}
+                        </span>
+                      </>
+                    )}
+                    {selectedCluster && zoomLevel === 'cluster' && (
+                      <>
+                        <span className="mx-1">/</span>
+                        <span className="text-foreground font-medium">
+                          Cluster ({selectedCluster.loans.length} loans)
+                        </span>
+                      </>
+                    )}
+                  </div>
+                  
                   <Button
                     onClick={handleZoomOut}
                     variant="secondary"
                     size="sm"
                     className="shadow-lg"
+                    data-testid="button-zoom-out"
                   >
                     <ZoomOut className="h-4 w-4 mr-2" />
-                    Back to US Map
+                    {zoomLevel === 'cluster' 
+                      ? `Back to ${STATE_NAMES[focusedState!] || focusedState}` 
+                      : 'Back to US Map'}
                   </Button>
                 </div>
               )}
@@ -695,51 +868,86 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
                       );
                     })}
                     
-                    {/* Render spiderfied loans */}
-                    {spiderfiedLoans.map(({ loan, x, y, lineX1, lineY1 }, index) => (
-                      <g key={`spider-${loan.id}`}>
-                        {/* Connection line */}
-                        <line
-                          x1={lineX1}
-                          y1={lineY1}
-                          x2={x}
-                          y2={y}
-                          stroke="#666"
-                          strokeWidth={1}
-                          strokeDasharray="2,2"
-                          opacity={0.5}
-                        />
+                    {/* Render individual loan markers */}
+                    {loanPositions.map(({ loan, x, y, isActualPosition }, index) => (
+                      <g key={`loan-${loan.id}`}>
+                        {/* Connection line from cluster center (only in state-level spiderfy view) */}
+                        {zoomLevel !== 'cluster' && (
+                          <line
+                            x1={selectedCluster!.centerX}
+                            y1={selectedCluster!.centerY}
+                            x2={x}
+                            y2={y}
+                            stroke="#666"
+                            strokeWidth={1}
+                            strokeDasharray="2,2"
+                            opacity={0.5}
+                          />
+                        )}
                         {/* Individual loan marker */}
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <circle
-                              cx={x}
-                              cy={y}
-                              r={6}
-                              fill={getLoanColor(loan)}
-                              stroke="#FFFFFF"
-                              strokeWidth={1.5}
-                              className="cursor-pointer hover:scale-125 transition-transform"
-                            />
+                            <g>
+                              {/* Pulsing background for actual GPS positions */}
+                              {isActualPosition && zoomLevel === 'cluster' && (
+                                <circle
+                                  cx={x}
+                                  cy={y}
+                                  r={3}
+                                  fill={getLoanColor(loan)}
+                                  opacity={0.3}
+                                  className="cluster-pulse"
+                                />
+                              )}
+                              <circle
+                                cx={x}
+                                cy={y}
+                                r={zoomLevel === 'cluster' ? 2 : 6}
+                                fill={getLoanColor(loan)}
+                                stroke="#FFFFFF"
+                                strokeWidth={zoomLevel === 'cluster' ? 0.5 : 1.5}
+                                className="cursor-pointer hover:scale-125 transition-transform"
+                                data-testid={`loan-marker-${loan.id}`}
+                              />
+                            </g>
                           </TooltipTrigger>
                           <TooltipContent side="right" className="bg-card border shadow-lg p-3 max-w-xs">
                             <div className="space-y-2">
                               <p className="font-semibold text-sm">{loan.loanNumber}</p>
                               <p className="text-xs text-muted-foreground">{loan.propertyAddress}</p>
+                              {loan.propertyCity && (
+                                <p className="text-xs text-muted-foreground">
+                                  {loan.propertyCity}, {loan.propertyState} {loan.propertyZip}
+                                </p>
+                              )}
                               <div className="space-y-1 pt-2 border-t border-border">
                                 <p className="text-xs">
                                   <span className="text-muted-foreground">Amount:</span>{' '}
                                   <span className="font-medium">{formatCurrency(loan.loanAmount)}</span>
                                 </p>
                                 <p className="text-xs">
+                                  <span className="text-muted-foreground">Balance:</span>{' '}
+                                  <span className="font-medium">{formatCurrency(loan.currentBalance)}</span>
+                                </p>
+                                <p className="text-xs">
                                   <span className="text-muted-foreground">Rate:</span>{' '}
                                   <span className="font-medium">{loan.interestRate}%</span>
+                                </p>
+                                <p className="text-xs">
+                                  <span className="text-muted-foreground">Type:</span>{' '}
+                                  <span className="font-medium">{loan.loanType}</span>
                                 </p>
                                 <p className="text-xs">
                                   <span className="text-muted-foreground">Borrower:</span>{' '}
                                   <span className="font-medium">{loan.borrowerName}</span>
                                 </p>
                               </div>
+                              {isActualPosition && (
+                                <p className="text-xs text-green-500 flex items-center gap-1 mt-1">
+                                  <MapPin className="h-3 w-3" />
+                                  Actual GPS location
+                                </p>
+                              )}
                             </div>
                           </TooltipContent>
                         </Tooltip>
