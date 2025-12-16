@@ -53,6 +53,7 @@ interface LoanData {
 interface PortfolioGoogleMapProps {
   onLoanSelect?: (loan: LoanData | null) => void;
   onClusterSelect?: (loans: LoanData[], center: { lat: number; lng: number }) => void;
+  onVisibleLoansChange?: (visibleLoans: LoanData[], totalLoans: number) => void;
   className?: string;
 }
 
@@ -394,11 +395,13 @@ function MapLegend() {
 function PortfolioMapInner({ 
   loans,
   onLoanSelect,
-  onClusterSelect
+  onClusterSelect,
+  onVisibleLoansChange
 }: { 
   loans: LoanData[];
   onLoanSelect?: (loan: LoanData | null) => void;
   onClusterSelect?: (loans: LoanData[], center: { lat: number; lng: number }) => void;
+  onVisibleLoansChange?: (visibleLoans: LoanData[], totalLoans: number) => void;
 }) {
   const map = useMap();
   const markersLib = useMapsLibrary("marker");
@@ -406,6 +409,35 @@ function PortfolioMapInner({
   const [clusterInfo, setClusterInfo] = useState<{ loans: LoanData[]; position: google.maps.LatLng } | null>(null);
   const clustererRef = useRef<MarkerClusterer | null>(null);
   const markersRef = useRef<google.maps.marker.AdvancedMarkerElement[]>([]);
+  
+  // Track visible loans based on viewport bounds
+  const updateVisibleLoans = useCallback(() => {
+    if (!map || loans.length === 0) return;
+    
+    const bounds = map.getBounds();
+    if (!bounds) return;
+    
+    const visibleLoans = loans.filter(loan => {
+      if (!loan.lat || !loan.lng) return false;
+      return bounds.contains({ lat: loan.lat, lng: loan.lng });
+    });
+    
+    onVisibleLoansChange?.(visibleLoans, loans.length);
+  }, [map, loans, onVisibleLoansChange]);
+  
+  // Listen to map idle event (fires after zoom/pan completes)
+  useEffect(() => {
+    if (!map) return;
+    
+    const idleListener = map.addListener('idle', updateVisibleLoans);
+    
+    // Initial update
+    updateVisibleLoans();
+    
+    return () => {
+      google.maps.event.removeListener(idleListener);
+    };
+  }, [map, updateVisibleLoans]);
   
   // Create markers and clusterer
   useEffect(() => {
@@ -555,6 +587,7 @@ function PortfolioMapInner({
 export function PortfolioGoogleMap({ 
   onLoanSelect,
   onClusterSelect,
+  onVisibleLoansChange,
   className = ""
 }: PortfolioGoogleMapProps) {
   // Fetch all serviced loans with coordinates
@@ -589,6 +622,7 @@ export function PortfolioGoogleMap({
           loans={validLoans}
           onLoanSelect={onLoanSelect}
           onClusterSelect={onClusterSelect}
+          onVisibleLoansChange={onVisibleLoansChange}
         />
       </Map>
       

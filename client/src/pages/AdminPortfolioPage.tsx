@@ -174,6 +174,8 @@ export default function AdminPortfolioPage() {
   const [, navigate] = useLocation();
   const [selectedState, setSelectedState] = useState<string | null>(null);
   const [selectedCluster, setSelectedCluster] = useState<any | null>(null);
+  const [visibleLoans, setVisibleLoans] = useState<any[]>([]);
+  const [totalLoanCount, setTotalLoanCount] = useState<number>(0);
 
   const { data: portfolio, isLoading, isError: portfolioError } = useQuery<PortfolioData>({
     queryKey: ["/api/admin/analytics/portfolio"],
@@ -334,7 +336,7 @@ export default function AdminPortfolioPage() {
     };
   };
 
-  // Filter portfolio data based on selection (state or cluster)
+  // Filter portfolio data based on visible loans (viewport-based) or selection (cluster)
   const filteredPortfolioData = useMemo(() => {
     if (!effectivePortfolio) return null;
 
@@ -345,6 +347,18 @@ export default function AdminPortfolioPage() {
         return {
           ...aggregates,
           byState: [],
+          monthlyTrend: effectivePortfolio.monthlyTrend || [],
+        };
+      }
+    }
+
+    // If zoomed in (visible loans < total loans), use visible loans for aggregates
+    if (visibleLoans.length > 0 && visibleLoans.length < totalLoanCount) {
+      const aggregates = computeAggregatesFromLoans(visibleLoans);
+      if (aggregates) {
+        return {
+          ...aggregates,
+          byState: effectivePortfolio.byState || [],
           monthlyTrend: effectivePortfolio.monthlyTrend || [],
         };
       }
@@ -374,7 +388,7 @@ export default function AdminPortfolioPage() {
     }
 
     return effectivePortfolio;
-  }, [effectivePortfolio, selectedState, selectedCluster, allPortfolioLoans]);
+  }, [effectivePortfolio, selectedState, selectedCluster, allPortfolioLoans, visibleLoans, totalLoanCount]);
 
   // Process chart data
   const loanTypeData = useMemo(() => {
@@ -500,9 +514,16 @@ export default function AdminPortfolioPage() {
                   <CardHeader className="py-2 px-3">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-sm">Portfolio Concentration</CardTitle>
-                      <Badge variant="outline" className="text-xs">
-                        {filteredPortfolioData?.totalFunded?.count || 0} loans
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        {visibleLoans.length > 0 && visibleLoans.length < totalLoanCount && (
+                          <Badge variant="secondary" className="text-xs bg-amber-500/10 text-amber-600" data-testid="badge-visible-loans">
+                            Viewing {visibleLoans.length} of {totalLoanCount}
+                          </Badge>
+                        )}
+                        <Badge variant="outline" className="text-xs">
+                          {filteredPortfolioData?.totalFunded?.count || 0} loans
+                        </Badge>
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent className="p-0">
@@ -511,7 +532,6 @@ export default function AdminPortfolioPage() {
                         <PortfolioGoogleMap 
                           className="w-full h-full"
                           onLoanSelect={(loan) => {
-                            // Only update the loans list panel - metrics stay based on full portfolio
                             if (loan) {
                               setSelectedCluster({ loans: [loan] });
                             } else {
@@ -519,8 +539,11 @@ export default function AdminPortfolioPage() {
                             }
                           }}
                           onClusterSelect={(loans) => {
-                            // Only update the loans list panel - metrics stay based on full portfolio
                             setSelectedCluster({ loans });
+                          }}
+                          onVisibleLoansChange={(visible, total) => {
+                            setVisibleLoans(visible);
+                            setTotalLoanCount(total);
                           }}
                         />
                       </APIProvider>
