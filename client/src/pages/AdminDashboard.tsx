@@ -229,16 +229,16 @@ export default function AdminDashboard() {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <Link href="/admin/portfolio">
+              <Link href="/admin/analytics">
                 <Button variant="outline" size="sm" data-testid="button-view-pipeline">
-                  <Briefcase className="h-4 w-4 mr-2" />
-                  View Pipeline
+                  <BarChart3 className="h-4 w-4 mr-2" />
+                  Pipeline Analytics
                 </Button>
               </Link>
-              <Link href="/admin/analytics">
-                <Button size="sm" data-testid="button-view-analytics">
-                  <BarChart3 className="h-4 w-4 mr-2" />
-                  Analytics
+              <Link href="/admin/portfolio">
+                <Button size="sm" data-testid="button-view-portfolio">
+                  <Briefcase className="h-4 w-4 mr-2" />
+                  Portfolio Analytics
                 </Button>
               </Link>
             </div>

@@ -59,23 +59,23 @@ const sowUpload = multer({
 export async function registerRoutes(app: Express): Promise<Server> {
   // Serve state map SVGs statically
   app.use('/state_maps', express.static(path.join(process.cwd(), 'attached_assets/state_maps')));
-  
+
   // Local file storage fallback for development (when cloud storage not configured)
   app.use('/local-uploads', express.static(path.join(process.cwd(), 'uploads')));
-  
+
   // Handle local file uploads (PUT requests for development fallback)
   app.put('/local-uploads/*', isAuthenticated, express.raw({ type: '*/*', limit: '50mb' }), async (req: any, res) => {
     try {
       const filePath = req.path.replace('/local-uploads/', '');
       const fullPath = path.join(process.cwd(), 'uploads', filePath);
-      
+
       // Ensure directory exists
       const dir = path.dirname(fullPath);
       const fs = await import('fs');
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
       }
-      
+
       // Write file
       fs.writeFileSync(fullPath, req.body);
       res.status(200).json({ success: true, path: `/local-uploads/${filePath}` });
@@ -84,24 +84,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to save file" });
     }
   });
-  
+
   // Set up authentication
   await setupAuth(app);
-  
+
   // Set up staff local authentication (username/password)
   await setupStaffAuth(app);
-  
+
   // Create test users in development mode only
   // In production, use environment variables or a proper user management system
   if (process.env.NODE_ENV !== 'production') {
     await createAdminUser("admin", "admin");
     const testBorrower = await createTestBorrowerUser("borrower", "borrower");
-    
+
     // Ensure test borrower has a sample loan for testing
     const existingLoans = await storage.getServicedLoans(testBorrower.id);
     if (existingLoans.length === 0) {
       console.log("Creating test loan for borrower user...");
-      
+
       // Create a serviced loan directly (without application to avoid schema issues)
       const closingDate = new Date();
       closingDate.setDate(closingDate.getDate() - 30);
@@ -110,7 +110,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const nextPaymentDate = new Date();
       nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 1);
       nextPaymentDate.setDate(1);
-      
+
       const testLoan = await storage.createServicedLoan({
         userId: testBorrower.id,
         loanNumber: `FF-TEST-${Date.now().toString().slice(-6)}`,
@@ -138,16 +138,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         purchasePrice: 400000,
         arv: 600000,
       });
-      
+
       console.log("Test loan created:", testLoan.loanNumber);
     }
   }
-  
+
   // Seed document types on startup
   await storage.seedDocumentTypes();
 
   // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+  app.get("/api/auth/user", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -162,18 +162,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/leads", async (req, res) => {
     try {
       const validationResult = insertLeadSchema.safeParse(req.body);
-      
+
       if (!validationResult.success) {
         const validationError = fromZodError(validationResult.error);
         const fieldErrors: Record<string, string> = {};
-        
+
         validationResult.error.errors.forEach((err) => {
           if (err.path.length > 0) {
             const fieldName = err.path[0].toString();
             fieldErrors[fieldName] = err.message;
           }
         });
-        
+
         return res.status(400).json({
           error: "Validation failed",
           message: validationError.message,
@@ -182,7 +182,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const lead = await storage.createLead(validationResult.data);
-      
+
       return res.status(201).json({
         message: "Lead created successfully",
         lead,
@@ -218,7 +218,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/search", async (req: any, res) => {
     try {
       const validationResult = searchRequestSchema.safeParse(req.body);
-      
+
       if (!validationResult.success) {
         return res.status(400).json({
           error: "Invalid request",
@@ -227,13 +227,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { query, context } = validationResult.data;
-      
+
       // Get user ID if authenticated (for borrower/admin portal search)
       const userId = req.user?.claims?.sub || req.user?.id;
-      
+
       // Perform context-appropriate search
       const results = await performSearch(query, context, userId, storage);
-      
+
       return res.json(results);
     } catch (error) {
       console.error("Search error:", error);
@@ -263,7 +263,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...req.body,
         userId,
       });
-      
+
       // Create document entries for all required document types
       const docTypes = await storage.getDocumentTypesByLoanType(application.loanType);
       for (const docType of docTypes) {
@@ -273,7 +273,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           status: docType.isRequired === "if_applicable" ? "if_applicable" : "pending",
         });
       }
-      
+
       // Create initial timeline event
       await storage.createTimelineEvent({
         loanApplicationId: application.id,
@@ -281,7 +281,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         title: "Application Created",
         description: `${application.loanType} loan application submitted`,
       });
-      
+
       // Create welcome notification
       await storage.createNotification({
         userId,
@@ -290,7 +290,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: `Your ${application.loanType} loan application has been successfully submitted. We'll be in touch soon!`,
         relatedApplicationId: application.id,
       });
-      
+
       return res.status(201).json(application);
     } catch (error) {
       console.error("Error creating application:", error);
@@ -302,15 +302,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.claims.sub;
       const application = await storage.getLoanApplication(req.params.id);
-      
+
       if (!application) {
         return res.status(404).json({ error: "Application not found" });
       }
-      
+
       if (application.userId !== userId) {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       return res.json(application);
     } catch (error) {
       console.error("Error fetching application:", error);
@@ -323,34 +323,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.claims.sub;
       const application = await storage.getLoanApplication(req.params.id);
-      
+
       if (!application) {
         return res.status(404).json({ error: "Application not found" });
       }
-      
+
       if (application.userId !== userId) {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       // Users can only update certain fields and only on draft applications
       if (application.status !== "draft") {
         return res.status(400).json({ error: "Cannot modify submitted applications" });
       }
-      
+
       // Allow only safe fields to be updated by users
       const allowedFields = [
         "propertyAddress", "propertyCity", "propertyState", "propertyZip",
         "purchasePrice", "loanAmount", "rehabBudget", "arv",
         "guarantor", "entityName", "closingDate",
       ];
-      
+
       const updates: Record<string, any> = {};
       for (const field of allowedFields) {
         if (req.body[field] !== undefined) {
           updates[field] = req.body[field];
         }
       }
-      
+
       const updated = await storage.updateLoanApplication(req.params.id, updates);
       return res.json(updated);
     } catch (error) {
@@ -363,15 +363,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.claims.sub;
       const application = await storage.getLoanApplication(req.params.id);
-      
+
       if (!application) {
         return res.status(404).json({ error: "Application not found" });
       }
-      
+
       if (application.userId !== userId) {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       await storage.deleteLoanApplication(req.params.id);
       return res.json({ success: true });
     } catch (error) {
@@ -385,25 +385,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.claims.sub;
       const application = await storage.getLoanApplication(req.params.id);
-      
+
       if (!application) {
         return res.status(404).json({ error: "Application not found" });
       }
-      
+
       if (application.userId !== userId) {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       if (application.status !== "draft") {
         return res.status(400).json({ error: "Only draft applications can be submitted" });
       }
-      
+
       // Update status to submitted and set processing stage to account review
       const updated = await storage.updateLoanApplication(req.params.id, {
         status: "submitted",
         processingStage: "account_review",
       });
-      
+
       // Create timeline event
       await storage.createTimelineEvent({
         loanApplicationId: req.params.id,
@@ -412,7 +412,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: "Application has been submitted for review by the borrower.",
         createdByUserId: userId,
       });
-      
+
       return res.json(updated);
     } catch (error) {
       console.error("Error submitting application:", error);
@@ -425,18 +425,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.claims.sub;
       const application = await storage.getLoanApplication(req.params.id);
-      
+
       if (!application) {
         return res.status(404).json({ error: "Application not found" });
       }
-      
+
       if (application.userId !== userId) {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       const docs = await storage.getDocumentsByApplication(req.params.id);
       const docTypes = await storage.getDocumentTypes();
-      
+
       // Join document info with document type info
       const documentsWithTypes = docs.map(doc => {
         const docType = docTypes.find(dt => dt.id === doc.documentTypeId);
@@ -445,7 +445,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           documentType: docType,
         };
       });
-      
+
       return res.json(documentsWithTypes);
     } catch (error) {
       console.error("Error fetching documents:", error);
@@ -457,16 +457,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.claims.sub;
       const doc = await storage.getDocument(req.params.id);
-      
+
       if (!doc) {
         return res.status(404).json({ error: "Document not found" });
       }
-      
+
       const application = await storage.getLoanApplication(doc.loanApplicationId);
       if (!application || application.userId !== userId) {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       const updated = await storage.updateDocument(req.params.id, req.body);
       return res.json(updated);
     } catch (error) {
@@ -550,7 +550,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         dealName,
         fileName
       );
-      
+
       res.json({ uploadURL });
     } catch (error: any) {
       console.error("Error getting document upload URL:", error);
@@ -590,7 +590,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/documents/:id/file", isAuthenticated, async (req: any, res) => {
     const userId = req.user?.claims?.sub;
-    
+
     if (!req.body.uploadURL) {
       return res.status(400).json({ error: "uploadURL is required" });
     }
@@ -623,11 +623,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         mimeType: req.body.mimeType || "application/octet-stream",
         uploadedAt: new Date(),
       });
-      
+
       // Get document type name for timeline
       const docTypes = await storage.getDocumentTypes();
       const docType = docTypes.find(dt => dt.id === doc.documentTypeId);
-      
+
       // Create timeline event for document upload
       await storage.createTimelineEvent({
         loanApplicationId: doc.loanApplicationId,
@@ -635,7 +635,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         title: `${docType?.name || "Document"} Uploaded`,
         description: req.body.fileName || "Document uploaded successfully",
       });
-      
+
 
       res.status(200).json(updated);
     } catch (error) {
@@ -672,16 +672,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       const loan = await findLoanByIdOrNumber(req.params.id);
-      
+
       if (!loan) {
         return res.status(404).json({ error: "Loan not found" });
       }
-      
+
       // Staff/admin can view any loan, borrowers can only view their own
       if (loan.userId !== userId && user?.role === "borrower") {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       return res.json(loan);
     } catch (error) {
       console.error("Error fetching serviced loan:", error);
@@ -695,17 +695,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       const loan = await findLoanByIdOrNumber(req.params.id);
-      
+
       if (!loan) {
         return res.status(404).json({ error: "Loan not found" });
       }
-      
+
       if (loan.userId !== userId && user?.role === "borrower") {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       const isBorrower = user?.role === "borrower";
-      
+
       // Fetch all related data
       const [payments, draws, escrowItems, servicingDocuments, milestones] = await Promise.all([
         storage.getLoanPayments(loan.id),
@@ -714,14 +714,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         storage.getLoanDocuments(loan.id),
         storage.getLoanMilestones(loan.id),
       ]);
-      
+
       // Get processing/closing-phase documents from the original application
       let applicationDocuments: any[] = [];
       if (loan.loanApplicationId) {
         const appDocs = await storage.getDocumentsByApplication(loan.loanApplicationId);
         const documentTypes = await storage.getDocumentTypes();
         const docTypeMap = new Map(documentTypes.map(dt => [dt.id, dt]));
-        
+
         // Transform application documents to match LoanDocument format with phase indicator
         // For borrowers, only show documents that have been uploaded (have fileUrl)
         // Staff can see all documents with status metadata
@@ -744,7 +744,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               updatedAt: doc.updatedAt,
               phase: "processing" as const,
             };
-            
+
             // Staff see additional metadata for internal review
             if (!isBorrower) {
               return {
@@ -758,16 +758,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
             return baseDoc;
           });
       }
-      
+
       // Add phase indicator to servicing documents
       const servicingDocsWithPhase = servicingDocuments.map(doc => ({
         ...doc,
         phase: "servicing" as const,
       }));
-      
+
       // Combine both sets of documents, processing docs first (chronologically earlier)
       const combinedDocuments = [...applicationDocuments, ...servicingDocsWithPhase];
-      
+
       return res.json({
         ...loan,
         payments,
@@ -790,15 +790,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       const loan = await storage.getServicedLoan(req.params.loanId);
-      
+
       if (!loan) {
         return res.status(404).json({ error: "Loan not found" });
       }
-      
+
       if (loan.userId !== userId && user?.role === "borrower") {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       const payments = await storage.getLoanPayments(loan.id);
       return res.json(payments);
     } catch (error) {
@@ -811,12 +811,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
-      
+
       // Only staff/admin can create payments
       if (user?.role === "borrower") {
         return res.status(403).json({ error: "Only staff can record payments" });
       }
-      
+
       const payment = await storage.createLoanPayment({
         ...req.body,
         servicedLoanId: req.params.loanId,
@@ -832,11 +832,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
-      
+
       if (user?.role === "borrower") {
         return res.status(403).json({ error: "Only staff can update payments" });
       }
-      
+
       const payment = await storage.updateLoanPayment(req.params.id, req.body);
       return res.json(payment);
     } catch (error) {
@@ -853,15 +853,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       const loan = await storage.getServicedLoan(req.params.loanId);
-      
+
       if (!loan) {
         return res.status(404).json({ error: "Loan not found" });
       }
-      
+
       if (loan.userId !== userId && user?.role === "borrower") {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       const draws = await storage.getLoanDraws(loan.id);
       return res.json(draws);
     } catch (error) {
@@ -874,20 +874,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.claims.sub;
       const loan = await storage.getServicedLoan(req.params.loanId);
-      
+
       if (!loan) {
         return res.status(404).json({ error: "Loan not found" });
       }
-      
+
       // Borrowers can only create draws for their own loans
       if (loan.userId !== userId) {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       // Get existing draws to determine next draw number
       const existingDraws = await storage.getLoanDraws(loan.id);
       const nextDrawNumber = existingDraws.length + 1;
-      
+
       const draw = await storage.createLoanDraw({
         ...req.body,
         servicedLoanId: loan.id,
@@ -906,13 +906,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       const draw = await storage.getLoanDraw(req.params.id);
-      
+
       if (!draw) {
         return res.status(404).json({ error: "Draw not found" });
       }
-      
+
       const loan = await storage.getServicedLoan(draw.servicedLoanId);
-      
+
       // Borrowers can only update draft draws for their own loans
       if (user?.role === "borrower") {
         if (loan?.userId !== userId) {
@@ -922,7 +922,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(403).json({ error: "Can only modify draft or submitted draws" });
         }
       }
-      
+
       const updated = await storage.updateLoanDraw(req.params.id, req.body);
       return res.json(updated);
     } catch (error) {
@@ -936,21 +936,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.claims.sub;
       const draw = await storage.getLoanDraw(req.params.id);
-      
+
       if (!draw) {
         return res.status(404).json({ error: "Draw not found" });
       }
-      
+
       const loan = await storage.getServicedLoan(draw.servicedLoanId);
-      
+
       if (loan?.userId !== userId) {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       if (draw.status !== "draft") {
         return res.status(400).json({ error: "Can only submit draft draws" });
       }
-      
+
       const updated = await storage.updateLoanDraw(req.params.id, {
         status: "submitted",
         requestedDate: new Date(),
@@ -966,21 +966,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.claims.sub;
       const draw = await storage.getLoanDraw(req.params.id);
-      
+
       if (!draw) {
         return res.status(404).json({ error: "Draw not found" });
       }
-      
+
       const loan = await storage.getServicedLoan(draw.servicedLoanId);
-      
+
       if (loan?.userId !== userId) {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       if (draw.status !== "draft") {
         return res.status(400).json({ error: "Can only delete draft draws" });
       }
-      
+
       await storage.deleteLoanDraw(req.params.id);
       return res.json({ success: true });
     } catch (error) {
@@ -997,15 +997,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       const loan = await findLoanByIdOrNumber(req.params.loanId);
-      
+
       if (!loan) {
         return res.status(404).json({ error: "Loan not found" });
       }
-      
+
       if (loan.userId !== userId && user?.role === "borrower") {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       const items = await storage.getScopeOfWorkItems(loan.id);
       return res.json(items);
     } catch (error) {
@@ -1019,26 +1019,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       const loan = await findLoanByIdOrNumber(req.params.loanId);
-      
+
       if (!loan) {
         return res.status(404).json({ error: "Loan not found" });
       }
-      
+
       if (loan.userId !== userId && user?.role === "borrower") {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       const items = await storage.getScopeOfWorkItems(loan.id);
       const draws = await storage.getLoanDraws(loan.id);
       const allDrawLineItems = await storage.getAllDrawLineItemsByLoan(loan.id);
-      
+
       const fundedDraws = draws.filter(d => d.status === "funded" || d.status === "approved")
         .sort((a, b) => a.drawNumber - b.drawNumber);
-      
+
       const itemsWithDraws = items.map(item => {
         const drawAmounts: Record<number, number> = {};
         let totalFunded = 0;
-        
+
         for (const draw of fundedDraws) {
           const lineItem = allDrawLineItems.find(
             li => li.scopeOfWorkItemId === item.id && li.loanDrawId === draw.id
@@ -1047,7 +1047,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           drawAmounts[draw.drawNumber] = amount;
           totalFunded += amount;
         }
-        
+
         return {
           ...item,
           drawAmounts,
@@ -1055,7 +1055,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           remaining: item.budgetAmount - totalFunded,
         };
       });
-      
+
       return res.json({
         items: itemsWithDraws,
         draws: fundedDraws.map(d => ({
@@ -1075,23 +1075,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
-      
+
       if (user?.role === "borrower") {
         return res.status(403).json({ error: "Only staff can perform this action" });
       }
-      
+
       const loan = await storage.getServicedLoan(req.params.loanId);
-      
+
       if (!loan) {
         return res.status(404).json({ error: "Loan not found" });
       }
-      
+
       const validationResult = insertScopeOfWorkItemSchema.safeParse(req.body);
       if (!validationResult.success) {
         const validationError = fromZodError(validationResult.error);
         return res.status(400).json({ error: "Validation failed", message: validationError.message });
       }
-      
+
       const item = await storage.createScopeOfWorkItem({
         ...validationResult.data,
         servicedLoanId: loan.id,
@@ -1107,18 +1107,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
-      
+
       const loan = await storage.getServicedLoan(req.params.loanId);
-      
+
       if (!loan) {
         return res.status(404).json({ error: "Loan not found" });
       }
-      
+
       // Borrowers can only initialize scope for their own loans
       if (user?.role === "borrower" && loan.userId !== userId) {
         return res.status(403).json({ error: "Not authorized to access this loan" });
       }
-      
+
       const items = await storage.initializeScopeOfWork(loan.id);
       return res.json(items);
     } catch (error) {
@@ -1132,30 +1132,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
-      
+
       const loan = await storage.getServicedLoan(req.params.loanId);
-      
+
       if (!loan) {
         return res.status(404).json({ error: "Loan not found" });
       }
-      
+
       // Borrowers can only add scope items for their own loans
       if (user?.role === "borrower" && loan.userId !== userId) {
         return res.status(403).json({ error: "Not authorized to access this loan" });
       }
-      
+
       // Check if scope already has items - prevent duplicate initialization
       const existingItems = await storage.getScopeOfWorkItems(loan.id);
       if (existingItems.length > 0) {
         return res.status(400).json({ error: "Scope of work already has items. Please clear existing items first." });
       }
-      
+
       // Validate items array
       const { items } = req.body;
       if (!Array.isArray(items) || items.length === 0) {
         return res.status(400).json({ error: "Items array is required and must not be empty" });
       }
-      
+
       // Create all scope items
       const createdItems = [];
       for (let i = 0; i < items.length; i++) {
@@ -1165,16 +1165,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           servicedLoanId: loan.id,
           sortOrder: item.sortOrder || i + 1,
         });
-        
+
         if (!validationResult.success) {
           console.error(`Validation failed for item ${i}:`, validationResult.error);
           continue; // Skip invalid items
         }
-        
+
         const created = await storage.createScopeOfWorkItem(validationResult.data);
         createdItems.push(created);
       }
-      
+
       return res.status(201).json({ items: createdItems, count: createdItems.length });
     } catch (error) {
       console.error("Error bulk creating scope of work items:", error);
@@ -1186,23 +1186,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
-      
+
       if (user?.role === "borrower") {
         return res.status(403).json({ error: "Only staff can perform this action" });
       }
-      
+
       const item = await storage.getScopeOfWorkItem(req.params.id);
-      
+
       if (!item) {
         return res.status(404).json({ error: "Scope of work item not found" });
       }
-      
+
       const validationResult = insertScopeOfWorkItemSchema.partial().safeParse(req.body);
       if (!validationResult.success) {
         const validationError = fromZodError(validationResult.error);
         return res.status(400).json({ error: "Validation failed", message: validationError.message });
       }
-      
+
       const updated = await storage.updateScopeOfWorkItem(req.params.id, validationResult.data);
       return res.json(updated);
     } catch (error) {
@@ -1215,17 +1215,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
-      
+
       if (user?.role === "borrower") {
         return res.status(403).json({ error: "Only staff can perform this action" });
       }
-      
+
       const item = await storage.getScopeOfWorkItem(req.params.id);
-      
+
       if (!item) {
         return res.status(404).json({ error: "Scope of work item not found" });
       }
-      
+
       await storage.deleteScopeOfWorkItem(req.params.id);
       return res.json({ success: true });
     } catch (error) {
@@ -1242,15 +1242,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       const application = await storage.getLoanApplication(req.params.applicationId);
-      
+
       if (!application) {
         return res.status(404).json({ error: "Application not found" });
       }
-      
+
       if (application.userId !== userId && user?.role === "borrower") {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       const items = await storage.getApplicationScopeItems(application.id);
       return res.json(items);
     } catch (error) {
@@ -1264,21 +1264,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       const application = await storage.getLoanApplication(req.params.applicationId);
-      
+
       if (!application) {
         return res.status(404).json({ error: "Application not found" });
       }
-      
+
       if (application.userId !== userId && user?.role === "borrower") {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       const validationResult = insertApplicationScopeItemSchema.safeParse(req.body);
       if (!validationResult.success) {
         const validationError = fromZodError(validationResult.error);
         return res.status(400).json({ error: "Validation failed", message: validationError.message });
       }
-      
+
       const item = await storage.createApplicationScopeItem({
         ...validationResult.data,
         loanApplicationId: application.id,
@@ -1294,27 +1294,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
-      
+
       const item = await storage.getApplicationScopeItem(req.params.id);
       if (!item) {
         return res.status(404).json({ error: "Scope item not found" });
       }
-      
+
       const application = await storage.getLoanApplication(item.loanApplicationId);
       if (!application) {
         return res.status(404).json({ error: "Application not found" });
       }
-      
+
       if (application.userId !== userId && user?.role === "borrower") {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       const validationResult = insertApplicationScopeItemSchema.partial().safeParse(req.body);
       if (!validationResult.success) {
         const validationError = fromZodError(validationResult.error);
         return res.status(400).json({ error: "Validation failed", message: validationError.message });
       }
-      
+
       const updated = await storage.updateApplicationScopeItem(req.params.id, validationResult.data);
       return res.json(updated);
     } catch (error) {
@@ -1327,21 +1327,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
-      
+
       const item = await storage.getApplicationScopeItem(req.params.id);
       if (!item) {
         return res.status(404).json({ error: "Scope item not found" });
       }
-      
+
       const application = await storage.getLoanApplication(item.loanApplicationId);
       if (!application) {
         return res.status(404).json({ error: "Application not found" });
       }
-      
+
       if (application.userId !== userId && user?.role === "borrower") {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       await storage.deleteApplicationScopeItem(req.params.id);
       return res.json({ success: true });
     } catch (error) {
@@ -1353,7 +1353,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ============================================
   // SOW FILE UPLOAD & PARSING ROUTES
   // ============================================
-  
+
   // Parse SOW file (returns parsed items for preview, doesn't save yet)
   app.post("/api/sow/parse", isAuthenticated, sowUpload.single("file"), async (req: any, res) => {
     try {
@@ -1362,15 +1362,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { parseMethod = "auto", loanType = "fix_flip" } = req.body;
-      
+
       let result: SOWParseResult;
-      
+
       if (parseMethod === "ai") {
         result = await parseSOWWithAI(req.file.buffer, req.file.mimetype);
       } else {
         result = await parseSOWTemplate(req.file.buffer, req.file.mimetype);
       }
-      
+
       return res.json({
         ...result,
         fileName: req.file.originalname,
@@ -1403,15 +1403,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       const loan = await storage.getServicedLoan(req.params.loanId);
-      
+
       if (!loan) {
         return res.status(404).json({ error: "Loan not found" });
       }
-      
+
       if (loan.userId !== userId && user?.role === "borrower") {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       const lineItems = await storage.getAllDrawLineItemsByLoan(loan.id);
       return res.json(lineItems);
     } catch (error) {
@@ -1428,23 +1428,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       const draw = await storage.getLoanDraw(req.params.drawId);
-      
+
       if (!draw) {
         return res.status(404).json({ error: "Draw not found" });
       }
-      
+
       const loan = await storage.getServicedLoan(draw.servicedLoanId);
-      
+
       if (loan?.userId !== userId && user?.role === "borrower") {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       const lineItems = await storage.getDrawLineItems(draw.id);
-      
+
       // Enrich line items with scope of work item details
       const scopeItems = await storage.getScopeOfWorkItems(draw.servicedLoanId);
       const scopeItemMap = new Map(scopeItems.map(item => [item.id, item]));
-      
+
       const enrichedLineItems = lineItems.map(li => {
         const scopeItem = scopeItemMap.get(li.scopeOfWorkItemId);
         return {
@@ -1454,7 +1454,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           scopeItemBudget: scopeItem?.budgetAmount || 0,
         };
       });
-      
+
       return res.json(enrichedLineItems);
     } catch (error) {
       console.error("Error fetching draw line items:", error);
@@ -1466,27 +1466,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.claims.sub;
       const draw = await storage.getLoanDraw(req.params.drawId);
-      
+
       if (!draw) {
         return res.status(404).json({ error: "Draw not found" });
       }
-      
+
       const loan = await storage.getServicedLoan(draw.servicedLoanId);
-      
+
       if (loan?.userId !== userId) {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       if (draw.status !== "draft") {
         return res.status(400).json({ error: "Can only add line items to draft draws" });
       }
-      
+
       const validationResult = insertDrawLineItemSchema.safeParse(req.body);
       if (!validationResult.success) {
         const validationError = fromZodError(validationResult.error);
         return res.status(400).json({ error: "Validation failed", message: validationError.message });
       }
-      
+
       const lineItem = await storage.createDrawLineItem({
         ...validationResult.data,
         loanDrawId: draw.id,
@@ -1503,28 +1503,28 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     try {
       const userId = req.user.claims.sub;
       const lineItem = await storage.getDrawLineItem(req.params.id);
-      
+
       if (!lineItem) {
         return res.status(404).json({ error: "Draw line item not found" });
       }
-      
+
       const draw = await storage.getLoanDraw(lineItem.loanDrawId);
       const loan = draw ? await storage.getServicedLoan(draw.servicedLoanId) : null;
-      
+
       if (loan?.userId !== userId) {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       if (draw?.status !== "draft") {
         return res.status(400).json({ error: "Can only update line items on draft draws" });
       }
-      
+
       const validationResult = insertDrawLineItemSchema.partial().safeParse(req.body);
       if (!validationResult.success) {
         const validationError = fromZodError(validationResult.error);
         return res.status(400).json({ error: "Validation failed", message: validationError.message });
       }
-      
+
       const updated = await storage.updateDrawLineItem(req.params.id, validationResult.data);
       return res.json(updated);
     } catch (error) {
@@ -1537,22 +1537,22 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     try {
       const userId = req.user.claims.sub;
       const lineItem = await storage.getDrawLineItem(req.params.id);
-      
+
       if (!lineItem) {
         return res.status(404).json({ error: "Draw line item not found" });
       }
-      
+
       const draw = await storage.getLoanDraw(lineItem.loanDrawId);
       const loan = draw ? await storage.getServicedLoan(draw.servicedLoanId) : null;
-      
+
       if (loan?.userId !== userId) {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       if (draw?.status !== "draft") {
         return res.status(400).json({ error: "Can only delete line items from draft draws" });
       }
-      
+
       await storage.deleteDrawLineItem(req.params.id);
       return res.json({ success: true });
     } catch (error) {
@@ -1564,27 +1564,27 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
   // ============================================
   // DRAW PHOTOS ROUTES (Photo Verification)
   // ============================================
-  
+
   // Get photos for a draw
   app.get("/api/loan-draws/:drawId/photos", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       const draw = await storage.getLoanDraw(req.params.drawId);
-      
+
       if (!draw) {
         return res.status(404).json({ error: "Draw not found" });
       }
-      
+
       const loan = await storage.getServicedLoan(draw.servicedLoanId);
       if (!loan) {
         return res.status(404).json({ error: "Loan not found" });
       }
-      
+
       if (loan.userId !== userId && user?.role === "borrower") {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       const photos = await storage.getDrawPhotos(draw.id);
       return res.json(photos);
     } catch (error) {
@@ -1592,39 +1592,39 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       return res.status(500).json({ error: "Failed to fetch photos" });
     }
   });
-  
+
   // Get upload URL for draw photo
   app.post("/api/loan-draws/:drawId/photos/upload-url", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const { fileName } = req.body;
-      
+
       if (!fileName) {
         return res.status(400).json({ error: "fileName is required" });
       }
-      
+
       const draw = await storage.getLoanDraw(req.params.drawId);
       if (!draw) {
         return res.status(404).json({ error: "Draw not found" });
       }
-      
+
       const loan = await storage.getServicedLoan(draw.servicedLoanId);
       if (!loan) {
         return res.status(404).json({ error: "Loan not found" });
       }
-      
+
       if (loan.userId !== userId) {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       const objectStorageService = new ObjectStorageService();
       const dealName = [loan.propertyAddress, loan.propertyCity, loan.propertyState]
         .filter(Boolean)
         .join(", ") || `Loan ${loan.loanNumber}`;
-      
+
       const photoPath = `draw-photos/draw-${draw.drawNumber}/${fileName}`;
       const uploadURL = await objectStorageService.getApplicationDocumentUploadURL(dealName, photoPath);
-      
+
       res.json({ uploadURL });
     } catch (error: any) {
       console.error("Error getting photo upload URL:", error);
@@ -1635,26 +1635,26 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       }
     }
   });
-  
+
   // Create draw photo with server-side EXIF verification
   app.post("/api/loan-draws/:drawId/photos", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const draw = await storage.getLoanDraw(req.params.drawId);
-      
+
       if (!draw) {
         return res.status(404).json({ error: "Draw not found" });
       }
-      
+
       const loan = await storage.getServicedLoan(draw.servicedLoanId);
       if (!loan) {
         return res.status(404).json({ error: "Loan not found" });
       }
-      
+
       if (loan.userId !== userId) {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       const {
         fileKey,
         fileName,
@@ -1671,11 +1671,11 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         durationSeconds,
         thumbnailUrl,
       } = req.body;
-      
+
       if (!fileKey || !fileName) {
         return res.status(400).json({ error: "fileKey and fileName are required" });
       }
-      
+
       // Validate video constraints
       const { PHOTO_VERIFICATION_CONFIG } = await import("@shared/schema");
       if (mediaType === "video") {
@@ -1690,33 +1690,33 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           });
         }
       }
-      
+
       let exifData: { latitude?: number | null; longitude?: number | null; timestamp?: Date | null; cameraModel?: string } = {};
       let verificationStatus: "pending" | "verified" | "outside_geofence" | "stale_timestamp" | "metadata_missing" = "pending";
       let distanceFromPropertyMeters: number | undefined;
       let verificationDetails: string | undefined;
-      
+
       // Only parse EXIF and verify location for photos (not videos)
       if (mediaType === "photo") {
         const { parseExifFromUrl } = await import("./services/exifService");
         const { getOrCreatePropertyLocation, verifyPhotoLocation } = await import("./services/geocodingService");
-        
+
         // Construct the full URL to fetch the uploaded image
         const baseUrl = process.env.REPLIT_DEV_DOMAIN 
           ? `https://${process.env.REPLIT_DEV_DOMAIN}`
           : `http://localhost:${process.env.PORT || 5000}`;
         const imageUrl = `${baseUrl}${fileKey.startsWith('/') ? fileKey : '/objects/' + fileKey}`;
-        
+
         // Parse EXIF from the actual uploaded image
         exifData = await parseExifFromUrl(imageUrl);
-        
+
         const fullAddress = [loan.propertyAddress, loan.propertyCity, loan.propertyState, loan.propertyZip]
           .filter(Boolean)
           .join(", ");
-        
+
         if (fullAddress) {
           const propertyLocation = await getOrCreatePropertyLocation(loan.id, fullAddress);
-          
+
           if (propertyLocation) {
             const verification = verifyPhotoLocation(
               exifData.latitude ?? null,
@@ -1727,7 +1727,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
               propertyLocation.geofenceRadiusMeters,
               PHOTO_VERIFICATION_CONFIG.MAX_PHOTO_AGE_HOURS
             );
-            
+
             verificationStatus = verification.status;
             distanceFromPropertyMeters = verification.distanceMeters;
             verificationDetails = verification.details;
@@ -1744,7 +1744,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         verificationStatus = "pending";
         verificationDetails = "Video upload - manual review required";
       }
-      
+
       const photo = await storage.createDrawPhoto({
         loanDrawId: draw.id,
         uploadedByUserId: userId,
@@ -1772,36 +1772,36 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         verificationDetails,
         verifiedAt: verificationStatus !== "pending" ? new Date() : undefined,
       });
-      
+
       return res.status(201).json(photo);
     } catch (error) {
       console.error("Error creating draw photo:", error);
       return res.status(500).json({ error: "Failed to create photo" });
     }
   });
-  
+
   // Update draw photo (manual verification override by staff)
   app.patch("/api/draw-photos/:id/verify", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
-      
+
       // Only staff/admin can manually verify photos
       if (user?.role === "borrower") {
         return res.status(403).json({ error: "Only staff can manually verify photos" });
       }
-      
+
       const photo = await storage.getDrawPhoto(req.params.id);
       if (!photo) {
         return res.status(404).json({ error: "Photo not found" });
       }
-      
+
       const { newStatus, reason } = req.body;
-      
+
       if (!newStatus || !["manual_approved", "manual_rejected"].includes(newStatus)) {
         return res.status(400).json({ error: "newStatus must be 'manual_approved' or 'manual_rejected'" });
       }
-      
+
       // Create audit record
       await storage.createPhotoVerificationAudit({
         drawPhotoId: photo.id,
@@ -1810,45 +1810,45 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         newStatus,
         reason,
       });
-      
+
       // Update photo status
       const updated = await storage.updateDrawPhoto(photo.id, {
         verificationStatus: newStatus,
         verificationDetails: reason || `Manually ${newStatus === "manual_approved" ? "approved" : "rejected"} by staff`,
         verifiedAt: new Date(),
       });
-      
+
       return res.json(updated);
     } catch (error) {
       console.error("Error updating photo verification:", error);
       return res.status(500).json({ error: "Failed to update photo verification" });
     }
   });
-  
+
   // Delete draw photo
   app.delete("/api/draw-photos/:id", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const photo = await storage.getDrawPhoto(req.params.id);
-      
+
       if (!photo) {
         return res.status(404).json({ error: "Photo not found" });
       }
-      
+
       const draw = await storage.getLoanDraw(photo.loanDrawId);
       const loan = draw ? await storage.getServicedLoan(draw.servicedLoanId) : null;
-      
+
       if (!loan) {
         return res.status(404).json({ error: "Loan not found" });
       }
-      
+
       const user = await storage.getUser(userId);
-      
+
       // Owner can delete their own photos, staff can delete any
       if (photo.uploadedByUserId !== userId && user?.role === "borrower") {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       await storage.deleteDrawPhoto(photo.id);
       return res.json({ success: true });
     } catch (error) {
@@ -1856,18 +1856,18 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       return res.status(500).json({ error: "Failed to delete photo" });
     }
   });
-  
+
   // Get photo verification audits
   app.get("/api/draw-photos/:id/audits", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
-      
+
       // Only staff/admin can view audit history
       if (user?.role === "borrower") {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       const audits = await storage.getPhotoVerificationAudits(req.params.id);
       return res.json(audits);
     } catch (error) {
@@ -1875,26 +1875,26 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       return res.status(500).json({ error: "Failed to fetch audits" });
     }
   });
-  
+
   // Get all photos for a loan (aggregated from all draws) - for admin photo review
   app.get("/api/serviced-loans/:loanId/all-photos", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
-      
+
       // Only staff/admin can view all photos for a loan
       if (user?.role === "borrower") {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       const loan = await storage.getServicedLoan(req.params.loanId);
       if (!loan) {
         return res.status(404).json({ error: "Loan not found" });
       }
-      
+
       // Get all draws for this loan
       const draws = await storage.getLoanDraws(loan.id);
-      
+
       // Get photos for each draw
       const allPhotos: any[] = [];
       for (const draw of draws) {
@@ -1906,46 +1906,46 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           drawStatus: draw.status,
         })));
       }
-      
+
       return res.json(allPhotos);
     } catch (error) {
       console.error("Error fetching all loan photos:", error);
       return res.status(500).json({ error: "Failed to fetch photos" });
     }
   });
-  
+
   // Get property location for a loan
   app.get("/api/serviced-loans/:loanId/property-location", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       const loan = await storage.getServicedLoan(req.params.loanId);
-      
+
       if (!loan) {
         return res.status(404).json({ error: "Loan not found" });
       }
-      
+
       if (loan.userId !== userId && user?.role === "borrower") {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       const location = await storage.getPropertyLocation(loan.id);
-      
+
       if (!location) {
         // Try to geocode if no location exists
         const { getOrCreatePropertyLocation } = await import("./services/geocodingService");
         const fullAddress = [loan.propertyAddress, loan.propertyCity, loan.propertyState, loan.propertyZip]
           .filter(Boolean)
           .join(", ");
-        
+
         if (fullAddress) {
           const newLocation = await getOrCreatePropertyLocation(loan.id, fullAddress);
           return res.json(newLocation);
         }
-        
+
         return res.status(404).json({ error: "Property location not available" });
       }
-      
+
       return res.json(location);
     } catch (error) {
       console.error("Error fetching property location:", error);
@@ -1956,22 +1956,22 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
   // ============================================
   // VERIFICATION PHOTOS ROUTES (Property & Renovation Verification)
   // ============================================
-  
+
   // Get verification photos for an application
   app.get("/api/applications/:applicationId/verification-photos", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       const application = await storage.getLoanApplication(req.params.applicationId);
-      
+
       if (!application) {
         return res.status(404).json({ error: "Application not found" });
       }
-      
+
       if (application.userId !== userId && user?.role === "borrower") {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       const photos = await storage.getVerificationPhotos(application.id);
       return res.json(photos);
     } catch (error) {
@@ -1979,34 +1979,34 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       return res.status(500).json({ error: "Failed to fetch photos" });
     }
   });
-  
+
   // Get upload URL for verification photo
   app.post("/api/applications/:applicationId/verification-photos/upload-url", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const { fileName, photoType } = req.body;
-      
+
       if (!fileName) {
         return res.status(400).json({ error: "fileName is required" });
       }
-      
+
       const application = await storage.getLoanApplication(req.params.applicationId);
       if (!application) {
         return res.status(404).json({ error: "Application not found" });
       }
-      
+
       if (application.userId !== userId) {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       const objectStorageService = new ObjectStorageService();
       const dealName = [application.propertyAddress, application.propertyCity, application.propertyState]
         .filter(Boolean)
         .join(", ") || `Application ${application.id.slice(0, 8)}`;
-      
+
       const photoPath = `verification-photos/${photoType || 'other'}/${fileName}`;
       const uploadURL = await objectStorageService.getApplicationDocumentUploadURL(dealName, photoPath);
-      
+
       res.json({ uploadURL });
     } catch (error: any) {
       console.error("Error getting verification photo upload URL:", error);
@@ -2017,21 +2017,21 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       }
     }
   });
-  
+
   // Create verification photo with GPS double-verification
   app.post("/api/applications/:applicationId/verification-photos", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const application = await storage.getLoanApplication(req.params.applicationId);
-      
+
       if (!application) {
         return res.status(404).json({ error: "Application not found" });
       }
-      
+
       if (application.userId !== userId) {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       const {
         photoType,
         fileKey,
@@ -2045,22 +2045,22 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         gpsPermissionDenied,
         notes,
       } = req.body;
-      
+
       if (!fileKey || !fileName || !photoType) {
         return res.status(400).json({ error: "fileKey, fileName, and photoType are required" });
       }
-      
+
       // Parse EXIF from the uploaded image
       const { parseExifFromUrl } = await import("./services/exifService");
       const { verifyPhotoLocation, parseGPSCoordinate } = await import("./services/locationVerification");
-      
+
       const baseUrl = process.env.REPLIT_DEV_DOMAIN 
         ? `https://${process.env.REPLIT_DEV_DOMAIN}`
         : `http://localhost:${process.env.PORT || 5000}`;
       const imageUrl = `${baseUrl}${fileKey.startsWith('/') ? fileKey : '/objects/' + fileKey}`;
-      
+
       const exifData = await parseExifFromUrl(imageUrl);
-      
+
       // Build GPS data objects for verification
       const browserGPS = browserLatitude && browserLongitude ? {
         latitude: parseFloat(browserLatitude),
@@ -2068,14 +2068,14 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         accuracy: browserAccuracyMeters,
         timestamp: browserCapturedAt ? new Date(browserCapturedAt) : undefined,
       } : null;
-      
+
       const exifGPS = exifData.latitude && exifData.longitude ? {
         latitude: exifData.latitude,
         longitude: exifData.longitude,
         altitude: exifData.altitude,
         timestamp: exifData.timestamp,
       } : null;
-      
+
       // Try to get property location for geofence checking
       let propertyGPS = null;
       if (application.propertyAddress && application.propertyCity && application.propertyState) {
@@ -2092,7 +2092,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           };
         }
       }
-      
+
       // Perform GPS double-verification
       const verificationResult = verifyPhotoLocation(
         browserGPS,
@@ -2100,7 +2100,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         propertyGPS,
         exifData.timestamp ?? undefined
       );
-      
+
       const photo = await storage.createVerificationPhoto({
         loanApplicationId: application.id,
         uploadedByUserId: userId,
@@ -2128,41 +2128,41 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         verificationDetails: verificationResult.verificationDetails,
         verifiedAt: verificationResult.status === "verified" ? new Date() : undefined,
       });
-      
+
       return res.status(201).json(photo);
     } catch (error) {
       console.error("Error creating verification photo:", error);
       return res.status(500).json({ error: "Failed to create photo" });
     }
   });
-  
+
   // Delete verification photo
   app.delete("/api/verification-photos/:id", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const photo = await storage.getVerificationPhoto(req.params.id);
-      
+
       if (!photo) {
         return res.status(404).json({ error: "Photo not found" });
       }
-      
+
       if (!photo.loanApplicationId) {
         return res.status(400).json({ error: "Photo has no associated application" });
       }
-      
+
       const application = await storage.getLoanApplication(photo.loanApplicationId);
-      
+
       if (!application) {
         return res.status(404).json({ error: "Application not found" });
       }
-      
+
       const user = await storage.getUser(userId);
-      
+
       // Owner can delete their own photos, staff can delete any
       if (photo.uploadedByUserId !== userId && user?.role === "borrower") {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       await storage.deleteVerificationPhoto(photo.id);
       return res.json({ success: true });
     } catch (error) {
@@ -2179,15 +2179,15 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       const loan = await storage.getServicedLoan(req.params.loanId);
-      
+
       if (!loan) {
         return res.status(404).json({ error: "Loan not found" });
       }
-      
+
       if (loan.userId !== userId && user?.role === "borrower") {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       const escrowItems = await storage.getLoanEscrowItems(loan.id);
       return res.json(escrowItems);
     } catch (error) {
@@ -2204,27 +2204,27 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       const loan = await storage.getServicedLoan(req.params.loanId);
-      
+
       if (!loan) {
         return res.status(404).json({ error: "Loan not found" });
       }
-      
+
       if (loan.userId !== userId && user?.role === "borrower") {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       const isBorrower = user?.role === "borrower";
-      
+
       // Get servicing-phase documents
       const servicingDocuments = await storage.getLoanDocuments(loan.id);
-      
+
       // Get processing/closing-phase documents from the original application
       let applicationDocuments: any[] = [];
       if (loan.loanApplicationId) {
         const appDocs = await storage.getDocumentsByApplication(loan.loanApplicationId);
         const documentTypes = await storage.getDocumentTypes();
         const docTypeMap = new Map(documentTypes.map(dt => [dt.id, dt]));
-        
+
         // Transform application documents to match LoanDocument format with phase indicator
         // For borrowers, only show documents that have been uploaded (have fileUrl)
         // Staff can see all documents with status metadata
@@ -2247,7 +2247,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
               updatedAt: doc.updatedAt,
               phase: "processing" as const,
             };
-            
+
             // Staff see additional metadata for internal review
             if (!isBorrower) {
               return {
@@ -2261,16 +2261,16 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
             return baseDoc;
           });
       }
-      
+
       // Add phase indicator to servicing documents
       const servicingDocsWithPhase = servicingDocuments.map(doc => ({
         ...doc,
         phase: "servicing" as const,
       }));
-      
+
       // Combine both sets of documents, processing docs first (chronologically earlier)
       const allDocuments = [...applicationDocuments, ...servicingDocsWithPhase];
-      
+
       return res.json(allDocuments);
     } catch (error) {
       console.error("Error fetching loan documents:", error);
@@ -2282,11 +2282,11 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     try {
       const userId = req.user.claims.sub;
       const loan = await storage.getServicedLoan(req.params.loanId);
-      
+
       if (!loan) {
         return res.status(404).json({ error: "Loan not found" });
       }
-      
+
       const document = await storage.createLoanDocument({
         ...req.body,
         servicedLoanId: loan.id,
@@ -2307,15 +2307,15 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       const loan = await storage.getServicedLoan(req.params.loanId);
-      
+
       if (!loan) {
         return res.status(404).json({ error: "Loan not found" });
       }
-      
+
       if (loan.userId !== userId && user?.role === "borrower") {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       const milestones = await storage.getLoanMilestones(loan.id);
       return res.json(milestones);
     } catch (error) {
@@ -2328,11 +2328,11 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
-      
+
       if (user?.role === "borrower") {
         return res.status(403).json({ error: "Only staff can update milestones" });
       }
-      
+
       const milestone = await storage.updateLoanMilestone(req.params.id, req.body);
       return res.json(milestone);
     } catch (error) {
@@ -2345,30 +2345,30 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
   // SERVICING API ROUTES (Alternative endpoints)
   // These provide /api/servicing/:loanId/* pattern
   // ============================================
-  
+
   // GET /api/servicing/:loanId/payments - list payments with pagination
   app.get("/api/servicing/:loanId/payments", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       const loan = await storage.getServicedLoan(req.params.loanId);
-      
+
       if (!loan) {
         return res.status(404).json({ error: "Loan not found" });
       }
-      
+
       if (loan.userId !== userId && user?.role === "borrower") {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       const payments = await storage.getLoanPayments(loan.id);
-      
+
       // Calculate summary stats
       const completedPayments = payments.filter(p => p.status === "completed" || p.status === "partial");
       const totalPaid = completedPayments.reduce((sum, p) => sum + (p.paidAmount || 0), 0);
       const totalPrincipalPaid = completedPayments.reduce((sum, p) => sum + (p.principalAmount || 0), 0);
       const totalInterestPaid = completedPayments.reduce((sum, p) => sum + (p.interestAmount || 0), 0);
-      
+
       return res.json({
         payments,
         summary: {
@@ -2387,33 +2387,33 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       return res.status(500).json({ error: "Failed to fetch payments" });
     }
   });
-  
+
   // POST /api/servicing/:loanId/payments - record payment (admin only)
   app.post("/api/servicing/:loanId/payments", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
-      
+
       if (user?.role === "borrower") {
         return res.status(403).json({ error: "Only staff can record payments" });
       }
-      
+
       const loan = await storage.getServicedLoan(req.params.loanId);
       if (!loan) {
         return res.status(404).json({ error: "Loan not found" });
       }
-      
+
       // Get existing payments to determine next payment number
       const existingPayments = await storage.getLoanPayments(loan.id);
       const nextPaymentNumber = existingPayments.length + 1;
-      
+
       const payment = await storage.createLoanPayment({
         ...req.body,
         servicedLoanId: loan.id,
         paymentNumber: nextPaymentNumber,
         status: req.body.status || "completed",
       });
-      
+
       // Update loan balance if payment is completed
       if (payment.status === "completed" && payment.principalAmount) {
         const newBalance = (loan.currentBalance || 0) - payment.principalAmount;
@@ -2425,37 +2425,37 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           totalInterestPaid: (loan.totalInterestPaid || 0) + (payment.interestAmount || 0),
         });
       }
-      
+
       return res.status(201).json(payment);
     } catch (error) {
       console.error("Error creating payment:", error);
       return res.status(500).json({ error: "Failed to create payment" });
     }
   });
-  
+
   // GET /api/servicing/:loanId/draws - list draws
   app.get("/api/servicing/:loanId/draws", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       const loan = await storage.getServicedLoan(req.params.loanId);
-      
+
       if (!loan) {
         return res.status(404).json({ error: "Loan not found" });
       }
-      
+
       if (loan.userId !== userId && user?.role === "borrower") {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       const draws = await storage.getLoanDraws(loan.id);
-      
+
       // Calculate summary stats
       const fundedDraws = draws.filter(d => d.status === "funded");
       const pendingDraws = draws.filter(d => ["submitted", "inspection_scheduled", "inspection_complete", "approved"].includes(d.status));
       const totalFunded = fundedDraws.reduce((sum, d) => sum + (d.fundedAmount || 0), 0);
       const totalPending = pendingDraws.reduce((sum, d) => sum + d.requestedAmount, 0);
-      
+
       return res.json({
         draws,
         summary: {
@@ -2474,26 +2474,26 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       return res.status(500).json({ error: "Failed to fetch draws" });
     }
   });
-  
+
   // POST /api/servicing/:loanId/draws - submit draw request
   app.post("/api/servicing/:loanId/draws", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const loan = await storage.getServicedLoan(req.params.loanId);
-      
+
       if (!loan) {
         return res.status(404).json({ error: "Loan not found" });
       }
-      
+
       // Borrowers can only create draws for their own loans
       if (loan.userId !== userId) {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       // Get existing draws to determine next draw number
       const existingDraws = await storage.getLoanDraws(loan.id);
       const nextDrawNumber = existingDraws.length + 1;
-      
+
       const draw = await storage.createLoanDraw({
         ...req.body,
         servicedLoanId: loan.id,
@@ -2501,30 +2501,30 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         status: req.body.status || "draft",
         requestedDate: new Date(),
       });
-      
+
       return res.status(201).json(draw);
     } catch (error) {
       console.error("Error creating draw:", error);
       return res.status(500).json({ error: "Failed to create draw" });
     }
   });
-  
+
   // PATCH /api/servicing/:loanId/draws/:drawId - update draw status (admin)
   app.patch("/api/servicing/:loanId/draws/:drawId", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       const draw = await storage.getLoanDraw(req.params.drawId);
-      
+
       if (!draw) {
         return res.status(404).json({ error: "Draw not found" });
       }
-      
+
       const loan = await storage.getServicedLoan(req.params.loanId);
       if (!loan || draw.servicedLoanId !== loan.id) {
         return res.status(404).json({ error: "Loan not found or draw mismatch" });
       }
-      
+
       // Staff can update any field, borrowers can only update draft draws
       if (user?.role === "borrower") {
         if (loan.userId !== userId) {
@@ -2534,9 +2534,9 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           return res.status(403).json({ error: "Can only modify draft draws" });
         }
       }
-      
+
       const updateData: any = { ...req.body };
-      
+
       // Handle status transitions for admin
       if (user?.role !== "borrower") {
         if (req.body.status === "approved") {
@@ -2549,13 +2549,13 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           const unverifiedPhotos = drawPhotos.filter(p => 
             !["verified", "manual_approved"].includes(p.verificationStatus)
           );
-          
+
           if (unverifiedPhotos.length > 0) {
             const rejectedCount = unverifiedPhotos.filter(p => p.verificationStatus === "manual_rejected").length;
             const pendingCount = unverifiedPhotos.filter(p => 
               ["pending", "outside_geofence", "stale_timestamp", "metadata_missing"].includes(p.verificationStatus)
             ).length;
-            
+
             let message = "Cannot fund draw - photo verification required. ";
             if (rejectedCount > 0) {
               message += `${rejectedCount} photo(s) have been rejected. `;
@@ -2563,7 +2563,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
             if (pendingCount > 0) {
               message += `${pendingCount} photo(s) need review/approval.`;
             }
-            
+
             return res.status(400).json({ 
               error: "Photo verification required",
               message,
@@ -2572,10 +2572,10 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
               pendingCount,
             });
           }
-          
+
           updateData.fundedDate = new Date();
           updateData.fundedAmount = req.body.fundedAmount || updateData.approvedAmount || draw.requestedAmount;
-          
+
           // Update loan totals
           const fundedAmount = updateData.fundedAmount;
           await storage.updateServicedLoan(loan.id, {
@@ -2588,7 +2588,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           updateData.deniedReason = req.body.deniedReason || req.body.notes;
         }
       }
-      
+
       const updated = await storage.updateLoanDraw(req.params.drawId, updateData);
       return res.json(updated);
     } catch (error) {
@@ -2596,47 +2596,47 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       return res.status(500).json({ error: "Failed to update draw" });
     }
   });
-  
+
   // GET /api/servicing/:loanId/payoff - calculate payoff amount
   app.get("/api/servicing/:loanId/payoff", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       const loan = await storage.getServicedLoan(req.params.loanId);
-      
+
       if (!loan) {
         return res.status(404).json({ error: "Loan not found" });
       }
-      
+
       if (loan.userId !== userId && user?.role === "borrower") {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       // Parse payoff date from query or default to today
       const payoffDateStr = req.query.payoffDate as string;
       const payoffDate = payoffDateStr ? new Date(payoffDateStr) : new Date();
-      
+
       // Calculate days until payoff
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       payoffDate.setHours(0, 0, 0, 0);
       const daysUntilPayoff = Math.ceil((payoffDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-      
+
       // Calculate per diem interest
       const annualRate = parseFloat(loan.interestRate) / 100;
       const perDiemInterest = Math.round((loan.currentBalance * annualRate) / 365);
-      
+
       // Calculate accrued interest
       const accruedInterest = perDiemInterest * Math.max(0, daysUntilPayoff);
-      
+
       // Outstanding fees (from past due payments)
       const payments = await storage.getLoanPayments(loan.id);
       const latePayments = payments.filter(p => p.status === "late");
       const outstandingFees = latePayments.reduce((sum, p) => sum + (p.lateFee || 0) + (p.otherFees || 0), 0);
-      
+
       // Total payoff amount
       const totalPayoff = loan.currentBalance + accruedInterest + outstandingFees;
-      
+
       return res.json({
         payoffDate: payoffDate.toISOString(),
         daysUntilPayoff: Math.max(0, daysUntilPayoff),
@@ -2654,21 +2654,21 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       return res.status(500).json({ error: "Failed to calculate payoff" });
     }
   });
-  
+
   // POST /api/servicing/:loanId/payoff-request - request payoff statement (creates timeline event)
   app.post("/api/servicing/:loanId/payoff-request", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const loan = await storage.getServicedLoan(req.params.loanId);
-      
+
       if (!loan) {
         return res.status(404).json({ error: "Loan not found" });
       }
-      
+
       if (loan.userId !== userId) {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       // Create a notification for staff
       await storage.createNotification({
         userId,
@@ -2676,7 +2676,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         title: "Payoff Statement Requested",
         message: `Payoff statement requested for loan ${loan.loanNumber}. Requested payoff date: ${req.body.payoffDate || 'As soon as possible'}`,
       });
-      
+
       return res.json({ 
         success: true,
         message: "Payoff statement request submitted. You will be notified when it's ready.",
@@ -2776,15 +2776,15 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     try {
       const userId = req.user.claims.sub;
       const scenario = await storage.getSavedScenario(req.params.id);
-      
+
       if (!scenario) {
         return res.status(404).json({ error: "Scenario not found" });
       }
-      
+
       if (scenario.userId !== userId) {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       return res.json(scenario);
     } catch (error) {
       console.error("Error fetching scenario:", error);
@@ -2810,15 +2810,15 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     try {
       const userId = req.user.claims.sub;
       const scenario = await storage.getSavedScenario(req.params.id);
-      
+
       if (!scenario) {
         return res.status(404).json({ error: "Scenario not found" });
       }
-      
+
       if (scenario.userId !== userId) {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       const updated = await storage.updateSavedScenario(req.params.id, req.body);
       return res.json(updated);
     } catch (error) {
@@ -2831,15 +2831,15 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     try {
       const userId = req.user.claims.sub;
       const scenario = await storage.getSavedScenario(req.params.id);
-      
+
       if (!scenario) {
         return res.status(404).json({ error: "Scenario not found" });
       }
-      
+
       if (scenario.userId !== userId) {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       await storage.deleteSavedScenario(req.params.id);
       return res.json({ success: true });
     } catch (error) {
@@ -2894,15 +2894,15 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     try {
       const userId = req.user.claims.sub;
       const entity = await storage.getConnectedEntity(req.params.id);
-      
+
       if (!entity) {
         return res.status(404).json({ error: "Entity not found" });
       }
-      
+
       if (entity.userId !== userId) {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       return res.json(entity);
     } catch (error) {
       console.error("Error fetching entity:", error);
@@ -2928,15 +2928,15 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     try {
       const userId = req.user.claims.sub;
       const entity = await storage.getConnectedEntity(req.params.id);
-      
+
       if (!entity) {
         return res.status(404).json({ error: "Entity not found" });
       }
-      
+
       if (entity.userId !== userId) {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       const updated = await storage.updateConnectedEntity(req.params.id, req.body);
       return res.json(updated);
     } catch (error) {
@@ -2949,15 +2949,15 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     try {
       const userId = req.user.claims.sub;
       const entity = await storage.getConnectedEntity(req.params.id);
-      
+
       if (!entity) {
         return res.status(404).json({ error: "Entity not found" });
       }
-      
+
       if (entity.userId !== userId) {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       await storage.deleteConnectedEntity(req.params.id);
       return res.json({ success: true });
     } catch (error) {
@@ -2998,15 +2998,15 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     try {
       const userId = req.user.claims.sub;
       const signature = await storage.getDocumentSignature(req.params.id);
-      
+
       if (!signature) {
         return res.status(404).json({ error: "Signature not found" });
       }
-      
+
       if (signature.signerId !== userId) {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       const updated = await storage.updateDocumentSignature(req.params.id, {
         ...req.body,
         signedAt: req.body.status === "signed" ? new Date() : undefined,
@@ -3072,7 +3072,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
 
       // Send signature request email - use token-based URL for security
       const signingUrl = `${getPortalUrl()}/sign/${accessToken}`;
-      
+
       if (signerUserId && await shouldSendEmail(signerUserId)) {
         try {
           await sendEmail({
@@ -3608,7 +3608,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
 
       // Send new email
       const signingUrl = `${getPortalUrl()}/sign/${request.id}?token=${newAccessToken}`;
-      
+
       if (request.signerUserId && await shouldSendEmail(request.signerUserId)) {
         await sendEmail({
           to: request.signerEmail,
@@ -3670,29 +3670,29 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       const document = await storage.getDocument(req.params.id);
-      
+
       if (!document) {
         return res.status(404).json({ error: "Document not found" });
       }
-      
+
       const comment = await storage.createDocumentComment({
         documentId: req.params.id,
         userId,
         content: req.body.content,
         isInternal: req.body.isInternal || false,
       });
-      
+
       // Get document type info for the notification
       const docTypes = await storage.getDocumentTypes();
       const docType = docTypes.find(dt => dt.id === document.documentTypeId);
-      
+
       // Get the loan application for context
       const application = await storage.getLoanApplication(document.loanApplicationId);
-      
+
       if (application) {
         // Get the application owner for notification
         const appOwner = await storage.getUser(application.userId);
-        
+
         // Create in-app notification for the application owner (if commenter is not the owner)
         if (application.userId !== userId) {
           await storage.createNotification({
@@ -3704,7 +3704,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
             relatedApplicationId: application.id,
           });
         }
-        
+
         // Send webhook notification to CRM
         const webhookUrl = process.env.CRM_WEBHOOK_URL;
         if (webhookUrl) {
@@ -3726,7 +3726,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
               isInternal: comment.isInternal,
             },
           };
-          
+
           fetch(webhookUrl, {
             method: "POST",
             headers: {
@@ -3740,7 +3740,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
             body: JSON.stringify(payload),
           }).catch(err => console.error("[Webhook] Error sending notification:", err));
         }
-        
+
         // Create timeline event
         await storage.createTimelineEvent({
           loanApplicationId: application.id,
@@ -3750,13 +3750,13 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           createdByUserId: userId,
         });
       }
-      
+
       // Return comment with user info
       const commentWithUser = {
         ...comment,
         user: user || null,
       };
-      
+
       return res.status(201).json(commentWithUser);
     } catch (error) {
       console.error("Error creating comment:", error);
@@ -3768,15 +3768,15 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     try {
       const userId = req.user.claims.sub;
       const comment = await storage.getDocumentComment(req.params.id);
-      
+
       if (!comment) {
         return res.status(404).json({ error: "Comment not found" });
       }
-      
+
       if (comment.userId !== userId) {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       const updated = await storage.updateDocumentComment(req.params.id, {
         content: req.body.content,
       });
@@ -3791,15 +3791,15 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     try {
       const userId = req.user.claims.sub;
       const comment = await storage.getDocumentComment(req.params.id);
-      
+
       if (!comment) {
         return res.status(404).json({ error: "Comment not found" });
       }
-      
+
       if (comment.userId !== userId) {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       await storage.deleteDocumentComment(req.params.id);
       return res.json({ success: true });
     } catch (error) {
@@ -3815,15 +3815,15 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     try {
       const userId = req.user.claims.sub;
       const application = await storage.getLoanApplication(req.params.id);
-      
+
       if (!application) {
         return res.status(404).json({ error: "Application not found" });
       }
-      
+
       if (application.userId !== userId) {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       const coBorrowers = await storage.getCoBorrowers(req.params.id);
       return res.json(coBorrowers);
     } catch (error) {
@@ -3836,15 +3836,15 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     try {
       const userId = req.user.claims.sub;
       const application = await storage.getLoanApplication(req.params.id);
-      
+
       if (!application) {
         return res.status(404).json({ error: "Application not found" });
       }
-      
+
       if (application.userId !== userId) {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       const inviteToken = crypto.randomBytes(32).toString("hex");
       const coBorrower = await storage.createCoBorrower({
         loanApplicationId: req.params.id,
@@ -3853,7 +3853,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         role: req.body.role || "co_borrower",
         inviteToken,
       });
-      
+
       // Create notification for the invited user (if they exist)
       await storage.createNotification({
         userId,
@@ -3862,7 +3862,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         message: `You invited ${req.body.email} as a ${req.body.role || "co-borrower"} on your loan application.`,
         relatedApplicationId: req.params.id,
       });
-      
+
       // Create timeline event
       await storage.createTimelineEvent({
         loanApplicationId: req.params.id,
@@ -3871,7 +3871,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         description: `${req.body.email} was invited as a ${req.body.role || "co-borrower"}`,
         createdByUserId: userId,
       });
-      
+
       return res.status(201).json(coBorrower);
     } catch (error) {
       console.error("Error creating co-borrower:", error);
@@ -3883,17 +3883,17 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     try {
       const userId = req.user.claims.sub;
       const coBorrower = await storage.getCoBorrowerByToken(req.params.token);
-      
+
       if (!coBorrower) {
         return res.status(404).json({ error: "Invite not found or expired" });
       }
-      
+
       const updated = await storage.updateCoBorrower(coBorrower.id, {
         status: "accepted",
         invitedUserId: userId,
         acceptedAt: new Date(),
       });
-      
+
       // Notify the original inviter
       await storage.createNotification({
         userId: coBorrower.invitedByUserId,
@@ -3902,7 +3902,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         message: `${coBorrower.invitedEmail} has accepted your invitation to join your loan application.`,
         relatedApplicationId: coBorrower.loanApplicationId,
       });
-      
+
       return res.json(updated);
     } catch (error) {
       console.error("Error accepting co-borrower invite:", error);
@@ -3914,10 +3914,10 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     try {
       const userId = req.user.claims.sub;
       const coBorrower = await storage.getCoBorrowers(req.params.id);
-      
+
       // Verify the user owns the application
       // (simplified - in production you'd check properly)
-      
+
       await storage.deleteCoBorrower(req.params.id);
       return res.json({ success: true });
     } catch (error) {
@@ -3933,15 +3933,15 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     try {
       const userId = req.user.claims.sub;
       const application = await storage.getLoanApplication(req.params.id);
-      
+
       if (!application) {
         return res.status(404).json({ error: "Application not found" });
       }
-      
+
       if (application.userId !== userId) {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       const timeline = await storage.getApplicationTimeline(req.params.id);
       return res.json(timeline);
     } catch (error) {
@@ -3954,15 +3954,15 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     try {
       const userId = req.user.claims.sub;
       const application = await storage.getLoanApplication(req.params.id);
-      
+
       if (!application) {
         return res.status(404).json({ error: "Application not found" });
       }
-      
+
       if (application.userId !== userId) {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       const event = await storage.createTimelineEvent({
         loanApplicationId: req.params.id,
         eventType: req.body.eventType,
@@ -3985,11 +3985,11 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     try {
       const { stateSlug } = req.params;
       const state = getStateBySlug(stateSlug);
-      
+
       if (!state) {
         return res.status(404).json({ error: "State not found" });
       }
-      
+
       const marketData = await getMarketData(stateSlug);
       return res.json(marketData);
     } catch (error) {
@@ -4028,10 +4028,10 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     try {
       const { address } = req.params;
       const purchasePrice = req.query.purchasePrice ? parseFloat(req.query.purchasePrice as string) : undefined;
-      
+
       const decodedAddress = decodeURIComponent(address);
       const propertyValue = await getPropertyValue(decodedAddress, purchasePrice);
-      
+
       return res.json(propertyValue);
     } catch (error) {
       console.error("Error fetching property value:", error);
@@ -4043,18 +4043,18 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
   app.get("/api/property-lookup", async (req, res) => {
     try {
       const { address, city, state, zip } = req.query;
-      
+
       if (!address || typeof address !== "string") {
         return res.status(400).json({ error: "Address is required" });
       }
-      
+
       const propertyData = await getPropertyLookup(
         address,
         city as string | undefined,
         state as string | undefined,
         zip as string | undefined
       );
-      
+
       return res.json(propertyData);
     } catch (error) {
       console.error("Error fetching property lookup:", error);
@@ -4065,7 +4065,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
   // ============================================
   // ADMIN / STAFF ROUTES
   // ============================================
-  
+
   // Middleware to check if user is staff or admin
   const isStaff = async (req: any, res: any, next: any) => {
     try {
@@ -4073,12 +4073,12 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       if (!userId) {
         return res.status(401).json({ error: "Authentication required" });
       }
-      
+
       const user = await storage.getUser(userId);
       if (!user || (user.role !== "staff" && user.role !== "admin")) {
         return res.status(403).json({ error: "Staff access required" });
       }
-      
+
       req.staffUser = user;
       next();
     } catch (error) {
@@ -4086,7 +4086,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       return res.status(500).json({ error: "Internal server error" });
     }
   };
-  
+
   // Middleware to check if user is admin
   const isAdmin = async (req: any, res: any, next: any) => {
     try {
@@ -4094,12 +4094,12 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       if (!userId) {
         return res.status(401).json({ error: "Authentication required" });
       }
-      
+
       const user = await storage.getUser(userId);
       if (!user || user.role !== "admin") {
         return res.status(403).json({ error: "Admin access required" });
       }
-      
+
       req.adminUser = user;
       next();
     } catch (error) {
@@ -4107,7 +4107,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       return res.status(500).json({ error: "Internal server error" });
     }
   };
-  
+
   // Middleware to check if user is staff or admin
   const isStaffOrAdmin = async (req: any, res: any, next: any) => {
     try {
@@ -4115,12 +4115,12 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       if (!userId) {
         return res.status(401).json({ error: "Authentication required" });
       }
-      
+
       const user = await storage.getUser(userId);
       if (!user || (user.role !== "staff" && user.role !== "admin")) {
         return res.status(403).json({ error: "Staff or Admin access required" });
       }
-      
+
       req.staffUser = user;
       next();
     } catch (error) {
@@ -4133,11 +4133,11 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
   app.get('/api/admin/analytics/portfolio-loans/:state', isAuthenticated, isStaff, async (req: any, res) => {
     try {
       const { state } = req.params;
-      
+
       // Get all serviced loans for the state
       const loans = await storage.getAllServicedLoans();
       const stateLoans = loans.filter(loan => loan.propertyState === state);
-      
+
       // Fetch property locations for geocoded coordinates
       const loanIds = stateLoans.map(l => l.id);
       const locations = await Promise.all(
@@ -4146,18 +4146,18 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           return { loanId, location };
         })
       );
-      
+
       const locationMap = new Map(
         locations
           .filter(({ location }) => location !== null)
           .map(({ loanId, location }) => [loanId, location])
       );
-      
+
       // Build response with loan details and coordinates
       const result = await Promise.all(stateLoans.map(async (loan) => {
         const user = await storage.getUser(loan.userId);
         const location = locationMap.get(loan.id);
-        
+
         return {
           id: loan.id,
           loanNumber: loan.loanNumber,
@@ -4176,10 +4176,10 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           lng: location ? parseFloat(location.longitude) : null,
         };
       }));
-      
+
       // Filter out loans without coordinates
       const loansWithCoords = result.filter(loan => loan.lat !== null && loan.lng !== null);
-      
+
       res.json(loansWithCoords);
     } catch (error) {
       console.error('Portfolio loans error:', error);
@@ -4192,10 +4192,10 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     try {
       const { state } = req.params;
       const allLoans = await storage.getAllServicedLoans();
-      
+
       // Filter loans by state
       const stateLoans = allLoans.filter(loan => loan.propertyState === state);
-      
+
       // Map to loan data format with coordinates
       const loanData = stateLoans.map(loan => ({
         id: loan.id,
@@ -4214,7 +4214,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         lat: loan.propertyLatitude || 0,
         lng: loan.propertyLongitude || 0,
       }));
-      
+
       res.json(loanData);
     } catch (error) {
       console.error('Portfolio loans error:', error);
@@ -4226,7 +4226,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
   app.get('/api/admin/analytics/portfolio-state-clusters', isAuthenticated, isStaff, async (req: any, res) => {
     try {
       const loans = await storage.getAllServicedLoans();
-      
+
       // Group loans by state
       const loansByState = new Map<string, typeof loans>();
       for (const loan of loans) {
@@ -4236,19 +4236,19 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         }
         loansByState.get(loan.propertyState)!.push(loan);
       }
-      
+
       // Build state clusters with aggregate stats
       const stateClusters = await Promise.all(
         Array.from(loansByState.entries()).map(async ([state, stateLoans]) => {
           const totalLoans = stateLoans.length;
           const totalPortfolioValue = stateLoans.reduce((sum, loan) => sum + (loan.currentBalance || 0), 0);
           const avgInterestRate = stateLoans.reduce((sum, loan) => sum + parseFloat(loan.interestRate || '0'), 0) / totalLoans;
-          
+
           // Performance metrics
           const current = stateLoans.filter(l => l.loanStatus === 'current').length;
           const late = stateLoans.filter(l => l.loanStatus === 'late' || l.loanStatus === 'grace_period').length;
           const defaulted = stateLoans.filter(l => l.loanStatus === 'default' || l.loanStatus === 'foreclosure').length;
-          
+
           return {
             state,
             loanCount: totalLoans,
@@ -4262,7 +4262,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           };
         })
       );
-      
+
       res.json(stateClusters);
     } catch (error) {
       console.error('State clusters error:', error);
@@ -4275,11 +4275,11 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     try {
       const loans = await storage.getAllServicedLoans();
       const { getOrCreatePropertyLocation } = await import("./services/geocodingService");
-      
+
       let geocoded = 0;
       let skipped = 0;
       let failed = 0;
-      
+
       for (const loan of loans) {
         // Check if already has location
         const existing = await storage.getPropertyLocation(loan.id);
@@ -4287,7 +4287,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           skipped++;
           continue;
         }
-        
+
         // Build full address
         const fullAddress = [
           loan.propertyAddress,
@@ -4295,12 +4295,12 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           loan.propertyState,
           loan.propertyZip
         ].filter(Boolean).join(", ");
-        
+
         if (!fullAddress || fullAddress === "Unknown Address") {
           skipped++;
           continue;
         }
-        
+
         try {
           const location = await getOrCreatePropertyLocation(loan.id, fullAddress);
           if (location) {
@@ -4313,11 +4313,11 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           console.error(`Failed to geocode loan ${loan.loanNumber}:`, err);
           failed++;
         }
-        
+
         // Add small delay to avoid rate limiting
         await new Promise(resolve => setTimeout(resolve, 100));
       }
-      
+
       res.json({
         success: true,
         geocoded,
@@ -4335,7 +4335,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
   app.get("/api/admin/applications", isAuthenticated, isStaff, async (req: any, res) => {
     try {
       const applications = await storage.getAllLoanApplications();
-      
+
       // Enrich with user info
       const enrichedApps = await Promise.all(
         applications.map(async (app) => {
@@ -4347,7 +4347,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           };
         })
       );
-      
+
       return res.json(enrichedApps);
     } catch (error) {
       console.error("Error fetching all applications:", error);
@@ -4362,11 +4362,11 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       if (!application) {
         return res.status(404).json({ error: "Application not found" });
       }
-      
+
       const user = await storage.getUser(application.userId);
       const documents = await storage.getDocumentsByApplication(application.id);
       const timeline = await storage.getApplicationTimeline(application.id);
-      
+
       return res.json({
         ...application,
         borrowerName: user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email : "Unknown",
@@ -4405,14 +4405,14 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     try {
       const { id } = req.params;
       const application = await storage.getLoanApplication(id);
-      
+
       if (!application) {
         return res.status(404).json({ error: "Application not found" });
       }
-      
+
       const previousStatus = application.status;
       const updated = await storage.updateLoanApplication(id, req.body);
-      
+
       // Create timeline event for status/stage changes
       if (req.body.status && req.body.status !== application.status) {
         await storage.createTimelineEvent({
@@ -4422,7 +4422,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           description: `Updated by ${req.staffUser.firstName || req.staffUser.email}`,
           createdByUserId: req.staffUser.id,
         });
-        
+
         // Send status change email notification
         try {
           const borrower = await storage.getUser(application.userId);
@@ -4437,7 +4437,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
               newStatus: req.body.status,
               portalUrl: getPortalUrl(),
             });
-            
+
             await sendEmail({
               to: borrower.email,
               subject: emailData.subject,
@@ -4451,7 +4451,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         } catch (emailError) {
           console.error("Failed to send status change email:", emailError);
         }
-        
+
         // Send status change SMS notification
         try {
           const borrower = await storage.getUser(application.userId);
@@ -4475,7 +4475,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           console.error("Failed to send status change SMS:", smsError);
         }
       }
-      
+
       if (req.body.processingStage && req.body.processingStage !== application.processingStage) {
         await storage.createTimelineEvent({
           loanApplicationId: id,
@@ -4485,19 +4485,19 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           createdByUserId: req.staffUser.id,
         });
       }
-      
+
       // AUTO-CREATE SERVICED LOAN when status changes to 'funded'
       if (req.body.status === "funded" && previousStatus !== "funded") {
         try {
           const servicedLoanType = mapLoanTypeToServicedType(application.loanType);
           const isHardMoney = servicedLoanType !== "dscr";
           const loanNumber = generateLoanNumber(servicedLoanType);
-          
+
           // Calculate loan terms
           const originalAmount = application.loanAmount || 0;
           const interestRate = application.interestRate ? parseFloat(application.interestRate) : (isHardMoney ? 10.5 : 7.5);
           const termMonths = application.loanTermMonths || (isHardMoney ? 12 : 360);
-          
+
           // Calculate monthly payment
           let monthlyPayment = 0;
           if (isHardMoney) {
@@ -4510,73 +4510,73 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
               monthlyPayment = Math.round(originalAmount * (monthlyRate * Math.pow(1 + monthlyRate, termMonths)) / (Math.pow(1 + monthlyRate, termMonths) - 1));
             }
           }
-          
+
           // Calculate escrow for DSCR loans
           const annualTaxes = application.annualTaxes || 0;
           const annualInsurance = application.annualInsurance || 0;
           const annualHOA = application.annualHOA || 0;
           const monthlyEscrow = !isHardMoney ? Math.round((annualTaxes + annualInsurance + annualHOA) / 12) : 0;
-          
+
           const closingDate = new Date();
           const firstPaymentDate = new Date(closingDate);
           firstPaymentDate.setMonth(firstPaymentDate.getMonth() + 1);
           firstPaymentDate.setDate(1); // First of next month
-          
+
           const maturityDate = new Date(closingDate);
           maturityDate.setMonth(maturityDate.getMonth() + termMonths);
-          
+
           const nextPaymentDate = new Date(firstPaymentDate);
-          
+
           const servicedLoan = await storage.createServicedLoan({
             userId: application.userId,
             loanApplicationId: application.id,
             loanNumber,
             loanType: servicedLoanType,
             loanStatus: "current",
-            
+
             // Property info
             propertyAddress: application.propertyAddress || "Unknown Address",
             propertyCity: application.propertyCity || null,
             propertyState: application.propertyState || null,
             propertyZip: application.propertyZip || null,
-            
+
             // Loan amounts
             originalLoanAmount: originalAmount,
             currentBalance: originalAmount,
-            
+
             // Rates and terms
             interestRate: interestRate.toString(),
             loanTermMonths: termMonths,
             amortizationMonths: isHardMoney ? null : termMonths,
             isInterestOnly: isHardMoney,
-            
+
             // Payment info
             monthlyPayment,
             monthlyEscrowAmount: monthlyEscrow,
-            
+
             // Dates
             closingDate,
             firstPaymentDate,
             maturityDate,
             nextPaymentDate,
-            
+
             // Initial balances
             totalPrincipalPaid: 0,
             totalInterestPaid: 0,
             escrowBalance: 0,
-            
+
             // Escrow items (DSCR only)
             annualTaxes: !isHardMoney ? annualTaxes : null,
             annualInsurance: !isHardMoney ? annualInsurance : null,
             annualHOA: !isHardMoney ? annualHOA : null,
-            
+
             // Rehab budget (Hard money only)
             totalRehabBudget: isHardMoney ? (application.rehabBudget || 0) : null,
             totalDrawsFunded: 0,
           });
-          
+
           console.log(`Created serviced loan ${loanNumber} for application ${id}`);
-          
+
           // Geocode property address for map visualization
           try {
             const fullAddress = [
@@ -4585,7 +4585,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
               servicedLoan.propertyState,
               servicedLoan.propertyZip
             ].filter(Boolean).join(", ");
-            
+
             if (fullAddress) {
               const { getOrCreatePropertyLocation } = await import("./services/geocodingService");
               await getOrCreatePropertyLocation(servicedLoan.id, fullAddress);
@@ -4595,7 +4595,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
             console.error("Error geocoding property location:", geocodeError);
             // Don't fail loan creation, just log the error
           }
-          
+
           // Copy application scope of work items to serviced loan (for Fix & Flip and New Construction)
           if (isHardMoney) {
             try {
@@ -4608,7 +4608,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
               // Don't fail loan creation, just log the error
             }
           }
-          
+
           // Add timeline event for loan creation
           await storage.createTimelineEvent({
             loanApplicationId: id,
@@ -4622,7 +4622,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           // Don't fail the status update, just log the error
         }
       }
-      
+
       return res.json(updated);
     } catch (error) {
       console.error("Error updating application:", error);
@@ -4635,21 +4635,21 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     try {
       const { id } = req.params;
       const { documentNames, message } = req.body;
-      
+
       if (!documentNames || !Array.isArray(documentNames) || documentNames.length === 0) {
         return res.status(400).json({ error: "documentNames array is required" });
       }
-      
+
       const application = await storage.getLoanApplication(id);
       if (!application) {
         return res.status(404).json({ error: "Application not found" });
       }
-      
+
       const borrower = await storage.getUser(application.userId);
       if (!borrower?.email) {
         return res.status(400).json({ error: "Borrower email not found" });
       }
-      
+
       // Create timeline event
       await storage.createTimelineEvent({
         loanApplicationId: id,
@@ -4658,7 +4658,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         description: message || `Requested by ${req.staffUser.firstName || req.staffUser.email}`,
         createdByUserId: req.staffUser.id,
       });
-      
+
       // Send email notification
       const canSendEmail = await shouldSendEmail(borrower.id);
       if (!canSendEmail) {
@@ -4668,7 +4668,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           reason: "User has disabled email notifications" 
         });
       }
-      
+
       const borrowerName = `${borrower.firstName || ""} ${borrower.lastName || ""}`.trim() || "Valued Customer";
       const emailData = emailTemplates.documentRequest({
         borrowerName,
@@ -4678,7 +4678,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         message: message || undefined,
         portalUrl: getPortalUrl(),
       });
-      
+
       const result = await sendEmail({
         to: borrower.email,
         subject: emailData.subject,
@@ -4689,7 +4689,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         relatedApplicationId: id,
         metadata: { documentNames, message },
       });
-      
+
       return res.json({ 
         success: true, 
         emailSent: result.success, 
@@ -4706,7 +4706,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
   app.get("/api/admin/email-logs", isAuthenticated, isStaff, async (req: any, res) => {
     try {
       const { recipientEmail, startDate, endDate, limit, offset } = req.query;
-      
+
       const logs = await storage.getEmailLogs({
         recipientEmail: recipientEmail as string | undefined,
         startDate: startDate ? new Date(startDate as string) : undefined,
@@ -4714,13 +4714,13 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         limit: limit ? parseInt(limit as string) : 100,
         offset: offset ? parseInt(offset as string) : 0,
       });
-      
+
       const total = await storage.getEmailLogCount({
         recipientEmail: recipientEmail as string | undefined,
         startDate: startDate ? new Date(startDate as string) : undefined,
         endDate: endDate ? new Date(endDate as string) : undefined,
       });
-      
+
       return res.json({ logs, total });
     } catch (error) {
       console.error("Error fetching email logs:", error);
@@ -4733,16 +4733,16 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     try {
       const userId = req.user.claims.sub;
       const { emailNotificationsEnabled } = req.body;
-      
+
       if (typeof emailNotificationsEnabled !== "boolean") {
         return res.status(400).json({ error: "emailNotificationsEnabled must be a boolean" });
       }
-      
+
       const updated = await storage.updateUserEmailPreferences(userId, emailNotificationsEnabled);
       if (!updated) {
         return res.status(404).json({ error: "User not found" });
       }
-      
+
       return res.json({ success: true, emailNotificationsEnabled: updated.emailNotificationsEnabled });
     } catch (error) {
       console.error("Error updating email preferences:", error);
@@ -4755,25 +4755,25 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     try {
       const userId = req.user.claims.sub;
       const { phone, smsNotificationsEnabled } = req.body;
-      
+
       const updateData: { phone?: string; smsNotificationsEnabled?: boolean } = {};
-      
+
       if (phone !== undefined) {
         updateData.phone = phone;
       }
       if (typeof smsNotificationsEnabled === "boolean") {
         updateData.smsNotificationsEnabled = smsNotificationsEnabled;
       }
-      
+
       if (Object.keys(updateData).length === 0) {
         return res.status(400).json({ error: "No valid fields to update" });
       }
-      
+
       const updated = await storage.updateUserSmsPreferences(userId, updateData);
       if (!updated) {
         return res.status(404).json({ error: "User not found" });
       }
-      
+
       return res.json({
         success: true,
         phone: updated.phone,
@@ -4789,7 +4789,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
   app.get("/api/admin/sms-logs", isAuthenticated, isStaff, async (req: any, res) => {
     try {
       const { recipientPhone, startDate, endDate, limit, offset } = req.query;
-      
+
       const logs = await storage.getSmsLogs({
         recipientPhone: recipientPhone as string | undefined,
         startDate: startDate ? new Date(startDate as string) : undefined,
@@ -4797,13 +4797,13 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         limit: limit ? parseInt(limit as string) : 100,
         offset: offset ? parseInt(offset as string) : 0,
       });
-      
+
       const total = await storage.getSmsLogCount({
         recipientPhone: recipientPhone as string | undefined,
         startDate: startDate ? new Date(startDate as string) : undefined,
         endDate: endDate ? new Date(endDate as string) : undefined,
       });
-      
+
       return res.json({ logs, total, smsConfigured: isSMSConfigured() });
     } catch (error) {
       console.error("Error fetching SMS logs:", error);
@@ -4816,7 +4816,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     try {
       const allUsers = await storage.getAllUsers();
       const allApplications = await storage.getAllLoanApplications();
-      
+
       // Filter to borrowers only and enrich with application counts
       const enrichedBorrowers = allUsers
         .filter(user => user.role === "borrower")
@@ -4831,7 +4831,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
             fundedLoans: userApps.filter(app => app.status === 'funded').length,
           };
         });
-      
+
       return res.json(enrichedBorrowers);
     } catch (error) {
       console.error("Error fetching borrowers:", error);
@@ -4844,25 +4844,25 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     try {
       const { id } = req.params;
       const user = await storage.getUser(id);
-      
+
       if (!user) {
         return res.status(404).json({ error: "Borrower not found" });
       }
-      
+
       if (user.role !== "borrower") {
         return res.status(400).json({ error: "User is not a borrower" });
       }
-      
+
       const allApplications = await storage.getAllLoanApplications();
       const userApps = allApplications.filter(app => app.userId === id);
-      
+
       // Enrich applications with additional details
       const enrichedApps = userApps.map(app => ({
         ...app,
         borrowerName: `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email,
         borrowerEmail: user.email,
       }));
-      
+
       const enrichedBorrower = {
         ...user,
         applicationCount: userApps.length,
@@ -4875,7 +4875,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           .reduce((sum, app) => sum + (app.loanAmount || 0), 0),
         applications: enrichedApps,
       };
-      
+
       return res.json(enrichedBorrower);
     } catch (error) {
       console.error("Error fetching borrower:", error);
@@ -4888,7 +4888,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     try {
       const allUsers = await storage.getAllUsers();
       const allApplications = await storage.getAllLoanApplications();
-      
+
       // Enrich users with their application counts
       const enrichedUsers = allUsers.map(user => {
         const userApps = allApplications.filter(app => app.userId === user.id);
@@ -4901,7 +4901,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           fundedLoans: userApps.filter(app => app.status === 'funded').length,
         };
       });
-      
+
       return res.json(enrichedUsers);
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -4914,16 +4914,16 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     try {
       const { id } = req.params;
       const { role } = req.body;
-      
+
       if (!["borrower", "staff", "admin"].includes(role)) {
         return res.status(400).json({ error: "Invalid role" });
       }
-      
+
       const updated = await storage.updateUserRole(id, role);
       if (!updated) {
         return res.status(404).json({ error: "User not found" });
       }
-      
+
       return res.json(updated);
     } catch (error) {
       console.error("Error updating user role:", error);
@@ -4935,22 +4935,22 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
   app.post("/api/admin/invites", isAuthenticated, isAdmin, async (req: any, res) => {
     try {
       const { email, role = "staff" } = req.body;
-      
+
       if (!email) {
         return res.status(400).json({ error: "Email is required" });
       }
-      
+
       if (!["staff", "admin"].includes(role)) {
         return res.status(400).json({ error: "Invalid role for invite" });
       }
-      
+
       // Generate a secure token
       const token = crypto.randomBytes(32).toString("hex");
-      
+
       // Set expiry to 7 days from now
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 7);
-      
+
       const invite = await storage.createStaffInvite({
         email,
         token,
@@ -4959,11 +4959,11 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         invitedById: req.adminUser.id,
         expiresAt,
       });
-      
+
       // In production, you would send an email here with the invite link
       // For now, return the token so admin can share the link manually
       const inviteLink = `/join/${token}`;
-      
+
       return res.status(201).json({
         message: "Invite created successfully",
         invite: {
@@ -5003,7 +5003,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
   // ============================================
   // APPLICATION STAGE HISTORY (Timeline Audit Trail)
   // ============================================
-  
+
   // Get stage history for an application (staff only)
   app.get("/api/admin/applications/:id/stage-history", isAuthenticated, isStaff, async (req: any, res) => {
     try {
@@ -5015,20 +5015,20 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       return res.status(500).json({ error: "Failed to fetch stage history" });
     }
   });
-  
+
   // Create stage history entry (staff only - normally auto-created on status change)
   app.post("/api/admin/applications/:id/stage-history", isAuthenticated, isStaff, async (req: any, res) => {
     try {
       const { id } = req.params;
       const { fromStatus, toStatus, fromStage, toStage, notes, reason, isAutomated, durationMinutes } = req.body;
-      
+
       if (!toStatus) {
         return res.status(400).json({ error: "toStatus is required" });
       }
-      
+
       const userId = req.user?.claims?.sub;
       const user = userId ? await storage.getUser(userId) : null;
-      
+
       const entry = await storage.createStageHistoryEntry({
         loanApplicationId: id,
         fromStatus,
@@ -5042,14 +5042,14 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         isAutomated: isAutomated || false,
         durationMinutes,
       });
-      
+
       return res.status(201).json(entry);
     } catch (error) {
       console.error("Error creating stage history:", error);
       return res.status(500).json({ error: "Failed to create stage history" });
     }
   });
-  
+
   // Get stage history stats for an application
   app.get("/api/admin/applications/:id/stage-history/stats", isAuthenticated, isStaff, async (req: any, res) => {
     try {
@@ -5061,17 +5061,17 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       return res.status(500).json({ error: "Failed to fetch stage history stats" });
     }
   });
-  
+
   // ============================================
   // LOAN ASSIGNMENTS (Staff Ownership)
   // ============================================
-  
+
   // Get assignments for an application (staff only)
   app.get("/api/admin/applications/:id/assignments", isAuthenticated, isStaff, async (req: any, res) => {
     try {
       const { id } = req.params;
       const assignments = await storage.getLoanAssignments(id);
-      
+
       // Enrich with user details
       const enriched = await Promise.all(assignments.map(async (assignment) => {
         const user = await storage.getUser(assignment.userId);
@@ -5081,31 +5081,31 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           userEmail: user?.email,
         };
       }));
-      
+
       return res.json(enriched);
     } catch (error) {
       console.error("Error fetching assignments:", error);
       return res.status(500).json({ error: "Failed to fetch assignments" });
     }
   });
-  
+
   // Create assignment for an application (staff only)
   app.post("/api/admin/applications/:id/assignments", isAuthenticated, isStaff, async (req: any, res) => {
     try {
       const { id } = req.params;
       const { userId, role, isPrimary } = req.body;
-      
+
       if (!userId || !role) {
         return res.status(400).json({ error: "userId and role are required" });
       }
-      
+
       const validRoles = ['account_executive', 'processor', 'underwriter', 'closer', 'servicer'];
       if (!validRoles.includes(role)) {
         return res.status(400).json({ error: `Invalid role. Must be one of: ${validRoles.join(', ')}` });
       }
-      
+
       const assignedByUserId = req.user?.claims?.sub;
-      
+
       const assignment = await storage.createLoanAssignment({
         loanApplicationId: id,
         userId,
@@ -5113,32 +5113,32 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         isPrimary: isPrimary ?? true,
         assignedByUserId,
       });
-      
+
       return res.status(201).json(assignment);
     } catch (error) {
       console.error("Error creating assignment:", error);
       return res.status(500).json({ error: "Failed to create assignment" });
     }
   });
-  
+
   // Update assignment (staff only)
   app.patch("/api/admin/assignments/:id", isAuthenticated, isStaff, async (req: any, res) => {
     try {
       const { id } = req.params;
       const { isPrimary, isActive } = req.body;
-      
+
       const updated = await storage.updateLoanAssignment(id, { isPrimary, isActive });
       if (!updated) {
         return res.status(404).json({ error: "Assignment not found" });
       }
-      
+
       return res.json(updated);
     } catch (error) {
       console.error("Error updating assignment:", error);
       return res.status(500).json({ error: "Failed to update assignment" });
     }
   });
-  
+
   // Deactivate assignment (staff only)
   app.delete("/api/admin/assignments/:id", isAuthenticated, isStaff, async (req: any, res) => {
     try {
@@ -5153,7 +5153,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       return res.status(500).json({ error: "Failed to deactivate assignment" });
     }
   });
-  
+
   // Get user's active assignments (for staff dashboard)
   app.get("/api/my-assignments", isAuthenticated, isStaff, async (req: any, res) => {
     try {
@@ -5161,9 +5161,9 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       if (!userId) {
         return res.status(401).json({ error: "User not authenticated" });
       }
-      
+
       const assignments = await storage.getActiveAssignmentsByUser(userId);
-      
+
       // Enrich with application details
       const enriched = await Promise.all(assignments.map(async (assignment) => {
         const application = await storage.getLoanApplication(assignment.loanApplicationId);
@@ -5178,34 +5178,34 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           applicationStatus: application?.status,
         };
       }));
-      
+
       return res.json(enriched);
     } catch (error) {
       console.error("Error fetching user assignments:", error);
       return res.status(500).json({ error: "Failed to fetch assignments" });
     }
   });
-  
+
   // ============================================
   // REVISION REQUESTS (Return to Borrower)
   // ============================================
-  
+
   // Get revision requests for an application
   app.get("/api/applications/:id/revision-requests", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       const application = await storage.getLoanApplication(req.params.id);
-      
+
       if (!application) {
         return res.status(404).json({ error: "Application not found" });
       }
-      
+
       // Borrowers can only see their own application revision requests
       if (user?.role === "borrower" && application.userId !== userId) {
         return res.status(403).json({ error: "Not authorized to view this application" });
       }
-      
+
       const requests = await storage.getRevisionRequests(req.params.id);
       return res.json(requests);
     } catch (error) {
@@ -5213,23 +5213,23 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       return res.status(500).json({ error: "Failed to fetch revision requests" });
     }
   });
-  
+
   // Get pending revision requests only
   app.get("/api/applications/:id/revision-requests/pending", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       const application = await storage.getLoanApplication(req.params.id);
-      
+
       if (!application) {
         return res.status(404).json({ error: "Application not found" });
       }
-      
+
       // Borrowers can only see their own application revision requests
       if (user?.role === "borrower" && application.userId !== userId) {
         return res.status(403).json({ error: "Not authorized to view this application" });
       }
-      
+
       const requests = await storage.getPendingRevisionRequests(req.params.id);
       return res.json(requests);
     } catch (error) {
@@ -5237,23 +5237,23 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       return res.status(500).json({ error: "Failed to fetch pending revision requests" });
     }
   });
-  
+
   // Create revision request (staff only) - sends application back to borrower
   app.post("/api/admin/applications/:id/revision-requests", isAuthenticated, isStaff, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       const application = await storage.getLoanApplication(req.params.id);
-      
+
       if (!application) {
         return res.status(404).json({ error: "Application not found" });
       }
-      
+
       const { sections } = req.body; // Array of { section, notes }
       if (!Array.isArray(sections) || sections.length === 0) {
         return res.status(400).json({ error: "At least one section with notes is required" });
       }
-      
+
       // Validate sections
       const validSections = ['property_info', 'financials', 'documents', 'borrower_info', 'entity_info', 'loan_terms', 'other'];
       for (const item of sections) {
@@ -5264,7 +5264,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           return res.status(400).json({ error: `Notes are required for section: ${item.section}` });
         }
       }
-      
+
       // Create revision requests for each section
       const createdRequests = [];
       for (const item of sections) {
@@ -5277,12 +5277,12 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         });
         createdRequests.push(request);
       }
-      
+
       // Update application status to revisions_requested
       await storage.updateLoanApplication(req.params.id, {
         status: "revisions_requested",
       });
-      
+
       // Log to stage history
       await storage.createStageHistoryEntry({
         loanApplicationId: req.params.id,
@@ -5295,7 +5295,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         notes: `Revisions requested for: ${sections.map(s => s.section).join(', ')}`,
         isAutomated: false,
       });
-      
+
       // Send email notification to borrower
       try {
         const borrower = await storage.getUser(application.userId);
@@ -5310,7 +5310,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
             notes: sectionNotes.length > 200 ? sectionNotes.substring(0, 200) + "..." : sectionNotes,
             portalUrl: getPortalUrl(),
           });
-          
+
           await sendEmail({
             to: borrower.email,
             subject: "Action Required: Your Loan Application Needs Attention",
@@ -5325,63 +5325,63 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         console.error("Error sending revision request email:", emailError);
         // Don't fail the request if email fails
       }
-      
+
       return res.status(201).json({ requests: createdRequests, message: "Revision requests created and application status updated" });
     } catch (error) {
       console.error("Error creating revision requests:", error);
       return res.status(500).json({ error: "Failed to create revision requests" });
     }
   });
-  
+
   // Resolve a revision request (borrower resubmitting)
   app.patch("/api/revision-requests/:id/resolve", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const request = await storage.getRevisionRequest(req.params.id);
-      
+
       if (!request) {
         return res.status(404).json({ error: "Revision request not found" });
       }
-      
+
       const application = await storage.getLoanApplication(request.loanApplicationId);
       if (!application) {
         return res.status(404).json({ error: "Application not found" });
       }
-      
+
       // Only the borrower who owns the application can resolve
       if (application.userId !== userId) {
         return res.status(403).json({ error: "Not authorized to resolve this revision request" });
       }
-      
+
       const { resolutionNotes } = req.body;
       const resolved = await storage.resolveRevisionRequest(req.params.id, userId, resolutionNotes);
-      
+
       return res.json(resolved);
     } catch (error) {
       console.error("Error resolving revision request:", error);
       return res.status(500).json({ error: "Failed to resolve revision request" });
     }
   });
-  
+
   // Resubmit application after making corrections (borrower)
   app.post("/api/applications/:id/resubmit", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       const application = await storage.getLoanApplication(req.params.id);
-      
+
       if (!application) {
         return res.status(404).json({ error: "Application not found" });
       }
-      
+
       if (application.userId !== userId) {
         return res.status(403).json({ error: "Not authorized to resubmit this application" });
       }
-      
+
       if (application.status !== "revisions_requested") {
         return res.status(400).json({ error: "Application is not in revisions requested status" });
       }
-      
+
       // Check if all pending revision requests are resolved
       const pendingRequests = await storage.getPendingRevisionRequests(req.params.id);
       if (pendingRequests.length > 0) {
@@ -5391,12 +5391,12 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           pendingSections: pendingRequests.map(r => r.section)
         });
       }
-      
+
       // Update application status back to in_review
       await storage.updateLoanApplication(req.params.id, {
         status: "in_review",
       });
-      
+
       // Log to stage history
       await storage.createStageHistoryEntry({
         loanApplicationId: req.params.id,
@@ -5409,12 +5409,12 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         notes: "Application resubmitted after corrections",
         isAutomated: false,
       });
-      
+
       // Send email notification to assigned staff members
       try {
         const assignments = await storage.getLoanAssignments(req.params.id);
         const borrowerName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email || "Borrower" : "Borrower";
-        
+
         for (const assignment of assignments) {
           const staffUser = await storage.getUser(assignment.assignedToUserId);
           if (staffUser?.email && await shouldSendEmail(staffUser.id)) {
@@ -5426,7 +5426,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
               applicationId: req.params.id,
               portalUrl: getPortalUrl(),
             });
-            
+
             await sendEmail({
               to: staffUser.email,
               subject: `Application Resubmitted: ${borrowerName} - ${application.loanType || "Loan Application"}`,
@@ -5442,62 +5442,62 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         console.error("Error sending resubmission email:", emailError);
         // Don't fail the request if email fails
       }
-      
+
       return res.json({ message: "Application resubmitted successfully", status: "in_review" });
     } catch (error) {
       console.error("Error resubmitting application:", error);
       return res.status(500).json({ error: "Failed to resubmit application" });
     }
   });
-  
+
   // ============================================
   // APPLICATION MESSAGES (Admin-Borrower Communication)
   // ============================================
-  
+
   // Get messages for an application
   app.get("/api/applications/:id/messages", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       const application = await storage.getLoanApplication(req.params.id);
-      
+
       if (!application) {
         return res.status(404).json({ error: "Application not found" });
       }
-      
+
       // Borrowers can only see their own application messages
       if (user?.role === "borrower" && application.userId !== userId) {
         return res.status(403).json({ error: "Not authorized to view messages for this application" });
       }
-      
+
       const messages = await storage.getApplicationMessages(req.params.id);
-      
+
       // Mark messages as read automatically
       await storage.markAllMessagesRead(req.params.id, userId);
-      
+
       return res.json(messages);
     } catch (error) {
       console.error("Error fetching application messages:", error);
       return res.status(500).json({ error: "Failed to fetch messages" });
     }
   });
-  
+
   // Get unread message count
   app.get("/api/applications/:id/messages/unread-count", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       const application = await storage.getLoanApplication(req.params.id);
-      
+
       if (!application) {
         return res.status(404).json({ error: "Application not found" });
       }
-      
+
       // Borrowers can only see their own application message counts
       if (user?.role === "borrower" && application.userId !== userId) {
         return res.status(403).json({ error: "Not authorized" });
       }
-      
+
       const count = await storage.getUnreadMessageCount(req.params.id, userId);
       return res.json({ unreadCount: count });
     } catch (error) {
@@ -5505,33 +5505,33 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       return res.status(500).json({ error: "Failed to fetch unread count" });
     }
   });
-  
+
   // Send a message (both staff and borrowers can send)
   app.post("/api/applications/:id/messages", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       const application = await storage.getLoanApplication(req.params.id);
-      
+
       if (!application) {
         return res.status(404).json({ error: "Application not found" });
       }
-      
+
       // Borrowers can only send messages on their own applications
       if (user?.role === "borrower" && application.userId !== userId) {
         return res.status(403).json({ error: "Not authorized to send messages for this application" });
       }
-      
+
       const { content, attachments } = req.body;
       if (!content || content.trim() === '') {
         return res.status(400).json({ error: "Message content is required" });
       }
-      
+
       // Validate attachments if provided
       if (attachments && !Array.isArray(attachments)) {
         return res.status(400).json({ error: "Attachments must be an array" });
       }
-      
+
       const message = await storage.createApplicationMessage({
         loanApplicationId: req.params.id,
         senderUserId: userId,
@@ -5540,26 +5540,26 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         content: content.trim(),
         attachments: attachments || null,
       });
-      
+
       return res.status(201).json(message);
     } catch (error) {
       console.error("Error creating message:", error);
       return res.status(500).json({ error: "Failed to send message" });
     }
   });
-  
+
   // Get all messages across all applications for the logged-in borrower (master messages hub)
   app.get("/api/my-messages", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
-      
+
       if (!user || user.role !== "borrower") {
         return res.status(403).json({ error: "Only borrowers can access this endpoint" });
       }
-      
+
       const messagesWithLoans = await storage.getAllMessagesForUser(userId);
-      
+
       // Group messages by loan application for the master hub
       const groupedByLoan: Record<string, {
         loan: { id: string; propertyAddress: string | null; loanType: string; status: string };
@@ -5567,7 +5567,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         unreadCount: number;
         latestMessage: typeof messagesWithLoans[0]['message'] | null;
       }> = {};
-      
+
       for (const item of messagesWithLoans) {
         const loanId = item.loan.id;
         if (!groupedByLoan[loanId]) {
@@ -5579,42 +5579,42 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           };
         }
         groupedByLoan[loanId].messages.push(item.message);
-        
+
         // Count unread messages not sent by this user
         if (!item.message.isRead && item.message.senderUserId !== userId) {
           groupedByLoan[loanId].unreadCount++;
         }
-        
+
         // Track latest message (first one since sorted by desc)
         if (!groupedByLoan[loanId].latestMessage) {
           groupedByLoan[loanId].latestMessage = item.message;
         }
       }
-      
+
       // Convert to array and sort by latest message
       const result = Object.values(groupedByLoan).sort((a, b) => {
         const aTime = a.latestMessage ? new Date(a.latestMessage.createdAt).getTime() : 0;
         const bTime = b.latestMessage ? new Date(b.latestMessage.createdAt).getTime() : 0;
         return bTime - aTime;
       });
-      
+
       return res.json(result);
     } catch (error) {
       console.error("Error fetching all messages for user:", error);
       return res.status(500).json({ error: "Failed to fetch messages" });
     }
   });
-  
+
   // Get total unread message count across all applications for logged-in borrower
   app.get("/api/my-messages/unread-count", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
-      
+
       if (!user || user.role !== "borrower") {
         return res.status(403).json({ error: "Only borrowers can access this endpoint" });
       }
-      
+
       const totalUnread = await storage.getTotalUnreadCountForUser(userId);
       return res.json({ unreadCount: totalUnread });
     } catch (error) {
@@ -5622,40 +5622,40 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       return res.status(500).json({ error: "Failed to fetch unread count" });
     }
   });
-  
+
   // ============================================
   // ADMIN VERIFICATION PHOTO ROUTES
   // ============================================
-  
+
   // Staff endpoint to update verification photo status (manual override)
   app.patch("/api/admin/verification-photos/:id", isAuthenticated, isStaff, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       const photo = await storage.getVerificationPhoto(req.params.id);
-      
+
       if (!photo) {
         return res.status(404).json({ error: "Photo not found" });
       }
-      
+
       const { verificationStatus, verificationNotes } = req.body;
-      
+
       if (!verificationStatus) {
         return res.status(400).json({ error: "verificationStatus is required" });
       }
-      
+
       const validStatuses = [
         "pending", "verified", "gps_match", "gps_mismatch", "outside_geofence",
         "stale_timestamp", "metadata_missing", "browser_gps_only", "exif_gps_only",
         "no_gps_data", "manual_approved", "manual_rejected"
       ];
-      
+
       if (!validStatuses.includes(verificationStatus)) {
         return res.status(400).json({ error: "Invalid verification status" });
       }
-      
+
       const isManualOverride = verificationStatus === "manual_approved" || verificationStatus === "manual_rejected";
-      
+
       const updatedPhoto = await storage.updateVerificationPhoto(photo.id, {
         verificationStatus,
         verificationDetails: isManualOverride 
@@ -5664,7 +5664,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         verifiedAt: isManualOverride ? new Date() : photo.verifiedAt,
         verifiedByUserId: isManualOverride ? userId : photo.verifiedByUserId,
       });
-      
+
       return res.json(updatedPhoto);
     } catch (error) {
       console.error("Error updating verification photo:", error);
@@ -5675,7 +5675,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
   // ============================================
   // STAFF MESSAGE PREFERENCES & PRESENCE (Staff/Admin)
   // ============================================
-  
+
   // Get current user's message preferences
   app.get("/api/admin/preferences/messages", isAuthenticated, isStaff, async (req: any, res) => {
     try {
@@ -5683,9 +5683,9 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       if (!userId) {
         return res.status(401).json({ error: "Unauthorized" });
       }
-      
+
       const prefs = await storage.getStaffMessagePreferences(userId);
-      
+
       // Return defaults if no preferences exist yet
       if (!prefs) {
         return res.json({
@@ -5701,14 +5701,14 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           lastHeartbeatAt: null,
         });
       }
-      
+
       return res.json(prefs);
     } catch (error) {
       console.error("Error fetching message preferences:", error);
       return res.status(500).json({ error: "Failed to fetch preferences" });
     }
   });
-  
+
   // Update current user's message preferences
   app.put("/api/admin/preferences/messages", isAuthenticated, isStaff, async (req: any, res) => {
     try {
@@ -5716,7 +5716,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       if (!userId) {
         return res.status(401).json({ error: "Unauthorized" });
       }
-      
+
       const {
         emailNotificationsEnabled,
         quietHoursEnabled,
@@ -5725,7 +5725,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         quietHoursTimezone,
         batchIntervalMinutes,
       } = req.body;
-      
+
       const prefs = await storage.upsertStaffMessagePreferences({
         staffUserId: userId,
         emailNotificationsEnabled: emailNotificationsEnabled ?? true,
@@ -5735,14 +5735,14 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         quietHoursTimezone: quietHoursTimezone ?? "America/New_York",
         batchIntervalMinutes: batchIntervalMinutes ?? 15,
       });
-      
+
       return res.json(prefs);
     } catch (error) {
       console.error("Error updating message preferences:", error);
       return res.status(500).json({ error: "Failed to update preferences" });
     }
   });
-  
+
   // Update presence heartbeat (called periodically by admin messenger)
   app.post("/api/admin/presence/heartbeat", isAuthenticated, isStaff, async (req: any, res) => {
     try {
@@ -5750,7 +5750,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       if (!userId) {
         return res.status(401).json({ error: "Unauthorized" });
       }
-      
+
       await storage.updateStaffHeartbeat(userId);
       return res.json({ success: true, timestamp: new Date().toISOString() });
     } catch (error) {
@@ -5758,13 +5758,13 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       return res.status(500).json({ error: "Failed to update heartbeat" });
     }
   });
-  
+
   // Get list of online staff members
   app.get("/api/admin/staff/online", isAuthenticated, isStaff, async (req: any, res) => {
     try {
       const thresholdMinutes = parseInt(req.query.threshold as string) || 2;
       const onlineStaff = await storage.getOnlineStaff(thresholdMinutes);
-      
+
       // Return simplified user info (don't expose passwords etc.)
       const safeStaff = onlineStaff.map(user => ({
         id: user.id,
@@ -5775,14 +5775,14 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         staffRole: user.staffRole,
         profileImageUrl: user.profileImageUrl,
       }));
-      
+
       return res.json(safeStaff);
     } catch (error) {
       console.error("Error fetching online staff:", error);
       return res.status(500).json({ error: "Failed to fetch online staff" });
     }
   });
-  
+
   // Get all message threads for staff (inbox view)
   app.get("/api/admin/message-threads", isAuthenticated, isStaff, async (req: any, res) => {
     try {
@@ -5793,7 +5793,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       return res.status(500).json({ error: "Failed to fetch message threads" });
     }
   });
-  
+
   // Get total unread count for staff
   app.get("/api/admin/messages/unread-count", isAuthenticated, isStaff, async (req: any, res) => {
     try {
@@ -5804,7 +5804,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       return res.status(500).json({ error: "Failed to fetch unread count" });
     }
   });
-  
+
   // Search message threads with filters
   app.get("/api/admin/messages/search", isAuthenticated, isStaff, async (req: any, res) => {
     try {
@@ -5820,42 +5820,42 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       return res.status(500).json({ error: "Failed to search messages" });
     }
   });
-  
+
   // Update message properties (star, archive, read, priority)
   app.patch("/api/admin/messages/:id", isAuthenticated, isStaff, async (req: any, res) => {
     try {
       const { id } = req.params;
       const { isStarred, isArchived, isRead, priority } = req.body;
-      
+
       const updated = await storage.updateMessageProperties(id, {
         isStarred,
         isArchived,
         isRead,
         priority,
       });
-      
+
       if (!updated) {
         return res.status(404).json({ error: "Message not found" });
       }
-      
+
       return res.json(updated);
     } catch (error) {
       console.error("Error updating message:", error);
       return res.status(500).json({ error: "Failed to update message" });
     }
   });
-  
+
   // Bulk update messages
   app.post("/api/admin/messages/bulk", isAuthenticated, isStaff, async (req: any, res) => {
     try {
       const { ids, action } = req.body;
-      
+
       if (!ids || !Array.isArray(ids) || ids.length === 0) {
         return res.status(400).json({ error: "ids array is required" });
       }
-      
+
       let updates: { isStarred?: boolean; isArchived?: boolean; isRead?: boolean } = {};
-      
+
       switch (action) {
         case 'markRead':
           updates = { isRead: true };
@@ -5878,7 +5878,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         default:
           return res.status(400).json({ error: "Invalid action" });
       }
-      
+
       const count = await storage.bulkUpdateMessages(ids, updates);
       return res.json({ success: true, updatedCount: count });
     } catch (error) {
@@ -5886,7 +5886,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       return res.status(500).json({ error: "Failed to bulk update messages" });
     }
   });
-  
+
   // Message templates CRUD
   app.get("/api/admin/message-templates", isAuthenticated, isStaff, async (req: any, res) => {
     try {
@@ -5898,16 +5898,16 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       return res.status(500).json({ error: "Failed to fetch templates" });
     }
   });
-  
+
   app.post("/api/admin/message-templates", isAuthenticated, isStaff, async (req: any, res) => {
     try {
       const userId = req.user?.id;
       const { name, category, subject, content, isGlobal } = req.body;
-      
+
       if (!name || !content) {
         return res.status(400).json({ error: "name and content are required" });
       }
-      
+
       const template = await storage.createMessageTemplate({
         name,
         category: category || 'general',
@@ -5916,19 +5916,19 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         isGlobal: isGlobal || false,
         createdByUserId: userId,
       });
-      
+
       return res.status(201).json(template);
     } catch (error) {
       console.error("Error creating template:", error);
       return res.status(500).json({ error: "Failed to create template" });
     }
   });
-  
+
   app.patch("/api/admin/message-templates/:id", isAuthenticated, isStaff, async (req: any, res) => {
     try {
       const { id } = req.params;
       const { name, category, subject, content, isGlobal, isActive } = req.body;
-      
+
       const updated = await storage.updateMessageTemplate(id, {
         name,
         category,
@@ -5937,18 +5937,18 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         isGlobal,
         isActive,
       });
-      
+
       if (!updated) {
         return res.status(404).json({ error: "Template not found" });
       }
-      
+
       return res.json(updated);
     } catch (error) {
       console.error("Error updating template:", error);
       return res.status(500).json({ error: "Failed to update template" });
     }
   });
-  
+
   app.delete("/api/admin/message-templates/:id", isAuthenticated, isStaff, async (req: any, res) => {
     try {
       const { id } = req.params;
@@ -5959,7 +5959,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       return res.status(500).json({ error: "Failed to delete template" });
     }
   });
-  
+
   // Increment template usage when used
   app.post("/api/admin/message-templates/:id/use", isAuthenticated, isStaff, async (req: any, res) => {
     try {
@@ -5975,7 +5975,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
   // ============================================
   // SIMULATION ENDPOINTS (Admin only)
   // ============================================
-  
+
   // Start loan simulation (creates 100 loans over ~1 hour)
   app.post("/api/admin/simulation/start", isAuthenticated, isAdmin, async (req: any, res) => {
     try {
@@ -5987,7 +5987,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       return res.status(500).json({ error: "Failed to start simulation" });
     }
   });
-  
+
   // Get simulation status
   app.get("/api/admin/simulation/status", isAuthenticated, isAdmin, async (req: any, res) => {
     try {
@@ -5999,7 +5999,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       return res.status(500).json({ error: "Failed to get simulation status" });
     }
   });
-  
+
   // Stop simulation
   app.post("/api/admin/simulation/stop", isAuthenticated, isAdmin, async (req: any, res) => {
     try {
@@ -6015,7 +6015,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
   // ============================================
   // LIFECYCLE ENGINE ENDPOINTS (Admin only)
   // ============================================
-  
+
   // Start lifecycle progression engine
   app.post("/api/admin/lifecycle/start", isAuthenticated, isAdmin, async (req: any, res) => {
     try {
@@ -6027,7 +6027,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       return res.status(500).json({ error: "Failed to start lifecycle engine" });
     }
   });
-  
+
   // Get lifecycle engine status
   app.get("/api/admin/lifecycle/status", isAuthenticated, isAdmin, async (req: any, res) => {
     try {
@@ -6039,7 +6039,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       return res.status(500).json({ error: "Failed to get lifecycle status" });
     }
   });
-  
+
   // Stop lifecycle engine
   app.post("/api/admin/lifecycle/stop", isAuthenticated, isAdmin, async (req: any, res) => {
     try {
@@ -6057,19 +6057,19 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     try {
       const { token } = req.params;
       const invite = await storage.getStaffInviteByToken(token);
-      
+
       if (!invite) {
         return res.status(404).json({ error: "Invite not found" });
       }
-      
+
       if (invite.status !== "pending") {
         return res.status(400).json({ error: `Invite has already been ${invite.status}` });
       }
-      
+
       if (new Date(invite.expiresAt) < new Date()) {
         return res.status(400).json({ error: "Invite has expired" });
       }
-      
+
       return res.json({
         email: invite.email,
         role: invite.role,
@@ -6086,12 +6086,12 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     try {
       const { token } = req.params;
       const userId = req.user.claims.sub;
-      
+
       const invite = await storage.getStaffInviteByToken(token);
       if (!invite) {
         return res.status(404).json({ error: "Invite not found" });
       }
-      
+
       // Verify the logged-in user's email matches the invite
       const user = await storage.getUser(userId);
       if (!user || user.email?.toLowerCase() !== invite.email.toLowerCase()) {
@@ -6100,12 +6100,12 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           invitedEmail: invite.email,
         });
       }
-      
+
       const accepted = await storage.acceptStaffInvite(token, userId);
       if (!accepted) {
         return res.status(400).json({ error: "Unable to accept invite. It may be expired or already used." });
       }
-      
+
       return res.json({
         message: "Invite accepted! You now have staff access.",
         role: invite.role,
@@ -6116,15 +6116,15 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     }
   });
 
-  // =====================
-  // Admin Serviced Loans Routes (Staff/Admin)
-  // =====================
-  
+  // ============================================
+  // ADMIN SERVICED LOANS ROUTES (Staff/Admin)
+  // ============================================
+
   // Get all serviced loans (admin view with borrower info)
   app.get("/api/admin/serviced-loans", isAuthenticated, isStaff, async (req: any, res) => {
     try {
       const loans = await storage.getAllServicedLoans();
-      
+
       // Enrich with borrower info
       const enrichedLoans = await Promise.all(loans.map(async (loan) => {
         const user = await storage.getUser(loan.userId);
@@ -6134,7 +6134,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           borrowerEmail: user?.email,
         };
       }));
-      
+
       return res.json(enrichedLoans);
     } catch (error) {
       console.error("Error fetching serviced loans:", error);
@@ -6149,14 +6149,14 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       if (!loan) {
         return res.status(404).json({ error: "Loan not found" });
       }
-      
+
       const user = await storage.getUser(loan.userId);
       const payments = await storage.getLoanPayments(loan.id);
       const draws = await storage.getLoanDraws(loan.id);
       const escrowItems = await storage.getLoanEscrowItems(loan.id);
       const documents = await storage.getLoanDocuments(loan.id);
       const milestones = await storage.getLoanMilestones(loan.id);
-      
+
       return res.json({
         ...loan,
         borrowerName: user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email : "Unknown",
@@ -6180,7 +6180,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       if (!loan) {
         return res.status(404).json({ error: "Loan not found" });
       }
-      
+
       const updated = await storage.updateServicedLoan(req.params.id, req.body);
       return res.json(updated);
     } catch (error) {
@@ -6196,20 +6196,20 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       if (!loan) {
         return res.status(404).json({ error: "Loan not found" });
       }
-      
+
       const payment = await storage.createLoanPayment({
         servicedLoanId: loan.id,
         ...req.body,
       });
-      
+
       // Update loan balances based on payment with floor guards
       const principalAmount = Math.max(0, Number(req.body.principalAmount) || 0);
       const interestAmount = Math.max(0, Number(req.body.interestAmount) || 0);
       const escrowAmount = Math.max(0, Number(req.body.escrowAmount) || 0);
-      
+
       // Calculate new balance with floor at 0 to prevent negative balances
       const newBalance = Math.max(0, loan.currentBalance - principalAmount);
-      
+
       await storage.updateServicedLoan(loan.id, {
         currentBalance: newBalance,
         totalPrincipalPaid: (loan.totalPrincipalPaid || 0) + principalAmount,
@@ -6219,7 +6219,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         nextPaymentDate: new Date(new Date().setMonth(new Date().getMonth() + 1)),
         loanStatus: newBalance === 0 ? "paid_off" : loan.loanStatus,
       });
-      
+
       return res.json(payment);
     } catch (error) {
       console.error("Error recording payment:", error);
@@ -6234,16 +6234,16 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       if (!loan) {
         return res.status(404).json({ error: "Loan not found" });
       }
-      
+
       if (loan.loanType === "dscr") {
         return res.status(400).json({ error: "DSCR loans don't support draws" });
       }
-      
+
       const draw = await storage.createLoanDraw({
         servicedLoanId: loan.id,
         ...req.body,
       });
-      
+
       return res.json(draw);
     } catch (error) {
       console.error("Error creating draw:", error);
@@ -6258,31 +6258,31 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       if (!loan) {
         return res.status(404).json({ error: "Loan not found" });
       }
-      
+
       const draw = await storage.getLoanDraw(req.params.drawId);
       if (!draw || draw.servicedLoanId !== loan.id) {
         return res.status(404).json({ error: "Draw not found" });
       }
-      
+
       const updatedDraw = await storage.updateLoanDraw(req.params.drawId, req.body);
-      
+
       // If draw is funded, update loan totals with validation
       if (req.body.status === "funded" && draw.status !== "funded") {
         const fundedAmount = Math.max(0, Number(req.body.approvedAmount || draw.approvedAmount || draw.requestedAmount) || 0);
         const totalBudget = loan.totalRehabBudget || 0;
         const currentFunded = loan.totalDrawsFunded || 0;
-        
+
         // Cap draw funding at remaining holdback to prevent over-funding
         const remainingBudget = Math.max(0, totalBudget - currentFunded);
         const actualFundedAmount = Math.min(fundedAmount, remainingBudget > 0 ? remainingBudget : fundedAmount);
-        
+
         await storage.updateServicedLoan(loan.id, {
           totalDrawsFunded: currentFunded + actualFundedAmount,
           totalDrawsApproved: (loan.totalDrawsApproved || 0) + 1,
           currentBalance: loan.currentBalance + actualFundedAmount,
           remainingHoldback: totalBudget > 0 ? Math.max(0, totalBudget - currentFunded - actualFundedAmount) : null,
         });
-        
+
         // Send draw approved email notification
         try {
           const borrower = await storage.getUser(loan.userId);
@@ -6290,7 +6290,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
             const borrowerName = `${borrower.firstName || ""} ${borrower.lastName || ""}`.trim() || "Valued Customer";
             const allDraws = await storage.getLoanDraws(loan.id);
             const drawNumber = allDraws.filter(d => d.status === "funded" || d.id === draw.id).length;
-            
+
             const emailData = emailTemplates.drawApproved({
               borrowerName,
               loanNumber: loan.loanNumber,
@@ -6299,7 +6299,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
               approvedAmount: actualFundedAmount,
               portalUrl: getPortalUrl(),
             });
-            
+
             await sendEmail({
               to: borrower.email,
               subject: emailData.subject,
@@ -6313,7 +6313,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         } catch (emailError) {
           console.error("Failed to send draw approved email:", emailError);
         }
-        
+
         // Send draw approved SMS notification
         try {
           const borrower = await storage.getUser(loan.userId);
@@ -6328,7 +6328,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           console.error("Failed to send draw approved SMS:", smsError);
         }
       }
-      
+
       return res.json(updatedDraw);
     } catch (error) {
       console.error("Error updating draw:", error);
@@ -6344,21 +6344,21 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
   app.get("/api/admin/draw-requests", isAuthenticated, isStaff, async (req: any, res) => {
     try {
       const draws = await storage.getAllDraws();
-      
+
       // Fetch loan info, borrower, line items, and photos for each draw
       const drawsWithLoanInfo = await Promise.all(draws.map(async (draw) => {
         const loan = await storage.getServicedLoan(draw.servicedLoanId);
         const borrower = loan ? await storage.getUser(loan.userId) : null;
         const lineItems = await storage.getDrawLineItems(draw.id);
         const photos = await storage.getDrawPhotos(draw.id);
-        
+
         // Calculate line items summary
         const lineItemsTotal = lineItems.reduce((sum, item) => sum + (item.requestedAmount || 0), 0);
         const lineItemsApproved = lineItems.filter(item => item.approvedAmount != null && item.approvedAmount > 0).length;
-        
+
         // Calculate photos summary
         const verifiedPhotos = photos.filter(p => p.verificationStatus === 'verified' || p.verificationStatus === 'gps_match' || p.verificationStatus === 'manual_approved').length;
-        
+
         return {
           ...draw,
           loan: loan ? {
@@ -6386,14 +6386,14 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           },
         };
       }));
-      
+
       // Sort by requested date descending (newest first)
       drawsWithLoanInfo.sort((a, b) => {
         const dateA = a.requestedDate ? new Date(a.requestedDate).getTime() : 0;
         const dateB = b.requestedDate ? new Date(b.requestedDate).getTime() : 0;
         return dateB - dateA;
       });
-      
+
       return res.json(drawsWithLoanInfo);
     } catch (error) {
       console.error("Error fetching draw requests:", error);
@@ -6415,7 +6415,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
   // =====================
   // Funded Deals Routes
   // =====================
-  
+
   // Helper function to emit webhook events for funded deals
   async function emitFundedDealWebhookEvent(eventType: string, deal: any, userId?: string) {
     try {
@@ -6442,22 +6442,22 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     try {
       const { state, loanType, limit } = req.query;
       let deals = await storage.getFundedDeals(true);
-      
+
       // Filter by state if provided
       if (state && typeof state === 'string') {
         deals = deals.filter(d => d.state?.toUpperCase() === state.toUpperCase());
       }
-      
+
       // Filter by loan type if provided
       if (loanType && typeof loanType === 'string') {
         deals = deals.filter(d => d.loanType?.toLowerCase() === loanType.toLowerCase());
       }
-      
+
       // Limit results if specified
       if (limit && !isNaN(Number(limit))) {
         deals = deals.slice(0, Number(limit));
       }
-      
+
       return res.json(deals);
     } catch (error) {
       console.error("Error fetching funded deals:", error);
@@ -6470,16 +6470,16 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     try {
       const { id } = req.params;
       const deal = await storage.getFundedDeal(id);
-      
+
       if (!deal) {
         return res.status(404).json({ error: "Funded deal not found" });
       }
-      
+
       // Only return visible deals to public
       if (!deal.isVisible) {
         return res.status(404).json({ error: "Funded deal not found" });
       }
-      
+
       return res.json(deal);
     } catch (error) {
       console.error("Error fetching funded deal:", error);
@@ -6502,7 +6502,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
   app.post("/api/admin/funded-deals", isAuthenticated, isStaff, async (req: any, res) => {
     try {
       const validationResult = insertFundedDealSchema.safeParse(req.body);
-      
+
       if (!validationResult.success) {
         const validationError = fromZodError(validationResult.error);
         return res.status(400).json({
@@ -6516,10 +6516,10 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         ...validationResult.data,
         createdById: userId,
       });
-      
+
       // Emit webhook event
       await emitFundedDealWebhookEvent("fundedDeal.created", deal, userId);
-      
+
       return res.status(201).json(deal);
     } catch (error) {
       console.error("Error creating funded deal:", error);
@@ -6532,21 +6532,21 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     try {
       const { id } = req.params;
       const existing = await storage.getFundedDeal(id);
-      
+
       if (!existing) {
         return res.status(404).json({ error: "Funded deal not found" });
       }
 
       const userId = req.user?.claims?.sub || req.adminUser?.id;
       const updated = await storage.updateFundedDeal(id, req.body);
-      
+
       if (!updated) {
         return res.status(500).json({ error: "Failed to update funded deal" });
       }
-      
+
       // Emit webhook event
       await emitFundedDealWebhookEvent("fundedDeal.updated", updated, userId);
-      
+
       return res.json(updated);
     } catch (error) {
       console.error("Error updating funded deal:", error);
@@ -6559,21 +6559,21 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     try {
       const { id } = req.params;
       const existing = await storage.getFundedDeal(id);
-      
+
       if (!existing) {
         return res.status(404).json({ error: "Funded deal not found" });
       }
 
       const userId = req.user?.claims?.sub || req.adminUser?.id;
       const deleted = await storage.deleteFundedDeal(id);
-      
+
       if (!deleted) {
         return res.status(500).json({ error: "Failed to delete funded deal" });
       }
-      
+
       // Emit webhook event
       await emitFundedDealWebhookEvent("fundedDeal.deleted", existing, userId);
-      
+
       return res.json({ message: "Funded deal deleted successfully" });
     } catch (error) {
       console.error("Error deleting funded deal:", error);
@@ -6589,13 +6589,13 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       const applications = await storage.getAllLoanApplications();
       const fundedDeals = await storage.getFundedDeals(false);
       const leads = await storage.getLeads();
-      
+
       const now = new Date();
       const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
-      
+
       // Applications by status
       const statusCounts: Record<string, number> = {
         draft: 0,
@@ -6611,18 +6611,18 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           statusCounts[app.status]++;
         }
       });
-      
+
       // Applications by loan type
       const loanTypeCounts: Record<string, number> = {};
       applications.forEach(app => {
         const type = app.loanType || "Unknown";
         loanTypeCounts[type] = (loanTypeCounts[type] || 0) + 1;
       });
-      
+
       // Applications over time (last 30 days, grouped by week)
       const weeklyVolume: { week: string; count: number; volume: number }[] = [];
       const recentApps = applications.filter(app => new Date(app.createdAt) >= thirtyDaysAgo);
-      
+
       for (let i = 0; i < 4; i++) {
         const weekStart = new Date(now.getTime() - (i + 1) * 7 * 24 * 60 * 60 * 1000);
         const weekEnd = new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000);
@@ -6636,7 +6636,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           volume: weekApps.reduce((sum, app) => sum + (app.loanAmount || 0), 0),
         });
       }
-      
+
       // Volume by state
       const stateVolume: Record<string, { count: number; volume: number }> = {};
       applications.forEach(app => {
@@ -6647,7 +6647,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         stateVolume[state].count++;
         stateVolume[state].volume += app.loanAmount || 0;
       });
-      
+
       // Add funded deals to state volume
       fundedDeals.forEach(deal => {
         const state = deal.state || "Unknown";
@@ -6657,13 +6657,13 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         stateVolume[state].count++;
         stateVolume[state].volume += deal.loanAmount || 0;
       });
-      
+
       // Sort and get top 10 states
       const topStates = Object.entries(stateVolume)
         .sort((a, b) => b[1].volume - a[1].volume)
         .slice(0, 10)
         .map(([state, data]) => ({ state, ...data }));
-      
+
       // Conversion funnel
       const totalLeads = leads.length;
       const totalApplications = applications.length;
@@ -6676,7 +6676,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       const fundedApps = applications.filter(app => 
         app.status === "funded"
       ).length;
-      
+
       const funnel = [
         { stage: "Leads", count: totalLeads },
         { stage: "Applications", count: totalApplications },
@@ -6684,16 +6684,16 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         { stage: "Approved", count: approvedApps },
         { stage: "Funded", count: fundedApps },
       ];
-      
+
       // Key stats
       const totalPipelineValue = applications
         .filter(app => app.status !== "funded" && app.status !== "denied" && app.status !== "withdrawn")
         .reduce((sum, app) => sum + (app.loanAmount || 0), 0);
-      
+
       const avgLoanSize = applications.length > 0
         ? applications.reduce((sum, app) => sum + (app.loanAmount || 0), 0) / applications.length
         : 0;
-      
+
       // Average days to close (from funded applications with closing date)
       const fundedWithDates = applications.filter(app => 
         app.status === "funded" && app.closingDate && app.createdAt
@@ -6704,17 +6704,17 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
             return sum + days;
           }, 0) / fundedWithDates.length
         : 0;
-      
+
       // This month vs last month comparison
       const thisMonthApps = applications.filter(app => new Date(app.createdAt) >= startOfMonth);
       const lastMonthApps = applications.filter(app => {
         const created = new Date(app.createdAt);
         return created >= startOfLastMonth && created <= endOfLastMonth;
       });
-      
+
       const thisMonthVolume = thisMonthApps.reduce((sum, app) => sum + (app.loanAmount || 0), 0);
       const lastMonthVolume = lastMonthApps.reduce((sum, app) => sum + (app.loanAmount || 0), 0);
-      
+
       return res.json({
         statusCounts,
         loanTypeCounts,
@@ -6956,18 +6956,19 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       // Monthly funded volume trend (last 12 months)
       const now = new Date();
       const monthlyTrend: { month: string; count: number; value: number }[] = [];
-      
+
       for (let i = 11; i >= 0; i--) {
         const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
         const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
-        
+        const monthKey = monthStart.toLocaleString('default', { month: 'short', year: '2-digit' });
+
         const monthLoans = servicedLoansData.filter(loan => {
           const closing = new Date(loan.closingDate);
           return closing >= monthStart && closing <= monthEnd;
         });
 
         monthlyTrend.push({
-          month: monthStart.toLocaleString('default', { month: 'short', year: '2-digit' }),
+          month: monthKey,
           count: monthLoans.length,
           value: monthLoans.reduce((sum, loan) => sum + (loan.originalLoanAmount || 0), 0),
         });
@@ -7030,11 +7031,11 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
 
         filteredPayments.forEach(payment => {
           totalInterestIncome += payment.interestAmount || 0;
-          
+
           // Group by month for trend
           const paidDate = new Date(payment.paidDate!);
           const monthKey = paidDate.toLocaleString('default', { month: 'short', year: '2-digit' });
-          
+
           if (!paymentsByMonth[monthKey]) {
             paymentsByMonth[monthKey] = { interest: 0, principal: 0, fees: 0 };
           }
@@ -7046,14 +7047,14 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
 
       // Fee breakdown by loan type
       const feesByLoanType: Record<string, { originationFees: number; interestIncome: number }> = {};
-      
+
       for (const loan of filteredLoans) {
         const type = loan.loanType || "Unknown";
         if (!feesByLoanType[type]) {
           feesByLoanType[type] = { originationFees: 0, interestIncome: 0 };
         }
         feesByLoanType[type].originationFees += Math.round((loan.originalLoanAmount || 0) * ORIGINATION_FEE_RATE);
-        
+
         // Get interest income for this loan
         const payments = await storage.getLoanPayments(loan.id);
         const completedPayments = payments.filter(p => p.status === "completed");
@@ -7065,12 +7066,12 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       // Monthly revenue trend (last 12 months)
       const now = new Date();
       const monthlyRevenueTrend: { month: string; originationFees: number; interestIncome: number; totalFees: number }[] = [];
-      
+
       for (let i = 11; i >= 0; i--) {
         const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
         const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
         const monthKey = monthStart.toLocaleString('default', { month: 'short', year: '2-digit' });
-        
+
         // Origination fees from loans closed this month
         const monthLoans = servicedLoansData.filter(loan => {
           const closing = new Date(loan.closingDate);
@@ -7140,7 +7141,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       const drawLoans = activeLoans.filter(loan => 
         ["fix_flip", "new_construction", "bridge"].includes(loan.loanType)
       );
-      
+
       let totalDrawCommitment = 0;
       let totalDrawnAmount = 0;
 
@@ -7193,7 +7194,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         payments.forEach(payment => {
           if (start && payment.dueDate && new Date(payment.dueDate) < start) return;
           if (end && payment.dueDate && new Date(payment.dueDate) > end) return;
-          
+
           if (payment.status === "completed") {
             paymentsByStatus.completed++;
           } else if (payment.status === "late") {
@@ -7237,14 +7238,14 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     try {
       const applications = await storage.getAllLoanApplications();
       const servicedLoans = await storage.getAllServicedLoans();
-      
+
       // Application activity by state
       const applicationActivity: Record<string, {
         count: number;
         volume: number;
         statusBreakdown: Record<string, number>;
       }> = {};
-      
+
       applications.forEach(app => {
         const state = app.propertyState || "Unknown";
         if (!applicationActivity[state]) {
@@ -7256,12 +7257,12 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         }
         applicationActivity[state].count++;
         applicationActivity[state].volume += app.loanAmount || 0;
-        
+
         const status = app.status || "draft";
         applicationActivity[state].statusBreakdown[status] = 
           (applicationActivity[state].statusBreakdown[status] || 0) + 1;
       });
-      
+
       // Portfolio concentration by state (serviced loans)
       const portfolioConcentration: Record<string, {
         fundedCount: number;
@@ -7272,7 +7273,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           defaulted: number;
         };
       }> = {};
-      
+
       servicedLoans.forEach(loan => {
         const state = loan.propertyState || "Unknown";
         if (!portfolioConcentration[state]) {
@@ -7288,7 +7289,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         }
         portfolioConcentration[state].fundedCount++;
         portfolioConcentration[state].portfolioValue += loan.currentBalance || 0;
-        
+
         // Categorize by loan status
         const loanStatus = loan.loanStatus || "current";
         if (["current", "grace_period"].includes(loanStatus)) {
@@ -7299,16 +7300,16 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           portfolioConcentration[state].performanceMetrics.defaulted++;
         }
       });
-      
+
       // Convert to arrays sorted by volume/value
       const applicationActivityArray = Object.entries(applicationActivity)
         .map(([state, data]) => ({ state, ...data }))
         .sort((a, b) => b.volume - a.volume);
-      
+
       const portfolioConcentrationArray = Object.entries(portfolioConcentration)
         .map(([state, data]) => ({ state, ...data }))
         .sort((a, b) => b.portfolioValue - a.portfolioValue);
-      
+
       return res.json({
         applicationActivity: applicationActivityArray,
         portfolioConcentration: portfolioConcentrationArray,
@@ -7329,11 +7330,11 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
   app.get("/api/admin/analytics/temporal", isAuthenticated, isStaff, async (req: any, res) => {
     try {
       const { period = "30d" } = req.query;
-      
+
       const now = new Date();
       let startDate: Date;
       let groupBy: "day" | "week" = "day";
-      
+
       // Determine date range based on period
       switch (period) {
         case "7d":
@@ -7360,10 +7361,10 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
           groupBy = "day";
       }
-      
+
       const applications = await storage.getAllLoanApplications();
       const fundedDeals = await storage.getFundedDeals(false);
-      
+
       // Filter to date range
       const filteredApps = applications.filter(app => 
         new Date(app.createdAt) >= startDate
@@ -7371,7 +7372,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       const filteredFunded = fundedDeals.filter(deal => 
         deal.fundingDate && new Date(deal.fundingDate) >= startDate
       );
-      
+
       // Generate time buckets
       const timeSeries: {
         date: string;
@@ -7380,33 +7381,33 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         fundingVolume: number;
         inReviewCount: number;
       }[] = [];
-      
+
       if (groupBy === "day") {
         // Daily buckets
         const dayMs = 24 * 60 * 60 * 1000;
         const numDays = Math.ceil((now.getTime() - startDate.getTime()) / dayMs);
-        
+
         for (let i = 0; i < numDays; i++) {
           const dayStart = new Date(startDate.getTime() + i * dayMs);
           const dayEnd = new Date(startDate.getTime() + (i + 1) * dayMs);
           const dateStr = dayStart.toISOString().split("T")[0];
-          
+
           const dayApps = filteredApps.filter(app => {
             const created = new Date(app.createdAt);
             return created >= dayStart && created < dayEnd;
           });
-          
+
           const dayFunded = filteredFunded.filter(deal => {
             if (!deal.fundingDate) return false;
             const funded = new Date(deal.fundingDate);
             return funded >= dayStart && funded < dayEnd;
           });
-          
+
           const inReviewApps = filteredApps.filter(app => {
             const created = new Date(app.createdAt);
             return created < dayEnd && app.status === "in_review";
           });
-          
+
           timeSeries.push({
             date: dateStr,
             applicationCount: dayApps.length,
@@ -7419,23 +7420,23 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         // Weekly buckets
         const weekMs = 7 * 24 * 60 * 60 * 1000;
         const numWeeks = Math.ceil((now.getTime() - startDate.getTime()) / weekMs);
-        
+
         for (let i = 0; i < numWeeks; i++) {
           const weekStart = new Date(startDate.getTime() + i * weekMs);
           const weekEnd = new Date(startDate.getTime() + (i + 1) * weekMs);
           const dateStr = weekStart.toISOString().split("T")[0];
-          
+
           const weekApps = filteredApps.filter(app => {
             const created = new Date(app.createdAt);
             return created >= weekStart && created < weekEnd;
           });
-          
+
           const weekFunded = filteredFunded.filter(deal => {
             if (!deal.fundingDate) return false;
             const funded = new Date(deal.fundingDate);
             return funded >= weekStart && funded < weekEnd;
           });
-          
+
           timeSeries.push({
             date: dateStr,
             applicationCount: weekApps.length,
@@ -7445,13 +7446,13 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           });
         }
       }
-      
+
       // Summary stats
       const totalApplications = filteredApps.length;
       const totalFunded = filteredFunded.length;
       const totalVolume = filteredFunded.reduce((sum, deal) => sum + (deal.loanAmount || 0), 0);
       const numDays = Math.ceil((now.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000));
-      
+
       return res.json({
         timeSeries,
         period,
@@ -7473,7 +7474,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
   // =====================
   // Dashboard Layout Routes (Staff/Admin)
   // =====================
-  
+
   // GET /api/admin/dashboard-layout - Get user's dashboard layout
   app.get("/api/admin/dashboard-layout", isAuthenticated, isStaff, async (req: any, res) => {
     try {
@@ -7481,9 +7482,9 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       if (!userId) {
         return res.status(401).json({ error: "User not authenticated" });
       }
-      
+
       const layout = await storage.getDashboardLayout(userId);
-      
+
       if (!layout) {
         // Return default layout if none exists
         return res.json({ 
@@ -7492,7 +7493,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           updatedAt: null,
         });
       }
-      
+
       return res.json({
         widgets: layout.widgets,
         isDefault: false,
@@ -7503,7 +7504,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       return res.status(500).json({ error: "Failed to fetch dashboard layout" });
     }
   });
-  
+
   // PUT /api/admin/dashboard-layout - Save user's dashboard layout
   app.put("/api/admin/dashboard-layout", isAuthenticated, isStaff, async (req: any, res) => {
     try {
@@ -7511,15 +7512,15 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       if (!userId) {
         return res.status(401).json({ error: "User not authenticated" });
       }
-      
+
       const { widgets } = req.body;
-      
+
       if (!Array.isArray(widgets)) {
         return res.status(400).json({ error: "Widgets must be an array" });
       }
-      
+
       const layout = await storage.saveDashboardLayout(userId, widgets);
-      
+
       return res.json({
         widgets: layout.widgets,
         isDefault: false,
@@ -7530,7 +7531,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       return res.status(500).json({ error: "Failed to save dashboard layout" });
     }
   });
-  
+
   // DELETE /api/admin/dashboard-layout - Reset to default layout
   app.delete("/api/admin/dashboard-layout", isAuthenticated, isStaff, async (req: any, res) => {
     try {
@@ -7538,9 +7539,9 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       if (!userId) {
         return res.status(401).json({ error: "User not authenticated" });
       }
-      
+
       await storage.deleteDashboardLayout(userId);
-      
+
       return res.json({ message: "Dashboard layout reset to default" });
     } catch (error) {
       console.error("Error deleting dashboard layout:", error);
@@ -7572,7 +7573,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
   app.post("/api/admin/webhooks/endpoints", isAuthenticated, isAdmin, async (req: any, res) => {
     try {
       const validationResult = insertWebhookEndpointSchema.safeParse(req.body);
-      
+
       if (!validationResult.success) {
         const validationError = fromZodError(validationResult.error);
         return res.status(400).json({
@@ -7583,7 +7584,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
 
       // Generate secret if not provided
       const secret = req.body.secret || crypto.randomBytes(32).toString("hex");
-      
+
       const userId = req.user?.claims?.sub || req.adminUser?.id;
       const subscribedEvents = validationResult.data.subscribedEvents as string[];
       const endpoint = await storage.createWebhookEndpoint({
@@ -7592,7 +7593,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         secret,
         createdById: userId,
       });
-      
+
       // Return with unmasked secret only on creation
       return res.status(201).json(endpoint);
     } catch (error) {
@@ -7606,17 +7607,17 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     try {
       const { id } = req.params;
       const existing = await storage.getWebhookEndpoint(id);
-      
+
       if (!existing) {
         return res.status(404).json({ error: "Webhook endpoint not found" });
       }
 
       const updated = await storage.updateWebhookEndpoint(id, req.body);
-      
+
       if (!updated) {
         return res.status(500).json({ error: "Failed to update webhook endpoint" });
       }
-      
+
       // Mask secret in response
       return res.json({
         ...updated,
@@ -7633,11 +7634,11 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     try {
       const { id } = req.params;
       const deleted = await storage.deleteWebhookEndpoint(id);
-      
+
       if (!deleted) {
         return res.status(404).json({ error: "Webhook endpoint not found" });
       }
-      
+
       return res.json({ message: "Webhook endpoint deleted successfully" });
     } catch (error) {
       console.error("Error deleting webhook endpoint:", error);
@@ -7650,13 +7651,13 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     try {
       const { id } = req.params;
       const newSecret = crypto.randomBytes(32).toString("hex");
-      
+
       const updated = await storage.updateWebhookEndpoint(id, { secret: newSecret });
-      
+
       if (!updated) {
         return res.status(404).json({ error: "Webhook endpoint not found" });
       }
-      
+
       // Return the new secret (only time it's shown)
       return res.json({ secret: newSecret });
     } catch (error) {
@@ -7682,7 +7683,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     try {
       const { id } = req.params;
       const endpoint = await storage.getWebhookEndpoint(id);
-      
+
       if (!endpoint) {
         return res.status(404).json({ error: "Webhook endpoint not found" });
       }
@@ -7715,7 +7716,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         });
 
         const responseText = await response.text();
-        
+
         return res.json({
           success: response.ok,
           statusCode: response.status,
@@ -7737,7 +7738,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
   app.get("/api/universities/nearby", async (req, res) => {
     try {
       const { lat, lng, radius = 40234 } = req.query; // Default 25 miles = 40234 meters
-      
+
       if (!lat || !lng) {
         return res.status(400).json({ error: "lat and lng are required" });
       }
@@ -7844,28 +7845,28 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       const { documentId } = req.params;
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
-      
+
       const validationResult = insertDocumentReviewSchema.safeParse({
         ...req.body,
         documentId,
         reviewerId: userId,
         staffRole: user?.staffRole as StaffRole || undefined,
       });
-      
+
       if (!validationResult.success) {
         const validationError = fromZodError(validationResult.error);
         return res.status(400).json({ error: validationError.message });
       }
-      
+
       // Get the document to update its status based on review action
       const document = await storage.getDocument(documentId);
       if (!document) {
         return res.status(404).json({ error: "Document not found" });
       }
-      
+
       // Create the review
       const review = await storage.createDocumentReview(validationResult.data);
-      
+
       // Update document status based on review action
       const statusMap: Record<string, string> = {
         approved: "approved",
@@ -7873,10 +7874,10 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         request_changes: "pending",
         under_review: "pending",
       };
-      
+
       const newStatus = statusMap[validationResult.data.action] || "pending";
       await storage.updateDocument(documentId, { status: newStatus as any });
-      
+
       // Create a timeline event for the application
       if (document.loanApplicationId) {
         const actionLabels: Record<string, string> = {
@@ -7885,7 +7886,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           request_changes: "requested changes on",
           under_review: "marked as under review",
         };
-        
+
         // Map review action to appropriate timeline event type
         const eventTypeMap: Record<string, "document_approved" | "document_rejected" | "document_uploaded"> = {
           approved: "document_approved",
@@ -7893,7 +7894,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           request_changes: "document_rejected", // treat as similar to rejected for timeline
           under_review: "document_uploaded", // use uploaded as a neutral type
         };
-        
+
         await storage.createTimelineEvent({
           loanApplicationId: document.loanApplicationId,
           eventType: eventTypeMap[validationResult.data.action] || "document_uploaded",
@@ -7908,7 +7909,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           createdByUserId: userId,
         });
       }
-      
+
       // Queue notification for document owner
       const app = await storage.getLoanApplication(document.loanApplicationId!);
       if (app?.userId) {
@@ -7929,7 +7930,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
             type: "document_rejected",
           },
         };
-        
+
         const notif = notificationMessages[validationResult.data.action];
         if (notif) {
           // Schedule notification to be sent after 30 minutes (batching)
@@ -7947,7 +7948,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           });
         }
       }
-      
+
       return res.status(201).json(review);
     } catch (error) {
       console.error("Error creating document review:", error);
@@ -7989,21 +7990,21 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       const { documentId } = req.params;
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
-      
+
       const validationResult = insertDocumentCommentSchema.safeParse({
         ...req.body,
         documentId,
         userId,
         staffRole: user?.staffRole || undefined,
       });
-      
+
       if (!validationResult.success) {
         const validationError = fromZodError(validationResult.error);
         return res.status(400).json({ error: validationError.message });
       }
-      
+
       const comment = await storage.createDocumentComment(validationResult.data);
-      
+
       // If comment has attachments, create them
       if (req.body.attachments && Array.isArray(req.body.attachments)) {
         for (const attachment of req.body.attachments) {
@@ -8017,7 +8018,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           });
         }
       }
-      
+
       return res.status(201).json(comment);
     } catch (error) {
       console.error("Error creating document comment:", error);
@@ -8048,7 +8049,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       const { commentId } = req.params;
       const userId = req.user.claims.sub;
       const type = req.query.type === 'review' ? 'review' : 'comment';
-      
+
       const attachmentData = {
         [type === 'review' ? 'documentReviewId' : 'documentCommentId']: commentId,
         fileName: req.body.fileName,
@@ -8057,14 +8058,14 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         mimeType: req.body.mimeType,
         uploadedById: userId,
       };
-      
+
       const validationResult = insertCommentAttachmentSchema.safeParse(attachmentData);
-      
+
       if (!validationResult.success) {
         const validationError = fromZodError(validationResult.error);
         return res.status(400).json({ error: validationError.message });
       }
-      
+
       const attachment = await storage.createCommentAttachment(validationResult.data);
       return res.status(201).json(attachment);
     } catch (error) {
@@ -8107,7 +8108,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     try {
       const now = new Date();
       const pending = await storage.getPendingNotifications(now);
-      
+
       // Group by batch key for consolidated notifications
       const batches = new Map<string, typeof pending>();
       for (const notification of pending) {
@@ -8117,27 +8118,27 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         }
         batches.get(key)!.push(notification);
       }
-      
+
       let processed = 0;
       let failed = 0;
-      
+
       // Convert Map to array entries for iteration
       const batchEntries = Array.from(batches.entries());
-      
+
       for (const [batchKey, batchNotifications] of batchEntries) {
         try {
           // Create a single consolidated notification for this batch
           const firstNotif = batchNotifications[0];
-          
+
           // If multiple items in batch, consolidate message
           let title = firstNotif.title;
           let message = firstNotif.message;
-          
+
           if (batchNotifications.length > 1) {
             title = `${batchNotifications.length} Document Updates`;
             message = `You have ${batchNotifications.length} document updates. Click to view details.`;
           }
-          
+
           // Create actual notification for the user
           await storage.createNotification({
             userId: firstNotif.recipientId,
@@ -8147,22 +8148,22 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
             linkUrl: firstNotif.linkUrl || undefined,
             relatedApplicationId: firstNotif.relatedApplicationId || undefined,
           });
-          
+
           // Mark all notifications in batch as sent
           for (const notif of batchNotifications) {
             await storage.markNotificationSent(notif.id);
           }
-          
+
           processed += batchNotifications.length;
         } catch (error) {
-          console.error(`Error processing batch ${batchKey}:`, error);
+          console.error(`Notification batch ${batchKey} failed:`, error);
           for (const notif of batchNotifications) {
             await storage.markNotificationFailed(notif.id, String(error));
           }
           failed += batchNotifications.length;
         }
       }
-      
+
       return res.json({ 
         success: true, 
         processed, 
@@ -8184,17 +8185,17 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     try {
       const { userId } = req.params;
       const { staffRole } = req.body;
-      
+
       const validRoles: StaffRole[] = ["account_executive", "processor", "underwriter", "management"];
       if (!validRoles.includes(staffRole)) {
         return res.status(400).json({ error: "Invalid staff role" });
       }
-      
+
       const user = await storage.updateUserStaffRole(userId, staffRole);
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
-      
+
       return res.json(user);
     } catch (error) {
       console.error("Error updating staff role:", error);
@@ -8215,7 +8216,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       // Step 1: Clear all existing test data
       console.log("Clearing existing test data...");
       await storage.clearTestData();
-      
+
       // Step 2: Delete existing test borrower accounts (if they exist)
       const testEmails = [
         "dscr.borrower@test.com",
@@ -8226,7 +8227,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       for (const email of testEmails) {
         await storage.deleteUserByEmail(email);
       }
-      
+
       // Step 3: Create 4 distinct test borrowers
       const borrowerData = [
         { email: "dscr.borrower@test.com", firstName: "Sarah", lastName: "Johnson", username: "sarahjohnson" },
@@ -8234,7 +8235,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         { email: "builder@test.com", firstName: "David", lastName: "Martinez", username: "davidmartinez" },
         { email: "bridge.investor@test.com", firstName: "Emily", lastName: "Williams", username: "emilywilliams" },
       ];
-      
+
       const borrowers = [];
       for (const data of borrowerData) {
         const borrower = await storage.createLocalUser({
@@ -8244,7 +8245,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         });
         borrowers.push(borrower);
       }
-      
+
       // Step 4: Define loan data for each borrower
       const loanConfigs = [
         {
@@ -8307,12 +8308,12 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           interestRate: "10.75",
         },
       ];
-      
+
       const createdLoans = [];
-      
+
       for (const config of loanConfigs) {
         const { borrower, ...loanData } = config;
-        
+
         // Create application for this borrower
         const app = await storage.createLoanApplication({
           userId: borrower.id,
@@ -8320,19 +8321,19 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           processingStage: "account_review",
           ...loanData,
         });
-        
+
         // Update status to funded
         await storage.updateLoanApplication(app.id, { status: "funded" });
-        
+
         // Create the serviced loan
         const servicedLoanType = mapLoanTypeToServicedType(loanData.loanType);
         const isHardMoney = servicedLoanType !== "dscr";
         const loanNumber = generateLoanNumber(servicedLoanType);
-        
+
         const originalAmount = loanData.loanAmount;
         const interestRate = parseFloat(loanData.interestRate);
         const termMonths = loanData.loanTermMonths;
-        
+
         let monthlyPayment = 0;
         if (isHardMoney) {
           monthlyPayment = Math.round((originalAmount * (interestRate / 100)) / 12);
@@ -8342,26 +8343,26 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
             monthlyPayment = Math.round(originalAmount * (monthlyRate * Math.pow(1 + monthlyRate, termMonths)) / (Math.pow(1 + monthlyRate, termMonths) - 1));
           }
         }
-        
+
         const annualTaxes = loanData.annualTaxes || 0;
         const annualInsurance = loanData.annualInsurance || 0;
         const annualHOA = loanData.annualHOA || 0;
         const monthlyEscrow = !isHardMoney ? Math.round((annualTaxes + annualInsurance + annualHOA) / 12) : 0;
-        
+
         const closingDate = new Date();
         closingDate.setDate(closingDate.getDate() - 45);
-        
+
         const firstPaymentDate = new Date(closingDate);
         firstPaymentDate.setMonth(firstPaymentDate.getMonth() + 1);
         firstPaymentDate.setDate(1);
-        
+
         const maturityDate = new Date(closingDate);
         maturityDate.setMonth(maturityDate.getMonth() + termMonths);
-        
+
         const nextPaymentDate = new Date();
         nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 1);
         nextPaymentDate.setDate(1);
-        
+
         const servicedLoan = await storage.createServicedLoan({
           userId: borrower.id,
           loanApplicationId: app.id,
@@ -8395,7 +8396,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           purchasePrice: loanData.purchasePrice,
           arv: loanData.arv,
         });
-        
+
         createdLoans.push({
           applicationId: app.id,
           servicedLoanId: servicedLoan.id,
@@ -8407,7 +8408,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           amount: servicedLoan.originalLoanAmount,
         });
       }
-      
+
       return res.json({
         message: "Test data seeded successfully - 4 borrowers with 4 loans created",
         borrowers: borrowerData.map(b => ({ email: b.email, name: `${b.firstName} ${b.lastName}` })),
@@ -8422,19 +8423,19 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
   // ============================================
   // WHITE-LABEL SETTINGS API (Demo Mode Branding)
   // ============================================
-  
+
   // GET /api/white-label - Get current white-label settings (public, no auth)
   app.get("/api/white-label", async (req, res) => {
     try {
       const settings = await storage.getActiveWhiteLabelSettings();
-      
+
       if (settings) {
         return res.json({
           ...settings,
           isDemoMode: true, // Custom branding is active
         });
       }
-      
+
       // Return default Sequel Investments branding
       return res.json({
         ...DEFAULT_WHITE_LABEL_SETTINGS,
@@ -8446,12 +8447,12 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       return res.status(500).json({ error: "Failed to fetch white-label settings" });
     }
   });
-  
+
   // PUT /api/admin/white-label - Update white-label settings (admin only)
   app.put("/api/admin/white-label", isAuthenticated, isAdmin, async (req: any, res) => {
     try {
       const validationResult = insertWhiteLabelSettingsSchema.safeParse(req.body);
-      
+
       if (!validationResult.success) {
         const validationError = fromZodError(validationResult.error);
         return res.status(400).json({
@@ -8459,12 +8460,12 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           message: validationError.message,
         });
       }
-      
+
       const settings = await storage.upsertWhiteLabelSettings({
         ...validationResult.data,
         isActive: true,
       });
-      
+
       return res.json({
         message: "White-label settings updated successfully",
         settings,
@@ -8474,12 +8475,12 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       return res.status(500).json({ error: "Failed to update white-label settings" });
     }
   });
-  
+
   // DELETE /api/admin/white-label - Reset to defaults (admin only)
   app.delete("/api/admin/white-label", isAuthenticated, isAdmin, async (req: any, res) => {
     try {
       await storage.deleteWhiteLabelSettings();
-      
+
       return res.json({
         message: "White-label settings reset to defaults",
         settings: DEFAULT_WHITE_LABEL_SETTINGS,
@@ -8493,7 +8494,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
   // ============================================
   // APPOINTMENT/CALENDAR BOOKING ROUTES
   // ============================================
-  
+
   // Get appointments for current user (borrower sees their own, staff sees all)
   app.get("/api/appointments", isAuthenticated, async (req: any, res) => {
     try {
@@ -8502,7 +8503,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
-      
+
       const appointmentsList = await storage.getAppointments(userId, user.role);
       return res.json(appointmentsList);
     } catch (error) {
@@ -8517,16 +8518,16 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       const appointment = await storage.getAppointment(req.params.id);
-      
+
       if (!appointment) {
         return res.status(404).json({ error: "Appointment not found" });
       }
-      
+
       // Borrowers can only view their own appointments
       if (user?.role === "borrower" && appointment.borrowerUserId !== userId) {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       return res.json(appointment);
     } catch (error) {
       console.error("Error fetching appointment:", error);
@@ -8539,23 +8540,23 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
-      
+
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
-      
+
       const { staffUserId, scheduledAt, title, description, durationMinutes, relatedApplicationId, notes } = req.body;
-      
+
       if (!staffUserId || !scheduledAt || !title) {
         return res.status(400).json({ error: "staffUserId, scheduledAt, and title are required" });
       }
-      
+
       // Verify staff exists
       const staff = await storage.getUser(staffUserId);
       if (!staff || (staff.role !== "admin" && staff.role !== "staff")) {
         return res.status(400).json({ error: "Invalid staff member" });
       }
-      
+
       // Validate application ownership if relatedApplicationId is provided
       if (relatedApplicationId) {
         const application = await storage.getLoanApplication(relatedApplicationId);
@@ -8567,7 +8568,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           return res.status(403).json({ error: "You can only link your own applications" });
         }
       }
-      
+
       const appointmentData = {
         borrowerUserId: userId,
         staffUserId,
@@ -8579,9 +8580,9 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         relatedApplicationId: relatedApplicationId || null,
         notes: notes || null,
       };
-      
+
       const appointment = await storage.createAppointment(appointmentData);
-      
+
       // Create notification for staff
       await storage.createNotification({
         userId: staffUserId,
@@ -8590,7 +8591,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         message: `${user.firstName || user.email} has scheduled a consultation with you for ${new Date(scheduledAt).toLocaleString()}.`,
         linkUrl: "/admin/appointments",
       });
-      
+
       // Send confirmation email to borrower
       if (user.email && await shouldSendEmail(user.id)) {
         try {
@@ -8602,7 +8603,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
             title,
             portalUrl: getPortalUrl(),
           });
-          
+
           await sendEmail({
             to: user.email,
             subject: "Appointment Confirmed - Easy Street Capital",
@@ -8615,7 +8616,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           console.error("Failed to send appointment confirmation email:", emailError);
         }
       }
-      
+
       // Send SMS to borrower if enabled
       if (user.phone && user.smsNotificationsEnabled) {
         try {
@@ -8631,7 +8632,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           console.error("Failed to send appointment confirmation SMS:", smsError);
         }
       }
-      
+
       return res.status(201).json(appointment);
     } catch (error) {
       console.error("Error creating appointment:", error);
@@ -8645,16 +8646,16 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       const appointment = await storage.getAppointment(req.params.id);
-      
+
       if (!appointment) {
         return res.status(404).json({ error: "Appointment not found" });
       }
-      
+
       // Borrowers can only update their own appointments
       if (user?.role === "borrower" && appointment.borrowerUserId !== userId) {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       // Borrowers can only cancel, staff can do more
       if (user?.role === "borrower") {
         const { status } = req.body;
@@ -8662,7 +8663,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           return res.status(403).json({ error: "Borrowers can only cancel appointments" });
         }
       }
-      
+
       const updateData: any = {};
       if (req.body.scheduledAt) updateData.scheduledAt = new Date(req.body.scheduledAt);
       if (req.body.status) updateData.status = req.body.status;
@@ -8670,9 +8671,9 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       if (req.body.meetingUrl !== undefined) updateData.meetingUrl = req.body.meetingUrl;
       if (req.body.title) updateData.title = req.body.title;
       if (req.body.description !== undefined) updateData.description = req.body.description;
-      
+
       const updated = await storage.updateAppointment(req.params.id, updateData);
-      
+
       // Notify if cancelled or rescheduled
       if (req.body.status === "cancelled") {
         const otherPartyId = user?.role === "borrower" ? appointment.staffUserId : appointment.borrowerUserId;
@@ -8683,7 +8684,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           message: `An appointment scheduled for ${new Date(appointment.scheduledAt).toLocaleString()} has been cancelled.`,
         });
       }
-      
+
       return res.json(updated);
     } catch (error) {
       console.error("Error updating appointment:", error);
@@ -8695,12 +8696,12 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
   app.get("/api/staff/available", isAuthenticated, async (req: any, res) => {
     try {
       const staffMembers = await storage.getAvailableStaff();
-      
+
       // Initialize availability for staff members who don't have it
       for (const staff of staffMembers) {
         await storage.initializeStaffAvailability(staff.id);
       }
-      
+
       // Return staff with basic info (no sensitive data)
       const staffInfo = staffMembers.map(s => ({
         id: s.id,
@@ -8711,7 +8712,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         staffRole: s.staffRole,
         role: s.role,
       }));
-      
+
       return res.json(staffInfo);
     } catch (error) {
       console.error("Error fetching available staff:", error);
@@ -8724,22 +8725,22 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
-      
+
       if (!user) {
         return res.status(401).json({ error: "Authentication required" });
       }
-      
+
       const staffId = req.params.staffId;
-      
+
       // Verify the staff member exists and is actually staff/admin
       const staffMember = await storage.getUser(staffId);
       if (!staffMember || (staffMember.role !== "staff" && staffMember.role !== "admin")) {
         return res.status(404).json({ error: "Staff member not found" });
       }
-      
+
       // Initialize if not exists
       await storage.initializeStaffAvailability(staffId);
-      
+
       const availability = await storage.getStaffAvailability(staffId);
       return res.json(availability);
     } catch (error) {
@@ -8753,24 +8754,24 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
-      
+
       if (!user) {
         return res.status(401).json({ error: "Authentication required" });
       }
-      
+
       const staffId = req.params.staffId;
       const dateStr = req.query.date as string;
-      
+
       if (!dateStr) {
         return res.status(400).json({ error: "date query parameter is required" });
       }
-      
+
       // Validate date format (must be a valid ISO date string or parseable date)
       const date = new Date(dateStr);
       if (isNaN(date.getTime())) {
         return res.status(400).json({ error: "Invalid date format. Use ISO 8601 format (YYYY-MM-DD)" });
       }
-      
+
       // Validate date is not in the past (allow today)
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -8779,23 +8780,23 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       if (requestedDate < today) {
         return res.status(400).json({ error: "Cannot request slots for past dates" });
       }
-      
+
       // Validate date is not too far in the future (limit to 90 days)
       const maxDate = new Date(today);
       maxDate.setDate(maxDate.getDate() + 90);
       if (requestedDate > maxDate) {
         return res.status(400).json({ error: "Cannot request slots more than 90 days in advance" });
       }
-      
+
       // Verify the staff member exists
       const staffMember = await storage.getUser(staffId);
       if (!staffMember || (staffMember.role !== "staff" && staffMember.role !== "admin")) {
         return res.status(404).json({ error: "Staff member not found" });
       }
-      
+
       // Initialize availability if not exists
       await storage.initializeStaffAvailability(staffId);
-      
+
       const slots = await storage.getAvailableSlotsForStaff(staffId, date);
       return res.json(slots);
     } catch (error) {
@@ -8811,28 +8812,28 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       const user = await storage.getUser(userId);
       const staffId = req.params.staffId;
       const dayOfWeek = parseInt(req.params.dayOfWeek);
-      
+
       // Only staff can update their own availability, admins can update any
       if (user?.role === "borrower") {
         return res.status(403).json({ error: "Only staff can update availability" });
       }
-      
+
       if (user?.role === "staff" && userId !== staffId) {
         return res.status(403).json({ error: "Can only update your own availability" });
       }
-      
+
       if (dayOfWeek < 0 || dayOfWeek > 6) {
         return res.status(400).json({ error: "dayOfWeek must be 0-6" });
       }
-      
+
       const { startTime, endTime, isAvailable } = req.body;
-      
+
       const availability = await storage.setStaffAvailability(staffId, dayOfWeek, {
         startTime,
         endTime,
         isAvailable,
       });
-      
+
       return res.json(availability);
     } catch (error) {
       console.error("Error updating staff availability:", error);
@@ -8843,7 +8844,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
   // ============================================
   // PAGE LAYOUT ROUTES (Modular Page Builder)
   // ============================================
-  
+
   // Page name mappings
   const PAGE_NAME_MAP: Record<string, string> = {
     home: "Home Page",
@@ -8854,13 +8855,13 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     contact: "Contact Page",
     resources: "Resources Page",
   };
-  
+
   // Get layout for a specific page (public)
   app.get("/api/page-layouts/:pageId", async (req: any, res) => {
     try {
       const { pageId } = req.params;
       let layout = await storage.getPageLayout(pageId);
-      
+
       // If no layout exists, create an empty one for valid page IDs
       if (!layout && PAGE_NAME_MAP[pageId]) {
         layout = await storage.upsertPageLayout({
@@ -8869,24 +8870,24 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           sections: [],
           isActive: true,
         });
-        
+
         // For home page, also populate with default sections
         if (pageId === "home") {
           layout = await storage.resetPageLayoutToDefault("home");
         }
       }
-      
+
       if (!layout) {
         return res.status(404).json({ error: "Page layout not found" });
       }
-      
+
       return res.json(layout);
     } catch (error) {
       console.error("Error fetching page layout:", error);
       return res.status(500).json({ error: "Failed to fetch page layout" });
     }
   });
-  
+
   // Get all page layouts (admin only)
   app.get("/api/admin/page-layouts", isAuthenticated, isAdmin, async (req: any, res) => {
     try {
@@ -8897,20 +8898,20 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       return res.status(500).json({ error: "Failed to fetch page layouts" });
     }
   });
-  
+
   // Update page layout sections (admin only)
   app.put("/api/admin/page-layouts/:pageId", isAuthenticated, isAdmin, async (req: any, res) => {
     try {
       const { pageId } = req.params;
       const { sections } = req.body;
-      
+
       if (!Array.isArray(sections)) {
         return res.status(400).json({ error: "Sections must be an array" });
       }
-      
+
       // Import validation schema dynamically to avoid circular dependencies
       const { pageSectionsArraySchema } = await import("@shared/schema");
-      
+
       // Validate sections array
       const validationResult = pageSectionsArraySchema.safeParse(sections);
       if (!validationResult.success) {
@@ -8924,29 +8925,29 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           }))
         });
       }
-      
+
       const layout = await storage.updatePageLayoutSections(pageId, validationResult.data);
       if (!layout) {
         return res.status(404).json({ error: "Page layout not found" });
       }
-      
+
       return res.json(layout);
     } catch (error) {
       console.error("Error updating page layout:", error);
       return res.status(500).json({ error: "Failed to update page layout" });
     }
   });
-  
+
   // Reset page layout to default (admin only)
   app.post("/api/admin/page-layouts/:pageId/reset", isAuthenticated, isAdmin, async (req: any, res) => {
     try {
       const { pageId } = req.params;
       const layout = await storage.resetPageLayoutToDefault(pageId);
-      
+
       if (!layout) {
         return res.status(400).json({ error: "No default layout available for this page" });
       }
-      
+
       return res.json(layout);
     } catch (error) {
       console.error("Error resetting page layout:", error);
@@ -8957,7 +8958,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
   // ============================================
   // LOAN PRODUCT MANAGEMENT ROUTES
   // ============================================
-  
+
   // Get all loan products (public - active only)
   app.get("/api/loan-products", async (req: any, res) => {
     try {
@@ -8968,7 +8969,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       return res.status(500).json({ error: "Failed to fetch loan products" });
     }
   });
-  
+
   // Get single loan product by slug (public)
   app.get("/api/loan-products/:slug", async (req: any, res) => {
     try {
@@ -8983,7 +8984,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       return res.status(500).json({ error: "Failed to fetch loan product" });
     }
   });
-  
+
   // Get all loan products (admin - includes inactive)
   app.get("/api/admin/loan-products", isAuthenticated, isAdmin, async (req: any, res) => {
     try {
@@ -8994,7 +8995,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       return res.status(500).json({ error: "Failed to fetch loan products" });
     }
   });
-  
+
   // Get single loan product by ID (admin)
   app.get("/api/admin/loan-products/:id", isAuthenticated, isAdmin, async (req: any, res) => {
     try {
@@ -9009,22 +9010,22 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       return res.status(500).json({ error: "Failed to fetch loan product" });
     }
   });
-  
+
   // Create new loan product (admin)
   app.post("/api/admin/loan-products", isAuthenticated, isAdmin, async (req: any, res) => {
     try {
       const { insertLoanProductSchema } = await import("@shared/schema");
-      
+
       const validationResult = insertLoanProductSchema.safeParse(req.body);
       if (!validationResult.success) {
         const validationError = fromZodError(validationResult.error);
-        return res.status(400).json({ 
-          error: "Validation failed", 
+        return res.status(400).json({
+          error: "Validation failed",
           message: validationError.message,
           details: validationResult.error.errors
         });
       }
-      
+
       const product = await storage.createLoanProduct(validationResult.data);
       return res.status(201).json(product);
     } catch (error: any) {
@@ -9035,13 +9036,13 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       return res.status(500).json({ error: "Failed to create loan product" });
     }
   });
-  
+
   // Update loan product (admin)
   app.put("/api/admin/loan-products/:id", isAuthenticated, isAdmin, async (req: any, res) => {
     try {
       const { id } = req.params;
       const { insertLoanProductSchema } = await import("@shared/schema");
-      
+
       // For updates, make all fields optional
       const updateSchema = insertLoanProductSchema.partial();
       const validationResult = updateSchema.safeParse(req.body);
@@ -9053,7 +9054,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           details: validationResult.error.errors
         });
       }
-      
+
       const product = await storage.updateLoanProduct(id, validationResult.data);
       if (!product) {
         return res.status(404).json({ error: "Loan product not found" });
@@ -9067,7 +9068,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       return res.status(500).json({ error: "Failed to update loan product" });
     }
   });
-  
+
   // Delete loan product (admin)
   app.delete("/api/admin/loan-products/:id", isAuthenticated, isAdmin, async (req: any, res) => {
     try {
@@ -9082,7 +9083,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       return res.status(500).json({ error: "Failed to delete loan product" });
     }
   });
-  
+
   // Reorder loan products (admin)
   app.patch("/api/admin/loan-products/reorder", isAuthenticated, isAdmin, async (req: any, res) => {
     try {
@@ -9101,7 +9102,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
   // ============================================
   // PREMIUM TEMPLATES ROUTES
   // ============================================
-  
+
   // Get all active premium templates (public)
   app.get("/api/premium-templates", async (req: any, res) => {
     try {
@@ -9112,7 +9113,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       return res.status(500).json({ error: "Failed to fetch templates" });
     }
   });
-  
+
   // Get single premium template by slug (public)
   app.get("/api/premium-templates/:slug", async (req: any, res) => {
     try {
@@ -9127,7 +9128,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       return res.status(500).json({ error: "Failed to fetch template" });
     }
   });
-  
+
   // Get all premium templates (admin - includes inactive)
   app.get("/api/admin/premium-templates", isAuthenticated, isAdmin, async (req: any, res) => {
     try {
@@ -9138,7 +9139,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       return res.status(500).json({ error: "Failed to fetch templates" });
     }
   });
-  
+
   // Get single premium template by ID (admin)
   app.get("/api/admin/premium-templates/:id", isAuthenticated, isAdmin, async (req: any, res) => {
     try {
@@ -9153,12 +9154,12 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       return res.status(500).json({ error: "Failed to fetch template" });
     }
   });
-  
+
   // Create new premium template (admin)
   app.post("/api/admin/premium-templates", isAuthenticated, isAdmin, async (req: any, res) => {
     try {
       const { insertPremiumTemplateSchema } = await import("@shared/schema");
-      
+
       const validationResult = insertPremiumTemplateSchema.safeParse(req.body);
       if (!validationResult.success) {
         const validationError = fromZodError(validationResult.error);
@@ -9168,7 +9169,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           details: validationResult.error.errors
         });
       }
-      
+
       const template = await storage.createPremiumTemplate(validationResult.data);
       return res.status(201).json(template);
     } catch (error: any) {
@@ -9179,13 +9180,13 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       return res.status(500).json({ error: "Failed to create template" });
     }
   });
-  
+
   // Update premium template (admin)
   app.put("/api/admin/premium-templates/:id", isAuthenticated, isAdmin, async (req: any, res) => {
     try {
       const { id } = req.params;
       const { insertPremiumTemplateSchema } = await import("@shared/schema");
-      
+
       const updateSchema = insertPremiumTemplateSchema.partial();
       const validationResult = updateSchema.safeParse(req.body);
       if (!validationResult.success) {
@@ -9196,7 +9197,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           details: validationResult.error.errors
         });
       }
-      
+
       const template = await storage.updatePremiumTemplate(id, validationResult.data);
       if (!template) {
         return res.status(404).json({ error: "Template not found" });
@@ -9210,7 +9211,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       return res.status(500).json({ error: "Failed to update template" });
     }
   });
-  
+
   // Delete premium template (admin)
   app.delete("/api/admin/premium-templates/:id", isAuthenticated, isAdmin, async (req: any, res) => {
     try {
@@ -9225,7 +9226,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       return res.status(500).json({ error: "Failed to delete template" });
     }
   });
-  
+
   // Reorder premium templates (admin)
   app.patch("/api/admin/premium-templates/reorder", isAuthenticated, isAdmin, async (req: any, res) => {
     try {
@@ -9240,22 +9241,22 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       return res.status(500).json({ error: "Failed to reorder templates" });
     }
   });
-  
+
   // Apply template to white-label site
   app.post("/api/white-label/apply-template", isAuthenticated, isAdmin, async (req: any, res) => {
     try {
       const { whiteLabelSiteId, templateId } = req.body;
-      
+
       if (!whiteLabelSiteId || !templateId) {
         return res.status(400).json({ error: "whiteLabelSiteId and templateId are required" });
       }
-      
+
       // Verify template exists
       const template = await storage.getPremiumTemplate(templateId);
       if (!template) {
         return res.status(404).json({ error: "Template not found" });
       }
-      
+
       const assignment = await storage.applyTemplateToWhiteLabelSite(whiteLabelSiteId, templateId);
       return res.json(assignment);
     } catch (error) {
@@ -9272,14 +9273,14 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
   // (Notifications are queued with 30-minute delay, so checking every 5 mins is efficient)
   // ============================================
   const NOTIFICATION_PROCESS_INTERVAL = 5 * 60 * 1000; // 5 minutes
-  
+
   const processNotificationQueue = async () => {
     try {
       const now = new Date();
       const pending = await storage.getPendingNotifications(now);
-      
+
       if (pending.length === 0) return;
-      
+
       // Group by batch key for consolidated notifications
       const batches = new Map<string, typeof pending>();
       for (const notification of pending) {
@@ -9289,23 +9290,23 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
         }
         batches.get(key)!.push(notification);
       }
-      
+
       let processed = 0;
       const batchEntries = Array.from(batches.entries());
-      
+
       for (const [batchKey, batchNotifications] of batchEntries) {
         try {
           const firstNotif = batchNotifications[0];
-          
+
           // Consolidate multiple notifications into one
           let title = firstNotif.title;
           let message = firstNotif.message;
-          
+
           if (batchNotifications.length > 1) {
             title = `${batchNotifications.length} Document Updates`;
             message = `You have ${batchNotifications.length} document updates. Click to view details.`;
           }
-          
+
           // Create the actual notification
           await storage.createNotification({
             userId: firstNotif.recipientId,
@@ -9315,12 +9316,12 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
             linkUrl: firstNotif.linkUrl || undefined,
             relatedApplicationId: firstNotif.relatedApplicationId || undefined,
           });
-          
+
           // Mark all in batch as sent
           for (const notif of batchNotifications) {
             await storage.markNotificationSent(notif.id);
           }
-          
+
           processed += batchNotifications.length;
         } catch (error) {
           console.error(`Notification batch ${batchKey} failed:`, error);
@@ -9329,7 +9330,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           }
         }
       }
-      
+
       if (processed > 0) {
         console.log(`Notification processor: ${processed} notifications sent in ${batches.size} batches`);
       }
@@ -9337,12 +9338,12 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       console.error("Notification processor error:", error);
     }
   };
-  
-  // Start the notification processor interval
-  setInterval(processNotificationQueue, NOTIFICATION_PROCESS_INTERVAL);
-  
+
   // Run once at startup to process any pending notifications
   setTimeout(processNotificationQueue, 5000);
+
+  // Start the notification processor interval
+  setInterval(processNotificationQueue, NOTIFICATION_PROCESS_INTERVAL);
 
   return httpServer;
 }

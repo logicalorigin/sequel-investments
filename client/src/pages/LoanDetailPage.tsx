@@ -2,11 +2,11 @@ import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute, useLocation } from "wouter";
 import { format, differenceInDays, addMonths } from "date-fns";
-import { 
-  Building2, 
-  Calendar, 
-  DollarSign, 
-  TrendingUp, 
+import {
+  Building2,
+  Calendar,
+  DollarSign,
+  TrendingUp,
   ArrowLeft,
   Home,
   HardHat,
@@ -84,12 +84,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { 
-  ServicedLoan, 
-  LoanPayment, 
-  LoanDraw, 
-  LoanEscrowItem, 
-  LoanDocument, 
+import type {
+  ServicedLoan,
+  LoanPayment,
+  LoanDraw,
+  LoanEscrowItem,
+  LoanDocument,
   LoanMilestone,
   AmortizationRow,
   ScopeOfWorkItem,
@@ -269,7 +269,7 @@ function DrawPhotoUpload({ draw, loanId, scopeOfWorkItems }: { draw: LoanDraw; l
           "Content-Type": file.type,
         },
       });
-      
+
       if (!uploadRes.ok) {
         throw new Error("Failed to upload file");
       }
@@ -282,7 +282,7 @@ function DrawPhotoUpload({ draw, loanId, scopeOfWorkItems }: { draw: LoanDraw; l
       // Get browser location if available
       let browserLatitude: string | undefined;
       let browserLongitude: string | undefined;
-      
+
       if (navigator.geolocation) {
         try {
           const position = await new Promise<GeolocationPosition>((resolve, reject) => {
@@ -321,7 +321,7 @@ function DrawPhotoUpload({ draw, loanId, scopeOfWorkItems }: { draw: LoanDraw; l
       setSelectedScopeItemId("");
       setCaption("");
       setShowUploadDialog(false);
-      
+
       // Show appropriate toast based on verification result
       if (photo.verificationStatus === "verified") {
         toast({ title: "Photo uploaded and verified", description: "GPS location confirmed at property" });
@@ -364,12 +364,12 @@ function DrawPhotoUpload({ draw, loanId, scopeOfWorkItems }: { draw: LoanDraw; l
         toast({ title: "Invalid file type", description: "Please upload a JPEG, PNG, or HEIC image", variant: "destructive" });
         return;
       }
-      
+
       if (file.size > 10 * 1024 * 1024) {
         toast({ title: "File too large", description: "Maximum file size is 10MB", variant: "destructive" });
         return;
       }
-      
+
       setSelectedFile(file);
       const url = URL.createObjectURL(file);
       setPreviewUrl(url);
@@ -428,8 +428,8 @@ function DrawPhotoUpload({ draw, loanId, scopeOfWorkItems }: { draw: LoanDraw; l
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {photos.map((photo) => (
                 <div key={photo.id} className="relative group rounded-lg overflow-hidden border" data-testid={`photo-card-${photo.id}`}>
-                  <img 
-                    src={photo.fileKey.startsWith('/') ? photo.fileKey : `/objects/${photo.fileKey}`} 
+                  <img
+                    src={photo.fileKey.startsWith('/') ? photo.fileKey : `/objects/${photo.fileKey}`}
                     alt={photo.fileName}
                     className="w-full h-32 object-cover"
                   />
@@ -437,9 +437,9 @@ function DrawPhotoUpload({ draw, loanId, scopeOfWorkItems }: { draw: LoanDraw; l
                     <div className="flex items-center justify-between">
                       {getPhotoVerificationBadge(photo.verificationStatus)}
                       {draw.status === "draft" && (
-                        <Button 
-                          size="icon" 
-                          variant="ghost" 
+                        <Button
+                          size="icon"
+                          variant="ghost"
                           className="text-white hover:text-red-400 opacity-0 group-hover:opacity-100"
                           onClick={() => deletePhotoMutation.mutate(photo.id)}
                           data-testid={`button-delete-photo-${photo.id}`}
@@ -467,8 +467,8 @@ function DrawPhotoUpload({ draw, loanId, scopeOfWorkItems }: { draw: LoanDraw; l
       {/* Upload buttons - only for draft draws */}
       {draw.status === "draft" && (
         <>
-          <Button 
-            size="sm" 
+          <Button
+            size="sm"
             variant="default"
             className="gap-1"
             asChild
@@ -493,7 +493,7 @@ function DrawPhotoUpload({ draw, loanId, scopeOfWorkItems }: { draw: LoanDraw; l
                 Take a photo at the property to verify work completion. Photos should include GPS location data.
               </DialogDescription>
             </DialogHeader>
-            
+
             <div className="space-y-4">
               {/* File input with camera capture for mobile */}
               {!selectedFile ? (
@@ -507,7 +507,7 @@ function DrawPhotoUpload({ draw, loanId, scopeOfWorkItems }: { draw: LoanDraw; l
                     id={`photo-upload-${draw.id}`}
                     data-testid={`input-photo-file-${draw.id}`}
                   />
-                  <label 
+                  <label
                     htmlFor={`photo-upload-${draw.id}`}
                     className="cursor-pointer flex flex-col items-center gap-2"
                   >
@@ -523,9 +523,9 @@ function DrawPhotoUpload({ draw, loanId, scopeOfWorkItems }: { draw: LoanDraw; l
               ) : (
                 <div className="space-y-4">
                   <div className="relative rounded-lg overflow-hidden">
-                    <img 
-                      src={previewUrl!} 
-                      alt="Preview" 
+                    <img
+                      src={previewUrl!}
+                      alt="Preview"
                       className="w-full h-48 object-cover"
                     />
                     <Button
@@ -541,7 +541,7 @@ function DrawPhotoUpload({ draw, loanId, scopeOfWorkItems }: { draw: LoanDraw; l
                       <X className="h-4 w-4 text-white" />
                     </Button>
                   </div>
-                  
+
                   {/* Scope of work item selector */}
                   {scopeOfWorkItems.length > 0 && (
                     <div>
@@ -560,7 +560,7 @@ function DrawPhotoUpload({ draw, loanId, scopeOfWorkItems }: { draw: LoanDraw; l
                       </select>
                     </div>
                   )}
-                  
+
                   <div>
                     <Label htmlFor="caption">Caption (optional)</Label>
                     <Input
@@ -572,13 +572,13 @@ function DrawPhotoUpload({ draw, loanId, scopeOfWorkItems }: { draw: LoanDraw; l
                       data-testid={`input-photo-caption-${draw.id}`}
                     />
                   </div>
-                  
+
                   {isUploading && (
                     <div className="space-y-2">
                       <Progress value={uploadProgress} className="h-2" />
                       <p className="text-xs text-center text-muted-foreground">
-                        {uploadProgress < 30 ? "Preparing upload..." : 
-                         uploadProgress < 70 ? "Uploading photo..." : 
+                        {uploadProgress < 30 ? "Preparing upload..." :
+                         uploadProgress < 70 ? "Uploading photo..." :
                          uploadProgress < 100 ? "Verifying location..." : "Complete!"}
                       </p>
                     </div>
@@ -586,7 +586,7 @@ function DrawPhotoUpload({ draw, loanId, scopeOfWorkItems }: { draw: LoanDraw; l
                 </div>
               )}
             </div>
-            
+
             <DialogFooter>
               <Button variant="outline" onClick={() => {
                 setShowUploadDialog(false);
@@ -595,7 +595,7 @@ function DrawPhotoUpload({ draw, loanId, scopeOfWorkItems }: { draw: LoanDraw; l
                 setSelectedScopeItemId("");
                 setCaption("");
               }} data-testid={`button-cancel-upload-${draw.id}`}>Cancel</Button>
-              <Button 
+              <Button
                 onClick={handleUpload}
                 disabled={!selectedFile || isUploading}
                 data-testid={`button-confirm-upload-${draw.id}`}
@@ -643,21 +643,21 @@ function LoanDocumentsPanel({ documents, loanType }: { documents: LoanDocumentWi
   // Separate documents by phase
   const processingDocs = documents.filter(doc => doc.phase === "processing");
   const servicingDocs = documents.filter(doc => doc.phase === "servicing");
-  
+
   const getPhaseLabel = (phase: "processing" | "servicing") => {
     if (phase === "processing") {
       return "Loan Processing & Closing";
     }
     return "Loan Servicing";
   };
-  
+
   const getPhaseDescription = (phase: "processing" | "servicing") => {
     if (phase === "processing") {
       return "Documents from application, underwriting, and closing";
     }
     return "Documents from loan servicing period";
   };
-  
+
   const renderDocumentList = (docs: LoanDocumentWithPhase[], phaseLabel: string) => (
     <div className="space-y-2">
       {docs.map((doc) => (
@@ -673,7 +673,7 @@ function LoanDocumentsPanel({ documents, loanType }: { documents: LoanDocumentWi
                 {doc.documentStatus && doc.phase === "processing" && (
                   <>
                     <span>•</span>
-                    <Badge 
+                    <Badge
                       variant={doc.documentStatus === "approved" ? "default" : "secondary"}
                       className="text-[10px] px-1.5 py-0"
                     >
@@ -700,7 +700,7 @@ function LoanDocumentsPanel({ documents, loanType }: { documents: LoanDocumentWi
         <CardHeader>
           <CardTitle>Loan Documents</CardTitle>
           <CardDescription>
-            {loanType === "fix_flip" || loanType === "new_construction" 
+            {loanType === "fix_flip" || loanType === "new_construction"
               ? "Closing docs, inspection reports, and correspondence"
               : "Closing docs, statements, and correspondence"}
           </CardDescription>
@@ -720,7 +720,7 @@ function LoanDocumentsPanel({ documents, loanType }: { documents: LoanDocumentWi
       <CardHeader>
         <CardTitle>Loan Documents</CardTitle>
         <CardDescription>
-          {loanType === "fix_flip" || loanType === "new_construction" 
+          {loanType === "fix_flip" || loanType === "new_construction"
             ? "Closing docs, inspection reports, and correspondence"
             : "Closing docs, statements, and correspondence"}
         </CardDescription>
@@ -741,7 +741,7 @@ function LoanDocumentsPanel({ documents, loanType }: { documents: LoanDocumentWi
             {renderDocumentList(processingDocs, "Processing")}
           </div>
         )}
-        
+
         {/* Servicing Documents */}
         {servicingDocs.length > 0 && (
           <div>
@@ -766,7 +766,7 @@ function LoanDocumentsPanel({ documents, loanType }: { documents: LoanDocumentWi
 function AmortizationCalculator({ loan }: { loan: ServicedLoan }) {
   const [extraPayment, setExtraPayment] = useState(0);
   const [showFullSchedule, setShowFullSchedule] = useState(false);
-  
+
   const schedule = useMemo(() => {
     if (!loan.originalLoanAmount || !loan.interestRate || !loan.amortizationMonths || !loan.firstPaymentDate) {
       return [];
@@ -778,17 +778,17 @@ function AmortizationCalculator({ loan }: { loan: ServicedLoan }) {
       new Date(loan.firstPaymentDate)
     );
   }, [loan]);
-  
+
   const paidPayments = loan.totalPrincipalPaid && loan.originalLoanAmount
     ? Math.floor((loan.totalPrincipalPaid / loan.originalLoanAmount) * schedule.length)
     : 0;
-  
+
   const remainingSchedule = schedule.slice(paidPayments);
   const displaySchedule = showFullSchedule ? remainingSchedule : remainingSchedule.slice(0, 12);
-  
+
   const totalInterest = schedule.reduce((sum, row) => sum + row.interest, 0);
   const remainingInterest = remainingSchedule.reduce((sum, row) => sum + row.interest, 0);
-  
+
   return (
     <Card>
       <CardHeader>
@@ -819,7 +819,7 @@ function AmortizationCalculator({ loan }: { loan: ServicedLoan }) {
             <p className="text-xs text-muted-foreground">Remaining Interest</p>
           </div>
         </div>
-        
+
         <div className="mb-4">
           <div className="flex justify-between text-sm mb-1">
             <span>Loan Progress</span>
@@ -827,7 +827,7 @@ function AmortizationCalculator({ loan }: { loan: ServicedLoan }) {
           </div>
           <Progress value={(1 - (loan.currentBalance / loan.originalLoanAmount)) * 100} className="h-2" />
         </div>
-        
+
         <div className="rounded-lg border overflow-hidden">
           <Table>
             <TableHeader>
@@ -854,10 +854,10 @@ function AmortizationCalculator({ loan }: { loan: ServicedLoan }) {
             </TableBody>
           </Table>
         </div>
-        
+
         {remainingSchedule.length > 12 && (
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             className="w-full mt-2"
             onClick={() => setShowFullSchedule(!showFullSchedule)}
           >
@@ -924,7 +924,7 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
   const [draftStatus, setDraftStatus] = useState<"saved" | "saving" | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pendingDataRef = useRef<{ description: string; lineAmounts: Record<string, number> } | null>(null);
-  
+
   // SOW Upload state
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -941,14 +941,14 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
   const saveDraftNow = useCallback(() => {
     const data = pendingDataRef.current;
     if (!data) return;
-    
+
     const hasData = data.description || Object.values(data.lineAmounts).some(v => v > 0);
     if (!hasData) {
       localStorage.removeItem(draftKey);
       setDraftStatus(null);
       return;
     }
-    
+
     try {
       localStorage.setItem(draftKey, JSON.stringify({
         description: data.description,
@@ -988,10 +988,10 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
   // Auto-save draft with debounce - update pending data ref and schedule save
   useEffect(() => {
     if (!newDrawOpen) return;
-    
+
     // Update pending data
     pendingDataRef.current = { description: newDrawDescription, lineAmounts: drawLineAmounts };
-    
+
     // Check if there's anything to save
     const hasData = newDrawDescription || Object.values(drawLineAmounts).some(v => v > 0);
     if (!hasData) {
@@ -1001,12 +1001,12 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
     }
 
     setDraftStatus("saving");
-    
+
     // Clear previous timeout and schedule new one
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
-    
+
     saveTimeoutRef.current = setTimeout(() => {
       saveDraftNow();
       saveTimeoutRef.current = null;
@@ -1127,18 +1127,18 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
       const formData = new FormData();
       formData.append("file", file);
       formData.append("loanType", loan.loanType === "new_construction" ? "new_construction" : "fix_flip");
-      
+
       const response = await fetch("/api/sow/parse", {
         method: "POST",
         body: formData,
         credentials: "include",
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to parse file");
       }
-      
+
       return response.json() as Promise<SOWParseResult>;
     },
     onSuccess: (result) => {
@@ -1170,7 +1170,7 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
       "application/msword",
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     ];
-    
+
     if (!allowedTypes.includes(file.type)) {
       toast({
         title: "Invalid File Type",
@@ -1179,7 +1179,7 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
       });
       return;
     }
-    
+
     if (file.size > 10 * 1024 * 1024) {
       toast({
         title: "File Too Large",
@@ -1188,7 +1188,7 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
       });
       return;
     }
-    
+
     setUploadedFile(file);
     uploadMutation.mutate(file);
   }, [uploadMutation, toast]);
@@ -1207,7 +1207,7 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
-    
+
     const file = e.dataTransfer.files[0];
     if (file) {
       handleFileSelect(file);
@@ -1217,7 +1217,7 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
   // Apply parsed items to scope
   const handleApplyParsedItems = async () => {
     if (parsedItems.length === 0) return;
-    
+
     setIsApplyingItems(true);
     try {
       // Bulk create scope items from parsed data
@@ -1227,23 +1227,23 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
         sortOrder: index + 1,
         budgetAmount: Math.round(item.budgetAmount),
       }));
-      
+
       await apiRequest("POST", `/api/serviced-loans/${loan.id}/scope-of-work/bulk`, {
         items: itemsToCreate,
       });
-      
-      queryClient.invalidateQueries({ 
-        queryKey: ["/api/serviced-loans", loan.id, "scope-of-work"] 
+
+      queryClient.invalidateQueries({
+        queryKey: ["/api/serviced-loans", loan.id, "scope-of-work"]
       });
-      queryClient.invalidateQueries({ 
-        queryKey: ["/api/serviced-loans", loan.id, "scope-of-work-with-draws"] 
+      queryClient.invalidateQueries({
+        queryKey: ["/api/serviced-loans", loan.id, "scope-of-work-with-draws"]
       });
-      
+
       toast({
         title: "Scope Applied",
         description: `${parsedItems.length} items imported successfully.`,
       });
-      
+
       // Reset upload state
       setShowUploadDialog(false);
       setUploadedFile(null);
@@ -1285,7 +1285,6 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
     };
   }).filter(cs => cs.items.length > 0);
 
-  const fundedDrawNumbers = scopeWithDrawsData?.draws?.map(d => d.drawNumber) || [];
   const categorySummariesWithDraws: CategorySummaryWithDraws[] = categoryOrder.map(category => {
     const items = (scopeWithDrawsData?.items || [])
       .filter(i => i.category === category)
@@ -1391,11 +1390,11 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
                     Start with a template or upload your own scope of work
                   </p>
                 </div>
-                
+
                 <div className="grid md:grid-cols-2 gap-4">
                   {/* Option 1: Start from template */}
-                  <Card 
-                    className="p-4 hover-elevate cursor-pointer" 
+                  <Card
+                    className="p-4 hover-elevate cursor-pointer"
                     onClick={() => initializeScopeMutation.mutate()}
                   >
                     <div className="flex flex-col items-center text-center gap-2">
@@ -1415,7 +1414,7 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
                   </Card>
 
                   {/* Option 2: Upload file */}
-                  <Card 
+                  <Card
                     className="p-4 hover-elevate cursor-pointer"
                     onClick={() => setShowUploadDialog(true)}
                     data-testid="button-upload-sow"
@@ -1433,10 +1432,10 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
                     </div>
                   </Card>
                 </div>
-                
+
                 <div className="flex justify-center">
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     size="sm"
                     onClick={handleDownloadTemplate}
                     className="text-xs"
@@ -1487,23 +1486,23 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
                           <div className="flex justify-between text-sm mb-2">
                             <span className="font-medium">Budget Remaining</span>
                             <span className={`font-medium ${
-                              remaining / (grandTotalBudget || loan.totalRehabBudget || 1) > 0.5 
-                                ? "text-emerald-500" 
-                                : remaining / (grandTotalBudget || loan.totalRehabBudget || 1) > 0.25 
-                                  ? "text-amber-500" 
+                              remaining / (grandTotalBudget || loan.totalRehabBudget || 1) > 0.5
+                                ? "text-emerald-500"
+                                : remaining / (grandTotalBudget || loan.totalRehabBudget || 1) > 0.25
+                                  ? "text-amber-500"
                                   : "text-red-500"
                             }`}>
                               {formatCurrency(remaining)} of {formatCurrency(grandTotalBudget || loan.totalRehabBudget || 0)}
                             </span>
                           </div>
                           <div className="h-3 w-full rounded-full overflow-hidden bg-muted">
-                            <div 
+                            <div
                               className="h-full transition-all duration-300"
                               style={{
                                 width: `${Math.min(100, (remaining / (grandTotalBudget || loan.totalRehabBudget || 1)) * 100)}%`,
-                                background: `linear-gradient(90deg, 
-                                  hsl(0, 72%, 51%) 0%, 
-                                  hsl(38, 92%, 50%) 50%, 
+                                background: `linear-gradient(90deg,
+                                  hsl(0, 72%, 51%) 0%,
+                                  hsl(38, 92%, 50%) 50%,
                                   hsl(142, 71%, 45%) 100%)`
                               }}
                               data-testid="progress-budget-remaining"
@@ -1586,7 +1585,7 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
                           setDrawLineAmounts({});
                           setNewDrawDescription("");
                         }}>Cancel</Button>
-                        <Button 
+                        <Button
                           onClick={() => createDrawMutation.mutate({
                             requestedAmount: newDrawTotal,
                             description: newDrawDescription,
@@ -1733,8 +1732,8 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
             ) : (
               <div className="space-y-3">
                 {draws.map((draw) => (
-                  <div 
-                    key={draw.id} 
+                  <div
+                    key={draw.id}
                     className="flex items-center justify-between p-3 rounded-lg border bg-card"
                     data-testid={`card-draw-${draw.id}`}
                   >
@@ -1756,8 +1755,8 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
                       <DrawPhotoUpload draw={draw} loanId={loan.id} scopeOfWorkItems={scopeOfWorkItems} />
                       {draw.status === "draft" && (
                         <>
-                          <Button 
-                            size="sm" 
+                          <Button
+                            size="sm"
                             variant="outline"
                             onClick={() => submitDrawMutation.mutate(draw.id)}
                             disabled={submitDrawMutation.isPending}
@@ -1766,8 +1765,8 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
                             <Send className="h-4 w-4 mr-1" />
                             Submit
                           </Button>
-                          <Button 
-                            size="icon" 
+                          <Button
+                            size="icon"
                             variant="ghost"
                             onClick={() => deleteDrawMutation.mutate(draw.id)}
                             disabled={deleteDrawMutation.isPending}
@@ -1807,18 +1806,18 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
               Upload Scope of Work
             </DialogTitle>
             <DialogDescription>
-              Upload your scope of work file to automatically import line items. 
+              Upload your scope of work file to automatically import line items.
               Supports Excel, PDF, and Word documents.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             {/* File upload zone */}
             {!parseResult && (
               <div
                 className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                  isDragOver 
-                    ? "border-primary bg-primary/5" 
+                  isDragOver
+                    ? "border-primary bg-primary/5"
                     : "border-muted-foreground/25 hover:border-primary/50"
                 }`}
                 onDragOver={handleDragOver}
@@ -1836,7 +1835,7 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
                   }}
                   data-testid="input-sow-file"
                 />
-                
+
                 {uploadMutation.isPending ? (
                   <div className="flex flex-col items-center gap-3">
                     <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -1884,7 +1883,7 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
                     )}
                     <div>
                       <p className="font-medium">
-                        {parseResult.success 
+                        {parseResult.success
                           ? `Found ${parsedItems.length} items`
                           : "Parsing failed"}
                       </p>
@@ -1975,7 +1974,7 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
                 <Download className="h-4 w-4 mr-2" />
                 Download Template
               </Button>
-              
+
               {parsedItems.length > 0 && (
                 <Button
                   onClick={handleApplyParsedItems}
@@ -2000,11 +1999,11 @@ function DrawManagement({ loan, draws }: { loan: ServicedLoan; draws: LoanDraw[]
 
 function InterestPaymentTracker({ loan, payments }: { loan: ServicedLoan; payments: LoanPayment[] }) {
   const monthlyInterest = calculateInterestOnlyPayment(loan.currentBalance, parseFloat(loan.interestRate));
-  
+
   const completedPayments = payments.filter(p => p.status === "completed");
   const scheduledPayments = payments.filter(p => p.status === "scheduled");
   const overduePayments = payments.filter(p => p.status === "late");
-  
+
   return (
     <Card>
       <CardHeader>
@@ -2035,7 +2034,7 @@ function InterestPaymentTracker({ loan, payments }: { loan: ServicedLoan; paymen
             </div>
           )}
         </div>
-        
+
         <div className="rounded-lg border overflow-hidden">
           <Table>
             <TableHeader>
@@ -2070,14 +2069,14 @@ function PaymentHistoryPanel({ payments, loan }: { payments: LoanPayment[]; loan
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(1);
   const pageSize = 10;
-  
+
   const completedPayments = payments.filter(p => p.status === "completed" || p.status === "partial");
-  
+
   const sortedPayments = useMemo(() => {
     return [...completedPayments].sort((a, b) => {
       let aVal: number | string = 0;
       let bVal: number | string = 0;
-      
+
       if (sortField === "paymentNumber") {
         aVal = a.paymentNumber || 0;
         bVal = b.paymentNumber || 0;
@@ -2088,19 +2087,19 @@ function PaymentHistoryPanel({ payments, loan }: { payments: LoanPayment[]; loan
         aVal = a.paidAmount || 0;
         bVal = b.paidAmount || 0;
       }
-      
+
       if (sortDir === "asc") return aVal > bVal ? 1 : -1;
       return aVal < bVal ? 1 : -1;
     });
   }, [completedPayments, sortField, sortDir]);
-  
+
   const totalPages = Math.ceil(sortedPayments.length / pageSize);
   const paginatedPayments = sortedPayments.slice((page - 1) * pageSize, page * pageSize);
-  
+
   const totalPaid = completedPayments.reduce((sum, p) => sum + (p.paidAmount || 0), 0);
   const totalPrincipal = completedPayments.reduce((sum, p) => sum + (p.principalAmount || 0), 0);
   const totalInterest = completedPayments.reduce((sum, p) => sum + (p.interestAmount || 0), 0);
-  
+
   const handleSort = (field: typeof sortField) => {
     if (sortField === field) {
       setSortDir(sortDir === "asc" ? "desc" : "asc");
@@ -2109,13 +2108,13 @@ function PaymentHistoryPanel({ payments, loan }: { payments: LoanPayment[]; loan
       setSortDir("desc");
     }
   };
-  
+
   const SortIndicator = ({ field }: { field: typeof sortField }) => (
     sortField === field ? (
       sortDir === "asc" ? <ChevronUp className="h-3 w-3 ml-1 inline" /> : <ChevronDown className="h-3 w-3 ml-1 inline" />
     ) : null
   );
-  
+
   return (
     <Card data-testid="payment-history-panel">
       <CardHeader>
@@ -2144,7 +2143,7 @@ function PaymentHistoryPanel({ payments, loan }: { payments: LoanPayment[]; loan
             <p className="text-xs text-muted-foreground">Interest Paid</p>
           </div>
         </div>
-        
+
         {loan.nextPaymentDate && (
           <div className="mb-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -2157,7 +2156,7 @@ function PaymentHistoryPanel({ payments, loan }: { payments: LoanPayment[]; loan
             </div>
           </div>
         )}
-        
+
         {completedPayments.length === 0 ? (
           <div className="text-center py-8">
             <PiggyBank className="h-10 w-10 mx-auto text-muted-foreground/50 mb-2" />
@@ -2169,21 +2168,21 @@ function PaymentHistoryPanel({ payments, loan }: { payments: LoanPayment[]; loan
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead 
+                    <TableHead
                       className="cursor-pointer hover-elevate"
                       onClick={() => handleSort("paymentNumber")}
                       data-testid="sort-payment-number"
                     >
                       # <SortIndicator field="paymentNumber" />
                     </TableHead>
-                    <TableHead 
+                    <TableHead
                       className="cursor-pointer hover-elevate"
                       onClick={() => handleSort("paidDate")}
                       data-testid="sort-paid-date"
                     >
                       Date Paid <SortIndicator field="paidDate" />
                     </TableHead>
-                    <TableHead 
+                    <TableHead
                       className="text-right cursor-pointer hover-elevate"
                       onClick={() => handleSort("paidAmount")}
                       data-testid="sort-paid-amount"
@@ -2211,15 +2210,15 @@ function PaymentHistoryPanel({ payments, loan }: { payments: LoanPayment[]; loan
                 </TableBody>
               </Table>
             </div>
-            
+
             {totalPages > 1 && (
               <div className="flex items-center justify-between mt-4">
                 <p className="text-sm text-muted-foreground">
                   Showing {(page - 1) * pageSize + 1}-{Math.min(page * pageSize, sortedPayments.length)} of {sortedPayments.length}
                 </p>
                 <div className="flex items-center gap-2">
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     disabled={page === 1}
                     onClick={() => setPage(page - 1)}
@@ -2228,8 +2227,8 @@ function PaymentHistoryPanel({ payments, loan }: { payments: LoanPayment[]; loan
                     Previous
                   </Button>
                   <span className="text-sm">Page {page} of {totalPages}</span>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     disabled={page === totalPages}
                     onClick={() => setPage(page + 1)}
@@ -2250,7 +2249,7 @@ function PaymentHistoryPanel({ payments, loan }: { payments: LoanPayment[]; loan
 function PayoffCalculator({ loan }: { loan: ServicedLoan }) {
   const { toast } = useToast();
   const [payoffDate, setPayoffDate] = useState(format(new Date(), "yyyy-MM-dd"));
-  
+
   const { data: payoffData, isLoading, refetch } = useQuery<{
     payoffDate: string;
     daysUntilPayoff: number;
@@ -2269,7 +2268,7 @@ function PayoffCalculator({ loan }: { loan: ServicedLoan }) {
     },
     enabled: !!loan.id,
   });
-  
+
   const requestPayoffMutation = useMutation({
     mutationFn: async () => {
       return apiRequest("POST", `/api/servicing/${loan.id}/payoff-request`, { payoffDate });
@@ -2281,7 +2280,7 @@ function PayoffCalculator({ loan }: { loan: ServicedLoan }) {
       toast({ title: "Failed to request payoff statement", variant: "destructive" });
     },
   });
-  
+
   return (
     <Card data-testid="payoff-calculator">
       <CardHeader>
@@ -2308,7 +2307,7 @@ function PayoffCalculator({ loan }: { loan: ServicedLoan }) {
             </Button>
           </div>
         </div>
-        
+
         {isLoading ? (
           <div className="space-y-3">
             <Skeleton className="h-20 w-full" />
@@ -2325,7 +2324,7 @@ function PayoffCalculator({ loan }: { loan: ServicedLoan }) {
                 Good through {format(new Date(payoffData.validUntil), "MMM d, yyyy")}
               </p>
             </div>
-            
+
             <div className="space-y-3">
               <div className="flex items-center justify-between p-3 rounded-lg border">
                 <span className="text-muted-foreground">Outstanding Principal</span>
@@ -2347,18 +2346,18 @@ function PayoffCalculator({ loan }: { loan: ServicedLoan }) {
                 </div>
               )}
             </div>
-            
+
             <div className="mt-4 p-3 rounded-lg bg-muted/30 border">
               <div className="flex items-center gap-2 text-sm">
                 <TrendingDown className="h-4 w-4 text-muted-foreground" />
                 <span>Daily Interest Accrual: <span className="font-medium text-amber-400" data-testid="stat-per-diem">{formatCurrencyPrecise(payoffData.perDiemInterest)}</span>/day</span>
               </div>
             </div>
-            
+
             <Separator className="my-6" />
-            
-            <Button 
-              className="w-full" 
+
+            <Button
+              className="w-full"
               onClick={() => requestPayoffMutation.mutate()}
               disabled={requestPayoffMutation.isPending}
               data-testid="button-request-payoff"
@@ -2399,7 +2398,7 @@ function EscrowSummary({ loan, escrowItems }: { loan: ServicedLoan; escrowItems:
             <p className="text-xs text-muted-foreground">Monthly Collection</p>
           </div>
         </div>
-        
+
         {escrowItems.length > 0 ? (
           <div className="space-y-2">
             {escrowItems.map((item) => (
@@ -2441,7 +2440,7 @@ export default function LoanDetailPage() {
   const [, params] = useRoute("/portal/loans/:id");
   const [, setLocation] = useLocation();
   const loanId = params?.id;
-  
+
   const { data: loanDetails, isLoading, error } = useQuery<LoanDetailsResponse>({
     queryKey: ["/api/serviced-loans", loanId, "details"],
     queryFn: async () => {
@@ -2451,7 +2450,7 @@ export default function LoanDetailPage() {
     },
     enabled: !!loanId,
   });
-  
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
@@ -2468,7 +2467,7 @@ export default function LoanDetailPage() {
       </div>
     );
   }
-  
+
   if (error || !loanDetails) {
     return (
       <div className="min-h-screen bg-background">
@@ -2491,24 +2490,35 @@ export default function LoanDetailPage() {
       </div>
     );
   }
-  
+
   const loan = loanDetails;
   const isHardMoney = isHardMoneyLoan(loan.loanType);
   const LoanIcon = getLoanTypeIcon(loan.loanType);
   const categoryNames = loan.loanType === "new_construction" ? NEW_CONSTRUCTION_CATEGORY_NAMES : SCOPE_OF_WORK_CATEGORY_NAMES;
-  
-  const daysToMaturity = loan.maturityDate 
+
+  const daysToMaturity = loan.maturityDate
     ? differenceInDays(new Date(loan.maturityDate), new Date())
     : null;
 
+  // Fetch property location details
+  const { data: propertyLocation } = useQuery<{ latitude: string; longitude: string }>({
+    queryKey: ["/api/properties", loan.propertyId, "location"],
+    queryFn: async () => {
+      const res = await fetch(`/api/properties/${loan.propertyId}/location`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch property location");
+      return res.json();
+    },
+    enabled: !!loan.propertyId,
+  });
+
   return (
     <div className="min-h-screen bg-background">
-      <PortalHeader 
+      <PortalHeader
         user={user}
-        title={loan.propertyAddress} 
+        title={loan.propertyAddress}
         backHref="/portal/loans"
       />
-      
+
       <main className="container max-w-7xl mx-auto px-4 py-6">
         <Card className="mb-6">
           <CardContent className="pt-6">
@@ -2522,17 +2532,24 @@ export default function LoanDetailPage() {
                     <h1 className="text-xl font-bold">{loan.propertyAddress}</h1>
                     {getStatusBadge(loan.loanStatus)}
                   </div>
-                  <p className="text-muted-foreground flex items-center gap-1">
-                    <MapPin className="h-3 w-3" />
-                    {loan.propertyCity}, {loan.propertyState} {loan.propertyZip}
-                  </p>
+                  <div className="space-y-1">
+                    <p className="text-muted-foreground flex items-center gap-1">
+                      <MapPin className="h-3 w-3" />
+                      {loan.propertyCity}, {loan.propertyState} {loan.propertyZip}
+                    </p>
+                    {propertyLocation && propertyLocation.latitude && propertyLocation.longitude && (
+                      <div className="text-xs text-muted-foreground font-mono ml-6">
+                        GPS: {parseFloat(propertyLocation.latitude).toFixed(6)}, {parseFloat(propertyLocation.longitude).toFixed(6)}
+                      </div>
+                    )}
+                  </div>
                   <p className="text-sm text-muted-foreground mt-1">
                     Loan #{loan.loanNumber} • {getLoanTypeLabel(loan.loanType)}
                     {loan.isInterestOnly && " • Interest Only"}
                   </p>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
                 <div className="text-center md:text-right">
                   <p className="text-2xl font-bold text-primary">{formatCurrency(loan.currentBalance)}</p>
@@ -2552,7 +2569,7 @@ export default function LoanDetailPage() {
                 </div>
               </div>
             </div>
-            
+
             {daysToMaturity !== null && daysToMaturity <= 90 && daysToMaturity > 0 && (
               <div className="mt-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5 text-amber-400" />
@@ -2563,7 +2580,7 @@ export default function LoanDetailPage() {
             )}
           </CardContent>
         </Card>
-        
+
         {isHardMoney ? (
           <Tabs defaultValue="draws" className="space-y-6">
             <TabsList className="grid w-full grid-cols-5">
@@ -2573,19 +2590,19 @@ export default function LoanDetailPage() {
               <TabsTrigger value="milestones" className="text-[10px] sm:text-sm px-1 sm:px-3" data-testid="tab-milestones">Miles</TabsTrigger>
               <TabsTrigger value="documents" className="text-[10px] sm:text-sm px-1 sm:px-3" data-testid="tab-documents">Docs</TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="draws">
               <DrawManagement loan={loan} draws={loanDetails.draws} />
             </TabsContent>
-            
+
             <TabsContent value="payments">
               <InterestPaymentTracker loan={loan} payments={loanDetails.payments} />
             </TabsContent>
-            
+
             <TabsContent value="payoff">
               <PayoffCalculator loan={loan} />
             </TabsContent>
-            
+
             <TabsContent value="milestones">
               <Card>
                 <CardHeader>
@@ -2629,7 +2646,7 @@ export default function LoanDetailPage() {
                 </CardContent>
               </Card>
             </TabsContent>
-            
+
             <TabsContent value="documents">
               <LoanDocumentsPanel documents={loanDetails.documents} loanType={loan.loanType} />
             </TabsContent>
@@ -2643,23 +2660,23 @@ export default function LoanDetailPage() {
               <TabsTrigger value="escrow" className="text-[10px] sm:text-sm px-1 sm:px-3" data-testid="tab-escrow">Escrow</TabsTrigger>
               <TabsTrigger value="documents" className="text-[10px] sm:text-sm px-1 sm:px-3" data-testid="tab-documents">Docs</TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="amortization">
               <AmortizationCalculator loan={loan} />
             </TabsContent>
-            
+
             <TabsContent value="payments">
               <PaymentHistoryPanel payments={loanDetails.payments} loan={loan} />
             </TabsContent>
-            
+
             <TabsContent value="payoff">
               <PayoffCalculator loan={loan} />
             </TabsContent>
-            
+
             <TabsContent value="escrow">
               <EscrowSummary loan={loan} escrowItems={loanDetails.escrowItems} />
             </TabsContent>
-            
+
             <TabsContent value="documents">
               <LoanDocumentsPanel documents={loanDetails.documents} loanType={loan.loanType} />
             </TabsContent>

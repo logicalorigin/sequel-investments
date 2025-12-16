@@ -45,8 +45,8 @@ interface AdminLayoutProps {
 
 const mainNavItems = [
   { title: "Dashboard", href: "/admin", icon: LayoutGrid },
-  { title: "Analytics", href: "/admin/analytics", icon: BarChart3 },
-  { title: "Portfolio", href: "/admin/portfolio", icon: Briefcase },
+  { title: "Pipeline Analytics", href: "/admin/analytics", icon: BarChart3 },
+  { title: "Portfolio Analytics", href: "/admin/portfolio", icon: Briefcase },
 ];
 
 const operationsNavItems = [
