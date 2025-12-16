@@ -336,13 +336,11 @@ export default function AdminPortfolioPage() {
   const geographicData = useMemo(() => {
     if (!portfolio?.byState) return [];
 
-    // If cluster is selected, show cluster/metro name
+    // If cluster is selected, show cluster name
     if (selectedCluster) {
-      const displayName = selectedCluster.metroName || 
-                         selectedCluster.loans[0]?.propertyCity || 
-                         'Unknown Area';
+      const city = selectedCluster.loans[0]?.propertyCity || 'Unknown';
       return [{
-        state: displayName,
+        state: city,
         value: selectedCluster.portfolioValue,
         count: selectedCluster.loans.length,
       }];
@@ -350,6 +348,9 @@ export default function AdminPortfolioPage() {
 
     // If state is selected, aggregate by city/metro within that state
     if (selectedState && geoAnalytics?.portfolioConcentration) {
+      // We need to fetch loan-level data to group by city
+      // Since we don't have it in the current data structure, we'll use a placeholder
+      // In production, this would need a backend endpoint that returns city-level aggregates
       const stateEntry = portfolio.byState.find(s => s.state === selectedState);
       return stateEntry ? [{
         state: `${selectedState} (state-level)`,

@@ -8,7 +8,6 @@ import { Wallet, AlertTriangle, CheckCircle2, Filter, ZoomOut, MapPin, DollarSig
 import { statePaths } from "@/components/USMap";
 import { parsePathBounds, latLngToSvgWithBounds, SLUG_TO_ABBR, type SVGBounds } from "@/lib/mapUtils";
 import { useQuery } from "@tanstack/react-query";
-import metrosData from "@/../attached_assets/state_maps/metros_data.json";
 
 interface PortfolioStateData {
   state: string;
@@ -39,13 +38,6 @@ interface LoanData {
   lng: number;
 }
 
-interface MetroArea {
-  name: string;
-  lat: number;
-  lng: number;
-  rank: number;
-}
-
 interface LoanCluster {
   id: string;
   centerLat: number;
@@ -60,7 +52,6 @@ interface LoanCluster {
     late: number;
     defaulted: number;
   };
-  metroName?: string; // Name of the metro area if clustered to one
 }
 
 
@@ -238,7 +229,7 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
     });
   }, [data, riskFilter]);
   
-  // Metro-based intelligent clustering for loan-level data
+  // Geographic clustering for loan-level data
   const loanClusters = useMemo(() => {
     if (!focusedState || !loanData.length) return [];
     
@@ -254,60 +245,46 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
     if (!statePathD) return [];
     
     const bounds = parsePathBounds(statePathD);
+    const CLUSTER_DISTANCE_THRESHOLD = 15; // SVG pixels
     
-    // Get metro areas for this state
-    const stateSlug = Object.entries(SLUG_TO_ABBR).find(([_, abbr]) => abbr === focusedState)?.[0];
-    const metros: MetroArea[] = stateSlug && metrosData[stateSlug as keyof typeof metrosData] 
-      ? metrosData[stateSlug as keyof typeof metrosData] as MetroArea[]
-      : [];
+    // Convert loans to SVG coordinates
+    const loansWithSVG = validLoans.map(loan => ({
+      ...loan,
+      svgX: latLngToSvgWithBounds(loan.lat, loan.lng, focusedState, bounds).x,
+      svgY: latLngToSvgWithBounds(loan.lat, loan.lng, focusedState, bounds).y,
+    }));
     
-    // Helper function to calculate distance between two lat/lng points (Haversine)
-    const haversineDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
-      const R = 3959; // Earth's radius in miles
-      const dLat = (lat2 - lat1) * Math.PI / 180;
-      const dLng = (lng2 - lng1) * Math.PI / 180;
-      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                Math.sin(dLng / 2) * Math.sin(dLng / 2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      return R * c;
-    };
+    // Simple geographic clustering algorithm
+    const clusters: LoanCluster[] = [];
+    const processed = new Set<string>();
     
-    // Cluster loans to nearest metro areas (within 50 miles)
-    const METRO_RADIUS_MILES = 50;
-    const metroClusters = new Map<string, LoanData[]>();
-    const unclusteredLoans: LoanData[] = [];
-    
-    validLoans.forEach(loan => {
-      let nearestMetro: MetroArea | null = null;
-      let minDistance = Infinity;
+    loansWithSVG.forEach((loan, index) => {
+      if (processed.has(loan.id)) return;
       
-      metros.forEach(metro => {
-        const distance = haversineDistance(loan.lat, loan.lng, metro.lat, metro.lng);
-        if (distance < minDistance && distance <= METRO_RADIUS_MILES) {
-          minDistance = distance;
-          nearestMetro = metro;
+      const clusterLoans = [loan];
+      processed.add(loan.id);
+      
+      // Find nearby loans
+      loansWithSVG.forEach((otherLoan) => {
+        if (processed.has(otherLoan.id)) return;
+        
+        const dx = loan.svgX - otherLoan.svgX;
+        const dy = loan.svgY - otherLoan.svgY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance < CLUSTER_DISTANCE_THRESHOLD) {
+          clusterLoans.push(otherLoan);
+          processed.add(otherLoan.id);
         }
       });
       
-      if (nearestMetro) {
-        const key = nearestMetro.name;
-        if (!metroClusters.has(key)) {
-          metroClusters.set(key, []);
-        }
-        metroClusters.get(key)!.push(loan);
-      } else {
-        unclusteredLoans.push(loan);
-      }
-    });
-    
-    // Build clusters from metro groupings
-    const clusters: LoanCluster[] = [];
-    
-    metroClusters.forEach((clusterLoans, metroName) => {
-      const metro = metros.find(m => m.name === metroName)!;
-      const metroSvg = latLngToSvgWithBounds(metro.lat, metro.lng, focusedState, bounds);
+      // Calculate cluster center
+      const centerX = clusterLoans.reduce((sum, l) => sum + l.svgX, 0) / clusterLoans.length;
+      const centerY = clusterLoans.reduce((sum, l) => sum + l.svgY, 0) / clusterLoans.length;
+      const centerLat = clusterLoans.reduce((sum, l) => sum + l.lat, 0) / clusterLoans.length;
+      const centerLng = clusterLoans.reduce((sum, l) => sum + l.lng, 0) / clusterLoans.length;
       
+      // Calculate cluster statistics
       const portfolioValue = clusterLoans.reduce((sum, l) => sum + l.loanAmount, 0);
       const avgInterestRate = clusterLoans.reduce((sum, l) => sum + parseFloat(l.interestRate), 0) / clusterLoans.length;
       
@@ -318,83 +295,17 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
       };
       
       clusters.push({
-        id: `metro-${metroName}`,
-        centerLat: metro.lat,
-        centerLng: metro.lng,
-        centerX: metroSvg.x,
-        centerY: metroSvg.y,
+        id: `cluster-${index}`,
+        centerLat,
+        centerLng,
+        centerX,
+        centerY,
         loans: clusterLoans,
         portfolioValue,
         avgInterestRate,
         performanceMetrics,
-        metroName,
       });
     });
-    
-    // For unclustered loans, use simple distance-based clustering
-    if (unclusteredLoans.length > 0) {
-      const loansWithSVG = unclusteredLoans.map(loan => ({
-        ...loan,
-        svgX: latLngToSvgWithBounds(loan.lat, loan.lng, focusedState, bounds).x,
-        svgY: latLngToSvgWithBounds(loan.lat, loan.lng, focusedState, bounds).y,
-      }));
-      
-      const FALLBACK_THRESHOLD = 20; // SVG pixels
-      const processed = new Set<string>();
-      
-      loansWithSVG.forEach((loan, index) => {
-        if (processed.has(loan.id)) return;
-        
-        const clusterLoans = [loan];
-        processed.add(loan.id);
-        
-        loansWithSVG.forEach((otherLoan) => {
-          if (processed.has(otherLoan.id)) return;
-          
-          const dx = loan.svgX - otherLoan.svgX;
-          const dy = loan.svgY - otherLoan.svgY;
-          const distance = Math.sqrt(dx * dx + dy * dy);
-          
-          if (distance < FALLBACK_THRESHOLD) {
-            clusterLoans.push(otherLoan);
-            processed.add(otherLoan.id);
-          }
-        });
-        
-        const centerX = clusterLoans.reduce((sum, l) => sum + l.svgX, 0) / clusterLoans.length;
-        const centerY = clusterLoans.reduce((sum, l) => sum + l.svgY, 0) / clusterLoans.length;
-        const centerLat = clusterLoans.reduce((sum, l) => sum + l.lat, 0) / clusterLoans.length;
-        const centerLng = clusterLoans.reduce((sum, l) => sum + l.lng, 0) / clusterLoans.length;
-        
-        const portfolioValue = clusterLoans.reduce((sum, l) => sum + l.loanAmount, 0);
-        const avgInterestRate = clusterLoans.reduce((sum, l) => sum + parseFloat(l.interestRate), 0) / clusterLoans.length;
-        
-        const performanceMetrics = {
-          current: clusterLoans.filter(l => l.status === 'current').length,
-          late: clusterLoans.filter(l => l.status === 'late' || l.status === 'grace_period').length,
-          defaulted: clusterLoans.filter(l => l.status === 'default' || l.status === 'foreclosure').length,
-        };
-        
-        // Try to find nearest city from loan addresses
-        const cityName = clusterLoans[0]?.propertyCity;
-        
-        clusters.push({
-          id: `fallback-${index}`,
-          centerLat,
-          centerLng,
-          centerX,
-          centerY,
-          loans: clusterLoans,
-          portfolioValue,
-          avgInterestRate,
-          performanceMetrics,
-          metroName: cityName || undefined,
-        });
-      });
-    }
-    
-    // Sort clusters by portfolio value (largest first)
-    clusters.sort((a, b) => b.portfolioValue - a.portfolioValue);
     
     return clusters;
   }, [focusedState, loanData]);
@@ -943,17 +854,6 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
                                   {cluster.loans.length}
                                 </text>
                               )}
-                              {/* Metro name label below cluster */}
-                              {cluster.metroName && cluster.loans.length > 2 && (
-                                <text
-                                  x={cluster.centerX}
-                                  y={cluster.centerY + radius + 8}
-                                  textAnchor="middle"
-                                  className="text-[6px] fill-muted-foreground font-medium pointer-events-none"
-                                >
-                                  {cluster.metroName}
-                                </text>
-                              )}
                               {/* Invisible larger hit area for better hover detection */}
                               <circle
                                 cx={cluster.centerX}
@@ -968,14 +868,9 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
                             <div className="space-y-2">
                               <div className="flex items-center gap-2">
                                 <MapPin className="h-4 w-4 text-primary" />
-                                <div>
-                                  {cluster.metroName && (
-                                    <p className="font-semibold text-foreground">{cluster.metroName}</p>
-                                  )}
-                                  <p className={cluster.metroName ? "text-xs text-muted-foreground" : "font-semibold text-foreground"}>
-                                    {cluster.loans.length} {cluster.loans.length === 1 ? 'Loan' : 'Loans'}
-                                  </p>
-                                </div>
+                                <p className="font-semibold text-foreground">
+                                  {cluster.loans.length} {cluster.loans.length === 1 ? 'Loan' : 'Loans'}
+                                </p>
                               </div>
                               <div className="space-y-1">
                                 <p className="text-sm text-muted-foreground">
@@ -1144,7 +1039,7 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
               <div className="flex items-center justify-between mb-3">
                 <h4 className="font-semibold text-lg flex items-center gap-2">
                   <MapPin className="h-5 w-5 text-primary" />
-                  {selectedCluster.metroName ? selectedCluster.metroName : 'Cluster Details'}
+                  Cluster Details
                 </h4>
                 <Badge variant="outline">{selectedCluster.loans.length} loans</Badge>
               </div>
