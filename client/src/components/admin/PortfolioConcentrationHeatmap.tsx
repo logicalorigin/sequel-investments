@@ -921,13 +921,14 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
                             strokeWidth={1}
                             strokeDasharray="2,2"
                             opacity={0.5}
+                            className="pointer-events-none"
                           />
                         )}
                         {/* Individual loan marker */}
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <g>
-                              {/* Pulsing background for actual GPS positions */}
+                            <g className="cursor-pointer">
+                              {/* Pulsing background for actual GPS positions - no pointer events */}
                               {isActualPosition && zoomLevel === 'cluster' && (
                                 <circle
                                   cx={x}
@@ -935,9 +936,10 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
                                   r={3}
                                   fill={getLoanColor(loan)}
                                   opacity={0.3}
-                                  className="cluster-pulse"
+                                  className="cluster-pulse pointer-events-none"
                                 />
                               )}
+                              {/* Visual marker - no pointer events */}
                               <circle
                                 cx={x}
                                 cy={y}
@@ -945,8 +947,16 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
                                 fill={getLoanColor(loan)}
                                 stroke="#FFFFFF"
                                 strokeWidth={zoomLevel === 'cluster' ? 0.5 : 1.5}
-                                className="cursor-pointer hover:scale-125 transition-transform"
+                                className="pointer-events-none"
                                 data-testid={`loan-marker-${loan.id}`}
+                              />
+                              {/* Invisible larger hit area for stable hover detection */}
+                              <circle
+                                cx={x}
+                                cy={y}
+                                r={zoomLevel === 'cluster' ? 5 : 10}
+                                fill="transparent"
+                                className="pointer-events-all"
                               />
                             </g>
                           </TooltipTrigger>
