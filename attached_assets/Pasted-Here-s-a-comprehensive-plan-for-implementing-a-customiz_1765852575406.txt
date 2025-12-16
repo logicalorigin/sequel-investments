@@ -1,0 +1,197 @@
+Here's a comprehensive plan for implementing a customizable dashboard with drag-and-drop widgets for your admin analytics page:
+
+Phase 1: Foundation Setup
+1.1 Dependencies & Type Definitions
+Install: react-grid-layout and @types/react-grid-layout
+Create type definitions (client/src/types/dashboard.ts):
+WidgetType: KPI, line-chart, bar-chart, pie-chart, area-chart, stacked-bar-chart
+Widget: Contains position (x, y), size (w, h), type, title, metric/dataSource
+WidgetTemplate: Catalog entry with default size, icon, category
+Layout: Grid position data
+1.2 Widget Catalog
+Create catalog file (client/src/data/widgetCatalog.ts):
+Define 8-12 widget templates across categories:
+Finance: Total Pipeline Value, Avg Loan Size
+Performance: Avg Days to Close, Conversion Rate
+Activity: This Month Apps, Weekly Trends
+Analytics: Status Distribution, Loan Type Breakdown
+Geographic: Top States by Volume
+Define default layout with 4-6 initial widgets
+Phase 2: Core Components
+2.1 Individual Widget Components
+Create separate components for each widget type:
+
+client/src/components/dashboard/KPIWidget.tsx
+
+Display single metric value
+Show trend indicator (up/down arrow)
+Percentage change vs previous period
+Icon integration
+client/src/components/dashboard/ChartWidget.tsx
+
+Wrapper for Recharts components
+Support bar, line, pie, area chart types
+Responsive container
+Tooltip/legend configuration
+client/src/components/dashboard/WidgetCard.tsx
+
+Wraps all widgets with consistent styling
+Header with title and action buttons (settings, remove)
+Loading/error states
+Card elevation/borders matching your design system
+2.2 Grid Layout Components
+client/src/components/dashboard/DashboardGrid.tsx
+
+Integrate react-grid-layout
+Configure responsive breakpoints (mobile, tablet, desktop)
+Handle drag/drop events
+Handle resize events
+Save layout changes to localStorage or backend
+client/src/components/dashboard/WidgetCatalog.tsx
+
+Drawer/modal showing available widgets
+Category filtering (Finance, Performance, Analytics, etc.)
+Search functionality
+Add widget button for each template
+Preview of what widget will display
+Phase 3: State Management & Persistence
+3.1 Local State
+Use React useState for active widgets
+Track layout positions
+Manage catalog drawer open/closed state
+3.2 Persistence Strategy
+Option A - localStorage (Quick implementation):
+
+Save on every layout change
+Key: dashboard-layout-${userId}
+Restore on component mount
+Option B - Backend API (Recommended):
+
+New endpoint: PUT /api/admin/dashboard-layout
+Store in database with user preferences
+Sync across devices
+3.3 Query Integration
+Reuse existing analytics queries (/api/admin/analytics)
+Widget components receive data as props
+Loading skeletons during data fetch
+Error boundaries for failed widgets
+Phase 4: Layout Management Features
+4.1 Add Widget Flow
+User clicks "Add Widget" button
+Catalog drawer opens
+User selects widget template
+Widget added to grid with default position
+Layout auto-adjusts to fit new widget
+Changes saved automatically
+4.2 Remove Widget Flow
+Hover over widget shows "X" button
+Click to remove
+Confirmation dialog (optional)
+Grid re-flows remaining widgets
+Changes saved
+4.3 Reset to Default
+Button to restore default layout
+Confirmation dialog
+Clear saved preferences
+Reload with default widget set
+4.4 Layout Presets (Optional)
+"Executive View" - KPIs only
+"Analyst View" - Charts heavy
+"Operations View" - Activity focused
+Save custom presets
+Phase 5: Responsive Design
+5.1 Breakpoint Strategy
+Desktop (>1024px): 24-column grid, 3-4 widgets per row
+Tablet (768-1024px): 12-column grid, 2 widgets per row
+Mobile (<768px): Single column, stack widgets vertically
+5.2 Widget Sizing
+Define min/max width/height for each widget type
+KPIs: Smaller (6-8 grid units wide, 2 units tall)
+Charts: Larger (12-16 units wide, 4-6 units tall)
+Prevent widgets from being too small to read
+Phase 6: Integration with Existing Analytics Page
+6.1 Page Structure Update
+Replace current fixed layout in AdminAnalyticsPage.tsx:
+
+┌─────────────────────────────────┐
+│  Page Header & Filters          │
+├─────────────────────────────────┤
+│  [Add Widget] [Reset] [Presets] │ ← New controls
+├─────────────────────────────────┤
+│                                 │
+│  DashboardGrid Component        │ ← Replaces static cards
+│  (Draggable/Resizable Widgets)  │
+│                                 │
+├─────────────────────────────────┤
+│  Static sections below          │ ← Keep heatmaps, etc.
+│  (Heatmaps, Advanced Charts)    │
+└─────────────────────────────────┘
+6.2 Data Flow
+Keep existing queries intact
+Pass analytics data to grid component
+Grid distributes data to individual widgets based on dataSource or metric field
+Widgets handle their own data transformation/formatting
+Phase 7: Polish & UX Enhancements
+7.1 Visual Feedback
+Drag placeholder showing where widget will land
+Smooth animations during resize/reposition
+Hover effects on widget controls
+Loading states for each widget independently
+7.2 Accessibility
+Keyboard navigation for adding/removing widgets
+Screen reader announcements for layout changes
+Focus management in catalog drawer
+ARIA labels on drag handles
+7.3 Performance
+Virtualize widget catalog if >20 templates
+Debounce layout save operations
+Memoize widget components to prevent unnecessary re-renders
+Lazy load chart libraries if not in viewport
+Implementation Order
+Week 1: Foundation
+
+Install dependencies
+Create type definitions
+Build widget catalog data
+Create basic KPI and Chart widget components
+Week 2: Core Grid
+
+Implement DashboardGrid component
+Add drag/drop functionality
+Implement responsive breakpoints
+Basic add/remove widgets
+Week 3: Persistence & Integration
+
+Add localStorage persistence
+Integrate with existing analytics data
+Replace static layout in AdminAnalyticsPage
+Add widget catalog drawer
+Week 4: Polish
+
+Reset to default functionality
+Loading/error states
+Mobile optimization
+Animation polish
+Testing & bug fixes
+File Structure
+client/src/
+├── components/
+│   └── dashboard/
+│       ├── DashboardGrid.tsx        # Main grid container
+│       ├── WidgetCard.tsx           # Widget wrapper
+│       ├── KPIWidget.tsx            # KPI display
+│       ├── ChartWidget.tsx          # Chart wrapper
+│       └── WidgetCatalog.tsx        # Add widget drawer
+├── data/
+│   └── widgetCatalog.ts             # Widget templates
+├── types/
+│   └── dashboard.ts                 # Type definitions
+└── pages/
+    └── AdminAnalyticsPage.tsx       # Updated with grid
+Considerations
+Backward Compatibility: Keep existing analytics queries unchanged
+Data Freshness: Widgets should use existing TanStack Query cache
+Customization Limits: Set max widgets per dashboard (e.g., 12-15)
+Export/Import: Consider allowing users to export/import layouts
+Multi-User: If multiple admins, decide on shared vs. personal layouts
+This plan provides a complete roadmap for implementing the draggable dashboard while preserving your existing analytics infrastructure and maintaining the gold-themed design system.
