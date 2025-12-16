@@ -697,29 +697,38 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
                 return (
                   <Tooltip key={cluster.state}>
                     <TooltipTrigger asChild>
-                      <g>
+                      <g
+                        className="cursor-pointer"
+                        onMouseEnter={() => setHoveredState(cluster.state)}
+                        onMouseLeave={() => setHoveredState(null)}
+                        onClick={() => handleStateClick(cluster.state)}
+                        data-testid={`marker-${cluster.state}`}
+                      >
+                        {/* Pulse animation - pointer events disabled */}
                         <circle
                           cx={center.x}
                           cy={center.y}
                           r={radius + 3}
                           fill={color}
                           opacity={0.2}
-                          className="cluster-pulse"
+                          className="cluster-pulse pointer-events-none"
                         />
+                        {/* Main cluster circle */}
                         <circle
                           cx={center.x}
                           cy={center.y}
-                          r={isHovered ? radius * 1.2 : radius}
+                          r={radius}
                           fill={color}
                           fillOpacity={selectedState === cluster.state ? 1 : 0.8}
                           stroke={selectedState === cluster.state ? "#FFFFFF" : isHovered ? "#FFFFFF" : color}
                           strokeWidth={selectedState === cluster.state ? 3 : isHovered ? 2 : 1}
-                          className="transition-all duration-150 cursor-pointer hover:scale-110"
-                          onMouseEnter={() => setHoveredState(cluster.state)}
-                          onMouseLeave={() => setHoveredState(null)}
-                          onClick={() => handleStateClick(cluster.state)}
-                          data-testid={`marker-${cluster.state}`}
+                          className="transition-all duration-150 pointer-events-none"
+                          style={{
+                            transform: isHovered ? 'scale(1.2)' : 'scale(1)',
+                            transformOrigin: `${center.x}px ${center.y}px`,
+                          }}
                         />
+                        {/* Count label - pointer events disabled */}
                         <text
                           x={center.x}
                           y={center.y}
@@ -729,6 +738,14 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
                         >
                           {cluster.loanCount}
                         </text>
+                        {/* Invisible larger hit area for better hover detection */}
+                        <circle
+                          cx={center.x}
+                          cy={center.y}
+                          r={radius + 5}
+                          fill="transparent"
+                          className="pointer-events-all"
+                        />
                       </g>
                     </TooltipTrigger>
                     <TooltipContent side="top" className="bg-card border shadow-lg p-3 max-w-xs">
@@ -795,15 +812,22 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
                       return (
                         <Tooltip key={cluster.id}>
                           <TooltipTrigger asChild>
-                            <g>
+                            <g
+                              className="cursor-pointer"
+                              onClick={() => handleClusterClick(cluster)}
+                              onMouseEnter={() => setHoveredCluster(cluster)}
+                              onMouseLeave={() => setHoveredCluster(null)}
+                            >
+                              {/* Pulse animation - pointer events disabled */}
                               <circle
                                 cx={cluster.centerX}
                                 cy={cluster.centerY}
                                 r={radius + 3}
                                 fill={color}
                                 opacity={0.2}
-                                className="cluster-pulse"
+                                className="cluster-pulse pointer-events-none"
                               />
+                              {/* Main cluster circle */}
                               <circle
                                 cx={cluster.centerX}
                                 cy={cluster.centerY}
@@ -812,11 +836,13 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
                                 fillOpacity={isSelected || isHovered ? 1 : 0.8}
                                 stroke={isSelected ? "#FFFFFF" : isHovered ? "#FFFFFF" : color}
                                 strokeWidth={isSelected ? 3 : isHovered ? 2 : 1}
-                                className="transition-all duration-150 cursor-pointer hover:scale-110"
-                                onClick={() => handleClusterClick(cluster)}
-                                onMouseEnter={() => setHoveredCluster(cluster)}
-                                onMouseLeave={() => setHoveredCluster(null)}
+                                className="transition-all duration-150 pointer-events-none"
+                                style={{
+                                  transform: isHovered ? 'scale(1.1)' : 'scale(1)',
+                                  transformOrigin: `${cluster.centerX}px ${cluster.centerY}px`,
+                                }}
                               />
+                              {/* Count label - pointer events disabled */}
                               {cluster.loans.length > 1 && (
                                 <text
                                   x={cluster.centerX}
@@ -828,6 +854,14 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
                                   {cluster.loans.length}
                                 </text>
                               )}
+                              {/* Invisible larger hit area for better hover detection */}
+                              <circle
+                                cx={cluster.centerX}
+                                cy={cluster.centerY}
+                                r={radius + 5}
+                                fill="transparent"
+                                className="pointer-events-all"
+                              />
                             </g>
                           </TooltipTrigger>
                           <TooltipContent side="top" className="bg-card border shadow-lg p-3 max-w-xs">
