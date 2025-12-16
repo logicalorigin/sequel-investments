@@ -588,7 +588,7 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
       <CardContent>
         <div className="relative">
           <TooltipProvider>
-            <div className="relative">
+            <div className="relative aspect-[959/593]">
               {/* Navigation breadcrumb and back button */}
               {(focusedState || zoomLevel !== 'us') && (
                 <div className="absolute top-2 right-2 z-10 flex items-center gap-2">
@@ -645,8 +645,9 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
               )}
               <svg
                 viewBox={viewBox}
-                className="w-full h-auto"
+                className="w-full h-full absolute inset-0"
                 data-testid="map-svg-portfolio"
+                preserveAspectRatio="xMidYMid meet"
                 style={{
                   transition: isZooming ? "viewBox 0.35s cubic-bezier(0.4, 0, 0.2, 1)" : "none",
                 }}

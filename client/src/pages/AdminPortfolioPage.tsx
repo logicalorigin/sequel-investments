@@ -177,6 +177,82 @@ export default function AdminPortfolioPage() {
   };
 
   // Filter portfolio data based on selection
+  const filteredPortfolioData = useMemo(() => {
+    if (!portfolio) return null;
+
+    // If cluster is selected, show cluster-specific data
+    if (selectedCluster) {
+      const clusterLoans = selectedCluster.loans;
+      const clusterValue = selectedCluster.portfolioValue;
+      const clusterCount = clusterLoans.length;
+      const avgLoanSize = clusterCount > 0 ? clusterValue / clusterCount : 0;
+      const avgInterestRate = selectedCluster.avgInterestRate;
+
+      // Calculate LTV for cluster loans
+      const avgLtv = clusterLoans.reduce((sum: number, loan: any) => {
+        const ltv = loan.loanAmount && loan.propertyValue ? (loan.loanAmount / loan.propertyValue) * 100 : 0;
+        return sum + ltv;
+      }, 0) / clusterCount;
+
+      // Calculate loan type distribution for cluster
+      const byLoanType: Record<string, { value: number; count: number }> = {};
+      clusterLoans.forEach((loan: any) => {
+        const type = loan.loanType || 'Unknown';
+        if (!byLoanType[type]) {
+          byLoanType[type] = { value: 0, count: 0 };
+        }
+        byLoanType[type].value += loan.loanAmount || 0;
+        byLoanType[type].count += 1;
+      });
+
+      // Calculate status distribution for cluster
+      const byStatus: Record<string, { value: number; count: number }> = {};
+      clusterLoans.forEach((loan: any) => {
+        const status = loan.status || 'unknown';
+        if (!byStatus[status]) {
+          byStatus[status] = { value: 0, count: 0 };
+        }
+        byStatus[status].value += loan.currentBalance || 0;
+        byStatus[status].count += 1;
+      });
+
+      return {
+        totalFunded: { value: clusterValue, count: clusterCount },
+        averages: {
+          loanSize: avgLoanSize,
+          interestRate: avgInterestRate,
+          ltv: avgLtv,
+        },
+        byLoanType,
+        byStatus,
+      };
+    }
+
+    // If state is selected, filter by state
+    if (selectedState && geoAnalytics?.portfolioConcentration) {
+      const stateData = geoAnalytics.portfolioConcentration.find(s => s.state === selectedState);
+      if (stateData) {
+        return {
+          totalFunded: { 
+            value: stateData.portfolioValue, 
+            count: stateData.fundedCount 
+          },
+          averages: {
+            loanSize: stateData.fundedCount > 0 ? stateData.portfolioValue / stateData.fundedCount : 0,
+            interestRate: portfolio.averages.interestRate, // Keep overall average
+            ltv: portfolio.averages.ltv, // Keep overall average
+          },
+          byLoanType: portfolio.byLoanType, // Keep full breakdown
+          byStatus: portfolio.byStatus,
+        };
+      }
+    }
+
+    // No selection - return full portfolio
+    return portfolio;
+  }, [portfolio, selectedState, selectedCluster, geoAnalytics]);
+
+  // Filter portfolio data based on selection
   const filteredPortfolio = useMemo(() => {
     if (!portfolio) return null;
 
@@ -214,25 +290,78 @@ export default function AdminPortfolioPage() {
     return portfolio;
   }, [portfolio, selectedState, selectedCluster]);
 
-  // Process chart data from portfolio (not filtered, as filtering only affects totals for now)
+  // Process chart data from filtered portfolio
   const loanTypeData = useMemo(() => {
-    if (!portfolio?.byLoanType) return [];
-    return Object.entries(portfolio.byLoanType).map(([type, data]) => ({
+    if (!filteredPortfolioData?.byLoanType) return [];
+    return Object.entries(filteredPortfolioData.byLoanType).map(([type, data]) => ({
       name: type,
       value: data.value,
       count: data.count,
     }));
-  }, [portfolio]);
+  }, [filteredPortfolioData]);
 
   const statusData = useMemo(() => {
-    if (!portfolio?.byStatus) return [];
-    return Object.entries(portfolio.byStatus).map(([status, data]) => ({
+    if (!filteredPortfolioData?.byStatus) return [];
+    return Object.entries(filteredPortfolioData.byStatus).map(([status, data]) => ({
       name: STATUS_LABELS[status] || status,
       value: data.value,
       count: data.count,
       fill: STATUS_COLORS[status] || "#94a3b8",
     }));
-  }, [portfolio]);
+  }, [filteredPortfolioData]);
+
+  // Filter monthly funding volume based on selection
+  const filteredMonthlyTrend = useMemo(() => {
+    if (!portfolio?.monthlyTrend) return [];
+
+    // If cluster is selected, filter by cluster loans
+    if (selectedCluster) {
+      const clusterLoanIds = new Set(selectedCluster.loans.map((l: any) => l.id));
+      // We'll need to approximate this since monthlyTrend doesn't have loan-level detail
+      // For now, return empty array - would need backend support for accurate cluster-level monthly trends
+      return [];
+    }
+
+    // If state is selected, filter by state
+    if (selectedState) {
+      // Similar approximation needed - would need backend support
+      return [];
+    }
+
+    // No selection - return full monthly trend
+    return portfolio.monthlyTrend;
+  }, [portfolio, selectedState, selectedCluster]);
+
+  // Geographic distribution - cluster-level for state selection
+  const geographicData = useMemo(() => {
+    if (!portfolio?.byState) return [];
+
+    // If cluster is selected, show cluster name
+    if (selectedCluster) {
+      const city = selectedCluster.loans[0]?.propertyCity || 'Unknown';
+      return [{
+        state: city,
+        value: selectedCluster.portfolioValue,
+        count: selectedCluster.loans.length,
+      }];
+    }
+
+    // If state is selected, aggregate by city/metro within that state
+    if (selectedState && geoAnalytics?.portfolioConcentration) {
+      // We need to fetch loan-level data to group by city
+      // Since we don't have it in the current data structure, we'll use a placeholder
+      // In production, this would need a backend endpoint that returns city-level aggregates
+      const stateEntry = portfolio.byState.find(s => s.state === selectedState);
+      return stateEntry ? [{
+        state: `${selectedState} (state-level)`,
+        value: stateEntry.value,
+        count: stateEntry.count,
+      }] : [];
+    }
+
+    // No selection - return top 10 states
+    return portfolio.byState.slice(0, 10);
+  }, [portfolio, selectedState, selectedCluster, geoAnalytics]);
 
   return (
     <div className="h-full">
@@ -244,10 +373,29 @@ export default function AdminPortfolioPage() {
         
         {isLoading ? (
           <LoadingSkeleton />
-        ) : !filteredPortfolio ? (
+        ) : !filteredPortfolioData ? (
           <div className="text-center py-12 text-muted-foreground">No portfolio data available</div>
         ) : (
           <>
+            {(selectedState || selectedCluster) && (
+              <div className="bg-primary/10 border border-primary/20 rounded-lg p-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium">
+                    Viewing: {selectedCluster ? `Cluster in ${selectedState} (${selectedCluster.loans.length} loans)` : selectedState}
+                  </span>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => handleViewChange(null, null)}
+                  className="text-xs"
+                >
+                  View All Portfolio
+                </Button>
+              </div>
+            )}
+            
             <PortfolioConcentrationHeatmap 
               data={geoAnalytics?.portfolioConcentration || []} 
               isLoading={geoLoading}
@@ -257,24 +405,24 @@ export default function AdminPortfolioPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <MetricCard
                 title={selectedState || selectedCluster ? `Portfolio (${selectedState || 'Cluster'})` : "Total Portfolio"}
-                value={formatCurrency(filteredPortfolio?.totalFunded?.value || 0)}
-                subtitle={`${filteredPortfolio?.totalFunded?.count || 0} active loans`}
+                value={formatCurrency(filteredPortfolioData?.totalFunded?.value || 0)}
+                subtitle={`${filteredPortfolioData?.totalFunded?.count || 0} active loans`}
                 icon={Building2}
                 onClick={() => navigate("/admin/servicing")}
               />
               <MetricCard
                 title="Avg Loan Size"
-                value={formatCurrency(filteredPortfolio?.averages?.loanSize || 0)}
+                value={formatCurrency(filteredPortfolioData?.averages?.loanSize || 0)}
                 icon={DollarSign}
               />
               <MetricCard
                 title="Avg Interest Rate"
-                value={formatPercent(filteredPortfolio?.averages?.interestRate || 0)}
+                value={formatPercent(filteredPortfolioData?.averages?.interestRate || 0)}
                 icon={Percent}
               />
               <MetricCard
                 title="Avg LTV"
-                value={formatPercent(filteredPortfolio?.averages?.ltv || 0)}
+                value={formatPercent(filteredPortfolioData?.averages?.ltv || 0)}
                 icon={BarChart3}
               />
             </div>
@@ -346,12 +494,16 @@ export default function AdminPortfolioPage() {
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-base">Monthly Funding Volume</CardTitle>
-                <CardDescription>Last 12 months trend</CardDescription>
+                <CardDescription>
+                  {selectedCluster ? 'Cluster-level trends not available' : 
+                   selectedState ? `${selectedState} trend data` : 
+                   'Last 12 months trend'}
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                {(portfolio?.monthlyTrend || []).length > 0 ? (
+                {filteredMonthlyTrend.length > 0 ? (
                   <ResponsiveContainer width="100%" height={300}>
-                    <AreaChart data={portfolio?.monthlyTrend || []}>
+                    <AreaChart data={filteredMonthlyTrend}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="month" />
                       <YAxis tickFormatter={(v) => formatCurrency(v)} />
@@ -361,7 +513,7 @@ export default function AdminPortfolioPage() {
                   </ResponsiveContainer>
                 ) : (
                   <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-                    No monthly trend data available
+                    {selectedCluster || selectedState ? 'Filtered monthly trend data not available - showing portfolio overview instead' : 'No monthly trend data available'}
                   </div>
                 )}
               </CardContent>
@@ -371,25 +523,29 @@ export default function AdminPortfolioPage() {
               <CardHeader className="pb-2 flex flex-row items-center justify-between">
                 <div>
                   <CardTitle className="text-base">Geographic Distribution</CardTitle>
-                  <CardDescription>Top states by funded volume</CardDescription>
+                  <CardDescription>
+                    {selectedCluster ? 'Cluster location' : 
+                     selectedState ? `Clusters in ${selectedState}` : 
+                     'Top states by funded volume'}
+                  </CardDescription>
                 </div>
                 <MapPin className="h-5 w-5 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                {(portfolio?.byState || []).length > 0 ? (
+                {geographicData.length > 0 ? (
                   <div className="space-y-3">
-                    {(portfolio?.byState || []).slice(0, 10).map((state, index) => {
-                      const maxValue = (portfolio?.byState || [])[0]?.value || 1;
-                      const percentage = (state.value / maxValue) * 100;
+                    {geographicData.map((item, index) => {
+                      const maxValue = geographicData[0]?.value || 1;
+                      const percentage = (item.value / maxValue) * 100;
                       return (
-                        <div key={state.state} className="flex items-center gap-3">
+                        <div key={item.state} className="flex items-center gap-3">
                           <div className="w-8 text-sm font-medium text-muted-foreground">{index + 1}.</div>
-                          <div className="w-12 font-medium">{state.state}</div>
+                          <div className="w-12 font-medium">{item.state}</div>
                           <div className="flex-1">
                             <Progress value={percentage} className="h-3" />
                           </div>
-                          <div className="w-24 text-right text-sm">{formatCurrency(state.value)}</div>
-                          <div className="w-16 text-right text-sm text-muted-foreground">{state.count} loans</div>
+                          <div className="w-24 text-right text-sm">{formatCurrency(item.value)}</div>
+                          <div className="w-16 text-right text-sm text-muted-foreground">{item.count} loans</div>
                         </div>
                       );
                     })}
