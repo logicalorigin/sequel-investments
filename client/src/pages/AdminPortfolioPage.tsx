@@ -1,29 +1,25 @@
 import { useQuery } from "@tanstack/react-query";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  ArrowLeft,
   Building2,
   DollarSign,
   Percent,
-  BarChart3,
   TrendingUp,
   MapPin,
+  AlertTriangle,
+  CheckCircle2,
+  ChevronRight,
 } from "lucide-react";
 import {
-  AreaChart,
-  Area,
-  BarChart,
-  Bar,
   PieChart as RechartsPie,
   Pie,
   Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
@@ -65,6 +61,7 @@ interface GeographicAnalyticsData {
   };
 }
 
+
 const STATUS_LABELS: Record<string, string> = {
   current: "Current",
   late_30: "30 Days Late",
@@ -73,6 +70,8 @@ const STATUS_LABELS: Record<string, string> = {
   default: "Default",
   paid_off: "Paid Off",
   foreclosure: "Foreclosure",
+  grace_period: "Grace Period",
+  late: "Late",
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -83,6 +82,8 @@ const STATUS_COLORS: Record<string, string> = {
   default: "#dc2626",
   paid_off: "#3b82f6",
   foreclosure: "#7c3aed",
+  grace_period: "#eab308",
+  late: "#f97316",
 };
 
 const COLORS = ["hsl(var(--primary))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
@@ -101,16 +102,18 @@ function formatPercent(value: number): string {
   return `${value.toFixed(1)}%`;
 }
 
-function MetricCard({ 
+function CompactMetricCard({ 
   title, 
   value, 
-  subtitle, 
+  subtitle,
+  change,
   icon: Icon, 
   onClick 
 }: { 
   title: string; 
   value: string; 
-  subtitle?: string; 
+  subtitle?: string;
+  change?: { value: string; positive: boolean };
   icon: LucideIcon; 
   onClick?: () => void;
 }) {
@@ -120,17 +123,22 @@ function MetricCard({
       onClick={onClick}
       data-testid={`metric-card-${title.toLowerCase().replace(/\s+/g, '-')}`}
     >
-      <CardContent className="p-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-primary/10 rounded-lg shrink-0">
-            <Icon className="h-5 w-5 text-primary" />
-          </div>
-          <div className="min-w-0">
+      <CardContent className="p-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0 flex-1">
             <p className="text-xs text-muted-foreground truncate">{title}</p>
-            <p className="text-xl font-bold">{value}</p>
-            {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
+            <p className="text-lg font-bold truncate">{value}</p>
+            {subtitle && <p className="text-xs text-muted-foreground truncate">{subtitle}</p>}
+          </div>
+          <div className="p-2 bg-primary/10 rounded-lg shrink-0">
+            <Icon className="h-4 w-4 text-primary" />
           </div>
         </div>
+        {change && (
+          <div className={`text-xs mt-1 ${change.positive ? 'text-green-600' : 'text-red-600'}`}>
+            {change.positive ? '↑' : '↓'} {change.value}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -138,22 +146,25 @@ function MetricCard({
 
 function LoadingSkeleton() {
   return (
-    <div className="space-y-6">
-      <Skeleton className="h-[400px]" />
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[1, 2, 3, 4].map((i) => (
           <Card key={i}>
-            <CardContent className="p-4">
-              <Skeleton className="h-16 w-full" />
+            <CardContent className="p-3">
+              <Skeleton className="h-12 w-full" />
             </CardContent>
           </Card>
         ))}
       </div>
-      <div className="grid md:grid-cols-2 gap-6">
-        <Card><CardContent className="p-4"><Skeleton className="h-[280px] w-full" /></CardContent></Card>
-        <Card><CardContent className="p-4"><Skeleton className="h-[280px] w-full" /></CardContent></Card>
+      <div className="grid lg:grid-cols-5 gap-4">
+        <div className="lg:col-span-3">
+          <Skeleton className="h-[400px]" />
+        </div>
+        <div className="lg:col-span-2 space-y-4">
+          <Skeleton className="h-[190px]" />
+          <Skeleton className="h-[190px]" />
+        </div>
       </div>
-      <Card><CardContent className="p-4"><Skeleton className="h-[300px] w-full" /></CardContent></Card>
     </div>
   );
 }
@@ -171,10 +182,57 @@ export default function AdminPortfolioPage() {
     queryKey: ["/api/admin/analytics/geographic"],
   });
 
+  // Fetch recent serviced loans for the default view
+  const { data: allServicedLoans = [] } = useQuery<any>({
+    queryKey: ["/api/admin/serviced-loans"],
+    select: (data) => {
+      // API returns { items: [], pagination: {} } or direct array
+      const loans = Array.isArray(data) ? data : (data?.items || data || []);
+      // Sort by closing date (most recent first) and take top 5
+      return [...loans]
+        .sort((a, b) => {
+          const dateA = new Date(a.closingDate || a.createdAt || 0).getTime();
+          const dateB = new Date(b.closingDate || b.createdAt || 0).getTime();
+          return dateB - dateA;
+        })
+        .slice(0, 5);
+    },
+  });
+
   const handleViewChange = (state: string | null, cluster: any | null) => {
     setSelectedState(state);
     setSelectedCluster(cluster);
   };
+
+  // Get loans to display in sidebar - use cluster loans when available, otherwise show recent loans
+  const displayLoans = useMemo(() => {
+    if (selectedCluster?.loans) {
+      return selectedCluster.loans.slice(0, 5).map((loan: any) => ({
+        id: loan.id,
+        loanNumber: loan.loanNumber || `Loan-${loan.id.slice(0, 6)}`,
+        propertyCity: loan.propertyCity || 'Unknown',
+        propertyState: loan.propertyState || '',
+        loanAmount: loan.loanAmount || loan.currentBalance || 0,
+        interestRate: loan.interestRate || '0',
+        loanType: loan.loanType || 'dscr',
+        status: loan.status || loan.loanStatus || 'current',
+      }));
+    }
+    // Fallback to recent serviced loans when no cluster selected
+    if (allServicedLoans.length > 0) {
+      return allServicedLoans.map((loan: any) => ({
+        id: loan.id,
+        loanNumber: loan.loanNumber || `Loan-${loan.id.slice(0, 6)}`,
+        propertyCity: loan.propertyCity || 'Unknown',
+        propertyState: loan.propertyState || '',
+        loanAmount: loan.originalLoanAmount || loan.currentBalance || 0,
+        interestRate: loan.interestRate || '0',
+        loanType: loan.loanType || 'dscr',
+        status: loan.loanStatus || 'current',
+      }));
+    }
+    return [];
+  }, [selectedCluster, allServicedLoans]);
 
   // Filter portfolio data based on selection
   const filteredPortfolioData = useMemo(() => {
@@ -188,13 +246,11 @@ export default function AdminPortfolioPage() {
       const avgLoanSize = clusterCount > 0 ? clusterValue / clusterCount : 0;
       const avgInterestRate = selectedCluster.avgInterestRate;
 
-      // Calculate LTV for cluster loans
       const avgLtv = clusterLoans.reduce((sum: number, loan: any) => {
         const ltv = loan.loanAmount && loan.propertyValue ? (loan.loanAmount / loan.propertyValue) * 100 : 0;
         return sum + ltv;
       }, 0) / clusterCount;
 
-      // Calculate loan type distribution for cluster
       const byLoanType: Record<string, { value: number; count: number }> = {};
       clusterLoans.forEach((loan: any) => {
         const type = loan.loanType || 'Unknown';
@@ -205,7 +261,6 @@ export default function AdminPortfolioPage() {
         byLoanType[type].count += 1;
       });
 
-      // Calculate status distribution for cluster
       const byStatus: Record<string, { value: number; count: number }> = {};
       clusterLoans.forEach((loan: any) => {
         const status = loan.status || 'unknown';
@@ -225,55 +280,11 @@ export default function AdminPortfolioPage() {
         },
         byLoanType,
         byStatus,
+        byState: [],
+        monthlyTrend: [],
       };
     }
 
-    // If state is selected, filter by state
-    if (selectedState && geoAnalytics?.portfolioConcentration) {
-      const stateData = geoAnalytics.portfolioConcentration.find(s => s.state === selectedState);
-      if (stateData) {
-        return {
-          totalFunded: { 
-            value: stateData.portfolioValue, 
-            count: stateData.fundedCount 
-          },
-          averages: {
-            loanSize: stateData.fundedCount > 0 ? stateData.portfolioValue / stateData.fundedCount : 0,
-            interestRate: portfolio.averages.interestRate, // Keep overall average
-            ltv: portfolio.averages.ltv, // Keep overall average
-          },
-          byLoanType: portfolio.byLoanType, // Keep full breakdown
-          byStatus: portfolio.byStatus,
-        };
-      }
-    }
-
-    // No selection - return full portfolio
-    return portfolio;
-  }, [portfolio, selectedState, selectedCluster, geoAnalytics]);
-
-  // Filter portfolio data based on selection
-  const filteredPortfolio = useMemo(() => {
-    if (!portfolio) return null;
-
-    // If a cluster is selected, filter by those specific loans
-    if (selectedCluster && selectedCluster.loans) {
-      const clusterLoanIds = new Set(selectedCluster.loans.map((l: any) => l.id));
-      return {
-        ...portfolio,
-        totalFunded: {
-          value: selectedCluster.portfolioValue,
-          count: selectedCluster.loans.length,
-        },
-        averages: {
-          loanSize: selectedCluster.portfolioValue / selectedCluster.loans.length,
-          interestRate: selectedCluster.avgInterestRate,
-          ltv: portfolio.averages.ltv, // Keep original LTV for now
-        },
-      };
-    }
-
-    // If a state is selected, filter by state
     if (selectedState && portfolio.byState) {
       const stateData = portfolio.byState.find(s => s.state === selectedState);
       if (stateData) {
@@ -290,7 +301,7 @@ export default function AdminPortfolioPage() {
     return portfolio;
   }, [portfolio, selectedState, selectedCluster]);
 
-  // Process chart data from filtered portfolio
+  // Process chart data
   const loanTypeData = useMemo(() => {
     if (!filteredPortfolioData?.byLoanType) return [];
     return Object.entries(filteredPortfolioData.byLoanType).map(([type, data]) => ({
@@ -310,33 +321,20 @@ export default function AdminPortfolioPage() {
     }));
   }, [filteredPortfolioData]);
 
-  // Filter monthly funding volume based on selection
-  const filteredMonthlyTrend = useMemo(() => {
-    if (!portfolio?.monthlyTrend) return [];
+  // Calculate performance metrics
+  const performanceMetrics = useMemo(() => {
+    if (!statusData.length) return { current: 0, late: 0, defaulted: 0, total: 0 };
+    
+    const current = statusData.find(s => s.name === 'Current')?.count || 0;
+    const late = statusData.filter(s => s.name.includes('Late') || s.name === 'Grace Period').reduce((sum, s) => sum + s.count, 0);
+    const defaulted = statusData.filter(s => s.name === 'Default' || s.name === 'Foreclosure').reduce((sum, s) => sum + s.count, 0);
+    const total = current + late + defaulted;
+    
+    return { current, late, defaulted, total };
+  }, [statusData]);
 
-    // If cluster is selected, filter by cluster loans
-    if (selectedCluster) {
-      const clusterLoanIds = new Set(selectedCluster.loans.map((l: any) => l.id));
-      // We'll need to approximate this since monthlyTrend doesn't have loan-level detail
-      // For now, return empty array - would need backend support for accurate cluster-level monthly trends
-      return [];
-    }
-
-    // If state is selected, filter by state
-    if (selectedState) {
-      // Similar approximation needed - would need backend support
-      return [];
-    }
-
-    // No selection - return full monthly trend
-    return portfolio.monthlyTrend;
-  }, [portfolio, selectedState, selectedCluster]);
-
-  // Geographic distribution - cluster-level for state selection
   const geographicData = useMemo(() => {
     if (!portfolio?.byState) return [];
-
-    // If cluster is selected, show cluster name
     if (selectedCluster) {
       const city = selectedCluster.loans[0]?.propertyCity || 'Unknown';
       return [{
@@ -345,12 +343,7 @@ export default function AdminPortfolioPage() {
         count: selectedCluster.loans.length,
       }];
     }
-
-    // If state is selected, aggregate by city/metro within that state
     if (selectedState && geoAnalytics?.portfolioConcentration) {
-      // We need to fetch loan-level data to group by city
-      // Since we don't have it in the current data structure, we'll use a placeholder
-      // In production, this would need a backend endpoint that returns city-level aggregates
       const stateEntry = portfolio.byState.find(s => s.state === selectedState);
       return stateEntry ? [{
         state: `${selectedState} (state-level)`,
@@ -358,17 +351,34 @@ export default function AdminPortfolioPage() {
         count: stateEntry.count,
       }] : [];
     }
-
-    // No selection - return top 10 states
-    return portfolio.byState.slice(0, 10);
+    return portfolio.byState.slice(0, 5);
   }, [portfolio, selectedState, selectedCluster, geoAnalytics]);
 
   return (
-    <div className="h-full">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold" data-testid="portfolio-title">Portfolio Analytics</h1>
-          <p className="text-muted-foreground text-sm">Monitor funded loan portfolio performance and geographic distribution</p>
+    <div className="h-full overflow-auto">
+      <div className="max-w-[1600px] mx-auto px-3 sm:px-4 py-3 space-y-4">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold" data-testid="portfolio-title">Portfolio Analytics</h1>
+            <p className="text-muted-foreground text-xs">Monitor funded loan portfolio performance and geographic distribution</p>
+          </div>
+          {(selectedState || selectedCluster) && (
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="bg-primary/10">
+                <MapPin className="h-3 w-3 mr-1" />
+                {selectedCluster ? `Cluster (${selectedCluster.loans.length})` : selectedState}
+              </Badge>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => handleViewChange(null, null)}
+                className="text-xs h-7"
+              >
+                View All
+              </Button>
+            </div>
+          )}
         </div>
         
         {isLoading ? (
@@ -377,186 +387,242 @@ export default function AdminPortfolioPage() {
           <div className="text-center py-12 text-muted-foreground">No portfolio data available</div>
         ) : (
           <>
-            {(selectedState || selectedCluster) && (
-              <div className="bg-primary/10 border border-primary/20 rounded-lg p-3 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-medium">
-                    Viewing: {selectedCluster ? `Cluster in ${selectedState} (${selectedCluster.loans.length} loans)` : selectedState}
-                  </span>
-                </div>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => handleViewChange(null, null)}
-                  className="text-xs"
-                >
-                  View All Portfolio
-                </Button>
-              </div>
-            )}
-            
-            <PortfolioConcentrationHeatmap 
-              data={geoAnalytics?.portfolioConcentration || []} 
-              isLoading={geoLoading}
-              onViewChange={handleViewChange}
-            />
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <MetricCard
-                title={selectedState || selectedCluster ? `Portfolio (${selectedState || 'Cluster'})` : "Total Portfolio"}
+            {/* Summary Metrics Row */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <CompactMetricCard
+                title="Total Portfolio"
                 value={formatCurrency(filteredPortfolioData?.totalFunded?.value || 0)}
-                subtitle={`${filteredPortfolioData?.totalFunded?.count || 0} active loans`}
+                subtitle={`${filteredPortfolioData?.totalFunded?.count || 0} loans`}
                 icon={Building2}
                 onClick={() => navigate("/admin/servicing")}
               />
-              <MetricCard
+              <CompactMetricCard
                 title="Avg Loan Size"
                 value={formatCurrency(filteredPortfolioData?.averages?.loanSize || 0)}
                 icon={DollarSign}
               />
-              <MetricCard
-                title="Avg Interest Rate"
+              <CompactMetricCard
+                title="Avg Rate"
                 value={formatPercent(filteredPortfolioData?.averages?.interestRate || 0)}
                 icon={Percent}
               />
-              <MetricCard
-                title="Avg LTV"
-                value={formatPercent(filteredPortfolioData?.averages?.ltv || 0)}
-                icon={BarChart3}
+              <CompactMetricCard
+                title="Active States"
+                value={String(geoAnalytics?.summary?.activeStatesCount || portfolio?.byState?.length || 0)}
+                subtitle="Geographic spread"
+                icon={MapPin}
               />
             </div>
 
-            <div className="grid md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Portfolio by Loan Type</CardTitle>
-                  <CardDescription>Distribution of funded loans</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {loanTypeData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height={280}>
-                      <RechartsPie>
-                        <Pie
-                          data={loanTypeData}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={60}
-                          outerRadius={100}
-                          paddingAngle={2}
-                          dataKey="value"
-                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                        >
-                          {loanTypeData.map((_, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip formatter={(value: number) => formatFullCurrency(value)} />
-                      </RechartsPie>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="h-[280px] flex items-center justify-center text-muted-foreground">
-                      No loan type data available
+            {/* Main Content: Map + Sidebar */}
+            <div className="grid lg:grid-cols-5 gap-4">
+              {/* Map Section - 60% */}
+              <div className="lg:col-span-3">
+                <Card className="h-full">
+                  <CardHeader className="py-2 px-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-sm">Portfolio Concentration</CardTitle>
+                      <Badge variant="outline" className="text-xs">
+                        {filteredPortfolioData?.totalFunded?.count || 0} loans
+                      </Badge>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Portfolio Health</CardTitle>
-                  <CardDescription>Loan status distribution</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {statusData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height={280}>
-                      <BarChart data={statusData}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
-                        <YAxis tickFormatter={(v) => formatCurrency(v)} />
-                        <Tooltip formatter={(value: number) => formatFullCurrency(value)} />
-                        <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                          {statusData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.fill} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="h-[280px] flex items-center justify-center text-muted-foreground">
-                      No status data available
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <div className="h-[380px]">
+                      <PortfolioConcentrationHeatmap 
+                        data={geoAnalytics?.portfolioConcentration || []} 
+                        isLoading={geoLoading}
+                        onViewChange={handleViewChange}
+                      />
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
+                  </CardContent>
+                </Card>
+              </div>
 
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">Monthly Funding Volume</CardTitle>
-                <CardDescription>
-                  {selectedCluster ? 'Cluster-level trends not available' : 
-                   selectedState ? `${selectedState} trend data` : 
-                   'Last 12 months trend'}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {filteredMonthlyTrend.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <AreaChart data={filteredMonthlyTrend}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="month" />
-                      <YAxis tickFormatter={(v) => formatCurrency(v)} />
-                      <Tooltip formatter={(value: number) => formatFullCurrency(value)} />
-                      <Area type="monotone" dataKey="value" name="Funded Volume" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.3} />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-                    {selectedCluster || selectedState ? 'Filtered monthly trend data not available - showing portfolio overview instead' : 'No monthly trend data available'}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2 flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="text-base">Geographic Distribution</CardTitle>
-                  <CardDescription>
-                    {selectedCluster ? 'Cluster location' : 
-                     selectedState ? `Clusters in ${selectedState}` : 
-                     'Top states by funded volume'}
-                  </CardDescription>
-                </div>
-                <MapPin className="h-5 w-5 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                {geographicData.length > 0 ? (
-                  <div className="space-y-3">
-                    {geographicData.map((item, index) => {
-                      const maxValue = geographicData[0]?.value || 1;
-                      const percentage = (item.value / maxValue) * 100;
-                      return (
-                        <div key={item.state} className="flex items-center gap-3">
-                          <div className="w-8 text-sm font-medium text-muted-foreground">{index + 1}.</div>
-                          <div className="w-12 font-medium">{item.state}</div>
-                          <div className="flex-1">
-                            <Progress value={percentage} className="h-3" />
-                          </div>
-                          <div className="w-24 text-right text-sm">{formatCurrency(item.value)}</div>
-                          <div className="w-16 text-right text-sm text-muted-foreground">{item.count} loans</div>
+              {/* Sidebar Panels - 40% */}
+              <div className="lg:col-span-2 space-y-4">
+                {/* Performance Summary */}
+                <Card>
+                  <CardHeader className="py-2 px-3">
+                    <CardTitle className="text-sm">Portfolio Health</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-3 pt-0">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-green-500" />
+                          <span className="text-sm">Current</span>
                         </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="py-8 text-center text-muted-foreground">
-                    No geographic data available
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold">{performanceMetrics.current}</span>
+                          <Badge variant="secondary" className="text-xs bg-green-500/10 text-green-600">
+                            {performanceMetrics.total > 0 ? Math.round((performanceMetrics.current / performanceMetrics.total) * 100) : 0}%
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                          <span className="text-sm">Late/Grace</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold">{performanceMetrics.late}</span>
+                          <Badge variant="secondary" className="text-xs bg-yellow-500/10 text-yellow-600">
+                            {performanceMetrics.total > 0 ? Math.round((performanceMetrics.late / performanceMetrics.total) * 100) : 0}%
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <AlertTriangle className="h-4 w-4 text-red-500" />
+                          <span className="text-sm">Default</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold">{performanceMetrics.defaulted}</span>
+                          <Badge variant="secondary" className="text-xs bg-red-500/10 text-red-600">
+                            {performanceMetrics.total > 0 ? Math.round((performanceMetrics.defaulted / performanceMetrics.total) * 100) : 0}%
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Mini pie chart */}
+                    {loanTypeData.length > 0 && (
+                      <div className="mt-3 pt-3 border-t">
+                        <p className="text-xs text-muted-foreground mb-2">By Loan Type</p>
+                        <div className="flex items-center gap-3">
+                          <div className="h-[80px] w-[80px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <RechartsPie>
+                                <Pie
+                                  data={loanTypeData}
+                                  cx="50%"
+                                  cy="50%"
+                                  innerRadius={20}
+                                  outerRadius={35}
+                                  paddingAngle={2}
+                                  dataKey="value"
+                                >
+                                  {loanTypeData.map((_, index) => (
+                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                  ))}
+                                </Pie>
+                                <Tooltip formatter={(value: number) => formatFullCurrency(value)} />
+                              </RechartsPie>
+                            </ResponsiveContainer>
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            {loanTypeData.slice(0, 3).map((item, index) => (
+                              <div key={item.name} className="flex items-center justify-between text-xs">
+                                <div className="flex items-center gap-1.5">
+                                  <div 
+                                    className="w-2 h-2 rounded-full" 
+                                    style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                                  />
+                                  <span className="truncate max-w-[80px]">{item.name}</span>
+                                </div>
+                                <span className="font-medium">{item.count}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Top States */}
+                <Card>
+                  <CardHeader className="py-2 px-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-sm">Top States</CardTitle>
+                      <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-3 pt-0">
+                    <div className="space-y-2">
+                      {geographicData.map((item, index) => {
+                        const maxValue = geographicData[0]?.value || 1;
+                        const percentage = (item.value / maxValue) * 100;
+                        return (
+                          <div key={item.state} className="space-y-1">
+                            <div className="flex items-center justify-between text-xs">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium w-4 text-muted-foreground">{index + 1}.</span>
+                                <span className="font-medium">{item.state}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-muted-foreground">{item.count} loans</span>
+                                <span className="font-semibold">{formatCurrency(item.value)}</span>
+                              </div>
+                            </div>
+                            <Progress value={percentage} className="h-1.5" />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Loans List */}
+                <Card>
+                  <CardHeader className="py-2 px-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-sm">
+                        {selectedCluster ? 'Cluster Loans' : selectedState ? 'State Loans' : 'Recent Loans'}
+                      </CardTitle>
+                      <Link href="/admin/servicing">
+                        <Button variant="ghost" size="sm" className="h-6 text-xs gap-1">
+                          View All <ChevronRight className="h-3 w-3" />
+                        </Button>
+                      </Link>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <ScrollArea className="h-[140px]">
+                      <div className="p-3 pt-0 space-y-2">
+                        {displayLoans.length > 0 ? (
+                          displayLoans.map((loan: any) => (
+                            <Link key={loan.id} href={`/admin/servicing/${loan.id}`}>
+                              <div className="flex items-center justify-between p-2 rounded-md hover-elevate cursor-pointer bg-muted/30">
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs font-medium truncate">{loan.loanNumber}</span>
+                                    <Badge variant="outline" className="text-[10px] h-4 capitalize">
+                                      {loan.loanType}
+                                    </Badge>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground truncate">
+                                    {loan.propertyCity}{loan.propertyState ? `, ${loan.propertyState}` : ''}
+                                  </p>
+                                </div>
+                                <div className="text-right shrink-0">
+                                  <p className="text-xs font-semibold">{formatCurrency(loan.loanAmount)}</p>
+                                  <Badge 
+                                    variant="secondary" 
+                                    className={`text-[10px] h-4 ${
+                                      loan.status === 'current' ? 'bg-green-500/10 text-green-600' :
+                                      loan.status === 'late' ? 'bg-yellow-500/10 text-yellow-600' :
+                                      'bg-red-500/10 text-red-600'
+                                    }`}
+                                  >
+                                    {loan.status}
+                                  </Badge>
+                                </div>
+                              </div>
+                            </Link>
+                          ))
+                        ) : (
+                          <div className="py-4 text-center text-xs text-muted-foreground">
+                            Loading loans...
+                          </div>
+                        )}
+                      </div>
+                    </ScrollArea>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
           </>
         )}
       </div>
