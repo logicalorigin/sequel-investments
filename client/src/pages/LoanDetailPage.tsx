@@ -2532,10 +2532,17 @@ export default function LoanDetailPage() {
                     <h1 className="text-xl font-bold">{loan.propertyAddress}</h1>
                     {getStatusBadge(loan.loanStatus)}
                   </div>
-                  <p className="text-muted-foreground flex items-center gap-1">
-                    <MapPin className="h-3 w-3" />
-                    {loan.propertyCity}, {loan.propertyState} {loan.propertyZip}
-                  </p>
+                  <div className="space-y-1">
+                    <p className="text-muted-foreground flex items-center gap-1">
+                      <MapPin className="h-3 w-3" />
+                      {loan.propertyCity}, {loan.propertyState} {loan.propertyZip}
+                    </p>
+                    {propertyLocation && propertyLocation.latitude && propertyLocation.longitude && (
+                      <div className="text-xs text-muted-foreground font-mono ml-6">
+                        GPS: {parseFloat(propertyLocation.latitude).toFixed(6)}, {parseFloat(propertyLocation.longitude).toFixed(6)}
+                      </div>
+                    )}
+                  </div>
                   <p className="text-sm text-muted-foreground mt-1">
                     Loan #{loan.loanNumber} • {getLoanTypeLabel(loan.loanType)}
                     {loan.isInterestOnly && " • Interest Only"}

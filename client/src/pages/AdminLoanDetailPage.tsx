@@ -529,6 +529,28 @@ export default function AdminLoanDetailPage() {
         </div>
         <div className="grid lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
+            {/* Property Location Card */}
+            <Card>
+              <CardContent className="pt-4">
+                <div className="space-y-2">
+                  <div className="flex items-start gap-3">
+                    <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
+                    <div className="flex-1">
+                      <p className="font-medium">{loan.propertyAddress}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {loan.propertyCity}, {loan.propertyState} {loan.propertyZip}
+                      </p>
+                      {propertyLocation && propertyLocation.latitude && propertyLocation.longitude && (
+                        <div className="mt-2 text-xs text-muted-foreground font-mono">
+                          GPS: {parseFloat(propertyLocation.latitude).toFixed(6)}, {parseFloat(propertyLocation.longitude).toFixed(6)}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Card>
                 <CardContent className="pt-4">
