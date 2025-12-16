@@ -24,7 +24,8 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import type { LucideIcon } from "lucide-react";
-import { PortfolioConcentrationHeatmap } from "@/components/admin/PortfolioConcentrationHeatmap";
+import { PortfolioGoogleMap } from "@/components/admin/PortfolioGoogleMap";
+import { APIProvider } from "@vis.gl/react-google-maps";
 import { useState, useMemo } from "react";
 
 interface PortfolioData {
@@ -174,13 +175,76 @@ export default function AdminPortfolioPage() {
   const [selectedState, setSelectedState] = useState<string | null>(null);
   const [selectedCluster, setSelectedCluster] = useState<any | null>(null);
 
-  const { data: portfolio, isLoading } = useQuery<PortfolioData>({
+  const { data: portfolio, isLoading, isError: portfolioError } = useQuery<PortfolioData>({
     queryKey: ["/api/admin/analytics/portfolio"],
+    retry: 3,
+    retryDelay: 1000,
   });
 
   const { data: geoAnalytics, isLoading: geoLoading } = useQuery<GeographicAnalyticsData>({
     queryKey: ["/api/admin/analytics/geographic"],
+    retry: 3,
+    retryDelay: 1000,
   });
+
+  // Fetch all portfolio loans for map and fallback metrics
+  const { data: allPortfolioLoans = [], isLoading: loansLoading } = useQuery<any[]>({
+    queryKey: ["/api/admin/analytics/portfolio-loans-all"],
+    select: (data) => Array.isArray(data) ? data : [],
+    retry: 3,
+    retryDelay: 1000,
+  });
+
+  // Compute fallback portfolio data from loan-level data when summary fails
+  const fallbackPortfolioData = useMemo(() => {
+    if (!allPortfolioLoans?.length) return null;
+    
+    const totalValue = allPortfolioLoans.reduce((sum, l) => sum + (l.currentBalance || l.loanAmount || 0), 0);
+    const count = allPortfolioLoans.length;
+    const avgLoanSize = count > 0 ? totalValue / count : 0;
+    const avgInterestRate = allPortfolioLoans.reduce((sum, l) => sum + (parseFloat(l.interestRate) || 0), 0) / count;
+    const avgLtv = allPortfolioLoans.reduce((sum, l) => {
+      const ltv = l.loanAmount && l.propertyValue ? (l.loanAmount / l.propertyValue) * 100 : 0;
+      return sum + ltv;
+    }, 0) / count;
+
+    const byLoanType: Record<string, { value: number; count: number }> = {};
+    const byStatus: Record<string, { value: number; count: number }> = {};
+    const byState: Record<string, { value: number; count: number }> = {};
+
+    allPortfolioLoans.forEach((loan) => {
+      const type = loan.loanType || 'Unknown';
+      if (!byLoanType[type]) byLoanType[type] = { value: 0, count: 0 };
+      byLoanType[type].value += loan.currentBalance || loan.loanAmount || 0;
+      byLoanType[type].count += 1;
+
+      const status = loan.status || loan.loanStatus || 'unknown';
+      if (!byStatus[status]) byStatus[status] = { value: 0, count: 0 };
+      byStatus[status].value += loan.currentBalance || loan.loanAmount || 0;
+      byStatus[status].count += 1;
+
+      const state = loan.propertyState || 'Unknown';
+      if (!byState[state]) byState[state] = { value: 0, count: 0 };
+      byState[state].value += loan.currentBalance || loan.loanAmount || 0;
+      byState[state].count += 1;
+    });
+
+    const byStateArray = Object.entries(byState)
+      .map(([state, data]) => ({ state, ...data }))
+      .sort((a, b) => b.value - a.value);
+
+    return {
+      totalFunded: { value: totalValue, count },
+      averages: { loanSize: avgLoanSize, interestRate: avgInterestRate, ltv: avgLtv },
+      byLoanType,
+      byStatus,
+      byState: byStateArray,
+      monthlyTrend: [],
+    } as PortfolioData;
+  }, [allPortfolioLoans]);
+
+  // Use portfolio data or fallback to computed data
+  const effectivePortfolio = portfolio || fallbackPortfolioData;
 
   // Fetch recent serviced loans for the default view
   const { data: allServicedLoans = [] } = useQuery<any>({
@@ -234,72 +298,83 @@ export default function AdminPortfolioPage() {
     return [];
   }, [selectedCluster, allServicedLoans]);
 
-  // Filter portfolio data based on selection
+  // Helper to compute aggregates from a list of loans
+  const computeAggregatesFromLoans = (loans: any[]) => {
+    const count = loans.length;
+    if (count === 0) return null;
+    
+    const totalValue = loans.reduce((sum, l) => sum + (l.currentBalance || l.loanAmount || 0), 0);
+    const avgLoanSize = totalValue / count;
+    const avgInterestRate = loans.reduce((sum, l) => sum + (parseFloat(l.interestRate) || 0), 0) / count;
+    const avgLtv = loans.reduce((sum, l) => {
+      const ltv = l.loanAmount && l.propertyValue ? (l.loanAmount / l.propertyValue) * 100 : 0;
+      return sum + ltv;
+    }, 0) / count;
+
+    const byLoanType: Record<string, { value: number; count: number }> = {};
+    const byStatus: Record<string, { value: number; count: number }> = {};
+
+    loans.forEach((loan) => {
+      const type = loan.loanType || 'Unknown';
+      if (!byLoanType[type]) byLoanType[type] = { value: 0, count: 0 };
+      byLoanType[type].value += loan.currentBalance || loan.loanAmount || 0;
+      byLoanType[type].count += 1;
+
+      const status = loan.status || loan.loanStatus || 'unknown';
+      if (!byStatus[status]) byStatus[status] = { value: 0, count: 0 };
+      byStatus[status].value += loan.currentBalance || loan.loanAmount || 0;
+      byStatus[status].count += 1;
+    });
+
+    return {
+      totalFunded: { value: totalValue, count },
+      averages: { loanSize: avgLoanSize, interestRate: avgInterestRate, ltv: avgLtv },
+      byLoanType,
+      byStatus,
+    };
+  };
+
+  // Filter portfolio data based on selection (state or cluster)
   const filteredPortfolioData = useMemo(() => {
-    if (!portfolio) return null;
+    if (!effectivePortfolio) return null;
 
-    // If cluster is selected, show cluster-specific data
-    if (selectedCluster) {
-      const clusterLoans = selectedCluster.loans;
-      const clusterValue = selectedCluster.portfolioValue;
-      const clusterCount = clusterLoans.length;
-      const avgLoanSize = clusterCount > 0 ? clusterValue / clusterCount : 0;
-      const avgInterestRate = selectedCluster.avgInterestRate;
-
-      const avgLtv = clusterLoans.reduce((sum: number, loan: any) => {
-        const ltv = loan.loanAmount && loan.propertyValue ? (loan.loanAmount / loan.propertyValue) * 100 : 0;
-        return sum + ltv;
-      }, 0) / clusterCount;
-
-      const byLoanType: Record<string, { value: number; count: number }> = {};
-      clusterLoans.forEach((loan: any) => {
-        const type = loan.loanType || 'Unknown';
-        if (!byLoanType[type]) {
-          byLoanType[type] = { value: 0, count: 0 };
-        }
-        byLoanType[type].value += loan.loanAmount || 0;
-        byLoanType[type].count += 1;
-      });
-
-      const byStatus: Record<string, { value: number; count: number }> = {};
-      clusterLoans.forEach((loan: any) => {
-        const status = loan.status || 'unknown';
-        if (!byStatus[status]) {
-          byStatus[status] = { value: 0, count: 0 };
-        }
-        byStatus[status].value += loan.currentBalance || 0;
-        byStatus[status].count += 1;
-      });
-
-      return {
-        totalFunded: { value: clusterValue, count: clusterCount },
-        averages: {
-          loanSize: avgLoanSize,
-          interestRate: avgInterestRate,
-          ltv: avgLtv,
-        },
-        byLoanType,
-        byStatus,
-        byState: [],
-        monthlyTrend: [],
-      };
-    }
-
-    if (selectedState && portfolio.byState) {
-      const stateData = portfolio.byState.find(s => s.state === selectedState);
-      if (stateData) {
+    // If cluster is selected, compute aggregates from cluster loans
+    if (selectedCluster?.loans?.length > 0) {
+      const aggregates = computeAggregatesFromLoans(selectedCluster.loans);
+      if (aggregates) {
         return {
-          ...portfolio,
-          totalFunded: {
-            value: stateData.value,
-            count: stateData.count,
-          },
+          ...aggregates,
+          byState: [],
+          monthlyTrend: effectivePortfolio.monthlyTrend || [],
         };
       }
     }
 
-    return portfolio;
-  }, [portfolio, selectedState, selectedCluster]);
+    // If state is selected, compute state-specific aggregates from loan data
+    if (selectedState && allPortfolioLoans?.length > 0) {
+      const stateLoans = allPortfolioLoans.filter((l: any) => l.propertyState === selectedState);
+      if (stateLoans.length > 0) {
+        const aggregates = computeAggregatesFromLoans(stateLoans);
+        if (aggregates) {
+          return {
+            ...aggregates,
+            byState: effectivePortfolio.byState || [],
+            monthlyTrend: effectivePortfolio.monthlyTrend || [],
+          };
+        }
+      }
+      // Fallback to byState totals if no loans found
+      const stateData = effectivePortfolio.byState?.find((s: any) => s.state === selectedState);
+      if (stateData) {
+        return {
+          ...effectivePortfolio,
+          totalFunded: { value: stateData.value, count: stateData.count },
+        };
+      }
+    }
+
+    return effectivePortfolio;
+  }, [effectivePortfolio, selectedState, selectedCluster, allPortfolioLoans]);
 
   // Process chart data
   const loanTypeData = useMemo(() => {
@@ -334,25 +409,26 @@ export default function AdminPortfolioPage() {
   }, [statusData]);
 
   const geographicData = useMemo(() => {
-    if (!portfolio?.byState) return [];
-    if (selectedCluster) {
+    if (!effectivePortfolio?.byState) return [];
+    if (selectedCluster?.loans?.length > 0) {
       const city = selectedCluster.loans[0]?.propertyCity || 'Unknown';
+      const clusterValue = selectedCluster.loans.reduce((sum: number, l: any) => sum + (l.currentBalance || 0), 0);
       return [{
         state: city,
-        value: selectedCluster.portfolioValue,
+        value: clusterValue,
         count: selectedCluster.loans.length,
       }];
     }
     if (selectedState && geoAnalytics?.portfolioConcentration) {
-      const stateEntry = portfolio.byState.find(s => s.state === selectedState);
+      const stateEntry = effectivePortfolio.byState.find((s: any) => s.state === selectedState);
       return stateEntry ? [{
         state: `${selectedState} (state-level)`,
         value: stateEntry.value,
         count: stateEntry.count,
       }] : [];
     }
-    return portfolio.byState.slice(0, 5);
-  }, [portfolio, selectedState, selectedCluster, geoAnalytics]);
+    return effectivePortfolio.byState.slice(0, 5);
+  }, [effectivePortfolio, selectedState, selectedCluster, geoAnalytics]);
 
   return (
     <div className="h-full overflow-auto">
@@ -381,10 +457,12 @@ export default function AdminPortfolioPage() {
           )}
         </div>
         
-        {isLoading ? (
+        {(isLoading && loansLoading) ? (
           <LoadingSkeleton />
         ) : !filteredPortfolioData ? (
-          <div className="text-center py-12 text-muted-foreground">No portfolio data available</div>
+          <div className="text-center py-12 text-muted-foreground">
+            {(isLoading || loansLoading) ? 'Loading portfolio data...' : 'No portfolio data available'}
+          </div>
         ) : (
           <>
             {/* Summary Metrics Row */}
@@ -428,12 +506,24 @@ export default function AdminPortfolioPage() {
                     </div>
                   </CardHeader>
                   <CardContent className="p-0">
-                    <div className="h-[380px]">
-                      <PortfolioConcentrationHeatmap 
-                        data={geoAnalytics?.portfolioConcentration || []} 
-                        isLoading={geoLoading}
-                        onViewChange={handleViewChange}
-                      />
+                    <div className="h-[380px] rounded-b-lg overflow-hidden">
+                      <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ""}>
+                        <PortfolioGoogleMap 
+                          className="w-full h-full"
+                          onLoanSelect={(loan) => {
+                            // Only update the loans list panel - metrics stay based on full portfolio
+                            if (loan) {
+                              setSelectedCluster({ loans: [loan] });
+                            } else {
+                              setSelectedCluster(null);
+                            }
+                          }}
+                          onClusterSelect={(loans) => {
+                            // Only update the loans list panel - metrics stay based on full portfolio
+                            setSelectedCluster({ loans });
+                          }}
+                        />
+                      </APIProvider>
                     </div>
                   </CardContent>
                 </Card>
