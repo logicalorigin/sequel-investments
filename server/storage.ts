@@ -52,6 +52,7 @@ import {
   loanProductPricingTiers,
   premiumTemplates,
   whiteLabelTemplateAssignments,
+  dashboardLayouts,
   type User, 
   type UpsertUser,
   type Lead, 
@@ -163,6 +164,7 @@ import {
   type InsertPremiumTemplate,
   type WhiteLabelTemplateAssignment,
   type InsertWhiteLabelTemplateAssignment,
+  type DashboardLayout,
   DEFAULT_DOCUMENT_TYPES,
   DEFAULT_BUSINESS_HOURS,
   DEFAULT_HOME_PAGE_LAYOUT,
@@ -563,6 +565,11 @@ export interface IStorage {
   createWhiteLabelTemplateAssignment(data: InsertWhiteLabelTemplateAssignment): Promise<WhiteLabelTemplateAssignment>;
   updateWhiteLabelTemplateAssignment(id: string, data: Partial<InsertWhiteLabelTemplateAssignment>): Promise<WhiteLabelTemplateAssignment | undefined>;
   applyTemplateToWhiteLabelSite(whiteLabelSiteId: string, templateId: string): Promise<WhiteLabelTemplateAssignment>;
+  
+  // Dashboard layout operations (drag-drop widgets)
+  getDashboardLayout(userId: string): Promise<DashboardLayout | undefined>;
+  saveDashboardLayout(userId: string, widgets: unknown[]): Promise<DashboardLayout>;
+  deleteDashboardLayout(userId: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -3629,6 +3636,51 @@ export class DatabaseStorage implements IStorage {
       whiteLabelSiteId,
       templateId,
     });
+  }
+
+  // Dashboard layout operations (drag-drop widgets)
+  async getDashboardLayout(userId: string): Promise<DashboardLayout | undefined> {
+    const [layout] = await db
+      .select()
+      .from(dashboardLayouts)
+      .where(eq(dashboardLayouts.userId, userId));
+    return layout;
+  }
+
+  async saveDashboardLayout(userId: string, widgets: unknown[]): Promise<DashboardLayout> {
+    // Check for existing layout
+    const existing = await this.getDashboardLayout(userId);
+    
+    if (existing) {
+      // Update existing layout
+      const [updated] = await db
+        .update(dashboardLayouts)
+        .set({
+          widgets,
+          updatedAt: new Date(),
+        })
+        .where(eq(dashboardLayouts.userId, userId))
+        .returning();
+      return updated;
+    }
+    
+    // Create new layout
+    const [layout] = await db
+      .insert(dashboardLayouts)
+      .values({
+        userId,
+        widgets,
+      })
+      .returning();
+    return layout;
+  }
+
+  async deleteDashboardLayout(userId: string): Promise<boolean> {
+    const result = await db
+      .delete(dashboardLayouts)
+      .where(eq(dashboardLayouts.userId, userId))
+      .returning({ id: dashboardLayouts.id });
+    return result.length > 0;
   }
 }
 

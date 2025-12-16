@@ -7249,6 +7249,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // =====================
+  // Dashboard Layout Routes (Staff/Admin)
+  // =====================
+  
+  // GET /api/admin/dashboard-layout - Get user's dashboard layout
+  app.get("/api/admin/dashboard-layout", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub || req.adminUser?.id;
+      if (!userId) {
+        return res.status(401).json({ error: "User not authenticated" });
+      }
+      
+      const layout = await storage.getDashboardLayout(userId);
+      
+      if (!layout) {
+        // Return default layout if none exists
+        return res.json({ 
+          widgets: null, 
+          isDefault: true,
+          updatedAt: null,
+        });
+      }
+      
+      return res.json({
+        widgets: layout.widgets,
+        isDefault: false,
+        updatedAt: layout.updatedAt,
+      });
+    } catch (error) {
+      console.error("Error fetching dashboard layout:", error);
+      return res.status(500).json({ error: "Failed to fetch dashboard layout" });
+    }
+  });
+  
+  // PUT /api/admin/dashboard-layout - Save user's dashboard layout
+  app.put("/api/admin/dashboard-layout", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub || req.adminUser?.id;
+      if (!userId) {
+        return res.status(401).json({ error: "User not authenticated" });
+      }
+      
+      const { widgets } = req.body;
+      
+      if (!Array.isArray(widgets)) {
+        return res.status(400).json({ error: "Widgets must be an array" });
+      }
+      
+      const layout = await storage.saveDashboardLayout(userId, widgets);
+      
+      return res.json({
+        widgets: layout.widgets,
+        isDefault: false,
+        updatedAt: layout.updatedAt,
+      });
+    } catch (error) {
+      console.error("Error saving dashboard layout:", error);
+      return res.status(500).json({ error: "Failed to save dashboard layout" });
+    }
+  });
+  
+  // DELETE /api/admin/dashboard-layout - Reset to default layout
+  app.delete("/api/admin/dashboard-layout", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub || req.adminUser?.id;
+      if (!userId) {
+        return res.status(401).json({ error: "User not authenticated" });
+      }
+      
+      await storage.deleteDashboardLayout(userId);
+      
+      return res.json({ message: "Dashboard layout reset to default" });
+    } catch (error) {
+      console.error("Error deleting dashboard layout:", error);
+      return res.status(500).json({ error: "Failed to reset dashboard layout" });
+    }
+  });
+
+  // =====================
   // Webhook Management Routes (Admin only)
   // =====================
 
