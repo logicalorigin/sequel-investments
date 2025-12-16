@@ -9303,7 +9303,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
           let message = firstNotif.message;
 
           if (batchNotifications.length > 1) {
-            title = `${batchNotifications.length Document Updates`;
+            title = `${batchNotifications.length} Document Updates`;
             message = `You have ${batchNotifications.length} document updates. Click to view details.`;
           }
 
