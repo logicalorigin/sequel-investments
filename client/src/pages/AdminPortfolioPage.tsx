@@ -26,7 +26,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { PortfolioGoogleMap } from "@/components/admin/PortfolioGoogleMap";
 import { APIProvider } from "@vis.gl/react-google-maps";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 
 interface PortfolioData {
   totalFunded: { value: number; count: number };
@@ -269,6 +269,24 @@ export default function AdminPortfolioPage() {
     setSelectedState(state);
     setSelectedCluster(cluster);
   };
+
+  // Memoized callbacks for map to prevent re-render loops
+  const handleLoanSelect = useCallback((loan: any) => {
+    if (loan) {
+      setSelectedCluster({ loans: [loan] });
+    } else {
+      setSelectedCluster(null);
+    }
+  }, []);
+
+  const handleClusterSelect = useCallback((loans: any[]) => {
+    setSelectedCluster({ loans });
+  }, []);
+
+  const handleVisibleLoansChange = useCallback((visible: any[], total: number) => {
+    setVisibleLoans(visible);
+    setTotalLoanCount(total);
+  }, []);
 
   // Get loans to display in sidebar - use cluster loans when available, otherwise show recent loans
   const displayLoans = useMemo(() => {
@@ -531,20 +549,9 @@ export default function AdminPortfolioPage() {
                       <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ""}>
                         <PortfolioGoogleMap 
                           className="w-full h-full"
-                          onLoanSelect={(loan) => {
-                            if (loan) {
-                              setSelectedCluster({ loans: [loan] });
-                            } else {
-                              setSelectedCluster(null);
-                            }
-                          }}
-                          onClusterSelect={(loans) => {
-                            setSelectedCluster({ loans });
-                          }}
-                          onVisibleLoansChange={(visible, total) => {
-                            setVisibleLoans(visible);
-                            setTotalLoanCount(total);
-                          }}
+                          onLoanSelect={handleLoanSelect}
+                          onClusterSelect={handleClusterSelect}
+                          onVisibleLoansChange={handleVisibleLoansChange}
                         />
                       </APIProvider>
                     </div>
