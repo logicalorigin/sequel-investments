@@ -98,7 +98,7 @@ const CITIES_BY_STATE: Record<string, string[]> = {
 const STATES = Object.keys(CITIES_BY_STATE);
 
 const ENTITY_TYPES = [
-  "LLC", "Inc", "Properties LLC", "Investments LLC", "Holdings LLC", 
+  "LLC", "Inc", "Properties LLC", "Investments LLC", "Holdings LLC",
   "Real Estate LLC", "Development LLC", "Capital LLC", "Ventures LLC"
 ];
 
@@ -129,7 +129,7 @@ function generateAddress(): { address: string; city: string; state: string; zip:
   const streetNumber = randomInt(100, 9999);
   const streetName = randomElement(STREET_NAMES);
   const zip = `${randomInt(10000, 99999)}`;
-  
+
   return {
     address: `${streetNumber} ${streetName}`,
     city,
@@ -154,6 +154,8 @@ interface LoanData {
   propertyCity: string;
   propertyState: string;
   propertyZip: string;
+  propertyLatitude?: number; // Added latitude
+  propertyLongitude?: number; // Added longitude
   loanAmount: number;
   purchasePrice: number;
   arv?: number;
@@ -184,17 +186,17 @@ function generateDSCRLoan(variant: "purchase" | "cash_out" | "rate_term"): LoanD
   const loanAmount = Math.round(purchasePrice * (ltv / 100));
   const downPayment = purchasePrice - loanAmount;
   const interestRate = (6.5 + Math.random() * 2).toFixed(3);
-  
+
   // DSCR calculation data
   const monthlyRent = randomInt(1500, 4500);
   const annualTaxes = randomInt(3000, 12000);
   const annualInsurance = randomInt(1200, 4000);
   const annualHOA = randomInt(0, 4800);
-  
-  const monthlyPITI = (loanAmount * (parseFloat(interestRate) / 100 / 12)) + 
+
+  const monthlyPITI = (loanAmount * (parseFloat(interestRate) / 100 / 12)) +
                       (annualTaxes / 12) + (annualInsurance / 12) + (annualHOA / 12);
   const dscr = (monthlyRent / monthlyPITI).toFixed(2);
-  
+
   return {
     loanType: "DSCR",
     productVariant: variant,
@@ -241,7 +243,7 @@ function generateFixFlipLoan(): LoanData {
   const downPayment = purchasePrice + rehabBudget - loanAmount;
   const interestRate = (9.5 + Math.random() * 2.5).toFixed(3);
   const holdTimeMonths = randomInt(4, 12);
-  
+
   return {
     loanType: "Fix & Flip",
     propertyAddress: location.address,
@@ -292,7 +294,7 @@ function generateConstructionLoan(): LoanData {
   const loanAmount = Math.round(totalProjectCost * (ltc / 100));
   const downPayment = totalProjectCost - loanAmount;
   const interestRate = (10.0 + Math.random() * 2).toFixed(3);
-  
+
   return {
     loanType: "New Construction",
     propertyAddress: location.address,
@@ -368,7 +370,7 @@ const STAGE_BY_STATUS: Record<string, string[]> = {
 function selectStatus(): string {
   const totalWeight = Object.values(STATUS_WEIGHTS).reduce((a, b) => a + b, 0);
   let random = Math.random() * totalWeight;
-  
+
   for (const [status, weight] of Object.entries(STATUS_WEIGHTS)) {
     random -= weight;
     if (random <= 0) return status;
@@ -378,19 +380,19 @@ function selectStatus(): string {
 
 function selectStageForStatus(status: string): string {
   const stages = STAGE_BY_STATUS[status] || ["account_review"];
-  
+
   // Weight toward later stages for in_review
   if (status === "in_review") {
     const weights = [15, 25, 25, 25, 10]; // account_review through docs_out
     const totalWeight = weights.reduce((a, b) => a + b, 0);
     let random = Math.random() * totalWeight;
-    
+
     for (let i = 0; i < stages.length; i++) {
       random -= weights[i];
       if (random <= 0) return stages[i];
     }
   }
-  
+
   return randomElement(stages);
 }
 
@@ -431,7 +433,7 @@ export function getSimulationStatus(): SimulationState {
 async function createBorrowerUser(firstName: string, lastName: string): Promise<string> {
   const email = generateEmail(firstName, lastName);
   const phone = generatePhone();
-  
+
   const [user] = await db.insert(users).values({
     email,
     username: email.split("@")[0],
@@ -442,14 +444,14 @@ async function createBorrowerUser(firstName: string, lastName: string): Promise<
     emailNotificationsEnabled: true,
     smsNotificationsEnabled: false
   }).returning();
-  
+
   return user.id;
 }
 
 async function getOrCreateStaffUsers(): Promise<Record<string, string>> {
   // Get existing staff users or create simulation staff
   const existingStaff = await db.select().from(users).where(eq(users.role, "staff"));
-  
+
   if (existingStaff.length >= 5) {
     // Use existing staff
     const staffMap: Record<string, string> = {};
@@ -459,7 +461,7 @@ async function getOrCreateStaffUsers(): Promise<Record<string, string>> {
     });
     return staffMap;
   }
-  
+
   // Create simulation staff if needed
   const staffRoles = [
     { role: "account_executive", firstName: "Alex", lastName: "Morrison" },
@@ -468,19 +470,19 @@ async function getOrCreateStaffUsers(): Promise<Record<string, string>> {
     { role: "closer", firstName: "Morgan", lastName: "Davis" },
     { role: "servicer", firstName: "Casey", lastName: "Thompson" }
   ];
-  
+
   const staffMap: Record<string, string> = {};
-  
+
   for (const staff of staffRoles) {
     const email = `${staff.firstName.toLowerCase()}.${staff.lastName.toLowerCase()}@sequel.com`;
-    
+
     // Check if exists
     const existing = await db.select().from(users).where(eq(users.email, email));
     if (existing.length > 0) {
       staffMap[staff.role] = existing[0].id;
       continue;
     }
-    
+
     const [user] = await db.insert(users).values({
       email,
       username: email.split("@")[0],
@@ -492,10 +494,10 @@ async function getOrCreateStaffUsers(): Promise<Record<string, string>> {
       emailNotificationsEnabled: true,
       smsNotificationsEnabled: false
     }).returning();
-    
+
     staffMap[staff.role] = user.id;
   }
-  
+
   return staffMap;
 }
 
@@ -517,6 +519,8 @@ async function createLoanWithHistory(
     propertyCity: loanData.propertyCity,
     propertyState: loanData.propertyState,
     propertyZip: loanData.propertyZip,
+    propertyLatitude: loanData.propertyLatitude, // Include latitude
+    propertyLongitude: loanData.propertyLongitude, // Include longitude
     loanAmount: loanData.loanAmount,
     status: status as any,
     processingStage: stage as any,
@@ -546,18 +550,18 @@ async function createLoanWithHistory(
     commitmentFeePaid: ["approved", "funded"].includes(status),
     appraisalFeePaid: ["approved", "funded"].includes(status)
   }).returning();
-  
+
   // Create stage history based on current status
   await createStageHistory(loan.id, status, stage, staffMap);
-  
+
   // Create staff assignments based on stage
   await createStaffAssignments(loan.id, stage, staffMap);
-  
+
   // Create serviced loan if created as funded
   if (status === "funded") {
     await createServicedLoanFromApplication(loan);
   }
-  
+
   return loan.id;
 }
 
@@ -569,10 +573,10 @@ async function createStageHistory(
 ): Promise<void> {
   const stageOrder = ["account_review", "underwriting", "term_sheet", "processing", "docs_out", "closed"];
   const currentStageIndex = stageOrder.indexOf(currentStage);
-  
+
   let baseDate = new Date();
   baseDate.setDate(baseDate.getDate() - randomInt(5, 60)); // Started 5-60 days ago
-  
+
   // Initial submission
   await db.insert(applicationStageHistory).values({
     loanApplicationId: loanId,
@@ -586,15 +590,15 @@ async function createStageHistory(
     isAutomated: true,
     durationMinutes: null
   });
-  
+
   // Progress through stages
   let previousDate = baseDate;
-  
+
   if (currentStatus !== "draft" && currentStatus !== "submitted") {
     // Move to in_review
     const reviewDate = new Date(previousDate);
     reviewDate.setHours(reviewDate.getHours() + randomInt(1, 24));
-    
+
     await db.insert(applicationStageHistory).values({
       loanApplicationId: loanId,
       fromStatus: "submitted" as const,
@@ -609,25 +613,25 @@ async function createStageHistory(
     });
     previousDate = reviewDate;
   }
-  
+
   // Progress through stages up to current
   for (let i = 1; i <= currentStageIndex; i++) {
     const stageDate = new Date(previousDate);
     stageDate.setDate(stageDate.getDate() + randomInt(1, 5));
-    
-    const staffForStage = i <= 1 ? "account_executive" : 
+
+    const staffForStage = i <= 1 ? "account_executive" :
                           i === 2 ? "underwriter" :
                           i === 3 ? "processor" :
                           i === 4 ? "processor" : "closer";
-    
+
     const staffNames: Record<string, string> = {
       account_executive: "Alex Morrison",
       processor: "Jordan Chen",
       underwriter: "Taylor Williams",
       closer: "Morgan Davis"
     };
-    
-    const toStatusValue = currentStatus === "approved" || currentStatus === "funded" ? 
+
+    const toStatusValue = currentStatus === "approved" || currentStatus === "funded" ?
                 (i === currentStageIndex ? currentStatus : "in_review") : "in_review";
     await db.insert(applicationStageHistory).values({
       loanApplicationId: loanId,
@@ -643,12 +647,12 @@ async function createStageHistory(
     });
     previousDate = stageDate;
   }
-  
+
   // Add final status change if funded
   if (currentStatus === "funded") {
     const fundedDate = new Date(previousDate);
     fundedDate.setDate(fundedDate.getDate() + randomInt(1, 3));
-    
+
     await db.insert(applicationStageHistory).values({
       loanApplicationId: loanId,
       fromStatus: "approved" as const,
@@ -662,7 +666,7 @@ async function createStageHistory(
       durationMinutes: Math.round((fundedDate.getTime() - previousDate.getTime()) / 60000)
     });
   }
-  
+
   // Add denial reason if denied
   if (currentStatus === "denied") {
     const reasons = [
@@ -672,7 +676,7 @@ async function createStageHistory(
       "Insufficient documentation",
       "Property condition concerns"
     ];
-    
+
     await db.insert(applicationStageHistory).values({
       loanApplicationId: loanId,
       fromStatus: "in_review" as const,
@@ -696,7 +700,7 @@ async function createStaffAssignments(
 ): Promise<void> {
   const stageOrder = ["account_review", "underwriting", "term_sheet", "processing", "docs_out", "closed"];
   const currentStageIndex = stageOrder.indexOf(currentStage);
-  
+
   // Always assign account executive
   await db.insert(loanAssignments).values({
     loanApplicationId: loanId,
@@ -705,7 +709,7 @@ async function createStaffAssignments(
     isPrimary: true,
     assignedByUserId: null
   });
-  
+
   // Assign based on stage progression
   if (currentStageIndex >= 1) { // underwriting or later
     await db.insert(loanAssignments).values({
@@ -716,7 +720,7 @@ async function createStaffAssignments(
       assignedByUserId: staffMap.account_executive
     });
   }
-  
+
   if (currentStageIndex >= 3) { // processing or later
     await db.insert(loanAssignments).values({
       loanApplicationId: loanId,
@@ -726,7 +730,7 @@ async function createStaffAssignments(
       assignedByUserId: staffMap.underwriter
     });
   }
-  
+
   if (currentStageIndex >= 5) { // closed
     await db.insert(loanAssignments).values({
       loanApplicationId: loanId,
@@ -746,18 +750,18 @@ async function createLoanBatch(
 ): Promise<void> {
   const startIndex = batchNumber * loansPerBatch;
   const endIndex = Math.min(startIndex + loansPerBatch, loanQueue.length);
-  
+
   console.log(`[Simulation] Creating batch ${batchNumber + 1}: loans ${startIndex + 1} to ${endIndex}`);
-  
+
   for (let i = startIndex; i < endIndex; i++) {
     try {
       const loanConfig = loanQueue[i];
-      
+
       // Generate borrower
       const firstName = randomElement(FIRST_NAMES);
       const lastName = randomElement(LAST_NAMES);
       const userId = await createBorrowerUser(firstName, lastName);
-      
+
       // Generate loan data based on type
       let loanData: LoanData;
       if (loanConfig.type === "DSCR") {
@@ -767,11 +771,11 @@ async function createLoanBatch(
       } else {
         loanData = generateConstructionLoan();
       }
-      
+
       // Select status and stage
       const status = selectStatus();
       const stage = selectStageForStatus(status);
-      
+
       // Create loan with full history
       await createLoanWithHistory(
         userId,
@@ -782,17 +786,17 @@ async function createLoanBatch(
         `${firstName} ${lastName}`,
         generateEntityName(lastName)
       );
-      
+
       simulationState.loansCreated++;
       console.log(`[Simulation] Created loan ${simulationState.loansCreated}/${simulationState.totalLoans}: ${loanConfig.type} (${status})`);
-      
+
     } catch (error) {
       const errorMsg = `Error creating loan ${i + 1}: ${error}`;
       console.error(`[Simulation] ${errorMsg}`);
       simulationState.errors.push(errorMsg);
     }
   }
-  
+
   simulationState.currentBatch = batchNumber + 1;
 }
 
@@ -800,7 +804,7 @@ export async function startSimulation(): Promise<{ success: boolean; message: st
   if (simulationState.isRunning) {
     return { success: false, message: "Simulation is already running" };
   }
-  
+
   // Reset state
   simulationState = {
     isRunning: true,
@@ -812,46 +816,46 @@ export async function startSimulation(): Promise<{ success: boolean; message: st
     errors: [],
     completedAt: null
   };
-  
+
   console.log(`[Simulation] Starting loan simulation: ${SIMULATION_CONFIG.totalLoans} loans in ${simulationState.totalBatches} batches`);
-  
+
   // Get or create staff users
   const staffMap = await getOrCreateStaffUsers();
   console.log("[Simulation] Staff users ready");
-  
+
   // Build loan queue with proper distribution
   const loanQueue: Array<{ type: string; variant?: string }> = [];
-  
+
   // DSCR loans: 40 total with 4/4/2 split per 10 (so 16 purchase, 16 cash_out, 8 rate_term)
   for (let i = 0; i < 16; i++) loanQueue.push({ type: "DSCR", variant: "purchase" });
   for (let i = 0; i < 16; i++) loanQueue.push({ type: "DSCR", variant: "cash_out" });
   for (let i = 0; i < 8; i++) loanQueue.push({ type: "DSCR", variant: "rate_term" });
-  
+
   // Fix & Flip loans: 35
   for (let i = 0; i < 35; i++) loanQueue.push({ type: "Fix & Flip" });
-  
+
   // Construction loans: 25
   for (let i = 0; i < 25; i++) loanQueue.push({ type: "New Construction" });
-  
+
   // Shuffle the queue for variety
   for (let i = loanQueue.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [loanQueue[i], loanQueue[j]] = [loanQueue[j], loanQueue[i]];
   }
-  
+
   // Start batch processing
   const totalBatches = Math.ceil(loanQueue.length / SIMULATION_CONFIG.batchSize);
-  
+
   // Process first batch immediately
   await createLoanBatch(0, SIMULATION_CONFIG.batchSize, loanQueue, staffMap);
-  
+
   // Schedule remaining batches
   for (let batch = 1; batch < totalBatches; batch++) {
     setTimeout(async () => {
       if (!simulationState.isRunning) return;
-      
+
       await createLoanBatch(batch, SIMULATION_CONFIG.batchSize, loanQueue, staffMap);
-      
+
       if (batch === totalBatches - 1) {
         simulationState.isRunning = false;
         simulationState.completedAt = new Date();
@@ -859,10 +863,10 @@ export async function startSimulation(): Promise<{ success: boolean; message: st
       }
     }, batch * SIMULATION_CONFIG.batchIntervalMs);
   }
-  
-  return { 
-    success: true, 
-    message: `Simulation started: ${SIMULATION_CONFIG.totalLoans} loans will be created in ${totalBatches} batches over ~${Math.round(totalBatches * SIMULATION_CONFIG.batchIntervalMs / 60000)} minutes` 
+
+  return {
+    success: true,
+    message: `Simulation started: ${SIMULATION_CONFIG.totalLoans} loans will be created in ${totalBatches} batches over ~${Math.round(totalBatches * SIMULATION_CONFIG.batchIntervalMs / 60000)} minutes`
   };
 }
 
@@ -870,13 +874,13 @@ export async function stopSimulation(): Promise<{ success: boolean; message: str
   if (!simulationState.isRunning) {
     return { success: false, message: "No simulation is running" };
   }
-  
+
   simulationState.isRunning = false;
   simulationState.completedAt = new Date();
-  
-  return { 
-    success: true, 
-    message: `Simulation stopped. Created ${simulationState.loansCreated} of ${simulationState.totalLoans} loans` 
+
+  return {
+    success: true,
+    message: `Simulation stopped. Created ${simulationState.loansCreated} of ${simulationState.totalLoans} loans`
   };
 }
 
@@ -940,18 +944,18 @@ export async function startLifecycleEngine(): Promise<{ success: boolean; messag
   if (lifecycleState.isRunning) {
     return { success: false, message: "Lifecycle engine is already running" };
   }
-  
+
   // Increment session token to invalidate any stale cycles from previous runs
   lifecycleState.sessionToken++;
   const currentToken = lifecycleState.sessionToken;
-  
+
   lifecycleState.isRunning = true;
   lifecycleState.startedAt = new Date();
   lifecycleState.loansAdvanced = 0;
   lifecycleState.loansDenied = 0;
-  
+
   console.log(`[Lifecycle] Starting lifecycle progression engine (session ${currentToken})`);
-  
+
   // Use recursive setTimeout for guaranteed serialization
   // This ensures the next run only starts after the previous one completes
   async function runCycle(): Promise<void> {
@@ -961,9 +965,9 @@ export async function startLifecycleEngine(): Promise<{ success: boolean; messag
       lifecycleState.currentCyclePromise = null;
       return;
     }
-    
+
     await progressLoans(currentToken);
-    
+
     // Schedule next run only after this one completes and session is still valid
     if (lifecycleState.isRunning && lifecycleState.sessionToken === currentToken) {
       lifecycleState.intervalId = setTimeout(() => {
@@ -973,13 +977,13 @@ export async function startLifecycleEngine(): Promise<{ success: boolean; messag
       lifecycleState.currentCyclePromise = null;
     }
   }
-  
+
   // Start the first cycle immediately and track the promise
   lifecycleState.currentCyclePromise = runCycle();
-  
-  return { 
-    success: true, 
-    message: `Lifecycle engine started. Checking loans every ${LIFECYCLE_CONFIG.checkIntervalMs / 60000} minutes` 
+
+  return {
+    success: true,
+    message: `Lifecycle engine started. Checking loans every ${LIFECYCLE_CONFIG.checkIntervalMs / 60000} minutes`
   };
 }
 
@@ -987,16 +991,16 @@ export async function stopLifecycleEngine(): Promise<{ success: boolean; message
   if (!lifecycleState.isRunning) {
     return { success: false, message: "Lifecycle engine is not running" };
   }
-  
+
   // Invalidate the current session to stop future cycles
   lifecycleState.isRunning = false;
-  
+
   // Clear any pending scheduled cycle
   if (lifecycleState.intervalId) {
     clearTimeout(lifecycleState.intervalId);
     lifecycleState.intervalId = null;
   }
-  
+
   // Wait for current cycle to complete if one is running
   if (lifecycleState.currentCyclePromise) {
     console.log("[Lifecycle] Waiting for current cycle to complete...");
@@ -1007,12 +1011,12 @@ export async function stopLifecycleEngine(): Promise<{ success: boolean; message
     }
     lifecycleState.currentCyclePromise = null;
   }
-  
+
   console.log("[Lifecycle] Engine fully stopped");
-  
-  return { 
-    success: true, 
-    message: `Lifecycle engine stopped. Advanced ${lifecycleState.loansAdvanced} loans, denied ${lifecycleState.loansDenied}` 
+
+  return {
+    success: true,
+    message: `Lifecycle engine stopped. Advanced ${lifecycleState.loansAdvanced} loans, denied ${lifecycleState.loansDenied}`
   };
 }
 
@@ -1022,15 +1026,15 @@ async function progressLoans(sessionToken: number): Promise<void> {
     console.log("[Lifecycle] Skipping cycle - previous run still in progress");
     return;
   }
-  
+
   // Validate session token before starting
   if (lifecycleState.sessionToken !== sessionToken) {
     console.log(`[Lifecycle] Skipping stale session ${sessionToken} (current: ${lifecycleState.sessionToken})`);
     return;
   }
-  
+
   lifecycleState.isProcessing = true;
-  
+
   try {
     // Get all loans that are in_review and not at the final stage
     const eligibleLoans = await db
@@ -1039,24 +1043,24 @@ async function progressLoans(sessionToken: number): Promise<void> {
       .where(
         sql`${loanApplications.status} = 'in_review' AND ${loanApplications.processingStage} != 'closed'`
       );
-    
+
     console.log(`[Lifecycle] Checking ${eligibleLoans.length} eligible loans for progression`);
-    
+
     // Get staff for assignments
     const staffMap = await getOrCreateStaffUsers();
-    
+
     for (const loan of eligibleLoans) {
       // Check session validity before each loan operation
       if (lifecycleState.sessionToken !== sessionToken || !lifecycleState.isRunning) {
         console.log(`[Lifecycle] Session ${sessionToken} invalidated during processing, aborting`);
         break;
       }
-      
+
       // Check if loan should advance
       if (Math.random() > LIFECYCLE_CONFIG.advanceProbability) {
         continue; // Skip this loan this cycle
       }
-      
+
       // Get latest stage history to check time in current stage
       const history = await db
         .select()
@@ -1064,24 +1068,24 @@ async function progressLoans(sessionToken: number): Promise<void> {
         .where(eq(applicationStageHistory.loanApplicationId, loan.id))
         .orderBy(sql`created_at DESC`)
         .limit(1);
-      
+
       if (history.length > 0) {
         const lastChange = history[0].createdAt;
         const minutesInStage = (Date.now() - new Date(lastChange).getTime()) / 60000;
         const minTime = LIFECYCLE_CONFIG.stageMinMinutes[loan.processingStage as keyof typeof LIFECYCLE_CONFIG.stageMinMinutes] || 0;
-        
+
         if (minutesInStage < minTime) {
           continue; // Not enough time in current stage
         }
       }
-      
+
       // Small chance of denial
       if (Math.random() < LIFECYCLE_CONFIG.denialProbability) {
         await denyLoan(loan, staffMap);
         lifecycleState.loansDenied++;
         continue;
       }
-      
+
       // Advance to next stage
       await advanceLoan(loan, staffMap);
       lifecycleState.loansAdvanced++;
@@ -1102,33 +1106,33 @@ async function advanceLoan(
   if (currentStageIndex === -1 || currentStageIndex >= STAGE_ORDER.length - 1) {
     return; // Invalid stage or already at final stage
   }
-  
+
   const nextStage = STAGE_ORDER[currentStageIndex + 1];
   const nextStatus = nextStage === "closed" ? "funded" : "in_review";
-  
+
   // Update the loan
   await db
     .update(loanApplications)
-    .set({ 
+    .set({
       processingStage: nextStage as any,
       status: nextStatus as any,
       updatedAt: new Date()
     })
     .where(eq(loanApplications.id, loan.id));
-  
+
   // Get staff for this stage
-  const staffForStage = 
+  const staffForStage =
     currentStageIndex <= 1 ? "account_executive" :
     currentStageIndex === 2 ? "underwriter" :
     currentStageIndex <= 4 ? "processor" : "closer";
-  
+
   const staffNames: Record<string, string> = {
     account_executive: "Alex Morrison",
     processor: "Jordan Chen",
     underwriter: "Taylor Williams",
     closer: "Morgan Davis"
   };
-  
+
   // Create stage history
   await db.insert(applicationStageHistory).values({
     loanApplicationId: loan.id,
@@ -1142,7 +1146,7 @@ async function advanceLoan(
     isAutomated: true,
     durationMinutes: null
   });
-  
+
   // Create new assignment if needed for processor/closer
   if (nextStage === "processing" && currentStageIndex < 3) {
     await db.insert(loanAssignments).values({
@@ -1160,11 +1164,11 @@ async function advanceLoan(
       isPrimary: true,
       assignedByUserId: staffMap.processor
     });
-    
+
     // CREATE SERVICED LOAN when funded
     await createServicedLoanFromApplication(loan);
   }
-  
+
   console.log(`[Lifecycle] Advanced loan ${loan.id.substring(0, 8)} from ${loan.processingStage} to ${nextStage}`);
 }
 
@@ -1181,16 +1185,16 @@ async function denyLoan(
     "Title issues identified",
     "Environmental concerns"
   ];
-  
+
   // Update the loan
   await db
     .update(loanApplications)
-    .set({ 
+    .set({
       status: "denied" as any,
       updatedAt: new Date()
     })
     .where(eq(loanApplications.id, loan.id));
-  
+
   // Create stage history
   await db.insert(applicationStageHistory).values({
     loanApplicationId: loan.id,
@@ -1205,7 +1209,7 @@ async function denyLoan(
     isAutomated: true,
     durationMinutes: null
   });
-  
+
   console.log(`[Lifecycle] Denied loan ${loan.id.substring(0, 8)} at ${loan.processingStage} stage`);
 }
 
@@ -1214,8 +1218,8 @@ async function denyLoan(
 // ============================================================
 
 function generateLoanNumber(loanType: string): string {
-  const prefix = loanType === "DSCR" ? "DSCR" : 
-                 loanType === "Fix & Flip" ? "FF" : 
+  const prefix = loanType === "DSCR" ? "DSCR" :
+                 loanType === "Fix & Flip" ? "FF" :
                  loanType === "New Construction" ? "NC" : "BR";
   const timestamp = Date.now().toString().slice(-6);
   const random = Math.random().toString(36).substring(2, 5).toUpperCase();
@@ -1237,13 +1241,21 @@ async function createServicedLoanFromApplication(
   try {
     const loanType = mapLoanTypeToServicedType(loan.loanType);
     const loanNumber = generateLoanNumber(loan.loanType);
-    
+
+    // Use generated address, city, state, zip from the loan application
+    const propertyAddress = loan.propertyAddress || `${Math.floor(Math.random() * 9999) + 100} Main Street`;
+    const propertyCity = loan.propertyCity || "Unknown City";
+    const propertyState = loan.propertyState || "CA";
+    const propertyZip = loan.propertyZip || "90210";
+    const propertyLatitude = loan.propertyLatitude; // Use latitude from loan application
+    const propertyLongitude = loan.propertyLongitude; // Use longitude from loan application
+
     // Calculate payment based on loan type (use purchasePrice or default)
     const loanAmount = loan.purchasePrice || 500000;
     const rate = 7.5; // Default rate
     const termMonths = loanType === "dscr" ? 360 : (loan.loanTermMonths || 12);
     const isInterestOnly = loanType !== "dscr";
-    
+
     // Calculate monthly payment
     let monthlyPayment: number;
     if (isInterestOnly) {
@@ -1253,26 +1265,28 @@ async function createServicedLoanFromApplication(
       // Amortizing payment
       const monthlyRate = rate / 100 / 12;
       monthlyPayment = Math.round(
-        loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, termMonths)) / 
+        loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, termMonths)) /
         (Math.pow(1 + monthlyRate, termMonths) - 1)
       );
     }
-    
+
     // Create the serviced loan
     const now = new Date();
     const nextPaymentDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
     const maturityDate = new Date(now.getTime() + termMonths * 30 * 24 * 60 * 60 * 1000);
-    
+
     await db.insert(servicedLoans).values({
       userId: loan.userId,
       loanApplicationId: loan.id,
       loanNumber,
       loanType,
       loanStatus: "current",
-      propertyAddress: loan.propertyAddress || `${Math.floor(Math.random() * 9999) + 100} Main Street`,
-      propertyCity: loan.propertyCity || "Unknown City",
-      propertyState: loan.propertyState || "CA",
-      propertyZip: loan.propertyZip || "90210",
+      propertyAddress: propertyAddress,
+      propertyCity: propertyCity,
+      propertyState: propertyState,
+      propertyZip: propertyZip,
+      propertyLatitude: propertyLatitude, // Include latitude in serviced loan
+      propertyLongitude: propertyLongitude, // Include longitude in serviced loan
       originalLoanAmount: loanAmount,
       currentBalance: loanAmount,
       interestRate: rate.toString(),
@@ -1289,7 +1303,7 @@ async function createServicedLoanFromApplication(
       totalRehabBudget: loanType !== "dscr" ? 100000 : null,
       totalDrawsFunded: 0,
     });
-    
+
     console.log(`[Lifecycle] Created serviced loan ${loanNumber} from application ${loan.id.substring(0, 8)}`);
   } catch (error) {
     console.error(`[Lifecycle] Failed to create serviced loan for ${loan.id}:`, error);
