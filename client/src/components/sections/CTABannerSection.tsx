@@ -17,7 +17,7 @@ export function CTABannerSection({ config }: CTABannerSectionProps) {
 
   return (
     <section 
-      className={`${variantStyles.spacing} ${variantStyles.background} bg-primary`}
+      className={`${variantStyles.spacing} ${variantStyles.background}`}
       style={config.backgroundColor ? { backgroundColor: config.backgroundColor } : undefined}
     >
       <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
