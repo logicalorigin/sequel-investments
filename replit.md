@@ -35,13 +35,14 @@ I prefer simple language. I want iterative development. Ask before making major 
     - **Google Maps Integration**: Uses `@vis.gl/react-google-maps` with `@googlemaps/markerclusterer` for dynamic clustering
     - **Dynamic Marker Clustering**: Markers automatically cluster/expand based on zoom level
     - **Multi-Level Drill-Down**: Click clusters to zoom and view individual loans; dashboard metrics update to show cluster-specific data
+    - **Viewport-Based Dynamic Analytics**: Portfolio widgets/cards automatically update as users zoom in/out on the map. When zoomed in, metrics reflect only visible loans. Uses map 'idle' event to detect viewport changes and recompute aggregates. Shows "Viewing X of Y loans" indicator when viewing a subset.
     - **TMS-Style Tooltips**: Loan markers show property address, loan amount, status, and key metrics on hover
     - **Dark Theme Styling**: Map styled with dark theme matching the admin portal design
     - **Fallback Data System**: If primary portfolio API fails, metrics computed from loan-level data for resilience
     - **GPS-Accurate Markers**: Individual loan markers displayed at actual geocoded property coordinates
     - **Auto-Geocoding**: New serviced loans are automatically geocoded via Google Maps Geocoding API
     - **Backfill Endpoint**: `POST /api/admin/geocode-backfill` to geocode existing loans missing coordinates
-    - **Component**: `PortfolioGoogleMap.tsx` - standalone map component with clustering and interaction callbacks
+    - **Component**: `PortfolioGoogleMap.tsx` - standalone map component with clustering, viewport tracking, and interaction callbacks
 - **Borrower Portal**: Features portfolio management, investment analysis tools, application detail pages, document upload with automated organization, and user profile management. Analyzers save scenario data to draft applications.
 - **Photo Verification Walkthrough**: Interactive camera-based photo capture for property and renovation verification. Borrowers upload required photos (exterior, interior, renovation areas) with EXIF metadata extraction and browser location tracking. Progress tracking guides users through required photo categories. Available for Fix & Flip and Construction loan applications via `/portal/application/:id/verification`. **100% mobile-optimized** with single-column layout, horizontal scrolling category tabs, bottom action bar, touch-friendly 44px+ tap targets, and portrait-oriented camera preview.
 - **Document Carry-Forward**: Documents from loan processing/closing phase automatically carry forward to servicing. Both borrower portal and admin views show combined documents grouped by phase (Processing/Closing vs Servicing). Borrowers only see uploaded documents with valid file URLs; internal metadata hidden for security.
