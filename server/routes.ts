@@ -7010,6 +7010,244 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // GET /api/admin/analytics/geographic - State-level application and portfolio data
+  app.get("/api/admin/analytics/geographic", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const applications = await storage.getAllLoanApplications();
+      const servicedLoans = await storage.getAllServicedLoans();
+      
+      // Application activity by state
+      const applicationActivity: Record<string, {
+        count: number;
+        volume: number;
+        statusBreakdown: Record<string, number>;
+      }> = {};
+      
+      applications.forEach(app => {
+        const state = app.propertyState || "Unknown";
+        if (!applicationActivity[state]) {
+          applicationActivity[state] = {
+            count: 0,
+            volume: 0,
+            statusBreakdown: {},
+          };
+        }
+        applicationActivity[state].count++;
+        applicationActivity[state].volume += app.loanAmount || 0;
+        
+        const status = app.status || "draft";
+        applicationActivity[state].statusBreakdown[status] = 
+          (applicationActivity[state].statusBreakdown[status] || 0) + 1;
+      });
+      
+      // Portfolio concentration by state (serviced loans)
+      const portfolioConcentration: Record<string, {
+        fundedCount: number;
+        portfolioValue: number;
+        performanceMetrics: {
+          current: number;
+          late: number;
+          defaulted: number;
+        };
+      }> = {};
+      
+      servicedLoans.forEach(loan => {
+        const state = loan.propertyState || "Unknown";
+        if (!portfolioConcentration[state]) {
+          portfolioConcentration[state] = {
+            fundedCount: 0,
+            portfolioValue: 0,
+            performanceMetrics: {
+              current: 0,
+              late: 0,
+              defaulted: 0,
+            },
+          };
+        }
+        portfolioConcentration[state].fundedCount++;
+        portfolioConcentration[state].portfolioValue += loan.currentBalance || 0;
+        
+        // Categorize by loan status
+        const loanStatus = loan.loanStatus || "current";
+        if (["current", "grace_period"].includes(loanStatus)) {
+          portfolioConcentration[state].performanceMetrics.current++;
+        } else if (["late"].includes(loanStatus)) {
+          portfolioConcentration[state].performanceMetrics.late++;
+        } else if (["default", "foreclosure"].includes(loanStatus)) {
+          portfolioConcentration[state].performanceMetrics.defaulted++;
+        }
+      });
+      
+      // Convert to arrays sorted by volume/value
+      const applicationActivityArray = Object.entries(applicationActivity)
+        .map(([state, data]) => ({ state, ...data }))
+        .sort((a, b) => b.volume - a.volume);
+      
+      const portfolioConcentrationArray = Object.entries(portfolioConcentration)
+        .map(([state, data]) => ({ state, ...data }))
+        .sort((a, b) => b.portfolioValue - a.portfolioValue);
+      
+      return res.json({
+        applicationActivity: applicationActivityArray,
+        portfolioConcentration: portfolioConcentrationArray,
+        summary: {
+          totalApplications: applications.length,
+          totalApplicationVolume: applications.reduce((sum, app) => sum + (app.loanAmount || 0), 0),
+          totalPortfolioValue: servicedLoans.reduce((sum, loan) => sum + (loan.currentBalance || 0), 0),
+          activeStatesCount: Object.keys(applicationActivity).filter(s => s !== "Unknown").length,
+        },
+      });
+    } catch (error) {
+      console.error("Error fetching geographic analytics:", error);
+      return res.status(500).json({ error: "Failed to fetch geographic analytics" });
+    }
+  });
+
+  // GET /api/admin/analytics/temporal - Time-series data with period filtering
+  app.get("/api/admin/analytics/temporal", isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      const { period = "30d" } = req.query;
+      
+      const now = new Date();
+      let startDate: Date;
+      let groupBy: "day" | "week" = "day";
+      
+      // Determine date range based on period
+      switch (period) {
+        case "7d":
+          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          groupBy = "day";
+          break;
+        case "30d":
+          startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          groupBy = "day";
+          break;
+        case "90d":
+          startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+          groupBy = "week";
+          break;
+        case "ytd":
+          startDate = new Date(now.getFullYear(), 0, 1);
+          groupBy = "week";
+          break;
+        case "all":
+          startDate = new Date(2020, 0, 1); // Far back enough
+          groupBy = "week";
+          break;
+        default:
+          startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          groupBy = "day";
+      }
+      
+      const applications = await storage.getAllLoanApplications();
+      const fundedDeals = await storage.getFundedDeals(false);
+      
+      // Filter to date range
+      const filteredApps = applications.filter(app => 
+        new Date(app.createdAt) >= startDate
+      );
+      const filteredFunded = fundedDeals.filter(deal => 
+        deal.fundingDate && new Date(deal.fundingDate) >= startDate
+      );
+      
+      // Generate time buckets
+      const timeSeries: {
+        date: string;
+        applicationCount: number;
+        fundingCount: number;
+        fundingVolume: number;
+        inReviewCount: number;
+      }[] = [];
+      
+      if (groupBy === "day") {
+        // Daily buckets
+        const dayMs = 24 * 60 * 60 * 1000;
+        const numDays = Math.ceil((now.getTime() - startDate.getTime()) / dayMs);
+        
+        for (let i = 0; i < numDays; i++) {
+          const dayStart = new Date(startDate.getTime() + i * dayMs);
+          const dayEnd = new Date(startDate.getTime() + (i + 1) * dayMs);
+          const dateStr = dayStart.toISOString().split("T")[0];
+          
+          const dayApps = filteredApps.filter(app => {
+            const created = new Date(app.createdAt);
+            return created >= dayStart && created < dayEnd;
+          });
+          
+          const dayFunded = filteredFunded.filter(deal => {
+            if (!deal.fundingDate) return false;
+            const funded = new Date(deal.fundingDate);
+            return funded >= dayStart && funded < dayEnd;
+          });
+          
+          const inReviewApps = filteredApps.filter(app => {
+            const created = new Date(app.createdAt);
+            return created < dayEnd && app.status === "in_review";
+          });
+          
+          timeSeries.push({
+            date: dateStr,
+            applicationCount: dayApps.length,
+            fundingCount: dayFunded.length,
+            fundingVolume: dayFunded.reduce((sum, deal) => sum + (deal.loanAmount || 0), 0),
+            inReviewCount: inReviewApps.length,
+          });
+        }
+      } else {
+        // Weekly buckets
+        const weekMs = 7 * 24 * 60 * 60 * 1000;
+        const numWeeks = Math.ceil((now.getTime() - startDate.getTime()) / weekMs);
+        
+        for (let i = 0; i < numWeeks; i++) {
+          const weekStart = new Date(startDate.getTime() + i * weekMs);
+          const weekEnd = new Date(startDate.getTime() + (i + 1) * weekMs);
+          const dateStr = weekStart.toISOString().split("T")[0];
+          
+          const weekApps = filteredApps.filter(app => {
+            const created = new Date(app.createdAt);
+            return created >= weekStart && created < weekEnd;
+          });
+          
+          const weekFunded = filteredFunded.filter(deal => {
+            if (!deal.fundingDate) return false;
+            const funded = new Date(deal.fundingDate);
+            return funded >= weekStart && funded < weekEnd;
+          });
+          
+          timeSeries.push({
+            date: dateStr,
+            applicationCount: weekApps.length,
+            fundingCount: weekFunded.length,
+            fundingVolume: weekFunded.reduce((sum, deal) => sum + (deal.loanAmount || 0), 0),
+            inReviewCount: 0, // Less relevant for weekly view
+          });
+        }
+      }
+      
+      // Summary stats
+      const totalApplications = filteredApps.length;
+      const totalFunded = filteredFunded.length;
+      const totalVolume = filteredFunded.reduce((sum, deal) => sum + (deal.loanAmount || 0), 0);
+      const numDays = Math.ceil((now.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000));
+      
+      return res.json({
+        timeSeries,
+        period,
+        groupBy,
+        summary: {
+          totalApplications,
+          totalFunded,
+          totalVolume,
+          avgDailyApplications: numDays > 0 ? Math.round(totalApplications / numDays * 10) / 10 : 0,
+          avgDailyFunding: numDays > 0 ? Math.round(totalVolume / numDays) : 0,
+        },
+      });
+    } catch (error) {
+      console.error("Error fetching temporal analytics:", error);
+      return res.status(500).json({ error: "Failed to fetch temporal analytics" });
+    }
+  });
+
   // =====================
   // Webhook Management Routes (Admin only)
   // =====================
