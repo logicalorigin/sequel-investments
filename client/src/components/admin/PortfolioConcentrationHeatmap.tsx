@@ -1165,7 +1165,7 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
                             </div>
                             
                             {/* View Details link */}
-                            <Link href={`/admin/loans/${loan.id}`}>
+                            <Link href={`/admin/servicing/${loan.id}`}>
                               <div className="px-3 py-2 bg-primary/10 hover:bg-primary/20 transition-colors flex items-center justify-center gap-2 text-xs text-primary font-medium cursor-pointer">
                                 <ExternalLink className="h-3 w-3" />
                                 View Details
