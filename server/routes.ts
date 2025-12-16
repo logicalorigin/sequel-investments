@@ -1499,152 +1499,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
-// Metro-level portfolio analytics
-app.get('/api/admin/analytics/metro-portfolio/:state', async (req, res) => {
-  if (!req.isAuthenticated() || !req.user?.isAdmin) {
-    return res.status(401).send({ error: 'Unauthorized' });
-  }
-
+// Get loan-level portfolio data with coordinates for a state
+app.get('/api/admin/analytics/portfolio-loans/:state', isAuthenticated, isStaff, async (req, res) => {
   try {
     const { state } = req.params;
     
-    // Get all funded loans for the state
-    const loans = await db
-      .select({
-        id: fundedDeals.id,
-        propertyCity: fundedDeals.propertyCity,
-        loanAmount: fundedDeals.loanAmount,
-        status: fundedDeals.status,
+    // Get all serviced loans for the state
+    const loans = await storage.getAllServicedLoans();
+    const stateLoans = loans.filter(loan => loan.propertyState === state);
+    
+    // Fetch property locations for geocoded coordinates
+    const loanIds = stateLoans.map(l => l.id);
+    const locations = await Promise.all(
+      loanIds.map(async (loanId) => {
+        const location = await storage.getPropertyLocation(loanId);
+        return { loanId, location };
       })
-      .from(fundedDeals)
-      .where(eq(fundedDeals.propertyState, state));
-
-    // Load metro coordinates from JSON file
-    const fs = await import('fs/promises');
-    const metrosData = JSON.parse(
-      await fs.readFile('attached_assets/state_maps/metros_data.json', 'utf-8')
     );
     
-    const stateSlug = Object.entries({
-      "AL": "alabama", "AK": "alaska", "AZ": "arizona", "AR": "arkansas", 
-      "CA": "california", "CO": "colorado", "CT": "connecticut", "DE": "delaware",
-      "FL": "florida", "GA": "georgia", "HI": "hawaii", "ID": "idaho",
-      "IL": "illinois", "IN": "indiana", "IA": "iowa", "KS": "kansas",
-      "KY": "kentucky", "LA": "louisiana", "ME": "maine", "MD": "maryland",
-      "MA": "massachusetts", "MI": "michigan", "MN": "minnesota", "MS": "mississippi",
-      "MO": "missouri", "MT": "montana", "NE": "nebraska", "NV": "nevada",
-      "NH": "new-hampshire", "NJ": "new-jersey", "NM": "new-mexico", "NY": "new-york",
-      "NC": "north-carolina", "ND": "north-dakota", "OH": "ohio", "OK": "oklahoma",
-      "OR": "oregon", "PA": "pennsylvania", "RI": "rhode-island", "SC": "south-carolina",
-      "SD": "south-dakota", "TN": "tennessee", "TX": "texas", "UT": "utah",
-      "VT": "vermont", "VA": "virginia", "WA": "washington", "WV": "west-virginia",
-      "WI": "wisconsin", "WY": "wyoming", "DC": "district-of-columbia",
-    }).find(([abbr]) => abbr === state)?.[1];
-
-    const metros = metrosData[stateSlug] || [];
+    const locationMap = new Map(
+      locations
+        .filter(({ location }) => location !== null)
+        .map(({ loanId, location }) => [loanId, location])
+    );
     
-    // Group loans by metro (match by city name)
-    const metroMap = new Map();
-    
-    metros.forEach((metro: any) => {
-      metroMap.set(metro.name.toLowerCase(), {
-        name: metro.name,
-        lat: metro.lat,
-        lng: metro.lng,
-        loanCount: 0,
-        portfolioValue: 0,
-        performanceMetrics: { current: 0, late: 0, defaulted: 0 },
-        loanIds: [],
-      });
-    });
-
-    loans.forEach((loan) => {
-      // Find matching metro by city name
-      const cityLower = (loan.propertyCity || '').toLowerCase();
-      let matched = false;
+    // Build response with loan details and coordinates
+    const result = await Promise.all(stateLoans.map(async (loan) => {
+      const user = await storage.getUser(loan.userId);
+      const location = locationMap.get(loan.id);
       
-      for (const [metroName, metroData] of metroMap.entries()) {
-        if (cityLower.includes(metroName) || metroName.includes(cityLower)) {
-          metroData.loanCount++;
-          metroData.portfolioValue += Number(loan.loanAmount) || 0;
-          metroData.loanIds.push(loan.id);
-          
-          const status = (loan.status || 'current').toLowerCase();
-          if (status === 'current') metroData.performanceMetrics.current++;
-          else if (status === 'late') metroData.performanceMetrics.late++;
-          else if (status === 'defaulted') metroData.performanceMetrics.defaulted++;
-          
-          matched = true;
-          break;
-        }
-      }
-    });
-
-    // Filter out metros with no loans
-    const result = Array.from(metroMap.values()).filter(m => m.loanCount > 0);
-    
-    res.json(result);
-  } catch (error) {
-    console.error('Metro portfolio analytics error:', error);
-    res.status(500).send({ error: 'Failed to fetch metro portfolio data' });
-  }
-});
-
-// Get loans for a specific metro
-app.get('/api/admin/analytics/metro-loans/:metro/:state', async (req, res) => {
-  if (!req.isAuthenticated() || !req.user?.isAdmin) {
-    return res.status(401).send({ error: 'Unauthorized' });
-  }
-
-  try {
-    const { metro, state } = req.params;
-    const metroLower = metro.toLowerCase();
-    
-    const loans = await db
-      .select({
-        id: fundedDeals.id,
-        propertyAddress: fundedDeals.propertyAddress,
-        propertyCity: fundedDeals.propertyCity,
-        loanAmount: fundedDeals.loanAmount,
-        status: fundedDeals.status,
-        fundedDate: fundedDeals.fundedDate,
-        borrowerId: fundedDeals.borrowerId,
-      })
-      .from(fundedDeals)
-      .where(eq(fundedDeals.propertyState, state));
-
-    // Filter loans by metro city
-    const metroLoans = loans.filter(loan => {
-      const cityLower = (loan.propertyCity || '').toLowerCase();
-      return cityLower.includes(metroLower) || metroLower.includes(cityLower);
-    });
-
-    // Fetch borrower names
-    const borrowerIds = [...new Set(metroLoans.map(l => l.borrowerId).filter(Boolean))];
-    const borrowers = await db
-      .select({
-        id: users.id,
-        fullName: users.fullName,
-      })
-      .from(users)
-      .where(inArray(users.id, borrowerIds));
-
-    const borrowerMap = new Map(borrowers.map(b => [b.id, b.fullName]));
-
-    const result = metroLoans.map(loan => ({
-      id: loan.id,
-      propertyAddress: loan.propertyAddress || 'N/A',
-      loanAmount: Number(loan.loanAmount) || 0,
-      status: loan.status || 'current',
-      fundedDate: loan.fundedDate || new Date().toISOString(),
-      borrowerName: borrowerMap.get(loan.borrowerId) || 'Unknown',
-      city: loan.propertyCity || metro,
+      return {
+        id: loan.id,
+        loanNumber: loan.loanNumber,
+        propertyAddress: loan.propertyAddress,
+        propertyCity: loan.propertyCity,
+        propertyState: loan.propertyState,
+        propertyZip: loan.propertyZip,
+        loanAmount: loan.originalLoanAmount,
+        currentBalance: loan.currentBalance,
+        status: loan.loanStatus,
+        loanType: loan.loanType,
+        interestRate: loan.interestRate,
+        fundedDate: loan.closingDate,
+        borrowerName: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email : 'Unknown',
+        lat: location ? parseFloat(location.latitude) : null,
+        lng: location ? parseFloat(location.longitude) : null,
+      };
     }));
-
-    res.json(result);
+    
+    // Filter out loans without coordinates
+    const loansWithCoords = result.filter(loan => loan.lat !== null && loan.lng !== null);
+    
+    res.json(loansWithCoords);
   } catch (error) {
-    console.error('Metro loans error:', error);
-    res.status(500).send({ error: 'Failed to fetch metro loans' });
+    console.error('Portfolio loans error:', error);
+    res.status(500).send({ error: 'Failed to fetch portfolio loans' });
   }
 });
 

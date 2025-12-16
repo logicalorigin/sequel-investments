@@ -20,28 +20,38 @@ interface PortfolioStateData {
   };
 }
 
-interface MetroData {
-  name: string;
+interface LoanData {
+  id: string;
+  loanNumber: string;
+  propertyAddress: string;
+  propertyCity: string | null;
+  propertyState: string;
+  propertyZip: string | null;
+  loanAmount: number;
+  currentBalance: number;
+  status: string;
+  loanType: string;
+  interestRate: string;
+  fundedDate: string;
+  borrowerName: string;
   lat: number;
   lng: number;
-  loanCount: number;
+}
+
+interface LoanCluster {
+  id: string;
+  centerLat: number;
+  centerLng: number;
+  centerX: number;
+  centerY: number;
+  loans: LoanData[];
   portfolioValue: number;
+  avgInterestRate: number;
   performanceMetrics: {
     current: number;
     late: number;
     defaulted: number;
   };
-  loanIds: string[];
-}
-
-interface LoanDetail {
-  id: string;
-  propertyAddress: string;
-  loanAmount: number;
-  status: string;
-  fundedDate: string;
-  borrowerName: string;
-  city: string;
 }
 
 interface PortfolioConcentrationHeatmapProps {
@@ -98,11 +108,11 @@ function getMetroMarkerSize(value: number, max: number): number {
   return Math.max(4, Math.min(20, 4 + ratio * 16));
 }
 
-function getMetroRiskColor(metro: MetroData): string {
-  const total = metro.performanceMetrics.current + metro.performanceMetrics.late + metro.performanceMetrics.defaulted;
+function getClusterColor(cluster: LoanCluster): string {
+  const total = cluster.performanceMetrics.current + cluster.performanceMetrics.late + cluster.performanceMetrics.defaulted;
   if (total === 0) return "#10B981";
   
-  const problemRate = (metro.performanceMetrics.late + metro.performanceMetrics.defaulted) / total;
+  const problemRate = (cluster.performanceMetrics.late + cluster.performanceMetrics.defaulted) / total;
   
   if (problemRate === 0) return "#10B981";
   if (problemRate < 0.1) return "#84CC16";
@@ -111,25 +121,29 @@ function getMetroRiskColor(metro: MetroData): string {
   return "#EF4444";
 }
 
+function getLoanColor(loan: LoanData): string {
+  const status = loan.status.toLowerCase();
+  if (status === 'current') return "#10B981";
+  if (status === 'grace_period') return "#84CC16";
+  if (status === 'late') return "#FBBF24";
+  if (status === 'default' || status === 'foreclosure') return "#EF4444";
+  return "#6B7280";
+}
+
 export function PortfolioConcentrationHeatmap({ data, isLoading }: PortfolioConcentrationHeatmapProps) {
   const [hoveredState, setHoveredState] = useState<string | null>(null);
   const [selectedState, setSelectedState] = useState<string | null>(null);
   const [focusedState, setFocusedState] = useState<string | null>(null);
-  const [selectedMetro, setSelectedMetro] = useState<MetroData | null>(null);
+  const [selectedCluster, setSelectedCluster] = useState<LoanCluster | null>(null);
+  const [hoveredCluster, setHoveredCluster] = useState<LoanCluster | null>(null);
   const [riskFilter, setRiskFilter] = useState<string>("all");
   const [viewBox, setViewBox] = useState<string>("0 0 959 593");
   const [isZooming, setIsZooming] = useState(false);
   
-  // Fetch metro data for focused state
-  const { data: metroData = [] } = useQuery<MetroData[]>({
-    queryKey: ['/api/admin/analytics/metro-portfolio', focusedState],
+  // Fetch loan-level data for focused state
+  const { data: loanData = [] } = useQuery<LoanData[]>({
+    queryKey: ['/api/admin/analytics/portfolio-loans', focusedState],
     enabled: !!focusedState,
-  });
-  
-  // Fetch loan details for selected metro
-  const { data: metroLoans = [] } = useQuery<LoanDetail[]>({
-    queryKey: ['/api/admin/analytics/metro-loans', selectedMetro?.name, focusedState],
-    enabled: !!selectedMetro && !!focusedState,
   });
   
   const filteredData = useMemo(() => {
@@ -148,6 +162,79 @@ export function PortfolioConcentrationHeatmap({ data, isLoading }: PortfolioConc
       return true;
     });
   }, [data, riskFilter]);
+  
+  // Geographic clustering for loan-level data
+  const loanClusters = useMemo(() => {
+    if (!focusedState || !loanData.length) return [];
+    
+    const statePathD = statePaths[focusedState];
+    if (!statePathD) return [];
+    
+    const bounds = parsePathBounds(statePathD);
+    const CLUSTER_DISTANCE_THRESHOLD = 15; // SVG pixels
+    
+    // Convert loans to SVG coordinates
+    const loansWithSVG = loanData.map(loan => ({
+      ...loan,
+      svgX: latLngToSvgWithBounds(loan.lat, loan.lng, focusedState, bounds).x,
+      svgY: latLngToSvgWithBounds(loan.lat, loan.lng, focusedState, bounds).y,
+    }));
+    
+    // Simple geographic clustering algorithm
+    const clusters: LoanCluster[] = [];
+    const processed = new Set<string>();
+    
+    loansWithSVG.forEach((loan, index) => {
+      if (processed.has(loan.id)) return;
+      
+      const clusterLoans = [loan];
+      processed.add(loan.id);
+      
+      // Find nearby loans
+      loansWithSVG.forEach((otherLoan) => {
+        if (processed.has(otherLoan.id)) return;
+        
+        const dx = loan.svgX - otherLoan.svgX;
+        const dy = loan.svgY - otherLoan.svgY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance < CLUSTER_DISTANCE_THRESHOLD) {
+          clusterLoans.push(otherLoan);
+          processed.add(otherLoan.id);
+        }
+      });
+      
+      // Calculate cluster center
+      const centerX = clusterLoans.reduce((sum, l) => sum + l.svgX, 0) / clusterLoans.length;
+      const centerY = clusterLoans.reduce((sum, l) => sum + l.svgY, 0) / clusterLoans.length;
+      const centerLat = clusterLoans.reduce((sum, l) => sum + l.lat, 0) / clusterLoans.length;
+      const centerLng = clusterLoans.reduce((sum, l) => sum + l.lng, 0) / clusterLoans.length;
+      
+      // Calculate cluster statistics
+      const portfolioValue = clusterLoans.reduce((sum, l) => sum + l.loanAmount, 0);
+      const avgInterestRate = clusterLoans.reduce((sum, l) => sum + parseFloat(l.interestRate), 0) / clusterLoans.length;
+      
+      const performanceMetrics = {
+        current: clusterLoans.filter(l => l.status === 'current').length,
+        late: clusterLoans.filter(l => l.status === 'late' || l.status === 'grace_period').length,
+        defaulted: clusterLoans.filter(l => l.status === 'default' || l.status === 'foreclosure').length,
+      };
+      
+      clusters.push({
+        id: `cluster-${index}`,
+        centerLat,
+        centerLng,
+        centerX,
+        centerY,
+        loans: clusterLoans,
+        portfolioValue,
+        avgInterestRate,
+        performanceMetrics,
+      });
+    });
+    
+    return clusters;
+  }, [focusedState, loanData]);
   
   const stateDataMap = useMemo(() => {
     const map = new Map<string, PortfolioStateData>();
@@ -197,17 +284,40 @@ export function PortfolioConcentrationHeatmap({ data, isLoading }: PortfolioConc
     setIsZooming(true);
     setViewBox("0 0 959 593");
     setFocusedState(null);
-    setSelectedMetro(null);
+    setSelectedCluster(null);
     setTimeout(() => setIsZooming(false), 350);
   };
   
-  const handleMetroClick = (metro: MetroData) => {
-    if (selectedMetro?.name === metro.name) {
-      setSelectedMetro(null);
+  const handleClusterClick = (cluster: LoanCluster) => {
+    if (selectedCluster?.id === cluster.id) {
+      setSelectedCluster(null);
     } else {
-      setSelectedMetro(metro);
+      setSelectedCluster(cluster);
     }
   };
+  
+  // Calculate spiderfied positions for loans in selected cluster
+  const spiderfiedLoans = useMemo(() => {
+    if (!selectedCluster || selectedCluster.loans.length === 1) return [];
+    
+    const loans = selectedCluster.loans;
+    const radius = 30 + (loans.length * 2); // Dynamic radius based on count
+    const angleStep = (2 * Math.PI) / loans.length;
+    
+    return loans.map((loan, index) => {
+      const angle = index * angleStep;
+      const x = selectedCluster.centerX + radius * Math.cos(angle);
+      const y = selectedCluster.centerY + radius * Math.sin(angle);
+      
+      return {
+        loan,
+        x,
+        y,
+        lineX1: selectedCluster.centerX,
+        lineY1: selectedCluster.centerY,
+      };
+    });
+  }, [selectedCluster]);
   
   if (isLoading) {
     return (
@@ -354,85 +464,154 @@ export function PortfolioConcentrationHeatmap({ data, isLoading }: PortfolioConc
                 );
               })}
               
-              {focusedState && metroData.length > 0 && (() => {
-                const statePathD = statePaths[focusedState];
-                if (!statePathD) return null;
+              {focusedState && loanClusters.length > 0 && (() => {
+                const maxClusterValue = Math.max(...loanClusters.map(c => c.portfolioValue), 1);
                 
-                const bounds = parsePathBounds(statePathD);
-                const maxMetroValue = Math.max(...metroData.map(m => m.portfolioValue), 1);
-                const stateSlug = Object.entries(SLUG_TO_ABBR).find(([_, abbr]) => abbr === focusedState)?.[0];
-                
-                return metroData.map((metro, idx) => {
-                  const pos = latLngToSvgWithBounds(metro.lat, metro.lng, focusedState, bounds);
-                  const radius = getMetroMarkerSize(metro.portfolioValue, maxMetroValue);
-                  const color = getMetroRiskColor(metro);
-                  const isSelected = selectedMetro?.name === metro.name;
-                  
-                  return (
-                    <Tooltip key={`metro-${idx}`}>
-                      <TooltipTrigger asChild>
-                        <g>
-                          <circle
-                            cx={pos.x}
-                            cy={pos.y}
-                            r={radius + 3}
-                            fill={color}
-                            opacity={0.2}
-                            className="metro-pulse"
-                          />
-                          <circle
-                            cx={pos.x}
-                            cy={pos.y}
-                            r={radius}
-                            fill={color}
-                            fillOpacity={isSelected ? 1 : 0.8}
-                            stroke={isSelected ? "#FFFFFF" : color}
-                            strokeWidth={isSelected ? 2 : 1}
-                            className="transition-all duration-150 cursor-pointer hover:scale-110"
-                            onClick={() => handleMetroClick(metro)}
-                          />
-                        </g>
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="bg-card border shadow-lg p-3 max-w-xs">
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2">
-                            <MapPin className="h-4 w-4 text-primary" />
-                            <p className="font-semibold text-foreground">{metro.name}</p>
-                          </div>
-                          <div className="space-y-1">
-                            <p className="text-sm text-muted-foreground">
-                              <span className="font-medium text-foreground">{metro.loanCount}</span> loans
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              <span className="font-medium text-foreground">{formatCurrency(metro.portfolioValue)}</span> portfolio
-                            </p>
-                          </div>
-                          <div className="pt-2 border-t border-border">
-                            <div className="flex items-center gap-3 text-xs">
-                              <span className="flex items-center gap-1 text-green-500">
-                                <CheckCircle2 className="h-3 w-3" />
-                                {metro.performanceMetrics.current}
-                              </span>
-                              {metro.performanceMetrics.late > 0 && (
-                                <span className="flex items-center gap-1 text-yellow-500">
-                                  <AlertTriangle className="h-3 w-3" />
-                                  {metro.performanceMetrics.late}
-                                </span>
+                return (
+                  <>
+                    {/* Render clusters */}
+                    {loanClusters.map((cluster) => {
+                      const radius = getMetroMarkerSize(cluster.portfolioValue, maxClusterValue);
+                      const color = getClusterColor(cluster);
+                      const isSelected = selectedCluster?.id === cluster.id;
+                      const isHovered = hoveredCluster?.id === cluster.id;
+                      
+                      // Don't render main cluster marker if it's selected and spiderfied
+                      if (isSelected && cluster.loans.length > 1) return null;
+                      
+                      return (
+                        <Tooltip key={cluster.id}>
+                          <TooltipTrigger asChild>
+                            <g>
+                              <circle
+                                cx={cluster.centerX}
+                                cy={cluster.centerY}
+                                r={radius + 3}
+                                fill={color}
+                                opacity={0.2}
+                                className="cluster-pulse"
+                              />
+                              <circle
+                                cx={cluster.centerX}
+                                cy={cluster.centerY}
+                                r={radius}
+                                fill={color}
+                                fillOpacity={isSelected || isHovered ? 1 : 0.8}
+                                stroke={isSelected ? "#FFFFFF" : isHovered ? "#FFFFFF" : color}
+                                strokeWidth={isSelected ? 3 : isHovered ? 2 : 1}
+                                className="transition-all duration-150 cursor-pointer hover:scale-110"
+                                onClick={() => handleClusterClick(cluster)}
+                                onMouseEnter={() => setHoveredCluster(cluster)}
+                                onMouseLeave={() => setHoveredCluster(null)}
+                              />
+                              {cluster.loans.length > 1 && (
+                                <text
+                                  x={cluster.centerX}
+                                  y={cluster.centerY}
+                                  textAnchor="middle"
+                                  dominantBaseline="middle"
+                                  className="text-xs font-bold fill-white pointer-events-none"
+                                >
+                                  {cluster.loans.length}
+                                </text>
                               )}
-                              {metro.performanceMetrics.defaulted > 0 && (
-                                <span className="flex items-center gap-1 text-red-500">
-                                  <AlertTriangle className="h-3 w-3" />
-                                  {metro.performanceMetrics.defaulted}
-                                </span>
-                              )}
+                            </g>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="bg-card border shadow-lg p-3 max-w-xs">
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <MapPin className="h-4 w-4 text-primary" />
+                                <p className="font-semibold text-foreground">
+                                  {cluster.loans.length} {cluster.loans.length === 1 ? 'Loan' : 'Loans'}
+                                </p>
+                              </div>
+                              <div className="space-y-1">
+                                <p className="text-sm text-muted-foreground">
+                                  <span className="font-medium text-foreground">{formatCurrency(cluster.portfolioValue)}</span> total
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  <span className="font-medium text-foreground">{cluster.avgInterestRate.toFixed(2)}%</span> avg rate
+                                </p>
+                              </div>
+                              <div className="pt-2 border-t border-border">
+                                <div className="flex items-center gap-3 text-xs">
+                                  <span className="flex items-center gap-1 text-green-500">
+                                    <CheckCircle2 className="h-3 w-3" />
+                                    {cluster.performanceMetrics.current}
+                                  </span>
+                                  {cluster.performanceMetrics.late > 0 && (
+                                    <span className="flex items-center gap-1 text-yellow-500">
+                                      <AlertTriangle className="h-3 w-3" />
+                                      {cluster.performanceMetrics.late}
+                                    </span>
+                                  )}
+                                  {cluster.performanceMetrics.defaulted > 0 && (
+                                    <span className="flex items-center gap-1 text-red-500">
+                                      <AlertTriangle className="h-3 w-3" />
+                                      {cluster.performanceMetrics.defaulted}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <p className="text-xs text-muted-foreground italic mt-2">Click to view details</p>
                             </div>
-                          </div>
-                          <p className="text-xs text-muted-foreground italic mt-2">Click to view loans</p>
-                        </div>
-                      </TooltipContent>
-                    </Tooltip>
-                  );
-                });
+                          </TooltipContent>
+                        </Tooltip>
+                      );
+                    })}
+                    
+                    {/* Render spiderfied loans */}
+                    {spiderfiedLoans.map(({ loan, x, y, lineX1, lineY1 }, index) => (
+                      <g key={`spider-${loan.id}`}>
+                        {/* Connection line */}
+                        <line
+                          x1={lineX1}
+                          y1={lineY1}
+                          x2={x}
+                          y2={y}
+                          stroke="#666"
+                          strokeWidth={1}
+                          strokeDasharray="2,2"
+                          opacity={0.5}
+                        />
+                        {/* Individual loan marker */}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <circle
+                              cx={x}
+                              cy={y}
+                              r={6}
+                              fill={getLoanColor(loan)}
+                              stroke="#FFFFFF"
+                              strokeWidth={1.5}
+                              className="cursor-pointer hover:scale-125 transition-transform"
+                            />
+                          </TooltipTrigger>
+                          <TooltipContent side="right" className="bg-card border shadow-lg p-3 max-w-xs">
+                            <div className="space-y-2">
+                              <p className="font-semibold text-sm">{loan.loanNumber}</p>
+                              <p className="text-xs text-muted-foreground">{loan.propertyAddress}</p>
+                              <div className="space-y-1 pt-2 border-t border-border">
+                                <p className="text-xs">
+                                  <span className="text-muted-foreground">Amount:</span>{' '}
+                                  <span className="font-medium">{formatCurrency(loan.loanAmount)}</span>
+                                </p>
+                                <p className="text-xs">
+                                  <span className="text-muted-foreground">Rate:</span>{' '}
+                                  <span className="font-medium">{loan.interestRate}%</span>
+                                </p>
+                                <p className="text-xs">
+                                  <span className="text-muted-foreground">Borrower:</span>{' '}
+                                  <span className="font-medium">{loan.borrowerName}</span>
+                                </p>
+                              </div>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </g>
+                    ))}
+                  </>
+                );
               })()}
               </svg>
             </div>
@@ -463,34 +642,72 @@ export function PortfolioConcentrationHeatmap({ data, isLoading }: PortfolioConc
             </div>
           </div>
           
-          {selectedMetro && metroLoans.length > 0 && (
+          {selectedCluster && selectedCluster.loans.length > 0 && (
             <div className="mt-6 p-4 border border-border rounded-lg bg-muted/30">
               <div className="flex items-center justify-between mb-3">
                 <h4 className="font-semibold text-lg flex items-center gap-2">
                   <MapPin className="h-5 w-5 text-primary" />
-                  {selectedMetro.name} Loans
+                  Cluster Details
                 </h4>
-                <Badge variant="outline">{metroLoans.length} loans</Badge>
+                <Badge variant="outline">{selectedCluster.loans.length} loans</Badge>
+              </div>
+              
+              {/* Summary Statistics */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 p-3 bg-background rounded-lg">
+                <div>
+                  <p className="text-xs text-muted-foreground">Total Portfolio</p>
+                  <p className="text-lg font-bold">{formatCurrency(selectedCluster.portfolioValue)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Avg Interest Rate</p>
+                  <p className="text-lg font-bold">{selectedCluster.avgInterestRate.toFixed(2)}%</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Avg Loan Size</p>
+                  <p className="text-lg font-bold">
+                    {formatCurrency(selectedCluster.portfolioValue / selectedCluster.loans.length)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Performance</p>
+                  <div className="flex gap-2 mt-1">
+                    <Badge variant="default" className="text-xs">
+                      {selectedCluster.performanceMetrics.current} current
+                    </Badge>
+                    {selectedCluster.performanceMetrics.late > 0 && (
+                      <Badge variant="secondary" className="text-xs">
+                        {selectedCluster.performanceMetrics.late} late
+                      </Badge>
+                    )}
+                  </div>
+                </div>
               </div>
               
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="border-b">
                     <tr className="text-left">
+                      <th className="pb-2 font-medium text-muted-foreground">Loan #</th>
                       <th className="pb-2 font-medium text-muted-foreground">Property</th>
                       <th className="pb-2 font-medium text-muted-foreground">Borrower</th>
                       <th className="pb-2 font-medium text-muted-foreground">Amount</th>
+                      <th className="pb-2 font-medium text-muted-foreground">Rate</th>
                       <th className="pb-2 font-medium text-muted-foreground">Status</th>
-                      <th className="pb-2 font-medium text-muted-foreground">Funded</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {metroLoans.map((loan) => (
+                    {selectedCluster.loans.map((loan) => (
                       <tr key={loan.id} className="border-b last:border-0 hover:bg-muted/50">
+                        <td className="py-3 font-mono text-xs">{loan.loanNumber}</td>
                         <td className="py-3">
                           <div className="flex items-start gap-2">
                             <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                            <span className="text-foreground">{loan.propertyAddress}</span>
+                            <div>
+                              <div className="text-foreground">{loan.propertyAddress}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {loan.propertyCity}, {loan.propertyState} {loan.propertyZip}
+                              </div>
+                            </div>
                           </div>
                         </td>
                         <td className="py-3 text-foreground">{loan.borrowerName}</td>
@@ -500,23 +717,19 @@ export function PortfolioConcentrationHeatmap({ data, isLoading }: PortfolioConc
                             <span className="font-medium">{formatCurrency(loan.loanAmount)}</span>
                           </div>
                         </td>
+                        <td className="py-3 font-medium">{loan.interestRate}%</td>
                         <td className="py-3">
                           <Badge 
                             variant={
                               loan.status === 'current' ? 'default' : 
+                              loan.status === 'grace_period' ? 'secondary' :
                               loan.status === 'late' ? 'secondary' : 
                               'destructive'
                             }
                             className="capitalize"
                           >
-                            {loan.status}
+                            {loan.status.replace('_', ' ')}
                           </Badge>
-                        </td>
-                        <td className="py-3">
-                          <div className="flex items-center gap-1 text-muted-foreground">
-                            <Calendar className="h-3 w-3" />
-                            <span>{new Date(loan.fundedDate).toLocaleDateString()}</span>
-                          </div>
                         </td>
                       </tr>
                     ))}
