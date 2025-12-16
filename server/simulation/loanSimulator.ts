@@ -1,6 +1,7 @@
 import { db } from "../db";
-import { users, loanApplications, applicationStageHistory, loanAssignments, servicedLoans } from "@shared/schema";
+import { users, loanApplications, applicationStageHistory, loanAssignments, servicedLoans, propertyLocations } from "@shared/schema";
 import { eq, sql } from "drizzle-orm";
+import { geocodeAddress } from "../services/geocodingService";
 
 // ============================================================
 // SIMULATION CONFIGURATION
@@ -1263,7 +1264,7 @@ async function createServicedLoanFromApplication(
     const nextPaymentDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
     const maturityDate = new Date(now.getTime() + termMonths * 30 * 24 * 60 * 60 * 1000);
     
-    await db.insert(servicedLoans).values({
+    const [servicedLoan] = await db.insert(servicedLoans).values({
       userId: loan.userId,
       loanApplicationId: loan.id,
       loanNumber,
@@ -1288,7 +1289,26 @@ async function createServicedLoanFromApplication(
       escrowBalance: loanType === "dscr" ? Math.round(loanAmount * 0.02) : 0,
       totalRehabBudget: loanType !== "dscr" ? 100000 : null,
       totalDrawsFunded: 0,
-    });
+    }).returning();
+    
+    // Geocode the property address and store location
+    const fullAddress = `${servicedLoan.propertyAddress}, ${servicedLoan.propertyCity}, ${servicedLoan.propertyState} ${servicedLoan.propertyZip}`;
+    const geocoded = await geocodeAddress(fullAddress);
+    
+    if (geocoded) {
+      await db.insert(propertyLocations).values({
+        servicedLoanId: servicedLoan.id,
+        latitude: geocoded.latitude.toString(),
+        longitude: geocoded.longitude.toString(),
+        geofenceRadiusMeters: 100,
+        geocodedAddress: geocoded.formattedAddress,
+        geocodedAt: new Date(),
+        geocodeSource: "google",
+      });
+      console.log(`[Lifecycle] Geocoded property for loan ${loanNumber}: ${geocoded.latitude}, ${geocoded.longitude}`);
+    } else {
+      console.warn(`[Lifecycle] Failed to geocode property for loan ${loanNumber}: ${fullAddress}`);
+    }
     
     console.log(`[Lifecycle] Created serviced loan ${loanNumber} from application ${loan.id.substring(0, 8)}`);
   } catch (error) {
