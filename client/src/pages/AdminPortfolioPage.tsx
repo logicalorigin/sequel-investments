@@ -164,7 +164,9 @@ export default function AdminPortfolioPage() {
   const [selectedCluster, setSelectedCluster] = useState<any | null>(null);
 
   const { data: portfolio, isLoading } = useQuery<PortfolioData>({
-    queryKey: ["/api/admin/analytics/portfolio", selectedState],
+    queryKey: selectedState 
+      ? [`/api/admin/analytics/portfolio/${selectedState}`]
+      : ["/api/admin/analytics/portfolio/"],
   });
 
   const { data: geoAnalytics, isLoading: geoLoading } = useQuery<GeographicAnalyticsData>({
@@ -182,7 +184,6 @@ export default function AdminPortfolioPage() {
 
     // If a cluster is selected, filter by those specific loans
     if (selectedCluster && selectedCluster.loans) {
-      const clusterLoanIds = new Set(selectedCluster.loans.map((l: any) => l.id));
       return {
         ...portfolio,
         totalFunded: {
@@ -192,10 +193,12 @@ export default function AdminPortfolioPage() {
         averages: {
           loanSize: selectedCluster.portfolioValue / selectedCluster.loans.length,
           interestRate: selectedCluster.avgInterestRate,
-          ltv: portfolio.averages.ltv, // Keep original LTV for now
+          ltv: portfolio.averages.ltv,
         },
-        byLoanType: portfolio.byLoanType, // Keep full data for charts
-        byStatus: portfolio.byStatus, // Keep full data for charts
+        byLoanType: portfolio.byLoanType,
+        byStatus: portfolio.byStatus,
+        byState: portfolio.byState,
+        monthlyTrend: portfolio.monthlyTrend,
       };
     }
 
@@ -209,9 +212,11 @@ export default function AdminPortfolioPage() {
             value: stateData.value,
             count: stateData.count,
           },
-          byLoanType: portfolio.byLoanType, // Keep full data for charts
-          byStatus: portfolio.byStatus, // Keep full data for charts
-          averages: portfolio.averages, // Keep averages
+          byLoanType: portfolio.byLoanType,
+          byStatus: portfolio.byStatus,
+          byState: portfolio.byState,
+          averages: portfolio.averages,
+          monthlyTrend: portfolio.monthlyTrend,
         };
       }
     }
