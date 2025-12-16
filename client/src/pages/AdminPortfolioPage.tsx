@@ -164,7 +164,7 @@ export default function AdminPortfolioPage() {
   const [selectedCluster, setSelectedCluster] = useState<any | null>(null);
 
   const { data: portfolio, isLoading } = useQuery<PortfolioData>({
-    queryKey: ["/api/admin/analytics/portfolio", selectedState],
+    queryKey: ["/api/admin/analytics/portfolio"],
   });
 
   const { data: geoAnalytics, isLoading: geoLoading } = useQuery<GeographicAnalyticsData>({
