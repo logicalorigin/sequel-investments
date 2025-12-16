@@ -83,9 +83,9 @@ function formatCurrency(value: number): string {
 function getRiskColor(data: PortfolioStateData): string {
   const total = data.performanceMetrics.current + data.performanceMetrics.late + data.performanceMetrics.defaulted;
   if (total === 0) return "#10B981";
-  
+
   const problemRate = (data.performanceMetrics.late + data.performanceMetrics.defaulted) / total;
-  
+
   if (problemRate === 0) return "#10B981";
   if (problemRate < 0.1) return "#84CC16";
   if (problemRate < 0.2) return "#FBBF24";
@@ -99,9 +99,9 @@ function getStateFillColor(stateCode: string, stateDataMap: Map<string, Portfoli
   if (stateData && stateData.fundedCount > 0) {
     const total = stateData.performanceMetrics.current + stateData.performanceMetrics.late + stateData.performanceMetrics.defaulted;
     if (total === 0) return "#1F2937";
-    
+
     const problemRate = (stateData.performanceMetrics.late + stateData.performanceMetrics.defaulted) / total;
-    
+
     // Use lighter opacity colors for state fills
     if (problemRate === 0) return "rgba(16, 185, 129, 0.3)"; // Green
     if (problemRate < 0.1) return "rgba(132, 204, 22, 0.3)"; // Lime
@@ -109,22 +109,22 @@ function getStateFillColor(stateCode: string, stateDataMap: Map<string, Portfoli
     if (problemRate < 0.3) return "rgba(249, 115, 22, 0.3)"; // Orange
     return "rgba(239, 68, 68, 0.3)"; // Red
   }
-  
+
   // Fallback to cluster data
   const cluster = stateClusters.find(c => c.state === stateCode);
   if (cluster && cluster.loanCount > 0) {
     const total = cluster.performanceMetrics.current + cluster.performanceMetrics.late + cluster.performanceMetrics.defaulted;
     if (total === 0) return "#1F2937";
-    
+
     const problemRate = (cluster.performanceMetrics.late + cluster.performanceMetrics.defaulted) / total;
-    
+
     if (problemRate === 0) return "rgba(16, 185, 129, 0.3)";
     if (problemRate < 0.1) return "rgba(132, 204, 22, 0.3)";
     if (problemRate < 0.2) return "rgba(251, 191, 36, 0.3)";
     if (problemRate < 0.3) return "rgba(249, 115, 22, 0.3)";
     return "rgba(239, 68, 68, 0.3)";
   }
-  
+
   return "#1F2937"; // Default dark gray for states with no data
 }
 
@@ -143,9 +143,9 @@ function getMetroMarkerSize(value: number, max: number): number {
 function getClusterColor(cluster: LoanCluster): string {
   const total = cluster.performanceMetrics.current + cluster.performanceMetrics.late + cluster.performanceMetrics.defaulted;
   if (total === 0) return "#10B981";
-  
+
   const problemRate = (cluster.performanceMetrics.late + cluster.performanceMetrics.defaulted) / total;
-  
+
   if (problemRate === 0) return "#10B981";
   if (problemRate < 0.1) return "#84CC16";
   if (problemRate < 0.2) return "#FBBF24";
@@ -178,13 +178,13 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
   const [viewBox, setViewBox] = useState<string>("0 0 959 593");
   const [isZooming, setIsZooming] = useState(false);
   const [zoomLevel, setZoomLevel] = useState<'us' | 'state' | 'cluster'>('us');
-  
+
   // Fetch loan-level data for focused state
   const { data: loanData = [] as LoanData[] } = useQuery<LoanData[]>({
     queryKey: ['/api/admin/analytics/portfolio-loans', focusedState],
     enabled: !!focusedState,
   });
-  
+
   // Log loan data when it changes (replaces deprecated onSuccess)
   useEffect(() => {
     if (loanData && loanData.length > 0) {
@@ -193,7 +193,7 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
       console.log(`${loansWithCoords.length} loans have coordinates`);
     }
   }, [loanData, focusedState]);
-  
+
   // Fetch state-level clusters for US map view
   interface StateCluster {
     state: string;
@@ -206,51 +206,51 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
       defaulted: number;
     };
   }
-  
+
   const { data: stateClusters = [] } = useQuery<StateCluster[]>({
     queryKey: ['/api/admin/analytics/portfolio-state-clusters'],
     enabled: !focusedState,
   });
-  
+
   const filteredData = useMemo(() => {
     if (riskFilter === "all") return data;
-    
+
     return data.filter(d => {
       const total = d.performanceMetrics.current + d.performanceMetrics.late + d.performanceMetrics.defaulted;
       if (total === 0) return riskFilter === "healthy";
-      
+
       const problemRate = (d.performanceMetrics.late + d.performanceMetrics.defaulted) / total;
-      
+
       if (riskFilter === "healthy") return problemRate === 0;
       if (riskFilter === "warning") return problemRate > 0 && problemRate < 0.2;
       if (riskFilter === "high-risk") return problemRate >= 0.2;
-      
+
       return true;
     });
   }, [data, riskFilter]);
-  
+
   // Geographic clustering for loan-level data
   const loanClusters = useMemo(() => {
     if (!focusedState || !loanData.length) return [];
-    
+
     // Filter loans with valid coordinates - handle both string and number types
     const validLoans = loanData.filter(loan => {
       const lat = typeof loan.lat === 'string' ? parseFloat(loan.lat) : loan.lat;
       const lng = typeof loan.lng === 'string' ? parseFloat(loan.lng) : loan.lng;
       return lat && lng && !isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0;
     });
-    
+
     if (validLoans.length === 0) {
       console.warn(`No loans with valid coordinates found for ${focusedState}`);
       return [];
     }
-    
+
     const statePathD = statePaths[focusedState];
     if (!statePathD) return [];
-    
+
     const bounds = parsePathBounds(statePathD);
     const CLUSTER_DISTANCE_THRESHOLD = 15; // SVG pixels
-    
+
     // Convert loans to SVG coordinates - ensure numeric lat/lng
     const loansWithSVG = validLoans.map(loan => {
       const lat = typeof loan.lat === 'string' ? parseFloat(loan.lat) : loan.lat;
@@ -263,47 +263,47 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
         svgY: latLngToSvgWithBounds(lat, lng, focusedState, bounds).y,
       };
     });
-    
+
     // Simple geographic clustering algorithm
     const clusters: LoanCluster[] = [];
     const processed = new Set<string>();
-    
+
     loansWithSVG.forEach((loan, index) => {
       if (processed.has(loan.id)) return;
-      
+
       const clusterLoans = [loan];
       processed.add(loan.id);
-      
+
       // Find nearby loans
       loansWithSVG.forEach((otherLoan) => {
         if (processed.has(otherLoan.id)) return;
-        
+
         const dx = loan.svgX - otherLoan.svgX;
         const dy = loan.svgY - otherLoan.svgY;
         const distance = Math.sqrt(dx * dx + dy * dy);
-        
+
         if (distance < CLUSTER_DISTANCE_THRESHOLD) {
           clusterLoans.push(otherLoan);
           processed.add(otherLoan.id);
         }
       });
-      
+
       // Calculate cluster center
       const centerX = clusterLoans.reduce((sum, l) => sum + l.svgX, 0) / clusterLoans.length;
       const centerY = clusterLoans.reduce((sum, l) => sum + l.svgY, 0) / clusterLoans.length;
       const centerLat = clusterLoans.reduce((sum, l) => sum + l.lat, 0) / clusterLoans.length;
       const centerLng = clusterLoans.reduce((sum, l) => sum + l.lng, 0) / clusterLoans.length;
-      
+
       // Calculate cluster statistics
       const portfolioValue = clusterLoans.reduce((sum, l) => sum + l.loanAmount, 0);
       const avgInterestRate = clusterLoans.reduce((sum, l) => sum + parseFloat(l.interestRate), 0) / clusterLoans.length;
-      
+
       const performanceMetrics = {
         current: clusterLoans.filter(l => l.status === 'current').length,
         late: clusterLoans.filter(l => l.status === 'late' || l.status === 'grace_period').length,
         defaulted: clusterLoans.filter(l => l.status === 'default' || l.status === 'foreclosure').length,
       };
-      
+
       clusters.push({
         id: `cluster-${index}`,
         centerLat,
@@ -316,10 +316,10 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
         performanceMetrics,
       });
     });
-    
+
     return clusters;
   }, [focusedState, loanData]);
-  
+
   const stateDataMap = useMemo(() => {
     const map = new Map<string, PortfolioStateData>();
     filteredData.forEach(item => {
@@ -327,11 +327,11 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
     });
     return map;
   }, [filteredData]);
-  
+
   const maxPortfolioValue = useMemo(() => {
     return Math.max(...filteredData.map(d => d.portfolioValue), 1);
   }, [filteredData]);
-  
+
   const stateCenters = useMemo(() => {
     const centers: Record<string, { x: number; y: number }> = {};
     Object.entries(statePaths).forEach(([stateCode, pathD]) => {
@@ -340,7 +340,7 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
     });
     return centers;
   }, []);
-  
+
   const handleStateClick = (stateCode: string) => {
     if (focusedState === stateCode) {
       // Zoom out
@@ -349,28 +349,28 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
       // Zoom into state
       const pathD = statePaths[stateCode];
       if (!pathD) return;
-      
+
       const bounds = parsePathBounds(pathD);
       const padding = 50;
       const newViewBox = `${bounds.minX - padding} ${bounds.minY - padding} ${bounds.maxX - bounds.minX + padding * 2} ${bounds.maxY - bounds.minY + padding * 2}`;
-      
+
       setIsZooming(true);
       setViewBox(newViewBox);
       setFocusedState(stateCode);
       setSelectedState(stateCode);
       setSelectedCluster(null);
       setZoomLevel('state');
-      
-      
+
+
       // Notify parent of state selection
       if (onViewChange) {
         onViewChange(stateCode, null);
       }
-      
+
       setTimeout(() => setIsZooming(false), 350);
     }
   };
-  
+
   // Helper to fully reset to US view
   const resetToUSView = () => {
     setIsZooming(true);
@@ -379,20 +379,20 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
     setSelectedState(null);
     setSelectedCluster(null);
     setZoomLevel('us');
-    
+
     if (onViewChange) {
       onViewChange(null, null);
     }
-    
+
     setTimeout(() => setIsZooming(false), 350);
   };
-  
+
   const handleZoomOut = () => {
     // Multi-level zoom out logic
     if (zoomLevel === 'cluster') {
       // Zoom out from cluster to state
       setIsZooming(true);
-      
+
       if (focusedState) {
         const pathD = statePaths[focusedState];
         if (pathD) {
@@ -402,28 +402,28 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
           setViewBox(stateViewBox);
         }
       }
-      
+
       setZoomLevel('state');
       setSelectedCluster(null);
-      
+
       // Notify parent of zoom back to state
       if (onViewChange) {
         onViewChange(focusedState, null);
       }
-      
+
       setTimeout(() => setIsZooming(false), 350);
     } else {
       // Zoom out from state to US - use helper to fully reset all state
       resetToUSView();
     }
   };
-  
+
   const handleClusterClick = (cluster: LoanCluster) => {
     if (selectedCluster?.id === cluster.id) {
       // Clicking selected cluster - deselect and zoom back to state view
       setSelectedCluster(null);
       setZoomLevel('state');
-      
+
       if (focusedState) {
         const pathD = statePaths[focusedState];
         if (pathD) {
@@ -435,9 +435,9 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
           setTimeout(() => setIsZooming(false), 350);
         }
       }
-      
-      
-      
+
+
+
       // Notify parent of cluster deselection
       if (onViewChange) {
         onViewChange(focusedState, null);
@@ -446,65 +446,65 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
       // Zoom into cluster and show individual loans at their actual positions
       setSelectedCluster(cluster);
       setZoomLevel('cluster');
-      
+
       // Calculate bounding box for all loans in the cluster with their actual coordinates
       const loansWithCoords = cluster.loans.filter(l => l.lat && l.lng);
-      
+
       if (loansWithCoords.length > 0 && focusedState) {
         // Calculate viewBox that encompasses all loan positions
         const pathD = statePaths[focusedState];
         if (pathD) {
           const svgBounds = parsePathBounds(pathD);
-          
+
           // Get SVG coordinates for all loans - pass stateAbbr and svgBounds
           const loanSvgPositions = loansWithCoords.map(loan => {
             return latLngToSvgWithBounds(loan.lat, loan.lng, focusedState, svgBounds);
           });
-          
+
           // Find the bounding box of all loans
           const minX = Math.min(...loanSvgPositions.map(p => p.x), cluster.centerX);
           const maxX = Math.max(...loanSvgPositions.map(p => p.x), cluster.centerX);
           const minY = Math.min(...loanSvgPositions.map(p => p.y), cluster.centerY);
           const maxY = Math.max(...loanSvgPositions.map(p => p.y), cluster.centerY);
-          
+
           // Add padding and ensure minimum size
           const width = Math.max(maxX - minX, 40);
           const height = Math.max(maxY - minY, 40);
           const padding = Math.max(width, height) * 0.5; // 50% padding
-          
+
           const clusterBox = `${minX - padding} ${minY - padding} ${width + padding * 2} ${height + padding * 2}`;
-          
+
           setIsZooming(true);
           setViewBox(clusterBox);
           setTimeout(() => setIsZooming(false), 350);
         }
       }
-      
+
       // Notify parent of cluster selection
       if (onViewChange) {
         onViewChange(focusedState, cluster);
       }
     }
   };
-  
+
   // Calculate loan positions - use actual geographic coordinates when in cluster view
   const loanPositions = useMemo(() => {
     if (!selectedCluster) return [];
-    
+
     const loans = selectedCluster.loans;
-    
+
     // If we're zoomed into a cluster, show loans at their actual GPS positions
     if (zoomLevel === 'cluster' && focusedState) {
       const pathD = statePaths[focusedState];
       if (!pathD) return [];
-      
+
       const svgBounds = parsePathBounds(pathD);
-      
+
       return loans.map((loan, idx) => {
         // Get actual geographic position if available - handle string/number types
         const lat = typeof loan.lat === 'string' ? parseFloat(loan.lat) : loan.lat;
         const lng = typeof loan.lng === 'string' ? parseFloat(loan.lng) : loan.lng;
-        
+
         if (lat && lng && !isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
           // Pass the state abbreviation and SVG bounds to latLngToSvgWithBounds
           const pos = latLngToSvgWithBounds(lat, lng, focusedState, svgBounds);
@@ -515,7 +515,7 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
             isActualPosition: true,
           };
         }
-        
+
         // Fallback to cluster center with deterministic offset for loans without coords
         // Use index for deterministic positioning instead of random
         const angle = (idx / loans.length) * 2 * Math.PI;
@@ -528,7 +528,7 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
         };
       });
     }
-    
+
     // For state-level view, use spiderfying around cluster center
     if (loans.length === 1) {
       return [{
@@ -538,15 +538,15 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
         isActualPosition: false,
       }];
     }
-    
+
     const radius = 30 + (loans.length * 2); // Dynamic radius based on count
     const angleStep = (2 * Math.PI) / loans.length;
-    
+
     return loans.map((loan, index) => {
       const angle = index * angleStep;
       const x = selectedCluster.centerX + radius * Math.cos(angle);
       const y = selectedCluster.centerY + radius * Math.sin(angle);
-      
+
       return {
         loan,
         x,
@@ -555,7 +555,7 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
       };
     });
   }, [selectedCluster, zoomLevel, focusedState]);
-  
+
   if (isLoading) {
     return (
       <Card data-testid="heatmap-portfolio-concentration">
@@ -573,7 +573,7 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
       </Card>
     );
   }
-  
+
   return (
     <Card data-testid="heatmap-portfolio-concentration">
       <CardHeader>
@@ -607,7 +607,7 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
                 <div className="absolute top-2 right-2 z-10 flex items-center gap-2">
                   {/* Breadcrumb */}
                   <div className="text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded-md shadow-sm">
-                    <span 
+                    <span
                       className={zoomLevel !== 'us' ? 'cursor-pointer hover:text-foreground transition-colors' : 'text-foreground font-medium'}
                       onClick={() => {
                         if (zoomLevel !== 'us') {
@@ -620,7 +620,7 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
                     {focusedState && (
                       <>
                         <span className="mx-1">/</span>
-                        <span 
+                        <span
                           className={zoomLevel === 'cluster' ? 'cursor-pointer hover:text-foreground transition-colors' : 'text-foreground font-medium'}
                           onClick={() => {
                             if (zoomLevel === 'cluster') {
@@ -641,7 +641,7 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
                       </>
                     )}
                   </div>
-                  
+
                   <Button
                     onClick={handleZoomOut}
                     variant="secondary"
@@ -650,8 +650,8 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
                     data-testid="button-zoom-out"
                   >
                     <ZoomOut className="h-4 w-4 mr-2" />
-                    {zoomLevel === 'cluster' 
-                      ? `Back to ${STATE_NAMES[focusedState!] || focusedState}` 
+                    {zoomLevel === 'cluster'
+                      ? `Back to ${STATE_NAMES[focusedState!] || focusedState}`
                       : 'Back to US Map'}
                   </Button>
                 </div>
@@ -666,13 +666,13 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
                 }}
               >
               {Object.entries(statePaths).map(([stateCode, pathD]) => {
-                const fillColor = focusedState 
+                const fillColor = focusedState
                   ? (focusedState === stateCode ? "#374151" : "#1F2937")
                   : getStateFillColor(stateCode, stateDataMap, stateClusters);
-                
+
                 const isHovered = hoveredState === stateCode;
                 const isSelected = selectedState === stateCode;
-                
+
                 return (
                   <path
                     key={stateCode}
@@ -688,14 +688,14 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
                   />
                 );
               })}
-              
+
               {!focusedState && stateClusters.map(cluster => {
                 const center = stateCenters[cluster.state];
                 if (!center) return null;
-                
+
                 const maxClusterValue = Math.max(...stateClusters.map(c => c.portfolioValue), 1);
                 const radius = getMarkerSize(cluster.portfolioValue, maxClusterValue);
-                
+
                 // Calculate cluster color based on performance
                 const total = cluster.performanceMetrics.current + cluster.performanceMetrics.late + cluster.performanceMetrics.defaulted;
                 const problemRate = total > 0 ? (cluster.performanceMetrics.late + cluster.performanceMetrics.defaulted) / total : 0;
@@ -704,9 +704,9 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
                 else if (problemRate >= 0.1 && problemRate < 0.2) color = "#FBBF24";
                 else if (problemRate >= 0.2 && problemRate < 0.3) color = "#F97316";
                 else if (problemRate >= 0.3) color = "#EF4444";
-                
+
                 const isHovered = hoveredState === cluster.state;
-                
+
                 return (
                   <Tooltip key={cluster.state}>
                     <TooltipTrigger asChild>
@@ -806,10 +806,10 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
                   </Tooltip>
                 );
               })}
-              
+
               {focusedState && loanClusters.length > 0 && (() => {
                 const maxClusterValue = Math.max(...loanClusters.map(c => c.portfolioValue), 1);
-                
+
                 return (
                   <>
                     {/* Render clusters */}
@@ -818,10 +818,10 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
                       const color = getClusterColor(cluster);
                       const isSelected = selectedCluster?.id === cluster.id;
                       const isHovered = hoveredCluster?.id === cluster.id;
-                      
+
                       // Don't render main cluster marker if it's selected and spiderfied
                       if (isSelected && cluster.loans.length > 1) return null;
-                      
+
                       return (
                         <Tooltip key={cluster.id}>
                           <TooltipTrigger asChild>
@@ -919,7 +919,7 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
                         </Tooltip>
                       );
                     })}
-                    
+
                     {/* Render individual loan markers */}
                     {loanPositions.map(({ loan, x, y, isActualPosition }, index) => (
                       <g key={`loan-${loan.id}`}>
@@ -1021,7 +1021,7 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
               </svg>
             </div>
           </TooltipProvider>
-          
+
           <div className="flex flex-wrap items-center justify-center gap-4 mt-4">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#10B981" }} />
@@ -1046,7 +1046,7 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
               </div>
             </div>
           </div>
-          
+
           {selectedCluster && selectedCluster.loans.length > 0 && (
             <div className="mt-6 p-4 border border-border rounded-lg bg-muted/30">
               <div className="flex items-center justify-between mb-3">
@@ -1056,7 +1056,7 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
                 </h4>
                 <Badge variant="outline">{selectedCluster.loans.length} loans</Badge>
               </div>
-              
+
               {/* Summary Statistics */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 p-3 bg-background rounded-lg">
                 <div>
@@ -1087,7 +1087,7 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
                   </div>
                 </div>
               </div>
-              
+
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="border-b">
@@ -1124,11 +1124,11 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
                         </td>
                         <td className="py-3 font-medium">{loan.interestRate}%</td>
                         <td className="py-3">
-                          <Badge 
+                          <Badge
                             variant={
-                              loan.status === 'current' ? 'default' : 
+                              loan.status === 'current' ? 'default' :
                               loan.status === 'grace_period' ? 'secondary' :
-                              loan.status === 'late' ? 'secondary' : 
+                              loan.status === 'late' ? 'secondary' :
                               'destructive'
                             }
                             className="capitalize"
@@ -1143,21 +1143,21 @@ export function PortfolioConcentrationHeatmap({ data, isLoading, onViewChange }:
               </div>
             </div>
           )}
-          
+
           {selectedState && !focusedState && (() => {
             const stateInfo = filteredData.find(d => d.state === selectedState);
             if (!stateInfo) return null;
-            
+
             const total = stateInfo.performanceMetrics.current + stateInfo.performanceMetrics.late + stateInfo.performanceMetrics.defaulted;
             const healthRate = total > 0 ? (stateInfo.performanceMetrics.current / total * 100).toFixed(1) : "0";
-            
+
             return (
               <div className="mt-6 p-4 border border-border rounded-lg bg-muted/30">
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="font-semibold text-lg">
                     {STATE_NAMES[selectedState] || selectedState}
                   </h4>
-                  <button 
+                  <button
                     onClick={() => setSelectedState(null)}
                     className="text-muted-foreground hover:text-foreground"
                   >
