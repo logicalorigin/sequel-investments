@@ -231,7 +231,7 @@ function LoadingSkeleton() {
 
 function PipelineTab() {
   const [, navigate] = useLocation();
-  
+
   const { data: pipeline, isLoading } = useQuery<PipelineData>({
     queryKey: ["/api/admin/analytics/pipeline"],
   });
@@ -394,7 +394,7 @@ function PipelineTab() {
 
 function PortfolioTab() {
   const [, navigate] = useLocation();
-  
+
   const { data: portfolio, isLoading } = useQuery<PortfolioData>({
     queryKey: ["/api/admin/analytics/portfolio"],
   });
@@ -629,7 +629,7 @@ function RevenueTab() {
 
 function ServicingTab() {
   const [, navigate] = useLocation();
-  
+
   const { data: servicing, isLoading } = useQuery<ServicingData>({
     queryKey: ["/api/admin/analytics/servicing"],
   });
@@ -846,11 +846,11 @@ export default function AdminFinancialsPage() {
           <TabsList className="grid w-full grid-cols-4 mb-6" data-testid="tabs-financials">
             <TabsTrigger value="pipeline" className="gap-2" data-testid="tab-pipeline">
               <Activity className="h-4 w-4" />
-              <span className="hidden sm:inline">Pipeline</span>
+              <span className="hidden sm:inline">Pipeline Analytics</span>
             </TabsTrigger>
             <TabsTrigger value="portfolio" className="gap-2" data-testid="tab-portfolio">
               <Building2 className="h-4 w-4" />
-              <span className="hidden sm:inline">Portfolio</span>
+              <span className="hidden sm:inline">Portfolio Analytics</span>
             </TabsTrigger>
             <TabsTrigger value="revenue" className="gap-2" data-testid="tab-revenue">
               <DollarSign className="h-4 w-4" />

@@ -447,9 +447,9 @@ export const ADMIN_ROUTES: RouteEntry[] = [
   { 
     id: "admin-analytics", 
     path: "/admin/analytics", 
-    title: "Analytics", 
-    description: "Performance analytics and reports", 
-    keywords: ["analytics", "reports", "metrics", "performance", "stats"], 
+    title: "Pipeline Analytics", 
+    description: "Application pipeline performance and conversion analytics", 
+    keywords: ["analytics", "pipeline", "applications", "conversion", "reports", "metrics", "performance", "stats"], 
     priority: 7,
     context: "admin"
   },
@@ -540,9 +540,9 @@ export const ADMIN_ROUTES: RouteEntry[] = [
   { 
     id: "admin-portfolio", 
     path: "/admin/portfolio", 
-    title: "Portfolio", 
-    description: "Loan portfolio overview", 
-    keywords: ["portfolio", "loans", "assets"], 
+    title: "Portfolio Analytics", 
+    description: "Funded loan portfolio analytics and geographic distribution", 
+    keywords: ["portfolio", "analytics", "funded", "loans", "assets", "geographic", "distribution"], 
     priority: 7,
     context: "admin"
   },

@@ -220,7 +220,7 @@ export default function AdminAnalyticsPage() {
         <div className="p-6 space-y-6 max-w-full overflow-hidden">
           <div>
             <h1 className="text-2xl font-bold" data-testid="analytics-title">Pipeline Analytics</h1>
-            <p className="text-muted-foreground text-sm">Monitor loan pipeline performance and trends</p>
+            <p className="text-muted-foreground text-sm">Monitor application pipeline performance and conversion trends</p>
           </div>
           
           {isLoading ? (

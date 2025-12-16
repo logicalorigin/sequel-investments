@@ -237,6 +237,11 @@ export default function AdminPortfolioPage() {
   return (
     <div className="h-full">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold" data-testid="portfolio-title">Portfolio Analytics</h1>
+          <p className="text-muted-foreground text-sm">Monitor funded loan portfolio performance and geographic distribution</p>
+        </div>
+        
         {isLoading ? (
           <LoadingSkeleton />
         ) : !filteredPortfolio ? (
