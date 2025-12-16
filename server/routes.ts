@@ -1,4 +1,3 @@
-replit_final_file>
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import express from "express";
@@ -8809,7 +8808,7 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
       const dayOfWeek = parseInt(req.params.dayOfWeek);
 
       // Only staff can update their own availability, admins can update any
-      if (user?.role === ""borrower") {
+      if (user?.role === "borrower") {
         return res.status(403).json({ error: "Only staff can update availability" });
       }
 
@@ -9342,4 +9341,3 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
 
   return httpServer;
 }
-</replit_final_file>
