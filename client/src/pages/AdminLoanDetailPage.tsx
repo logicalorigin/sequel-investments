@@ -1585,6 +1585,29 @@ export default function AdminLoanDetailPage() {
                     {loan.propertyCity}, {loan.propertyState} {loan.propertyZip}
                   </p>
                 )}
+                {propertyLocation && (
+                  <div className="pt-2 border-t">
+                    <div className="flex items-center gap-2 mb-1">
+                      <MapPin className="h-3 w-3 text-muted-foreground" />
+                      <p className="text-xs font-medium text-muted-foreground">Coordinates</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <span className="text-muted-foreground">Lat:</span>
+                        <span className="ml-1 font-mono">{parseFloat(propertyLocation.latitude).toFixed(6)}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Lng:</span>
+                        <span className="ml-1 font-mono">{parseFloat(propertyLocation.longitude).toFixed(6)}</span>
+                      </div>
+                    </div>
+                    {propertyLocation.geofenceRadiusMeters && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Geofence: {propertyLocation.geofenceRadiusMeters}m radius
+                      </p>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
