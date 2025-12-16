@@ -4127,6 +4127,125 @@ app.patch("/api/draw-line-items/:id", isAuthenticated, async (req: any, res) => 
     }
   };
 
+  // Get ALL loan-level portfolio data with coordinates (for Google Maps clustering)
+  app.get('/api/admin/analytics/portfolio-loans-all', isAuthenticated, isStaff, async (req: any, res) => {
+    try {
+      // Get all serviced loans
+      const loans = await storage.getAllServicedLoans();
+
+      // Fetch property locations for all loans
+      const loanIds = loans.map(l => l.id);
+      const locations = await Promise.all(
+        loanIds.map(async (loanId) => {
+          const location = await storage.getPropertyLocation(loanId);
+          return { loanId, location };
+        })
+      );
+
+      const locationMap = new Map(
+        locations
+          .filter(({ location }) => location !== null)
+          .map(({ loanId, location }) => [loanId, location])
+      );
+
+      // Build response with loan details, coordinates, and enhanced metrics
+      const result = await Promise.all(loans.map(async (loan) => {
+        const user = await storage.getUser(loan.userId);
+        const location = locationMap.get(loan.id);
+        
+        // Skip loans without coordinates for the clustered map
+        if (!location) return null;
+        
+        // Fetch linked loan application for analyzer data
+        let creditScore: number | null = null;
+        let ltvRatio: number | null = null;
+        let dscrRatio: number | null = null;
+        
+        if (loan.loanApplicationId) {
+          const application = await storage.getLoanApplication(loan.loanApplicationId);
+          if (application?.analyzerData) {
+            const analyzerData = application.analyzerData as any;
+            if (analyzerData.inputs?.creditScore) {
+              creditScore = Array.isArray(analyzerData.inputs.creditScore) 
+                ? analyzerData.inputs.creditScore[0] 
+                : analyzerData.inputs.creditScore;
+            }
+            if (analyzerData.results?.ltv) {
+              ltvRatio = parseFloat(analyzerData.results.ltv);
+            }
+            if (analyzerData.results?.dscrRatio) {
+              dscrRatio = parseFloat(analyzerData.results.dscrRatio);
+            }
+          }
+        }
+        
+        // Calculate days since funding
+        const daysFunded = loan.closingDate 
+          ? Math.floor((Date.now() - new Date(loan.closingDate).getTime()) / (1000 * 60 * 60 * 24))
+          : null;
+        
+        // Calculate risk score
+        let riskScore = 100;
+        const status = loan.loanStatus?.toLowerCase() || 'current';
+        if (status === 'late' || status === 'grace_period') riskScore -= 25;
+        if (status === 'default' || status === 'foreclosure') riskScore -= 50;
+        
+        const effectiveLtv = ltvRatio || (loan.currentValue && loan.currentValue > 0 
+          ? (loan.currentBalance / loan.currentValue) * 100 
+          : null);
+        if (effectiveLtv) {
+          if (effectiveLtv > 90) riskScore -= 20;
+          else if (effectiveLtv > 80) riskScore -= 10;
+        }
+        
+        if (dscrRatio !== null && dscrRatio < 1.0) riskScore -= 15;
+        if (creditScore !== null) {
+          if (creditScore < 620) riskScore -= 20;
+          else if (creditScore < 680) riskScore -= 10;
+          else if (creditScore < 720) riskScore -= 5;
+        }
+        
+        riskScore = Math.max(0, Math.min(100, riskScore));
+
+        return {
+          id: loan.id,
+          loanNumber: loan.loanNumber,
+          propertyAddress: loan.propertyAddress,
+          propertyCity: loan.propertyCity,
+          propertyState: loan.propertyState,
+          propertyZip: loan.propertyZip,
+          propertyType: loan.propertyType,
+          loanAmount: loan.originalLoanAmount,
+          currentBalance: loan.currentBalance,
+          status: loan.loanStatus,
+          loanType: loan.loanType,
+          interestRate: loan.interestRate,
+          fundedDate: loan.closingDate,
+          borrowerName: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email : 'Unknown',
+          lat: parseFloat(location.latitude),
+          lng: parseFloat(location.longitude),
+          riskScore,
+          creditScore,
+          ltvRatio: effectiveLtv,
+          dscrRatio,
+          daysFunded,
+          nextPaymentDate: loan.nextPaymentDate,
+          paymentsDue: loan.paymentsDue || 0,
+          totalPastDue: loan.totalPastDue || 0,
+          projectCompletionPercent: loan.projectCompletionPercent,
+          arv: loan.arv,
+          currentValue: loan.currentValue,
+        };
+      }));
+
+      // Filter out nulls (loans without coordinates)
+      res.json(result.filter(Boolean));
+    } catch (error) {
+      console.error('Portfolio loans all error:', error);
+      res.status(500).send({ error: 'Failed to fetch all portfolio loans' });
+    }
+  });
+
   // Get loan-level portfolio data with coordinates for a state
   app.get('/api/admin/analytics/portfolio-loans/:state', isAuthenticated, isStaff, async (req: any, res) => {
     try {
