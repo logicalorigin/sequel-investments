@@ -469,6 +469,7 @@ export default function AdminPortfolioPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold" data-testid="portfolio-title">Portfolio Analytics</h1>
+            <p className="text-muted-foreground text-xs">Monitor funded loan portfolio performance and geographic distribution</p>
           </div>
           {(selectedState || selectedCluster) && (
             <div className="flex items-center gap-2">

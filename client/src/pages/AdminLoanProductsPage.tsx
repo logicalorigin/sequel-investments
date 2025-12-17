@@ -394,7 +394,10 @@ export default function AdminLoanProductsPage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Package className="h-8 w-8 text-primary" />
-          <h1 className="text-2xl font-bold" data-testid="text-page-title">Loan Products</h1>
+          <div>
+            <h1 className="text-2xl font-bold" data-testid="text-page-title">Loan Products</h1>
+            <p className="text-muted-foreground">Manage loan product offerings</p>
+          </div>
         </div>
         <Button onClick={handleOpenCreate} data-testid="button-create-product">
           <Plus className="h-4 w-4 mr-2" />

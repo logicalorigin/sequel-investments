@@ -341,7 +341,7 @@ export default function AdminDashboard() {
 
         {/* Secondary Metrics */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <Card
+          <Card 
             className="cursor-pointer hover-elevate"
             data-testid="card-total-applications"
           >
@@ -360,7 +360,7 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
 
-          <Card
+          <Card 
             className="cursor-pointer hover-elevate"
             data-testid="card-active-borrowers"
           >
@@ -379,7 +379,7 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
 
-          <Card
+          <Card 
             className="cursor-pointer hover-elevate"
             data-testid="card-pending-review"
           >
@@ -398,7 +398,7 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
 
-          <Card
+          <Card 
             className="cursor-pointer hover-elevate"
             data-testid="card-new-submissions"
           >

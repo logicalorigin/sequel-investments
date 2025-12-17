@@ -171,7 +171,10 @@ export default function AdminDrawRequestsPage() {
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-3">
           <HardHat className="h-8 w-8 text-primary" />
-          <h1 className="text-2xl font-bold" data-testid="text-page-title">Draw Requests</h1>
+          <div>
+            <h1 className="text-2xl font-bold" data-testid="text-page-title">Draw Requests</h1>
+            <p className="text-muted-foreground">Manage draw requests across all loans</p>
+          </div>
         </div>
         {pendingCount > 0 && (
           <Badge variant="destructive" className="text-sm" data-testid="badge-pending-count">
