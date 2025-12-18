@@ -1,6 +1,12 @@
-def main():
-    print("Hello from repl-nix-workspace!")
 
+import http.server
+import socketserver
+import os
 
-if __name__ == "__main__":
-    main()
+PORT = int(os.environ.get("PORT", 8080))
+
+Handler = http.server.SimpleHTTPRequestHandler
+
+with socketserver.TCPServer(("", PORT), Handler) as httpd:
+    print("serving at port", PORT)
+    httpd.serve_forever()
